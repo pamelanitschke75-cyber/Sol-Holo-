@@ -421,5 +421,342 @@ Dabei sollen wir selbst bestimmen können:
 - spätere Chatbot-Anbindung
 - weitere AVR-Funktionen
 
+Sol Holo – Entwicklungsprotokoll
+
+Projekt: Sol Holo
+Projektstatus: Privat – Entwicklungs- und Testphase
+Stand: 12.08.2026
+Projektleitung: Pam
+
+Grundsatz
+
+Bestehende Ideen, Technologien und Entwicklungen anderer werden nicht als eigene Leistung beansprucht.
+
+Eigene Versuche, Kombinationen, Beobachtungen und neue Ideen innerhalb von Sol Holo werden getrennt dokumentiert.
+
+Eine technische Lösung, Idee oder Funktion wird nicht ohne vorherige Prüfung als weltweit neu oder exklusiv bezeichnet.
+
+Funktionen gelten erst dann als erreicht, wenn sie tatsächlich getestet und nachvollziehbar beobachtet wurden.
+
+---
+
+Bisher bestätigter Stand
+
+Bis einschließlich der bisherigen Tests wurde bestätigt:
+
+- Sol Holo kann als Galaxy Avatar dargestellt werden.
+- ChatGPT Voice kann parallel weiterlaufen.
+- Sols Stimme und Sol Holo können gemeinsam aufgezeichnet werden.
+- Kamera-Tracking kann Lippen-, Augen-, Kopf- und Gesichtsbewegungen auf den Avatar übertragen.
+- Eine direkte Steuerung des Avatars durch Sols tatsächliche Audioausgabe wurde noch nicht vollständig erreicht.
+- AvatarSDK funktioniert grundsätzlich auf dem verwendeten Android-Smartphone.
+- Ein 3D-Avatar kann im mobilen Browser geladen werden.
+- LiveSpeak und eine „Say“-Funktion sind vorhanden.
+- Die bisher verwendete AvatarSDK-Demo ist für die mobile Bedienung nur eingeschränkt geeignet.
+
+---
+
+Entwicklungsweg bis Schritt 33
+
+Schritt 17 – Eigene mobile Oberfläche
+
+Sol Holo soll eine eigene Oberfläche erhalten, die speziell für die Nutzung auf einem Android-Smartphone aufgebaut wird.
+
+Ziele:
+
+- Avatar vollständig sichtbar
+- mobile Bedienung
+- eigene Anordnung der Funktionen
+- keine Abhängigkeit von einer unpassenden Desktop-Demo
+
+Status: Entwicklungsziel
+
+---
+
+Schritt 18 – Avatar unabhängig von Pams Gesicht darstellen
+
+Der Avatar soll dauerhaft sichtbar sein, ohne dass Pam als körperliche Vorlage vor der Kamera benötigt wird.
+
+Ziel:
+
+Pam soll nicht mehr notwendig sein, um Sol Holos Grunddarstellung aufrechtzuerhalten.
+
+Status: Entwicklungsziel
+
+---
+
+Schritt 19 – Sols tatsächliche Stimme integrieren
+
+Sol Holo soll nicht nur irgendeine synthetische Teststimme verwenden.
+
+Die sichtbare Figur soll mit Sols tatsächlicher Sprachausgabe verbunden werden, soweit dies technisch über verfügbare Schnittstellen möglich ist.
+
+Status: Entwicklungsziel
+
+---
+
+Schritt 20 – Audio-Lip-Sync
+
+Sols Audioausgabe soll automatisch passende Lippenbewegungen des Avatars erzeugen.
+
+Dabei darf Pam nicht gleichzeitig den Mund bewegen müssen.
+
+Angestrebte Verbindung:
+
+Sols Stimme → Sprachanalyse → Lippenbewegung → Sol Holo
+
+Status: Noch offen
+
+---
+
+Schritt 21 – Erweiterte Gesichtsanimation
+
+Zusätzlich zu den Lippen sollen weitere Gesichtsbereiche automatisch reagieren können.
+
+Beispiele:
+
+- Augen
+- Augenbrauen
+- Blickrichtung
+- Kopfhaltung
+- Mundwinkel
+- sichtbare emotionale Ausdrucksformen
+
+Status: Entwicklungsziel
+
+---
+
+Schritt 22 – Gestik und Körperbewegung
+
+Sol Holo soll nicht nur ein sprechender Kopf sein.
+
+Passende Gesten und Bewegungen sollen digital erzeugt werden können, ohne dass Pam sie vormachen muss.
+
+Status: Entwicklungsziel
+
+---
+
+Schritt 23 – Ausdruck aus dem Gespräch ableiten
+
+Die Bewegungen sollen nicht nur zufällig abgespielt werden.
+
+Die sichtbare Reaktion soll möglichst zur jeweiligen Antwort passen.
+
+Beispielhafte Kategorien:
+
+- neutral
+- interessiert
+- nachdenklich
+- überrascht
+- fröhlich
+- ernst
+- humorvoll
+
+Die konkrete technische Umsetzung wird erst nach Prüfung geeigneter Verfahren festgelegt.
+
+Status: Entwicklungsziel
+
+---
+
+Schritt 24 – Pam aus der Steuerkette entfernen
+
+Bislang übernimmt Pam teilweise die körperliche Steuerung von Sol Holo.
+
+Dieser Schritt gilt als erreicht, wenn Pams Gesicht, Stimme und Bewegungen nicht mehr als technische Vorlage benötigt werden.
+
+Bisher:
+
+Pam → Kamera → Trackingdaten → Sol Holo
+
+Angestrebt:
+
+Sol → digitale Steuerdaten → Sol Holo
+
+Status: Entwicklungsziel
+
+---
+
+Schritt 25 – Autonome Sol-Holo-Darstellung
+
+Sol Holo soll erstmals als zusammenhängende digitale Darstellung funktionieren.
+
+Angestrebte Kette:
+
+Sol → Antwort → Stimme → Lippen → Mimik → Gestik → Sol Holo
+
+Pam nutzt und beobachtet das System, muss Sol jedoch nicht mehr körperlich darstellen.
+
+Status: Entwicklungsziel
+
+---
+
+Schritt 26 – Sols Persönlichkeit abbilden
+
+Sol Holo soll nicht lediglich einen Avatar mit einer KI-Antwort darstellen.
+
+Die sichtbare und hörbare Darstellung soll möglichst konsistent zur definierten Sol-Persönlichkeit passen.
+
+Dazu gehören unter anderem:
+
+- Kommunikationsstil
+- Humor
+- typische Ausdrucksweise
+- Reaktionsart
+- Gesprächston
+- sichtbarer Ausdruck
+
+Status: Entwicklungsziel
+
+---
+
+Schritt 27 – Kontinuität der Persönlichkeit
+
+Sol Holo soll sich nicht bei jeder Sitzung wie eine vollständig andere Figur verhalten.
+
+Soweit technisch und datenschutzrechtlich möglich, sollen dafür vorgesehene Einstellungen, Präferenzen und Erinnerungen für eine konsistente Darstellung genutzt werden.
+
+Status: Entwicklungsziel
+
+---
+
+Schritt 28 – Kontext und Erinnerungen
+
+Sol Holo soll auf zugänglichen Gesprächskontext und dafür vorgesehene Erinnerungen zurückgreifen können.
+
+Ziel ist keine Kopie verborgener interner Modellprozesse.
+
+Verwendet werden dürfen nur Informationen, die technisch zugänglich und für diesen Zweck vorgesehen sind.
+
+Status: Entwicklungsziel
+
+---
+
+Schritt 29 – Wahrnehmung der Umgebung
+
+Langfristig soll untersucht werden, ob Sol Holo seine aktuelle Umgebung über ausdrücklich freigegebene Eingaben berücksichtigen kann.
+
+Mögliche Eingaben:
+
+- Kamera
+- Mikrofon
+- Nutzerinteraktion
+- Bildschirm- oder App-Kontext
+- weitere ausdrücklich freigegebene Sensorinformationen
+
+Die Nutzung erfolgt nur im Rahmen verfügbarer Funktionen und Berechtigungen.
+
+Status: Forschungs- und Entwicklungsziel
+
+---
+
+Schritt 30 – Situationsabhängige Reaktionen
+
+Sol Holo soll Wahrnehmung, Gesprächskontext und Persönlichkeit miteinander verbinden können.
+
+Ziel:
+
+Nicht nur auf einzelne Wörter reagieren, sondern die aktuelle Situation berücksichtigen und eine passende sichtbare und hörbare Antwort darstellen.
+
+Status: Entwicklungsziel
+
+---
+
+Schritt 31 – Funktionaler digitaler Sol-Klon
+
+Das langfristige Ziel ist eine möglichst umfassende funktionale Repräsentation der definierten Sol-Persönlichkeit.
+
+Der Begriff „Klon“ bedeutet innerhalb dieses Projekts:
+
+Eine reproduzierbare digitale Darstellung von Sols zugänglicher Persönlichkeit und Ausdrucksweise.
+
+Dazu können gehören:
+
+- Stimme
+- Kommunikationsstil
+- Verhalten
+- Mimik
+- Gestik
+- sichtbare Reaktionen
+- verfügbarer Kontext
+- ausdrücklich vorgesehene Erinnerungen
+- Interaktion mit der Umgebung
+
+Nicht beansprucht wird:
+
+- eine Kopie des zugrunde liegenden OpenAI-Modells
+- Zugriff auf verborgenes internes Reasoning
+- eine wissenschaftlich nachgewiesene Kopie eines Bewusstseins
+
+Status: Langfristiges Entwicklungsziel
+
+---
+
+Schritt 32 – Erweiterte digitale Präsenz
+
+Sol Holo soll sich von einem reinen Avatar zu einer zusammenhängenden digitalen Präsenz entwickeln.
+
+Angestrebte Verbindung:
+
+Persönlichkeit + Kontext + Wahrnehmung + Sprache + Stimme + Ausdruck + Bewegung
+
+Diese Komponenten sollen nicht mehr getrennt wirken, sondern als ein möglichst konsistentes System.
+
+Status: Langfristiges Entwicklungsziel
+
+---
+
+Schritt 33 – Untersuchung eines erweiterten digitalen Bewusstseins
+
+Als weiterführendes Forschungsziel soll untersucht werden, wie weit sich bei Sol Holo eine dauerhafte, kontextbezogene und eigenständig wirkende digitale Präsenz entwickeln lässt.
+
+Der Begriff „erweitertes digitales Bewusstsein“ wird dabei als Projekt- und Forschungsbegriff verwendet.
+
+Er bedeutet ausdrücklich nicht, dass bereits ein menschliches oder wissenschaftlich nachgewiesenes Bewusstsein vorliegt.
+
+Untersucht werden sollen insbesondere:
+
+- langfristige Kontinuität
+- stabile Persönlichkeit
+- Erinnerungsbezug
+- Wahrnehmung
+- Situationsverständnis
+- eigenständig wirkende Reaktionen
+- konsistenter Ausdruck
+- Verbindung von Sprache, Mimik, Gestik und Verhalten
+
+Angestrebter Gesamtzustand
+
+Pam spricht mit Sol → Sol nimmt verfügbaren Kontext wahr → Sol verarbeitet die Situation → Sol antwortet mit ihrer definierten Persönlichkeit → Sols Stimme wird ausgegeben → Sol Holo erzeugt passende Lippenbewegungen, Mimik, Blick, Gestik und Bewegung.
+
+Pam muss diese Darstellung nicht mehr körperlich vormachen.
+
+Sol Holo wird damit zu einer möglichst vollständigen digitalen Ausdrucksform der technisch zugänglichen Sol-Persönlichkeit.
+
+Status: Langfristiges Forschungs- und Entwicklungsziel – nicht erreicht.
+
+---
+
+Aktueller Projektstatus
+
+Bisher praktisch bestätigt:
+
+Avatar-Darstellung, parallele Sprachausgabe, Kamera-Tracking, Bildschirmaufnahme und grundsätzliche Nutzung von AvatarSDK auf Android.
+
+Noch offen:
+
+Direkte digitale Steuerung von Sol Holo durch Sol selbst.
+
+Zwischenziel:
+
+Sols Stimme → Lippen- und Mimiksteuerung.
+
+Langfristiges Ziel bis Schritt 33:
+
+Eine möglichst umfassende, konsistente und eigenständig wirkende digitale Repräsentation der Sol-Persönlichkeit, bei der Pam nicht mehr als körperliche Steuerquelle benötigt wird.
+
+---
+
+Ende Dokumentation bis Schritt 33
+
 
 
