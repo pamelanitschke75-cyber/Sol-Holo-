@@ -137,4 +137,82 @@ Sie werden nicht für die Projektdokumentation verändert oder überschrieben.
 
 Ende Test 001
 
-Nächster Eintrag: Test 002 – Untersuchung der Sprachsteuerung von Sol Holos Mimik
+Nächster Eintrag: Test 002 –
+
+ Untersuchung der Sprachsteuerung von Sol Holos Mimik
+
+ Mimik des Avatars entsprechend.
+
+• Bei ruhigem Gesicht und ohne Bewegung bleibt der Avatar entsprechend ruhig.
+
+• Damit ist bestätigt, dass die Gesichts- und Mimikerfassung grundsätzlich funktioniert.
+
+• Eine direkte Steuerung der Lippenbewegungen durch die Audioausgabe bzw. Stimme von Sol konnte bisher nicht nachgewiesen werden.
+
+Ergebnis
+
+Die technische Fähigkeit des Sol-Holo-Avatars, Lippen-, Augen- und Gesichtsbewegungen darzustellen, ist bestätigt.
+
+Der nächste Entwicklungsschritt besteht darin zu untersuchen, ob die bisher kamerabasierte Steuerung der Lippenbewegungen durch ein Audiosignal bzw. die Stimme von Sol ersetzt oder ergänzt werden kann.
+
+Status
+
+Test erfolgreich abgeschlossen.
+Audio-Lip-Sync mit Sols Stimme: noch offen.
+
+
+
+• Ohne Sprechen und bei ruhig gehaltenem Gesicht wurde keine Mundbewegung des Avatars beobachtet.
+
+• Damit ist bestätigt, dass die Gesichts- und Mimikerfassung grundsätzlich funktioniert.
+
+• Eine direkte Steuerung der Lippenbewegungen durch die Audioausgabe bzw. Stimme von Sol konnte bisher nicht nachgewiesen werden.
+
+Ergebnis
+
+Die technische Fähigkeit des Sol-Holo-Avatars, Lippen-, Augen- und Gesichtsbewegungen darzustellen, ist bestätigt.
+
+Der nächste Entwicklungsschritt besteht darin zu untersuchen, ob die bisher kamerabasierte Steuerung der Lippenbewegungen durch ein Audiosignal bzw. die Stimme von Sol ersetzt oder ergänzt werden kann.
+
+Status
+
+Test erfolgreich abgeschlossen.
+
+Gesichts- und Mimikerfassung: bestätigt.
+
+Audio-Lip-Sync mit Sols Stimme: noch offen.
+
+Test 002/003 – Untersuchung der Avatar-Steuerung
+
+Datum: 12.08.2026
+
+Ziel
+
+Untersuchen, wodurch die Bewegungen des Sol-Holo-Avatars in den verschiedenen Darstellungsmodi gesteuert werden und ob eine Reaktion auf die Stimme von Sol nachweisbar ist.
+
+Beobachtungen
+
+• Im Maskenmodus reagiert Sol Holo sichtbar auf die über die Kamera erfasste Mimik der Nutzerin.
+
+• Lippenbewegungen werden auf den Avatar übertragen.
+
+• Augenbewegungen und Gesichtsausdrücke werden ebenfalls übertragen.
+
+• Beim Lachen verändert sich die Mimik des Avatars entsprechend.
+
+• Bei ruhigem Gesicht und ohne Bewegung bleibt der Avatar entsprechend ruhig.
+
+• Damit ist bestätigt, dass die Gesichts- und Mimikerfassung grundsätzlich funktioniert.
+
+• Eine direkte Steuerung der Lippenbewegungen durch die Audioausgabe bzw. Stimme von Sol konnte bisher nicht nachgewiesen werden.
+
+Ergebnis
+
+Die technische Fähigkeit des Sol-Holo-Avatars, Lippen-, Augen- und Gesichtsbewegungen darzustellen, ist bestätigt.
+
+Der nächste Entwicklungsschritt besteht darin zu untersuchen, ob die bisher kamerabasierte Steuerung der Lippenbewegungen durch ein Audiosignal bzw. die Stimme von Sol ersetzt oder ergänzt werden kann.
+
+Status
+
+Test erfolgreich abgeschlossen.
+Audio-Lip-Sync mit Sols Stimme: noch offen.
