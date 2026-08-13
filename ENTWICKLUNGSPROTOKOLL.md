@@ -1583,3 +1583,4 @@ KI-API-Integration            ⏳
 End-to-End-Test               ⏳
 
 Grundsatz: Eine vorbereitete Komponente wird als vorbereitet dokumentiert. Eine Funktion wird erst nach praktischem und reproduzierbarem Test als funktionsfähig dokumentiert.
+
