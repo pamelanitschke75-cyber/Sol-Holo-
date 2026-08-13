@@ -1302,3 +1302,284 @@ Historische Testnotiz 😎
 Der GRAUE Knopf wurde gedrückt. 🩶
 
 Die roten bleiben für immer tabu. 🔴🚫
+
+Nachtrag – Vorbereitung der KI/API-Integration
+
+Datum: 13.08.2026
+Projekt: Sol Holo
+Phase: Vorbereitung der ersten externen KI-Schnittstelle
+
+1. Ausgangslage
+
+Die mobile Sol-Holo-Weboberfläche wurde zuvor erfolgreich über GitHub Pages bereitgestellt.
+
+Der erste Funktionstest bestätigte:
+
+- Auslieferung von "index.html" über GitHub Pages
+- korrekte Darstellung auf einem Android-Smartphone
+- Ausführung von clientseitigem JavaScript
+- Verarbeitung eines "onclick"-Events
+- Änderung des DOM-Inhalts nach Benutzerinteraktion
+
+Damit ist die grundlegende Frontend-Ausführung auf dem Zielgerät bestätigt.
+
+---
+
+2. Nächste technische Erweiterung
+
+Als nächster Integrationsschritt soll Sol Holo mit einer externen KI-Schnittstelle verbunden werden.
+
+Zielarchitektur:
+
+Android-Smartphone
+        │
+        ▼
+Sol-Holo-Frontend
+HTML / JavaScript
+GitHub Pages
+        │
+        │ HTTPS Request
+        ▼
+Sol-Holo-Backend
+        │
+        │ serverseitige Authentifizierung
+        ▼
+OpenAI API
+        │
+        │ API Response
+        ▼
+Sol-Holo-Backend
+        │
+        │ HTTPS / JSON
+        ▼
+Sol-Holo-Frontend
+        │
+        ▼
+Ausgabe auf dem Smartphone
+
+Das Frontend soll dabei nicht direkt mit einem geheimen API-Schlüssel auf die externe API zugreifen.
+
+---
+
+3. API-Projekt
+
+Für die geplante Integration wurde ein separates API-Projekt für Sol Holo eingerichtet.
+
+Vorbereiteter Stand:
+
+- OpenAI-API-Arbeitsbereich eingerichtet
+- Projekt "Sol Holo" angelegt
+- API-Abrechnung/Guthaben für die Entwicklungsphase eingerichtet
+- projektspezifischer API-Schlüssel erzeugt
+
+Der geheime Schlüssel wird nicht im öffentlichen Repository dokumentiert.
+
+---
+
+4. Trennung von Frontend und Backend
+
+GitHub Pages stellt statische Webinhalte öffentlich bereit.
+
+Daher wird folgende Trennung vorgesehen:
+
+Frontend
+
+Öffentlich verfügbar:
+
+index.html
+HTML
+CSS
+clientseitiges JavaScript
+Benutzeroberfläche
+
+Aufgabe:
+
+- Benutzereingaben entgegennehmen
+- Anfragen an das Sol-Holo-Backend senden
+- Antworten empfangen
+- Ergebnisse darstellen
+
+Backend
+
+Separat und geschützt bereitzustellen.
+
+Aufgabe:
+
+- API-Anfragen des Frontends entgegennehmen
+- Eingaben prüfen
+- Anfrage für die externe KI-API erzeugen
+- Authentifizierung serverseitig durchführen
+- KI-Antwort empfangen
+- benötigte Antwortdaten an das Frontend zurückgeben
+- Fehler kontrolliert behandeln
+
+---
+
+5. Umgang mit Zugangsdaten
+
+Der API-Schlüssel darf nicht Bestandteil des öffentlich ausgelieferten Frontend-Codes werden.
+
+Insbesondere darf er nicht gespeichert werden in:
+
+index.html
+JavaScript-Dateien des Frontends
+GitHub Pages
+öffentlichen Repository-Dateien
+öffentlichen Konfigurationsdateien
+
+Vorgesehen ist stattdessen eine serverseitige Speicherung als geschütztes Secret bzw. als geschützte Umgebungsvariable.
+
+Beispielhafte interne Bezeichnung:
+
+OPENAI_API_KEY
+
+Der tatsächliche Wert des Schlüssels wird nicht dokumentiert oder committed.
+
+---
+
+6. Geplanter Datenfluss
+
+Eine spätere Textanfrage soll technisch ungefähr folgenden Weg nehmen:
+
+1. Pam gibt Text in Sol Holo ein
+
+2. Frontend erzeugt Request
+
+3. Request wird über HTTPS
+   an das Sol-Holo-Backend übertragen
+
+4. Backend validiert die Anfrage
+
+5. Backend authentifiziert sich
+   serverseitig gegenüber der KI-API
+
+6. KI verarbeitet die Anfrage
+
+7. API liefert eine Response
+   an das Backend
+
+8. Backend verarbeitet die Response
+
+9. benötigte Antwortdaten werden
+   als strukturierte Daten zurückgegeben
+
+10. Frontend empfängt die Antwort
+
+11. Sol Holo stellt die Antwort
+    auf dem Smartphone dar
+
+Vereinfachtes Schema:
+
+PAM
+ │
+ ▼
+SOL HOLO FRONTEND
+ │
+ │ HTTPS / JSON
+ ▼
+SOL HOLO BACKEND
+ │
+ │ API Request + serverseitige Authentifizierung
+ ▼
+OPENAI API
+ │
+ │ Response
+ ▼
+SOL HOLO BACKEND
+ │
+ │ JSON Response
+ ▼
+SOL HOLO FRONTEND
+ │
+ ▼
+PAM
+
+---
+
+7. Sicherheitsanforderungen
+
+Vor der produktiven Verbindung sollen mindestens folgende Punkte berücksichtigt werden:
+
+- API-Key ausschließlich serverseitig
+- HTTPS für die Kommunikation
+- keine Secrets im öffentlichen Repository
+- Eingabevalidierung
+- kontrollierte Fehlerbehandlung
+- Begrenzung unerwünschter bzw. übermäßiger Requests
+- kontrollierbare API-Kosten
+- keine unnötige Speicherung persönlicher Daten
+- nachvollziehbare Trennung zwischen öffentlichen und privaten Komponenten
+
+Weitere Sicherheitsmaßnahmen werden ergänzt, sobald die konkrete Backend-Technologie festgelegt wurde.
+
+---
+
+8. Noch nicht implementiert
+
+Zum Zeitpunkt dieses Nachtrags sind folgende Komponenten noch nicht als funktionierend bestätigt:
+
+Sol-Holo-Frontend → Backend       ⏳
+Backend → OpenAI API              ⏳
+OpenAI API → Backend              ⏳
+Backend → Sol-Holo-Frontend       ⏳
+End-to-End-Kommunikation          ⏳
+
+Der vorhandene API-Zugang allein stellt noch keine funktionierende Sol-Holo-KI-Integration dar.
+
+---
+
+9. Nächster technischer Meilenstein
+
+Als nächstes wird eine geeignete Backend-Komponente eingerichtet.
+
+Anschließend erfolgt ein End-to-End-Integrationstest:
+
+EINGABE
+  ↓
+SOL HOLO
+  ↓
+BACKEND
+  ↓
+OPENAI API
+  ↓
+BACKEND
+  ↓
+SOL HOLO
+  ↓
+AUSGABE
+
+Erfolgskriterium
+
+Der Test gilt erst als bestanden, wenn:
+
+1. eine reale Eingabe über die Sol-Holo-Oberfläche erfolgt,
+2. diese das geschützte Backend erreicht,
+3. das Backend erfolgreich die externe KI-API aufruft,
+4. eine gültige Antwort empfangen wird,
+5. diese Antwort an das Sol-Holo-Frontend zurückgegeben wird,
+6. und die Antwort auf dem Android-Smartphone sichtbar dargestellt wird.
+
+Erst nach einem erfolgreichen und reproduzierbaren Durchlauf wird die Schnittstelle im Entwicklungsprotokoll als:
+
+"Sol Holo ↔ KI: FUNKTIONSFÄHIG ✅"
+
+dokumentiert.
+
+---
+
+Aktueller technischer Status
+
+GitHub Repository             ✅
+GitHub Pages                  ✅
+index.html                    ✅
+mobiles Frontend              ✅
+clientseitiges JavaScript     ✅
+API-Projekt                   ✅
+API-Zugang                    ✅
+API-Key                       ✅ erstellt / geheim
+Backend                       ⏳
+Frontend-Backend-Verbindung   ⏳
+KI-API-Integration            ⏳
+End-to-End-Test               ⏳
+
+Grundsatz: Eine vorbereitete Komponente wird als vorbereitet dokumentiert. Eine Funktion wird erst nach praktischem und reproduzierbarem Test als funktionsfähig dokumentiert.
