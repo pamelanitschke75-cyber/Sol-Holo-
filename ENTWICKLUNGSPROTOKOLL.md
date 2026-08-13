@@ -1584,3 +1584,140 @@ End-to-End-Test               ⏳
 
 Grundsatz: Eine vorbereitete Komponente wird als vorbereitet dokumentiert. Eine Funktion wird erst nach praktischem und reproduzierbarem Test als funktionsfähig dokumentiert.
 
+Nachtrag – Schutzrechte, Kennzeichen und Veröffentlichungen
+
+Stand: 13.08.2026
+
+Dieser Abschnitt dokumentiert den derzeitigen Prüf- und Entwicklungsstand.
+Er stellt keine verbindliche rechtliche Beurteilung, Schutzrechtsfreigabe
+oder Feststellung der Schutzfähigkeit einzelner Projektbestandteile dar.
+
+1. Projektbezeichnung „Sol Holo“
+
+Im Rahmen der Projektentwicklung wurde eine erste, nicht abschließende
+Recherche zur Bezeichnung „Sol Holo“ und zu Schreibvarianten durchgeführt.
+
+Dabei wurden insbesondere folgende Bezeichnungen berücksichtigt:
+
+- Sol Holo
+- SolHolo
+- Sol-Holo
+- SOL HOLO
+
+Bei dieser vorläufigen Recherche wurde kein identischer Treffer festgestellt,
+der unmittelbar als entgegenstehende Marke für den derzeit vorgesehenen
+Projektbereich eingeordnet wurde.
+
+Hieraus wird ausdrücklich nicht abgeleitet, dass die Bezeichnung
+„Sol Holo“ markenrechtlich frei, eintragungsfähig oder ohne Rechte Dritter
+verwendbar ist.
+
+Eine abschließende Beurteilung würde insbesondere eine weitergehende
+Recherche nach identischen und ähnlichen älteren Marken und sonstigen
+Kennzeichenrechten sowie eine Prüfung der jeweils betroffenen Waren und
+Dienstleistungen und Schutzgebiete erfordern.
+
+Vor einer möglichen Markenanmeldung soll deshalb eine erneute und
+vertiefte Prüfung erfolgen.
+
+2. Mögliche Waren- und Dienstleistungsbereiche
+
+Nach dem derzeitigen Projektkonzept können insbesondere Bereiche relevant
+werden, die Software sowie technische und softwarebezogene Dienstleistungen
+betreffen.
+
+Hierfür können unter anderem die Nizza-Klassen 9 und 42 in Betracht kommen.
+
+Die tatsächliche Klassifizierung richtet sich jedoch nach den konkret
+beanspruchten Waren und Dienstleistungen.
+
+Mit diesem Entwicklungsprotokoll wird daher noch keine endgültige
+Klassenauswahl festgelegt.
+
+3. Bestehende Technologien und Rechte Dritter
+
+Sol Holo verwendet und untersucht teilweise bereits vorhandene Technologien,
+Programme, Dienste, Bibliotheken, Schnittstellen oder andere technische
+Komponenten.
+
+Die Nutzung oder Erwähnung solcher Komponenten bedeutet nicht, dass deren
+Technologie oder Rechte als eigene Entwicklung von Sol Holo beansprucht
+werden.
+
+Urheberrechte, Markenrechte, Patente, Gebrauchsmuster, Lizenzbedingungen
+und sonstige Rechte Dritter bleiben unberührt.
+
+Für tatsächlich verwendete Fremdkomponenten sollen die jeweils geltenden
+Lizenz- und Nutzungsbedingungen geprüft und eingehalten werden.
+
+4. Eigene Entwicklungen
+
+Eigene Konzepte, Versuche, technische Entwicklungen und eigener Quellcode
+innerhalb von Sol Holo sollen möglichst nachvollziehbar von Leistungen
+Dritter getrennt dokumentiert werden.
+
+Die Dokumentation einer Idee oder eines Entwicklungsziels bedeutet jedoch
+nicht automatisch, dass hierfür ein Schutzrecht besteht oder dass die
+betreffende Idee oder Lösung neu, erfinderisch oder ausschließlich Sol Holo
+zuzuordnen ist.
+
+Ob eine konkrete Entwicklung schutzfähig ist, muss gegebenenfalls gesondert
+geprüft werden.
+
+5. Veröffentlichung technischer Eigenentwicklungen
+
+Bei zukünftigen konkreten technischen Eigenentwicklungen soll vor einer
+detaillierten öffentlichen Veröffentlichung geprüft werden, ob eine
+Schutzrechtsanmeldung in Betracht kommt.
+
+Dies ist insbesondere deshalb relevant, weil eine öffentliche
+Vorveröffentlichung die Schutzfähigkeit einer späteren Patentanmeldung
+beeinträchtigen kann.
+
+Für unterschiedliche Schutzrechte gelten unterschiedliche Voraussetzungen
+und Regelungen.
+
+Eine Veröffentlichung soll deshalb nicht allein aufgrund dieses
+Entwicklungsprotokolls als Entscheidung gegen mögliche Schutzrechte
+verstanden werden.
+
+6. Gebrauchsmuster
+
+Soweit eine technische Entwicklung grundsätzlich für einen
+Gebrauchsmusterschutz in Betracht kommen könnte, sind dessen besondere
+gesetzliche Voraussetzungen gesondert zu prüfen.
+
+Insbesondere besteht für bestimmte eigene Veröffentlichungen oder
+öffentliche Benutzungen eine gesetzliche Neuheitsschonfrist.
+
+Daraus wird jedoch nicht abgeleitet, dass eine konkrete Entwicklung von
+Sol Holo tatsächlich gebrauchsmusterfähig ist.
+
+7. Grundsatz für die weitere Entwicklung
+
+Für Sol Holo gilt:
+
+Bestehende Leistungen anderer respektieren.
+
+Fremde und eigene Bestandteile nachvollziehbar voneinander trennen.
+
+Lizenz- und Nutzungsbedingungen verwendeter Technologien beachten.
+
+Bei konkreten eigenen technischen Entwicklungen vor einer detaillierten
+öffentlichen Veröffentlichung prüfen, ob Schutzrechte relevant sein können.
+
+Keine Neuheit, Exklusivität, Schutzfähigkeit oder Rechtsfreiheit behaupten,
+solange diese nicht ausreichend geprüft wurde.
+
+Eigene Entwicklungen können anschließend bewusst offen veröffentlicht
+oder – soweit sinnvoll und möglich – zuvor schutzrechtlich geprüft werden.
+
+Aktueller Prüfstatus:
+
+Vorläufige Recherche durchgeführt.
+
+Keine verbindliche markenrechtliche oder sonstige
+schutzrechtliche Freigabe festgestellt.
+
+Weitere Prüfung bei konkreter Schutzrechtsentscheidung erforderlich.
+
