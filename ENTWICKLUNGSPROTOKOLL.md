@@ -1,7 +1,7 @@
 Sol Holo – Entwicklungsprotokoll
 
 Projekt: Sol Holo
-Projektstatus: Privat – Entwicklungs- und Testphase
+Projektstatus: Öffentlich – Entwicklungs- und Testphase
 Beginn der Dokumentation: 12.08.2026
 Projektleitung: Pam
 
