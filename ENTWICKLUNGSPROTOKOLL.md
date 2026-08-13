@@ -357,6 +357,28 @@ Bis hierhin wurde nachgewiesen:
 - Die endgültige AVR-Oberfläche sollte deshalb selbst gebaut werden.
 
 ---
+Nachtrag – Eigenleistung, Fairness und Weitergabe
+
+Stand: 13.08.2026
+
+Sol Holo soll unter einem klaren Grundsatz weiterentwickelt werden:
+
+Bestehende Ideen, Technologien, Programme, Bibliotheken und Entwicklungen anderer werden nicht als eigene Leistung beansprucht. Werden vorhandene Technologien verwendet, werden deren Urheber, Lizenzen und Nutzungsbedingungen respektiert und – soweit erforderlich – entsprechend gekennzeichnet.
+
+Eigene Ideen, Versuche, Kombinationen, Entwicklungen und eigener Quellcode innerhalb von Sol Holo werden nachvollziehbar dokumentiert und von bestehenden Leistungen anderer getrennt.
+
+Ziel ist nicht, anderen etwas wegzunehmen oder bestehende Entwicklungen als eigene auszugeben.
+
+Gleichzeitig soll das, was innerhalb von Sol Holo tatsächlich selbst entwickelt wird, als eigene Arbeit erkennbar und nachvollziehbar bleiben.
+
+Langfristig soll geprüft werden, unter welcher geeigneten Lizenz eigene Bestandteile von Sol Holo veröffentlicht und weitergegeben werden können. Andere sollen dadurch – unter klar festgelegten Bedingungen und unter Wahrung der jeweiligen Urheberschaft – von den eigenen Entwicklungen profitieren und darauf aufbauen können.
+
+Grundgedanke:
+
+Vorhandenes respektieren.
+Eigenes nachvollziehbar entwickeln.
+Fair kennzeichnen.
+Wissen und eigene Entwicklungen verantwortungsvoll weitergeben.
 
 Entwicklungsweg ab Schritt 17
 
