@@ -218,7 +218,7 @@ GitHub soll unter anderem für folgende Dinge verwendet werden:
 - Versionshistorie
 - spätere öffentliche Bereitstellung
 
-Das Repository ist aktuell noch privat.
+
 
 Schritt 5 – Veröffentlichung vorbereiten
 
@@ -226,7 +226,7 @@ Es wurde bereits geprüft, wie das GitHub-Repository später von Private auf Pub
 
 Der Vorgang wurde noch nicht abgeschlossen.
 
-Die Veröffentlichung soll erst erfolgen, wenn der aktuelle Stand ausreichend dokumentiert und geprüft ist.
+Das Repository wurde am 12.08.2026 bewusst von Private auf Public umgestellt.
 
 Schritt 6 – Avatar-Technik testen
 
