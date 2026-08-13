@@ -224,7 +224,7 @@ Schritt 5 – Veröffentlichung vorbereiten
 
 Es wurde bereits geprüft, wie das GitHub-Repository später von Private auf Public gestellt werden kann.
 
-Der Vorgang wurde noch nicht abgeschlossen.
+
 
 Das Repository wurde am 12.08.2026 bewusst von Private auf Public umgestellt.
 
