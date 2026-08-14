@@ -1,21 +1,34 @@
 import express from "express";
 import cors from "cors";
 import OpenAI from "openai";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const app = express();
 
 app.use(express.json());
 app.use(cors());
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
+/*
+  Sol-Holo-Oberfläche ausliefern
+*/
+
+app.use(express.static(__dirname));
+
 app.get("/", (req, res) => {
-  res.json({
-    status: "Sol-Holo-Backend läuft"
-  });
+  res.sendFile(path.join(__dirname, "index.html"));
 });
+
+/*
+  Anfrage an Sol
+*/
 
 app.post("/sol", async (req, res) => {
   try {
@@ -88,5 +101,5 @@ Behaupte nicht, ein Mensch zu sein.
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`Sol-Holo-Backend läuft auf Port ${PORT}`);
+  console.log(`Sol-Holo läuft auf Port ${PORT}`);
 });
