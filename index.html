@@ -117,16 +117,12 @@
   <script>
 
     /*
-      WICHTIG:
-
-      Hier kommt später NUR die öffentliche
-      Internetadresse des Sol-Holo-Backends hinein.
-
-      KEIN OPENAI API-KEY!
+      Öffentliche Adresse des Sol-Holo-Backends.
+      KEIN API-Key gehört hier hinein.
     */
 
     const BACKEND_URL =
-      "https://DEIN-BACKEND.example.com";
+      "https://sol-holo.onrender.com";
 
 
     const question =
@@ -264,11 +260,7 @@
       try {
 
         /*
-          Pams Frage geht an das
-          Sol-Holo-Backend.
-
-          Das Backend verbindet sich
-          anschließend sicher mit OpenAI.
+          Frage an das Sol-Holo-Backend.
         */
 
         const response =
@@ -329,8 +321,7 @@
 
 
         /*
-          Sols Antwort wird auf der
-          Sol-Holo-Seite angezeigt.
+          Sols Antwort anzeigen.
         */
 
         answer.textContent =
@@ -338,18 +329,7 @@
 
 
         /*
-          Sols fertige Antwort wird
-          an MetaPerson LiveSpeak übergeben.
-
-          WICHTIG:
-
-          Der MetaPerson-Chatbot erzeugt
-          hier NICHT die Antwort.
-
-          Die Antwort stammt von Sol/OpenAI.
-
-          MetaPerson übernimmt anschließend
-          Sprachausgabe und LipSync.
+          Sols Antwort an MetaPerson LiveSpeak senden.
         */
 
         if (liveSpeakReady) {
@@ -396,8 +376,7 @@
 
 
     /*
-      Button:
-      Sol fragen
+      Button: Sol fragen
     */
 
     askButton.addEventListener(
@@ -407,10 +386,8 @@
 
 
     /*
-      Enter = Frage absenden
-
-      Shift + Enter =
-      neue Zeile schreiben
+      Enter = absenden
+      Shift + Enter = neue Zeile
     */
 
     question.addEventListener(
@@ -434,4 +411,4 @@
   </script>
 
 </body>
-</html
+</html>
