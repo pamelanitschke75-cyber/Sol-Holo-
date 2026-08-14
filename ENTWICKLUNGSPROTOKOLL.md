@@ -1721,3 +1721,66 @@ schutzrechtliche Freigabe festgestellt.
 
 Weitere Prüfung bei konkreter Schutzrechtsentscheidung erforderlich.
 
+## Test 004 – MetaPerson LiveSpeak: Chatbot + TTS + LipSync
+
+**Datum:** 14.08.2026  
+**Status:** Erfolgreich getestet und technisch nachgewiesen ✅
+
+### Ziel des Tests
+
+Ziel war zu prüfen, ob ein 3D-Avatar auf einem Android-Smartphone eine Chatbot-Antwort sprachlich ausgeben und dazu passende Lippenbewegungen erzeugen kann, ohne dass Pams Gesicht die Lippenbewegungen steuert.
+
+### Testumgebung
+
+- Android-Smartphone
+- Samsung Internet Browser
+- MetaPerson / Avatar SDK – LiveSpeak
+- LiveSpeak-Modus: `Azure + Local LipSync`
+- `Use Chatbot`: aktiviert
+- 3D-Avatar in der LiveSpeak-Weboberfläche
+
+### Technischer Ablauf
+
+Die getestete Verarbeitungskette:
+
+`Texteingabe → Chatbot → Textantwort → TTS → Audioausgabe → Local LipSync → 3D-Avatar`
+
+1. Eine Texteingabe wurde an den Chatbot übermittelt.
+2. Der Chatbot verarbeitete die Eingabe.
+3. Eine Antwort wurde erzeugt.
+4. Die Antwort wurde über Text-to-Speech (TTS) sprachlich ausgegeben.
+5. Die LipSync-Funktion erzeugte während der Sprachausgabe sichtbare Lippenbewegungen am 3D-Avatar.
+
+### Nachgewiesene Funktionen
+
+- Texteingabe wird verarbeitet: ✅
+- Chatbot erzeugt eine Antwort: ✅
+- Sprachausgabe funktioniert: ✅
+- Local LipSync funktioniert: ✅
+- Lippen des 3D-Avatars bewegen sich während der Sprachausgabe: ✅
+- Lippenbewegung funktioniert ohne Steuerung durch Pams Gesicht: ✅
+
+### Ergebnis
+
+**TEST 004 ERFOLGREICH ✅**
+
+Die folgende technische Verarbeitungskette wurde im praktischen Test erfolgreich ausgeführt:
+
+`Eingabe → Chatbot → Antwort → TTS → Audio → LipSync → Avatar`
+
+Damit ist nachgewiesen, dass auf dem getesteten mobilen System eine Chatbot-Antwort über TTS ausgegeben und mit sichtbarer Lippenanimation eines 3D-Avatars verbunden werden kann.
+
+### Bedeutung für Sol Holo
+
+Mit Test 004 wurde ein wichtiger technischer Baustein für Sol Holo praktisch nachgewiesen:
+
+Der Avatar kann eine erzeugte Chatbot-Antwort sprachlich darstellen und seine Lippen anhand der Sprachausgabe animieren, ohne dass Pam selbst die Gesichtsbewegungen des Avatars steuern muss.
+
+### Externe Technologie / Abgrenzung
+
+MetaPerson / Avatar SDK sowie die verwendeten LiveSpeak-, TTS- und LipSync-Funktionen sind externe Technologien und wurden nicht von Pam entwickelt.
+
+Sol Holo ist ein unabhängig entwickeltes und KI-unterstütztes Projekt.
+
+Der Test dokumentiert die praktische Verwendung externer Technologie innerhalb der technischen Erprobung von Sol Holo. Daraus wird keine Partnerschaft, Unterstützung, Finanzierung, Mitentwicklung, Eigentümerschaft oder sonstige Verbindung zu den Anbietern der verwendeten externen Technologien abgeleitet.
+
