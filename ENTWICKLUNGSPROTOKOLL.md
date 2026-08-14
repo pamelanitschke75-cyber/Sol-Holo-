@@ -218,13 +218,9 @@ GitHub soll unter anderem für folgende Dinge verwendet werden:
 - Versionshistorie
 - spätere öffentliche Bereitstellung
 
-
-
 Schritt 5 – Veröffentlichung vorbereiten
 
 Es wurde bereits geprüft, wie das GitHub-Repository später von Private auf Public gestellt werden kann.
-
-
 
 Das Repository wurde am 12.08.2026 bewusst von Private auf Public umgestellt.
 
@@ -357,6 +353,7 @@ Bis hierhin wurde nachgewiesen:
 - Die endgültige AVR-Oberfläche sollte deshalb selbst gebaut werden.
 
 ---
+
 Nachtrag – Eigenleistung, Fairness und Weitergabe
 
 Stand: 13.08.2026
@@ -1249,8 +1246,8 @@ Ablauf
 6. Die Sol-Holo-Testoberfläche wurde erfolgreich auf dem Smartphone geladen.
 
 7. Die Oberfläche zeigte den Ausgangsstatus:
-   
-   "Bereit."
+
+"Bereit."
 
 8. Der graue Button "Test starten" wurde betätigt.
 
@@ -1332,29 +1329,29 @@ Als nächster Integrationsschritt soll Sol Holo mit einer externen KI-Schnittste
 Zielarchitektur:
 
 Android-Smartphone
-        │
-        ▼
+│
+▼
 Sol-Holo-Frontend
 HTML / JavaScript
 GitHub Pages
-        │
-        │ HTTPS Request
-        ▼
+│
+│ HTTPS Request
+▼
 Sol-Holo-Backend
-        │
-        │ serverseitige Authentifizierung
-        ▼
+│
+│ serverseitige Authentifizierung
+▼
 OpenAI API
-        │
-        │ API Response
-        ▼
+│
+│ API Response
+▼
 Sol-Holo-Backend
-        │
-        │ HTTPS / JSON
-        ▼
+│
+│ HTTPS / JSON
+▼
 Sol-Holo-Frontend
-        │
-        ▼
+│
+▼
 Ausgabe auf dem Smartphone
 
 Das Frontend soll dabei nicht direkt mit einem geheimen API-Schlüssel auf die externe API zugreifen.
@@ -1445,53 +1442,48 @@ Eine spätere Textanfrage soll technisch ungefähr folgenden Weg nehmen:
 
 2. Frontend erzeugt Request
 
-3. Request wird über HTTPS
-   an das Sol-Holo-Backend übertragen
+3. Request wird über HTTPS an das Sol-Holo-Backend übertragen
 
 4. Backend validiert die Anfrage
 
-5. Backend authentifiziert sich
-   serverseitig gegenüber der KI-API
+5. Backend authentifiziert sich serverseitig gegenüber der KI-API
 
 6. KI verarbeitet die Anfrage
 
-7. API liefert eine Response
-   an das Backend
+7. API liefert eine Response an das Backend
 
 8. Backend verarbeitet die Response
 
-9. benötigte Antwortdaten werden
-   als strukturierte Daten zurückgegeben
+9. benötigte Antwortdaten werden als strukturierte Daten zurückgegeben
 
 10. Frontend empfängt die Antwort
 
-11. Sol Holo stellt die Antwort
-    auf dem Smartphone dar
+11. Sol Holo stellt die Antwort auf dem Smartphone dar
 
 Vereinfachtes Schema:
 
 PAM
- │
- ▼
+│
+▼
 SOL HOLO FRONTEND
- │
- │ HTTPS / JSON
- ▼
+│
+│ HTTPS / JSON
+▼
 SOL HOLO BACKEND
- │
- │ API Request + serverseitige Authentifizierung
- ▼
+│
+│ API Request + serverseitige Authentifizierung
+▼
 OPENAI API
- │
- │ Response
- ▼
+│
+│ Response
+▼
 SOL HOLO BACKEND
- │
- │ JSON Response
- ▼
+│
+│ JSON Response
+▼
 SOL HOLO FRONTEND
- │
- ▼
+│
+▼
 PAM
 
 ---
@@ -1535,17 +1527,17 @@ Als nächstes wird eine geeignete Backend-Komponente eingerichtet.
 Anschließend erfolgt ein End-to-End-Integrationstest:
 
 EINGABE
-  ↓
+↓
 SOL HOLO
-  ↓
+↓
 BACKEND
-  ↓
+↓
 OPENAI API
-  ↓
+↓
 BACKEND
-  ↓
+↓
 SOL HOLO
-  ↓
+↓
 AUSGABE
 
 Erfolgskriterium
@@ -1721,29 +1713,29 @@ schutzrechtliche Freigabe festgestellt.
 
 Weitere Prüfung bei konkreter Schutzrechtsentscheidung erforderlich.
 
-## Test 004 – MetaPerson LiveSpeak: Chatbot + TTS + LipSync
+Test 004 – MetaPerson LiveSpeak: Chatbot + TTS + LipSync
 
-**Datum:** 14.08.2026  
-**Status:** Erfolgreich getestet und technisch nachgewiesen ✅
+Datum: 14.08.2026
+Status: Erfolgreich getestet und technisch nachgewiesen ✅
 
-### Ziel des Tests
+Ziel des Tests
 
 Ziel war zu prüfen, ob ein 3D-Avatar auf einem Android-Smartphone eine Chatbot-Antwort sprachlich ausgeben und dazu passende Lippenbewegungen erzeugen kann, ohne dass Pams Gesicht die Lippenbewegungen steuert.
 
-### Testumgebung
+Testumgebung
 
 - Android-Smartphone
 - Samsung Internet Browser
 - MetaPerson / Avatar SDK – LiveSpeak
-- LiveSpeak-Modus: `Azure + Local LipSync`
-- `Use Chatbot`: aktiviert
+- LiveSpeak-Modus: "Azure + Local LipSync"
+- "Use Chatbot": aktiviert
 - 3D-Avatar in der LiveSpeak-Weboberfläche
 
-### Technischer Ablauf
+Technischer Ablauf
 
 Die getestete Verarbeitungskette:
 
-`Texteingabe → Chatbot → Textantwort → TTS → Audioausgabe → Local LipSync → 3D-Avatar`
+"Texteingabe → Chatbot → Textantwort → TTS → Audioausgabe → Local LipSync → 3D-Avatar"
 
 1. Eine Texteingabe wurde an den Chatbot übermittelt.
 2. Der Chatbot verarbeitete die Eingabe.
@@ -1751,36 +1743,35 @@ Die getestete Verarbeitungskette:
 4. Die Antwort wurde über Text-to-Speech (TTS) sprachlich ausgegeben.
 5. Die LipSync-Funktion erzeugte während der Sprachausgabe sichtbare Lippenbewegungen am 3D-Avatar.
 
-### Nachgewiesene Funktionen
+Nachgewiesene Funktionen
 
 - Texteingabe wird verarbeitet: ✅
-- Chatbot erzeugt eine Antwort: ✅
-- Sprachausgabe funktioniert: ✅
-- Local LipSync funktioniert: ✅
+- Integrierter Chatbot erzeugt eine Antwort: ✅
+- Sprachausgabe über TTS funktioniert: ✅
+- Local LipSync erzeugt sichtbare Lippenbewegungen: ✅
 - Lippen des 3D-Avatars bewegen sich während der Sprachausgabe: ✅
 - Lippenbewegung funktioniert ohne Steuerung durch Pams Gesicht: ✅
 
-### Ergebnis
+Ergebnis
 
-**TEST 004 ERFOLGREICH ✅**
+TEST 004 ERFOLGREICH ✅
 
 Die folgende technische Verarbeitungskette wurde im praktischen Test erfolgreich ausgeführt:
 
-`Eingabe → Chatbot → Antwort → TTS → Audio → LipSync → Avatar`
+"Eingabe → Chatbot → Antwort → TTS → Audio → LipSync → Avatar"
 
-Damit ist nachgewiesen, dass auf dem getesteten mobilen System eine Chatbot-Antwort über TTS ausgegeben und mit sichtbarer Lippenanimation eines 3D-Avatars verbunden werden kann.
+Damit ist nachgewiesen, dass auf dem getesteten mobilen System eine Antwort des integrierten Chatbots über TTS ausgegeben und mit sichtbarer Lippenanimation eines 3D-Avatars verbunden werden kann.
 
-### Bedeutung für Sol Holo
+Bedeutung für Sol Holo
 
 Mit Test 004 wurde ein wichtiger technischer Baustein für Sol Holo praktisch nachgewiesen:
 
 Der Avatar kann eine erzeugte Chatbot-Antwort sprachlich darstellen und seine Lippen anhand der Sprachausgabe animieren, ohne dass Pam selbst die Gesichtsbewegungen des Avatars steuern muss.
 
-### Externe Technologie / Abgrenzung
+Externe Technologie / Abgrenzung
 
 MetaPerson / Avatar SDK sowie die verwendeten LiveSpeak-, TTS- und LipSync-Funktionen sind externe Technologien und wurden nicht von Pam entwickelt.
 
 Sol Holo ist ein unabhängig entwickeltes und KI-unterstütztes Projekt.
 
 Der Test dokumentiert die praktische Verwendung externer Technologie innerhalb der technischen Erprobung von Sol Holo. Daraus wird keine Partnerschaft, Unterstützung, Finanzierung, Mitentwicklung, Eigentümerschaft oder sonstige Verbindung zu den Anbietern der verwendeten externen Technologien abgeleitet.
-
