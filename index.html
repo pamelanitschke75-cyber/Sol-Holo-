@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Sol Holo – LiveSpeak Test</title>
+  <title>Sol Holo</title>
 
   <style>
     body {
       margin: 0;
-      padding: 20px;
+      padding: 16px;
       background: #0f1117;
       color: #e6edf3;
       font-family: Arial, sans-serif;
@@ -22,271 +22,416 @@
     }
 
     h1 {
-      margin-bottom: 5px;
+      margin-bottom: 6px;
     }
 
     .subtitle {
       color: #9da7b3;
-      margin-top: 0;
     }
 
-    #status {
-      margin: 15px 0;
+    textarea {
+      width: 100%;
+      min-height: 90px;
+      box-sizing: border-box;
       padding: 12px;
-      background: #1c2128;
+      margin-top: 14px;
+      font-size: 17px;
       border-radius: 8px;
     }
 
     button {
-      padding: 12px 18px;
-      margin: 6px;
-      border: 0;
-      border-radius: 8px;
-      font-size: 16px;
+      margin-top: 12px;
+      padding: 12px 22px;
+      font-size: 17px;
       cursor: pointer;
+      border-radius: 8px;
     }
 
     button:disabled {
-      opacity: 0.5;
+      opacity: 0.6;
       cursor: not-allowed;
+    }
+
+    #status {
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    #answer {
+      margin-top: 15px;
+      padding: 14px;
+      background: #181c24;
+      border-radius: 8px;
+      text-align: left;
+      min-height: 40px;
     }
 
     iframe {
       width: 100%;
-      height: 600px;
-      margin-top: 15px;
+      height: 520px;
+      margin-top: 16px;
       border: 0;
-      border-radius: 10px;
-      background: #000;
-    }
-
-    .note {
-      margin-top: 15px;
-      font-size: 14px;
-      color: #9da7b3;
+      border-radius: 8px;
     }
   </style>
 </head>
 
 <body>
 
-  <main class="container">
+  <div class="container">
 
     <h1>Sol Holo</h1>
-    <p class="subtitle">KI-unterstützter LiveSpeak-Test</p>
 
-    <div id="status">
-      LiveSpeak wird geladen …
-    </div>
+    <p class="subtitle">
+      Pam → Sol / ChatGPT → Antwort → Stimme → LipSync → Sol Holo
+    </p>
 
-    <button id="helloButton" disabled>
-      Sol sagt Hallo
-    </button>
-
-    <button id="helpButton" disabled>
-      Sol sagt Hilfe
-    </button>
+    <textarea
+      id="question"
+      placeholder="Frag Sol etwas ..."
+    ></textarea>
 
     <br>
 
+    <button id="askButton">
+      Sol fragen
+    </button>
+
+    <div id="status">
+      Bereit.
+    </div>
+
+    <div id="answer">
+      Sols Antwort erscheint hier.
+    </div>
+
     <iframe
-      id="livespeak-iframe"
-      src="https://metaperson.avatarsdk.com/livespeak/index.html?mode=tts_azure2&lang=de_f"
-      title="Sol Holo LiveSpeak"
-      sandbox="allow-scripts allow-same-origin allow-forms"
-      allow="autoplay;">
+      id="livespeak"
+      src="https://metaperson.avatarsdk.com/livespeak/index.html?mode=tts_azure3&lang=German"
+      allow="autoplay; microphone"
+      title="Sol Holo">
     </iframe>
 
-    <p class="note">
-      Keine geheimen Zugangsdaten werden in dieser Datei gespeichert.
-    </p>
-
-  </main>
+  </div>
 
   <script>
-    /*
-      SOL HOLO – LIVESPEAK TEST
-
-      Zweck:
-      Diese Seite verbindet Sol Holo mit MetaPerson LiveSpeak.
-
-      Sicherheit:
-      Client Secret und andere geheime Zugangsdaten gehören NICHT
-      in diese öffentliche HTML-Datei oder in ein öffentliches
-      GitHub-Repository.
-
-      LiveSpeak-Kommunikation:
-      Die Kommunikation erfolgt über window.postMessage().
-    */
-
-    const iframe = document.getElementById("livespeak-iframe");
-    const statusBox = document.getElementById("status");
-
-    const helloButton = document.getElementById("helloButton");
-    const helpButton = document.getElementById("helpButton");
-
-    let liveSpeakLoaded = false;
-    let avatarReady = false;
-
 
     /*
-      Nachricht an LiveSpeak senden.
-    */
-    function sendToLiveSpeak(message) {
-      if (!iframe.contentWindow) {
-        statusBox.textContent = "LiveSpeak-Fenster ist noch nicht verfügbar.";
-        return;
-      }
+      WICHTIG:
 
-      iframe.contentWindow.postMessage(message, "*");
-    }
+      Hier kommt später NUR die öffentliche
+      Internetadresse des Sol-Holo-Backends hinein.
+
+      KEIN OPENAI API-KEY!
+    */
+
+    const BACKEND_URL =
+      "https://DEIN-BACKEND.example.com";
+
+
+    const question =
+      document.getElementById("question");
+
+    const askButton =
+      document.getElementById("askButton");
+
+    const status =
+      document.getElementById("status");
+
+    const answer =
+      document.getElementById("answer");
+
+    const avatar =
+      document.getElementById("livespeak");
+
+
+    let liveSpeakReady = false;
 
 
     /*
-      Exakten Text sprechen lassen.
-
-      Laut LiveSpeak API:
-      eventName = "speak"
-      text      = der zu sprechende Text
+      Nachrichten von MetaPerson LiveSpeak empfangen.
     */
-    function solSpeak(text) {
 
-      if (!liveSpeakLoaded) {
-        statusBox.textContent = "LiveSpeak ist noch nicht geladen.";
-        return;
-      }
+    window.addEventListener(
+      "message",
+      function(event) {
 
-      if (!avatarReady) {
-        statusBox.textContent =
-          "Sol ist noch nicht bereit oder noch nicht authentifiziert.";
-        return;
-      }
+        const data = event.data;
 
-      statusBox.textContent = "Sol beginnt zu sprechen …";
+        if (!data) {
+          return;
+        }
 
-      sendToLiveSpeak({
-        eventName: "speak",
-        text: text
-      });
-    }
-
-
-    /*
-      Testknöpfe
-    */
-    helloButton.addEventListener("click", function () {
-      solSpeak("Hallo, ich bin Sol Holo.");
-    });
-
-    helpButton.addEventListener("click", function () {
-      solSpeak("Wie kann ich dir helfen?");
-    });
-
-
-    /*
-      Nachrichten von LiveSpeak empfangen.
-    */
-    window.addEventListener("message", function (event) {
-
-      const data = event.data;
-
-      if (!data || data.source !== "livespeak") {
-        return;
-      }
-
-      console.log("LiveSpeak Event:", data);
-
-
-      /*
-        LiveSpeak wurde vollständig geladen.
-      */
-      if (data.eventName === "livespeak_loaded") {
-
-        liveSpeakLoaded = true;
-
-        statusBox.textContent =
-          "LiveSpeak geladen. Authentifizierung erforderlich.";
 
         /*
+          LiveSpeak wurde geladen.
+        */
+
+        if (
+          data.source === "livespeak" &&
+          data.eventName === "livespeak_loaded"
+        ) {
+
+          liveSpeakReady = true;
+
+          status.textContent =
+            "Sol Holo ist bereit.";
+
+          return;
+        }
+
+
+        /*
+          Status des Avatars.
+        */
+
+        if (
+          data.source === "livespeak" &&
+          data.eventName === "avatar_state_changed"
+        ) {
+
+          if (data.avatarState === "Speaking") {
+
+            status.textContent =
+              "Sol Holo spricht …";
+
+          }
+
+          else if (data.avatarState === "Thinking") {
+
+            status.textContent =
+              "Sprachausgabe wird vorbereitet …";
+
+          }
+
+          else if (data.avatarState === "Ready") {
+
+            status.textContent =
+              "Bereit.";
+
+          }
+
+          return;
+        }
+
+
+        /*
+          Fehler aus LiveSpeak.
+        */
+
+        if (
+          data.source === "livespeak" &&
+          data.eventName === "message_processing_error"
+        ) {
+
+          status.textContent =
+            "Avatar-Fehler: " +
+            (data.reason || "Unbekannter Fehler");
+
+        }
+
+      }
+    );
+
+
+    /*
+      Pam stellt Sol eine Frage.
+    */
+
+    async function askSol() {
+
+      const text =
+        question.value.trim();
+
+
+      if (!text) {
+
+        status.textContent =
+          "Bitte zuerst etwas fragen.";
+
+        return;
+      }
+
+
+      askButton.disabled = true;
+
+      status.textContent =
+        "Sol denkt …";
+
+      answer.textContent = "";
+
+
+      try {
+
+        /*
+          Pams Frage geht an das
+          Sol-Holo-Backend.
+
+          Das Backend verbindet sich
+          anschließend sicher mit OpenAI.
+        */
+
+        const response =
+          await fetch(
+            BACKEND_URL + "/sol",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type": "application/json"
+              },
+
+              body: JSON.stringify({
+                message: text
+              })
+            }
+          );
+
+
+        let data;
+
+        try {
+
+          data = await response.json();
+
+        }
+
+        catch {
+
+          throw new Error(
+            "Das Backend hat keine gültige Antwort geliefert."
+          );
+
+        }
+
+
+        if (!response.ok) {
+
+          throw new Error(
+            data.error ||
+            "Backend-Fehler"
+          );
+
+        }
+
+
+        const solAnswer =
+          String(data.answer || "").trim();
+
+
+        if (!solAnswer) {
+
+          throw new Error(
+            "Sol hat keine Textantwort geliefert."
+          );
+
+        }
+
+
+        /*
+          Sols Antwort wird auf der
+          Sol-Holo-Seite angezeigt.
+        */
+
+        answer.textContent =
+          solAnswer;
+
+
+        /*
+          Sols fertige Antwort wird
+          an MetaPerson LiveSpeak übergeben.
+
           WICHTIG:
 
-          Hier werden ABSICHTLICH keine Client-ID und
-          kein Client-Secret eingetragen.
+          Der MetaPerson-Chatbot erzeugt
+          hier NICHT die Antwort.
 
-          Die sichere Authentifizierung bauen wir
-          im nächsten Schritt mit einem Access Token.
+          Die Antwort stammt von Sol/OpenAI.
+
+          MetaPerson übernimmt anschließend
+          Sprachausgabe und LipSync.
         */
+
+        if (liveSpeakReady) {
+
+          avatar.contentWindow.postMessage(
+            {
+              eventName: "speak",
+              text: solAnswer
+            },
+            "*"
+          );
+
+          status.textContent =
+            "Sol Holo spricht …";
+
+        }
+
+        else {
+
+          status.textContent =
+            "Sols Antwort ist da. Der Avatar lädt noch.";
+
+        }
+
       }
 
+      catch (error) {
 
-      /*
-        Status des Avatars
-      */
-      if (data.eventName === "avatar_state_changed") {
+        console.error(error);
 
-        const state = data.avatarState;
+        status.textContent =
+          "Fehler: " +
+          error.message;
 
-        statusBox.textContent = "Avatar-Status: " + state;
-
-
-        if (state === "Ready") {
-
-          avatarReady = true;
-
-          helloButton.disabled = false;
-          helpButton.disabled = false;
-
-          statusBox.textContent =
-            "Sol ist bereit. Sprechtest kann gestartet werden.";
-        }
-
-
-        if (state === "Speaking") {
-
-          statusBox.textContent = "Sol spricht …";
-        }
-
-
-        if (state === "WaitingForAuthentication") {
-
-          avatarReady = false;
-
-          helloButton.disabled = true;
-          helpButton.disabled = true;
-
-          statusBox.textContent =
-            "LiveSpeak wartet auf sichere Authentifizierung.";
-        }
-
-
-        if (state === "WaitingForTouch") {
-
-          statusBox.textContent =
-            "Bitte einmal auf die Seite tippen, damit Audio gestartet werden darf.";
-        }
       }
 
+      finally {
 
-      /*
-        Fehler von LiveSpeak anzeigen.
-      */
-      if (data.eventName === "message_processing_error") {
+        askButton.disabled = false;
 
-        avatarReady = false;
-
-        statusBox.textContent =
-          "LiveSpeak-Fehler: " +
-          (data.reason || "Unbekannter Fehler");
-
-        console.error(
-          "LiveSpeak Fehler:",
-          data.failedEventName,
-          data.reason
-        );
       }
 
-    });
+    }
 
-</script>
+
+    /*
+      Button:
+      Sol fragen
+    */
+
+    askButton.addEventListener(
+      "click",
+      askSol
+    );
+
+
+    /*
+      Enter = Frage absenden
+
+      Shift + Enter =
+      neue Zeile schreiben
+    */
+
+    question.addEventListener(
+      "keydown",
+      function(event) {
+
+        if (
+          event.key === "Enter" &&
+          !event.shiftKey
+        ) {
+
+          event.preventDefault();
+
+          askSol();
+
+        }
+
+      }
+    );
+
+  </script>
+
 </body>
 </html>
