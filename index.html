@@ -4,108 +4,285 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Sol Holo</title>
+  <title>Sol Holo – LiveSpeak Test</title>
 
   <style>
     body {
-      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
       background: #0f1117;
       color: #e6edf3;
+      font-family: Arial, sans-serif;
       text-align: center;
-      padding: 20px;
     }
 
     .container {
-      max-width: 800px;
+      max-width: 900px;
       margin: 0 auto;
+    }
+
+    h1 {
+      margin-bottom: 5px;
+    }
+
+    .subtitle {
+      color: #9da7b3;
+      margin-top: 0;
+    }
+
+    #status {
+      margin: 15px 0;
+      padding: 12px;
+      background: #1c2128;
+      border-radius: 8px;
     }
 
     button {
       padding: 12px 18px;
-      margin: 8px;
-      font-size: 16px;
-      border: none;
+      margin: 6px;
+      border: 0;
       border-radius: 8px;
+      font-size: 16px;
       cursor: pointer;
     }
 
-    #status {
-      margin-top: 15px;
-      font-size: 16px;
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     iframe {
       width: 100%;
-      height: 500px;
+      height: 600px;
+      margin-top: 15px;
       border: 0;
-      margin-top: 20px;
       border-radius: 10px;
+      background: #000;
+    }
+
+    .note {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #9da7b3;
     }
   </style>
 </head>
 
 <body>
 
-  <div class="container">
+  <main class="container">
 
     <h1>Sol Holo</h1>
+    <p class="subtitle">KI-unterstützter LiveSpeak-Test</p>
 
-    <p>Voice / Face Test</p>
+    <div id="status">
+      LiveSpeak wird geladen …
+    </div>
 
-    <button onclick="solSpeak('Hallo, ich bin Sol Holo.')">
-      Test: Hallo
+    <button id="helloButton" disabled>
+      Sol sagt Hallo
     </button>
 
-    <button onclick="solSpeak('Wie kann ich dir helfen?')">
-      Test: Hilfe
+    <button id="helpButton" disabled>
+      Sol sagt Hilfe
     </button>
 
-    <p id="status">Bereit.</p>
+    <br>
 
     <iframe
-      id="livespeak"
-      src="https://metaperson.avatarsdk.com/livespeak/index.html?mode=tts_azure2&lang=German"
+      id="livespeak-iframe"
+      src="https://metaperson.avatarsdk.com/livespeak/index.html?mode=tts_azure2&lang=de_f"
       title="Sol Holo LiveSpeak"
-      allow="autoplay; microphone">
+      sandbox="allow-scripts allow-same-origin allow-forms"
+      allow="autoplay;">
     </iframe>
 
-  </div>
+    <p class="note">
+      Keine geheimen Zugangsdaten werden in dieser Datei gespeichert.
+    </p>
+
+  </main>
 
   <script>
+    /*
+      SOL HOLO – LIVESPEAK TEST
 
-    const liveSpeakFrame = document.getElementById("livespeak");
-    const status = document.getElementById("status");
+      Zweck:
+      Diese Seite verbindet Sol Holo mit MetaPerson LiveSpeak.
 
-    function solSpeak(text) {
+      Sicherheit:
+      Client Secret und andere geheime Zugangsdaten gehören NICHT
+      in diese öffentliche HTML-Datei oder in ein öffentliches
+      GitHub-Repository.
 
-      if (!liveSpeakFrame.contentWindow) {
-        status.textContent = "Avatar noch nicht bereit.";
+      LiveSpeak-Kommunikation:
+      Die Kommunikation erfolgt über window.postMessage().
+    */
+
+    const iframe = document.getElementById("livespeak-iframe");
+    const statusBox = document.getElementById("status");
+
+    const helloButton = document.getElementById("helloButton");
+    const helpButton = document.getElementById("helpButton");
+
+    let liveSpeakLoaded = false;
+    let avatarReady = false;
+
+
+    /*
+      Nachricht an LiveSpeak senden.
+    */
+    function sendToLiveSpeak(message) {
+      if (!iframe.contentWindow) {
+        statusBox.textContent = "LiveSpeak-Fenster ist noch nicht verfügbar.";
         return;
       }
 
-      status.textContent = "Sende Text an Sol...";
-
-      liveSpeakFrame.contentWindow.postMessage(
-        {
-          source: "sol-holo",
-          type: "speak",
-          text: text
-        },
-        "*"
-      );
+      iframe.contentWindow.postMessage(message, "*");
     }
 
-    window.addEventListener("message", function(event) {
+
+    /*
+      Exakten Text sprechen lassen.
+
+      Laut LiveSpeak API:
+      eventName = "speak"
+      text      = der zu sprechende Text
+    */
+    function solSpeak(text) {
+
+      if (!liveSpeakLoaded) {
+        statusBox.textContent = "LiveSpeak ist noch nicht geladen.";
+        return;
+      }
+
+      if (!avatarReady) {
+        statusBox.textContent =
+          "Sol ist noch nicht bereit oder noch nicht authentifiziert.";
+        return;
+      }
+
+      statusBox.textContent = "Sol beginnt zu sprechen …";
+
+      sendToLiveSpeak({
+        eventName: "speak",
+        text: text
+      });
+    }
+
+
+    /*
+      Testknöpfe
+    */
+    helloButton.addEventListener("click", function () {
+      solSpeak("Hallo, ich bin Sol Holo.");
+    });
+
+    helpButton.addEventListener("click", function () {
+      solSpeak("Wie kann ich dir helfen?");
+    });
+
+
+    /*
+      Nachrichten von LiveSpeak empfangen.
+    */
+    window.addEventListener("message", function (event) {
 
       const data = event.data;
 
-      if (!data) return;
+      if (!data || data.source !== "livespeak") {
+        return;
+      }
 
-      console.log("LiveSpeak:", data);
+      console.log("LiveSpeak Event:", data);
 
-      if (data.source === "livespeak") {
-        status.textContent =
-          data.message || data.type || "LiveSpeak verbunden.";
+
+      /*
+        LiveSpeak wurde vollständig geladen.
+      */
+      if (data.eventName === "livespeak_loaded") {
+
+        liveSpeakLoaded = true;
+
+        statusBox.textContent =
+          "LiveSpeak geladen. Authentifizierung erforderlich.";
+
+        /*
+          WICHTIG:
+
+          Hier werden ABSICHTLICH keine Client-ID und
+          kein Client-Secret eingetragen.
+
+          Die sichere Authentifizierung bauen wir
+          im nächsten Schritt mit einem Access Token.
+        */
+      }
+
+
+      /*
+        Status des Avatars
+      */
+      if (data.eventName === "avatar_state_changed") {
+
+        const state = data.avatarState;
+
+        statusBox.textContent = "Avatar-Status: " + state;
+
+
+        if (state === "Ready") {
+
+          avatarReady = true;
+
+          helloButton.disabled = false;
+          helpButton.disabled = false;
+
+          statusBox.textContent =
+            "Sol ist bereit. Sprechtest kann gestartet werden.";
+        }
+
+
+        if (state === "Speaking") {
+
+          statusBox.textContent = "Sol spricht …";
+        }
+
+
+        if (state === "WaitingForAuthentication") {
+
+          avatarReady = false;
+
+          helloButton.disabled = true;
+          helpButton.disabled = true;
+
+          statusBox.textContent =
+            "LiveSpeak wartet auf sichere Authentifizierung.";
+        }
+
+
+        if (state === "WaitingForTouch") {
+
+          statusBox.textContent =
+            "Bitte einmal auf die Seite tippen, damit Audio gestartet werden darf.";
+        }
+      }
+
+
+      /*
+        Fehler von LiveSpeak anzeigen.
+      */
+      if (data.eventName === "message_processing_error") {
+
+        avatarReady = false;
+
+        statusBox.textContent =
+          "LiveSpeak-Fehler: " +
+          (data.reason || "Unbekannter Fehler");
+
+        console.error(
+          "LiveSpeak Fehler:",
+          data.failedEventName,
+          data.reason
+        );
       }
 
     });
