@@ -3,30 +3,114 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>Sol Holo</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f1117;
+      color: #e6edf3;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    button {
+      padding: 12px 18px;
+      margin: 8px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    #status {
+      margin-top: 15px;
+      font-size: 16px;
+    }
+
+    iframe {
+      width: 100%;
+      height: 500px;
+      border: 0;
+      margin-top: 20px;
+      border-radius: 10px;
+    }
+  </style>
 </head>
 
 <body>
-  <h1>Sol Holo</h1>
-  <p>Mobile Testoberfläche 1.0</p>
 
-  <button onclick="test()">Test starten</button>
+  <div class="container">
 
-  <p id="status">Bereit.</p>
+    <h1>Sol Holo</h1>
 
-<h2>Sol Holo – Voice / Face Test</h2>
+    <p>Voice / Face Test</p>
 
-<iframe
-  src="https://metaperson.avatarsdk.com/livespeak/index.html?mode=tts_azure2&lang=German"
-  style="width:100%; height:500px; border:0;"
-  allow="autoplay; microphone">
-</iframe>
+    <button onclick="solSpeak('Hallo, ich bin Sol Holo.')">
+      Test: Hallo
+    </button>
+
+    <button onclick="solSpeak('Wie kann ich dir helfen?')">
+      Test: Hilfe
+    </button>
+
+    <p id="status">Bereit.</p>
+
+    <iframe
+      id="livespeak"
+      src="https://metaperson.avatarsdk.com/livespeak/index.html?mode=tts_azure2&lang=German"
+      title="Sol Holo LiveSpeak"
+      allow="autoplay; microphone">
+    </iframe>
+
+  </div>
 
   <script>
-    function test() {
-      document.getElementById("status").textContent =
-        "Sol Holo läuft auf diesem Handy.";
+
+    const liveSpeakFrame = document.getElementById("livespeak");
+    const status = document.getElementById("status");
+
+    function solSpeak(text) {
+
+      if (!liveSpeakFrame.contentWindow) {
+        status.textContent = "Avatar noch nicht bereit.";
+        return;
+      }
+
+      status.textContent = "Sende Text an Sol...";
+
+      liveSpeakFrame.contentWindow.postMessage(
+        {
+          source: "sol-holo",
+          type: "speak",
+          text: text
+        },
+        "*"
+      );
     }
+
+    window.addEventListener("message", function(event) {
+
+      const data = event.data;
+
+      if (!data) return;
+
+      console.log("LiveSpeak:", data);
+
+      if (data.source === "livespeak") {
+        status.textContent =
+          data.message || data.type || "LiveSpeak verbunden.";
+      }
+
+    });
+
   </script>
+
 </body>
 </html>
