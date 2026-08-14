@@ -1,0 +1,10 @@
+import express from"express";import OpenAI from"openai";
+const app=express(),ai=new OpenAI({apiKey:process.env.OPENAI_API_KEY});
+app.use(express.json());
+app.post("/sol",async(req,res)=>{
+try{
+const r=await ai.responses.create({model:"gpt-5",input:req.body.message});
+res.json({answer:r.output_text});
+}catch(e){res.status(500).json({error:"Fehler"});}
+});
+app.listen(process.env.PORT||3000);
