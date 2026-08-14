@@ -1,51 +1,34 @@
-# Sol Holo
+Sol Holo
 
-**Projektstatus:** Öffentlich – Entwicklungs- und Testphase  
-**Beginn der Dokumentation:** 12.08.2026  
-**Projektleitung:** Pam
+Projekt und Entwicklung
 
-## Projektidee
+Projekt: Sol Holo
+Projektinitiatorin und Projektverantwortliche: Pamela Nitschke
+Entwicklung: Pamela Nitschke, KI-unterstützt mit ChatGPT von OpenAI
+Status: In Entwicklung / Testphase
 
-Sol Holo ist ein experimentelles Entwicklungsprojekt zur Untersuchung einer digitalen Verkörperung einer KI-Persönlichkeit.
+Sol Holo ist ein eigenständiges Projekt von Pamela Nitschke zur Entwicklung und Erprobung eines interaktiven digitalen Avatars.
 
-Untersucht wird schrittweise, wie Sprache, Stimme, Avatar-Technologie, Mimik, Gestik, Kontext und weitere technisch verfügbare Funktionen zu einer zusammenhängenden digitalen Darstellung verbunden werden können.
+Die Konzeption, Entscheidungen und Weiterentwicklung des Projekts erfolgen durch Pamela Nitschke. Bei Planung, Programmierung, technischer Recherche, Fehlersuche und Dokumentation wird ChatGPT von OpenAI als KI-Werkzeug eingesetzt.
 
-## Grundsatz
+Die KI-Unterstützung wird bewusst transparent dokumentiert.
 
-Bestehende Ideen, Technologien und Entwicklungen anderer werden nicht als eigene Leistung beansprucht.
+Projektziel
 
-Eigene Versuche, Kombinationen, Beobachtungen und Entwicklungen innerhalb von Sol Holo werden nachvollziehbar dokumentiert.
+Ziel von Sol Holo ist es, schrittweise eine Anwendung zu entwickeln, bei der unter anderem Text an einen digitalen Avatar übergeben werden kann und dieser Text mit Sprachausgabe und synchronisierter Lippenbewegung wiedergegeben wird.
 
-Eine Idee oder technische Lösung wird nicht ohne vorherige Prüfung als weltweit neu oder exklusiv bezeichnet.
+Dabei sollen ausschließlich Technologien, Inhalte und externe Dienste verwendet werden, deren Nutzung für den jeweiligen Zweck erlaubt ist.
 
-Funktionen gelten erst dann als erreicht, wenn sie tatsächlich getestet und nachvollziehbar bestätigt wurden.
+Transparenz
 
-## Aktueller Stand
+Sol Holo unterscheidet ausdrücklich zwischen:
 
-Erste praktische Tests wurden erfolgreich durchgeführt.
+- dem eigenständigen Projekt Sol Holo
+- der Projektarbeit und den Entscheidungen von Pamela Nitschke
+- der KI-Unterstützung durch ChatGPT von OpenAI
+- eigenem Sol-Holo-Quellcode
+- externen Technologien und Diensten wie MetaPerson / Avatar SDK / LiveSpeak
 
-Unter anderem wurden bereits getestet:
+Die Nennung eines externen Dienstes bedeutet weder Eigentum daran noch eine besondere Partnerschaft oder Zugehörigkeit.
 
-- Darstellung eines digitalen Avatars
-- parallele Nutzung von ChatGPT Voice
-- gemeinsame Aufzeichnung von Avatar und Sprachausgabe
-- Kamera-Tracking von Gesicht und Mimik
-- Lippenbewegungen durch kamerabasiertes Tracking
-- grundsätzliche Darstellung eines 3D-Avatars auf Android
-- erste Tests mit AvatarSDK
-
-Eine vollständige autonome Steuerung von Sol Holo durch die KI ist derzeit **noch nicht erreicht**.
-
-## Entwicklungsprotokoll
-
-Die einzelnen Tests, Beobachtungen, Ergebnisse und langfristigen Entwicklungsziele werden in der Datei:
-
-**ENTWICKLUNGSPROTOKOLL.md**
-
-dokumentiert.
-
-Dabei wird klar zwischen bereits nachgewiesenen Funktionen und zukünftigen Entwicklungszielen unterschieden.
-
-## Langfristige Vision
-
-Langfristig soll untersucht werden, wie weit sich eine konsistente digitale Präsenz entwickeln lässt
+Für Technologien und Inhalte Dritter gelten deren jeweiligen Rechte, Lizenzen und Nutzungsbedingungen.
