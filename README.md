@@ -27,7 +27,7 @@ Sol Holo unterscheidet ausdrücklich zwischen:
 - der Projektarbeit und den Entscheidungen von Pamela Nitschke
 - der KI-Unterstützung durch ChatGPT von OpenAI
 - eigenem Sol-Holo-Quellcode
-- externen Technologien und Diensten wie MetaPerson / Avatar SDK / LiveSpeak
+- externen Technologien und Diensten
 
 Die Nennung eines externen Dienstes bedeutet weder Eigentum daran noch eine besondere Partnerschaft oder Zugehörigkeit.
 
@@ -54,4 +54,31 @@ Marken, Produktnamen, Software, Modelle, APIs und sonstige Technologien Dritter 
 
 Neue externe Komponenten werden in der Projektdokumentation ergänzt, sobald sie tatsächlich in Sol Holo eingesetzt werden.
 
-Grundsatz von Sol Holo: Eigenständig entwickeln, KI-Unterstützung transparent benennen, Rechte Dritter respektieren und ausschließlich Technologien und Inhalte im Rahmen der jeweils erlaubten Nutzung einsetzen.
+Sicherheit
+
+Geheime Zugangsdaten werden nicht öffentlich im Sol-Holo-Quellcode dokumentiert.
+
+Insbesondere gehören folgende Daten nicht in ein öffentliches GitHub-Repository:
+
+- Passwörter
+- Client Secrets
+- private API-Schlüssel
+- private Access Tokens
+- sonstige vertrauliche Zugangsdaten
+
+Benötigt ein externer Dienst eine geheime Authentifizierung, soll dafür eine geeignete sichere Lösung verwendet werden.
+
+Entwicklungsgrundsatz
+
+«Eigenständig entwickeln.
+KI-Unterstützung transparent benennen.
+Rechte Dritter respektieren.
+Sicherheit beachten.
+Ausschließlich Technologien und Inhalte im Rahmen der jeweils erlaubten Nutzung einsetzen.»
+
+---
+
+Sol Holo
+Projektinitiatorin und Projektverantwortliche: Pamela Nitschke
+Entwickelt mit KI-Unterstützung durch ChatGPT von OpenAI
+Status: In Entwicklung / Testphase
