@@ -1775,3 +1775,69 @@ MetaPerson / Avatar SDK sowie die verwendeten LiveSpeak-, TTS- und LipSync-Funkt
 Sol Holo ist ein unabhängig entwickeltes und KI-unterstütztes Projekt.
 
 Der Test dokumentiert die praktische Verwendung externer Technologie innerhalb der technischen Erprobung von Sol Holo. Daraus wird keine Partnerschaft, Unterstützung, Finanzierung, Mitentwicklung, Eigentümerschaft oder sonstige Verbindung zu den Anbietern der verwendeten externen Technologien abgeleitet.
+
+Nachtrag – Technische Einwilligung zur digitalen Stimmverarbeitung
+
+Datum: 14.08.2026
+Projekt: Sol Holo
+Betroffene Person / Stimmquelle: Pam
+Status: Einwilligung ausdrücklich erteilt ✅
+
+Zweck
+
+Pam erteilt ausdrücklich und freiwillig ihre Einwilligung, Aufnahmen ihrer eigenen Stimme als autorisierte Stimmquelle für die Entwicklung einer digitalen bzw. synthetisch erzeugten Stimme innerhalb von Sol Holo zu verwenden.
+
+Vorgesehene technische Verarbeitung
+
+Soweit die jeweils verwendete Technologie dies unterstützt und zulässt, dürfen autorisierte Sprachaufnahmen von Pam insbesondere für folgende technische Verarbeitungsschritte verwendet werden:
+
+"Pams Sprachaufnahme → autorisierte Stimmvorlage → Voice-Modell / Voice-Profil → synthetische Spracherzeugung → Audioausgabe → LipSync → Sol Holo"
+
+Ziel ist, dass von Sol erzeugte Textausgaben zukünftig über eine ausdrücklich autorisierte digitale Repräsentation von Pams Stimme ausgegeben werden können.
+
+Angestrebte Verarbeitungskette:
+
+"Sol → Textantwort → autorisierte digitale Pam-Stimme → Audio → LipSync → digitale Verkörperung → Sol Holo"
+
+Umfang der Einwilligung
+
+Die Einwilligung umfasst im Rahmen des Projekts:
+
+- Aufnahme von Pams eigener Stimme für die Erstellung einer geeigneten Stimmvorlage
+- technische Verarbeitung dieser autorisierten Sprachaufnahmen
+- Erstellung eines digitalen Voice-Profils bzw. Voice-Modells, sofern der verwendete Anbieter dies zulässt
+- synthetische Erzeugung neuer Sprachausgaben auf Grundlage der autorisierten Stimme
+- Verwendung dieser Sprachausgabe für Tests und Entwicklung von Sol Holo
+- technische Verbindung der Sprachausgabe mit LipSync und der digitalen Verkörperung von Sol Holo
+
+Technische und rechtliche Abgrenzung
+
+Diese Einwilligung gilt ausschließlich für Pams eigene Stimme.
+
+Sie stellt keine Freigabe für Stimmen anderer Personen dar.
+
+Die Einwilligung ersetzt keine technischen, vertraglichen oder rechtlichen Anforderungen des jeweils verwendeten Voice-Anbieters.
+
+Erforderliche zusätzliche Verfahren wie:
+
+- Voice-Consent-Aufnahme
+- Sprecherverifizierung
+- Identitätsprüfung
+- Anbieterfreigabe
+- Lizenzierung
+
+werden durchgeführt, sofern sie für die verwendete Technologie erforderlich sind.
+
+Transparenz
+
+Synthetisch erzeugte Sprachausgaben werden bei einer Nutzung gegenüber Dritten entsprechend den jeweils geltenden Anforderungen als künstlich bzw. KI-generiert kenntlich gemacht.
+
+Projektstatus
+
+Einwilligung der Stimmquelle: ✅ erteilt
+Stimmquelle: Pam
+Voice-Modell ausgewählt: ⏳ offen
+Voice-Modell erstellt: ⏳ offen
+Synthetische Pam-Stimme getestet: ⏳ offen
+Integration in Sol Holo: ⏳ offen
+Audio → LipSync mit digitaler Pam-Stimme: ⏳ offen
