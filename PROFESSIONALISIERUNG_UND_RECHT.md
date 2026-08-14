@@ -876,3 +876,33 @@ Es wird bei wesentlichen technischen, organisatorischen, rechtlichen oder wirtsc
 **Gewerbliche Struktur:** noch nicht abschließend festgelegt
 
 **Rechtliche Detailprüfung vor kommerzieller Veröffentlichung:** vorgesehen
+
+## Langfristiges Produktziel – Sol Holo für weitere Nutzer
+
+Langfristig soll geprüft werden, ob Sol Holo als Plattform bzw. konfigurierbares System auch von weiteren Nutzern verwendet werden kann.
+
+Dabei soll jeder Nutzer ausschließlich eigene oder entsprechend autorisierte persönliche Daten, Stimmen, Bilder und digitale Repräsentationen verwenden.
+
+Mögliches zukünftiges Modell:
+
+Nutzer
+↓
+eigenes Nutzerkonto
+↓
+eigene Einwilligungen und Berechtigungen
+↓
+eigene KI-Konfiguration
+↓
+eigene autorisierte Stimme
+↓
+eigene digitale Repräsentation / Avatar
+↓
+individuelle Sol-Holo-Instanz
+
+Eine solche Mehrnutzer- oder Plattformfunktion ist derzeit noch nicht implementiert.
+
+Vor einer entsprechenden Bereitstellung müssen insbesondere Datenschutz, Einwilligungsmanagement, Rechte an Stimme und Bild, Sicherheitsmaßnahmen, Alters- und Missbrauchsschutz, Vertragsbedingungen, Haftung, kommerzielle Nutzungsrechte und gegebenenfalls Zahlungs- bzw. Abonnementmodelle gesondert geprüft werden.
+
+Ziel ist ausdrücklich nicht, Stimmen, Bilder oder Identitäten anderer Personen ohne deren Berechtigung nachzubilden.
+
+Status: Langfristiges Produkt- und Entwicklungsziel.
