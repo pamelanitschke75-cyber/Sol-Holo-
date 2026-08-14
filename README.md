@@ -1,8 +1,11 @@
 Projekt: Sol Holo
-Projektinitiatorin und Projektverantwortliche: Pamela Nitschke
+Projektinitiatorin und Projektverantwortliche: 
+Pamela Nitschke
 Projektbegleitung und Mitprüfung: Stefanie Hörath 
-Entwicklung: Pamela Nitschke, KI-unterstützt mit ChatGPT von OpenAI
-Status: In Entwicklung / Testphase
+Entwicklung: 
+Pamela Nitschke, KI-unterstützt mit ChatGPT von OpenAI
+Status:
+In Entwicklung / Testphase
 
 Sol Holo ist ein eigenständiges, KI-unterstützt entwickeltes Projekt von Pamela Nitschke.
 
