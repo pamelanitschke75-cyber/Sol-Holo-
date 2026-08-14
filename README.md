@@ -1,9 +1,6 @@
-Sol Holo
-
-Projekt und Entwicklung
-
 Projekt: Sol Holo
 Projektinitiatorin und Projektverantwortliche: Pamela Nitschke
+Projektbegleitung und Mitprüfung: Stefanie Hörath 
 Entwicklung: Pamela Nitschke, KI-unterstützt mit ChatGPT von OpenAI
 Status: In Entwicklung / Testphase
 
