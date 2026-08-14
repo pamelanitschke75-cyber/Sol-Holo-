@@ -82,3 +82,17 @@ Sol Holo
 Projektinitiatorin und Projektverantwortliche: Pamela Nitschke
 Entwickelt mit KI-Unterstützung durch ChatGPT von OpenAI
 Status: In Entwicklung / Testphase
+
+Abschließender Transparenzhinweis
+
+Sol Holo ist ein eigenständiges, KI-unterstützt entwickeltes Projekt von Pamela Nitschke.
+
+Bei der Entwicklung können externe Technologien, Werkzeuge und Dienste verwendet werden, darunter – soweit tatsächlich eingesetzt – OpenAI / ChatGPT, Itseez3D / MetaPerson / Avatar SDK / LiveSpeak, Microsoft Azure, GitHub, Google-Dienste sowie weitere rechtmäßig verwendete Open-Source-Bibliotheken, APIs und Entwicklungswerkzeuge.
+
+Die Nennung dieser Unternehmen, Marken, Dienste oder Technologien bedeutet keine Partnerschaft, Förderung, Empfehlung, Finanzierung, Mitinhaberschaft oder sonstige geschäftliche Verbindung, sofern dies nicht ausdrücklich und nachweislich vereinbart wurde.
+
+Alle Marken, Produktnamen, Technologien, Software, Modelle, APIs und sonstigen Inhalte Dritter verbleiben bei ihren jeweiligen Rechteinhabern und unterliegen deren jeweiligen Nutzungs- und Lizenzbedingungen.
+
+Neue externe Dienste oder Technologien werden in der Dokumentation ergänzt, sobald sie tatsächlich in Sol Holo eingesetzt werden.
+
+Sol Holo verfolgt den Grundsatz: eigenständig entwickeln, KI-Unterstützung transparent benennen, Rechte Dritter respektieren und ausschließlich erlaubte Technologien und Inhalte verwenden.
