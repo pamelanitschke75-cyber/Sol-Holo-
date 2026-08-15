@@ -2,7 +2,8 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
 
   <title>Sol Holo – Test 006</title>
 
@@ -38,6 +39,7 @@
       text-align: center;
       color: #9da7b3;
       margin: 0 0 18px;
+      line-height: 1.4;
     }
 
     .box {
@@ -52,6 +54,7 @@
       text-align: center;
       font-weight: bold;
       line-height: 1.5;
+      overflow-wrap: anywhere;
     }
 
     #avatar {
@@ -82,6 +85,7 @@
 
     button:disabled {
       opacity: 0.45;
+      cursor: default;
     }
 
     input {
@@ -97,72 +101,17 @@
       line-height: 1.5;
       text-align: center;
     }
+
+    .error {
+      color: #ff9b9b;
+    }
+
+    .success {
+      color: #9cffb1;
+    }
   </style>
 
   <script type="importmap">
   {
     "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js/+esm",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/",
-      "talkinghead": "https://cdn.jsdelivr.net/npm/@met4citizen/talkinghead@1.7/modules/talkinghead.mjs"
-    }
-  }
-  </script>
-</head>
-
-<body>
-
-<div class="container">
-
-  <h1>Sol Holo</h1>
-
-  <p class="subtitle">
-    TEST 006 – Deine Stimme → Audioanalyse → Lip-Sync
-  </p>
-
-  <div class="box">
-    <div id="status">
-      Sol Holo wird vorbereitet …
-    </div>
-  </div>
-
-  <div id="avatar"></div>
-
-  <div class="box">
-
-    <strong>Deine Sprachdatei</strong>
-
-    <button id="repoVoiceButton" disabled>
-      Pam-Sol Test 005 abspielen
-    </button>
-
-    <input
-      id="audioFile"
-      type="file"
-      accept="audio/*"
-      disabled
-    >
-
-    <button id="fileVoiceButton" disabled>
-      Andere Sprachdatei abspielen
-    </button>
-
-  </div>
-
-  <p class="small">
-    Sol Holo – Forschungs- und Entwicklungsprototyp.<br>
-    Open-Source-Lip-Sync mit TalkingHead + HeadAudio.
-  </p>
-
-</div>
-
-<script type="module">
-
-import { TalkingHead } from "talkinghead";
-
-import {
-  HeadAudio
-} from "https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/dist/headaudio.min.mjs";
-
-
-const
+      "three": "https://cdn.jsdelivr.net/npm/
