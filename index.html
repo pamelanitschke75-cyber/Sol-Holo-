@@ -1,13 +1,8 @@
 <!DOCTYPE html>
 <html lang="de">
-
 <head>
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>Sol Holo – Test 006</title>
 
@@ -16,12 +11,11 @@
       box-sizing: border-box;
     }
 
-    html,
-    body {
+    html, body {
       margin: 0;
       min-height: 100%;
       background: #05070d;
-      color: #ffffff;
+      color: white;
       font-family: Arial, Helvetica, sans-serif;
     }
 
@@ -30,26 +24,25 @@
     }
 
     .container {
-      width: 100%;
       max-width: 900px;
       margin: 0 auto;
     }
 
     h1 {
-      margin: 8px 0 4px;
       text-align: center;
+      margin: 8px 0 4px;
       font-size: 32px;
     }
 
     .subtitle {
-      margin: 0 0 18px;
       text-align: center;
       color: #9da7b3;
+      margin: 0 0 18px;
     }
 
     .box {
-      margin-bottom: 16px;
       padding: 16px;
+      margin-bottom: 16px;
       background: #0d1117;
       border: 1px solid #30363d;
       border-radius: 14px;
@@ -64,11 +57,11 @@
     #avatar {
       width: 100%;
       height: 520px;
-      margin-bottom: 16px;
-      overflow: hidden;
       background: #080b24;
       border: 1px solid #30363d;
       border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 16px;
     }
 
     button,
@@ -77,8 +70,8 @@
       min-height: 50px;
       margin-top: 12px;
       padding: 12px;
-      border-radius: 10px;
       font-size: 16px;
+      border-radius: 10px;
     }
 
     button {
@@ -89,11 +82,10 @@
 
     button:disabled {
       opacity: 0.45;
-      cursor: not-allowed;
     }
 
     input {
-      color: #ffffff;
+      color: white;
       background: #161b22;
       border: 1px solid #30363d;
     }
@@ -107,23 +99,16 @@
     }
   </style>
 
-
   <script type="importmap">
   {
     "imports": {
-      "three":
-        "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js/+esm",
-
-      "three/addons/":
-        "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/",
-
-      "talkinghead":
-        "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@1.7/modules/talkinghead.mjs"
+      "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js/+esm",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/",
+      "talkinghead": "https://cdn.jsdelivr.net/npm/@met4citizen/talkinghead@1.7/modules/talkinghead.mjs"
     }
   }
   </script>
 </head>
-
 
 <body>
 
@@ -135,30 +120,21 @@
     TEST 006 – Deine Stimme → Audioanalyse → Lip-Sync
   </p>
 
-
   <div class="box">
     <div id="status">
       Sol Holo wird vorbereitet …
     </div>
   </div>
 
-
   <div id="avatar"></div>
-
 
   <div class="box">
 
-    <strong>
-      Sprachdatei
-    </strong>
+    <strong>Deine Sprachdatei</strong>
 
-    <button
-      id="repoVoiceButton"
-      disabled
-    >
+    <button id="repoVoiceButton" disabled>
       Pam-Sol Test 005 abspielen
     </button>
-
 
     <input
       id="audioFile"
@@ -167,95 +143,26 @@
       disabled
     >
 
-
-    <button
-      id="fileVoiceButton"
-      disabled
-    >
-      Ausgewählte Sprachdatei abspielen
+    <button id="fileVoiceButton" disabled>
+      Andere Sprachdatei abspielen
     </button>
 
   </div>
 
-
   <p class="small">
     Sol Holo – Forschungs- und Entwicklungsprototyp.<br>
-    Lip-Sync: TalkingHead + HeadAudio.<br>
-    Test 006 verwendet echte Audiodaten zur Steuerung
-    der Lippenbewegung.
+    Open-Source-Lip-Sync mit TalkingHead + HeadAudio.
   </p>
 
 </div>
 
-
 <script type="module">
 
-import {
-  TalkingHead
-} from "talkinghead";
-
+import { TalkingHead } from "talkinghead";
 
 import {
-  HeadAudioNode
-} from
-"https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/modules/headaudio.mjs";
+  HeadAudio
+} from "https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/dist/headaudio.min.mjs";
 
 
-/* =====================================================
-   ELEMENTE
-===================================================== */
-
-const avatarElement =
-  document.getElementById("avatar");
-
-const statusElement =
-  document.getElementById("status");
-
-const repoVoiceButton =
-  document.getElementById("repoVoiceButton");
-
-const fileInput =
-  document.getElementById("audioFile");
-
-const fileVoiceButton =
-  document.getElementById("fileVoiceButton");
-
-
-/* =====================================================
-   KONSTANTEN
-===================================================== */
-
-/*
-  Deine bereits hochgeladene Sprachdatei.
-*/
-const REPO_VOICE_FILE =
-  "./Pam-Sol%20Test%20005.m4a";
-
-
-/*
-  Sol GLB wird zuerst versucht.
-
-  Solange sol.glb noch nicht im Repo vorhanden ist,
-  wird automatisch ein kompatibler Testavatar geladen.
-*/
-const SOL_AVATAR =
-  "./sol.glb";
-
-
-const TEST_AVATAR =
-  "https://models.readyplayer.me/64bfa15f0e72c63d7c3934a6.glb?morphTargets=ARKit,Oculus+Visemes,mouthOpen,mouthSmile,eyesClosed,eyesLookUp,eyesLookDown&textureSizeLimit=1024&textureFormat=png";
-
-
-/*
-  HeadAudio Dateien.
-*/
-const HEAD_WORKLET_URL =
-  "https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/modules/headworklet.mjs";
-
-
-const HEAD_MODEL_URL =
-  "https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/dist/model-en-mixed.bin";
-
-
-/* =====================================================
-   STATUS
+const
