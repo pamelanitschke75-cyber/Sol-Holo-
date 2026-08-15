@@ -19,7 +19,6 @@
     html,
     body {
       margin: 0;
-      width: 100%;
       min-height: 100%;
       background: #05070d;
       color: #ffffff;
@@ -37,8 +36,8 @@
     }
 
     h1 {
-      text-align: center;
       margin: 8px 0 4px;
+      text-align: center;
       font-size: 32px;
     }
 
@@ -46,7 +45,6 @@
       margin: 0 0 18px;
       text-align: center;
       color: #9da7b3;
-      line-height: 1.4;
     }
 
     .box {
@@ -64,29 +62,23 @@
     }
 
     #avatar {
-      position: relative;
       width: 100%;
       height: 520px;
+      margin-bottom: 16px;
       overflow: hidden;
       background: #080b24;
       border: 1px solid #30363d;
       border-radius: 16px;
     }
 
-    input,
-    button {
+    button,
+    input {
       width: 100%;
       min-height: 50px;
       margin-top: 12px;
       padding: 12px;
-      font-size: 16px;
       border-radius: 10px;
-    }
-
-    input {
-      color: #ffffff;
-      background: #161b22;
-      border: 1px solid #30363d;
+      font-size: 16px;
     }
 
     button {
@@ -100,6 +92,12 @@
       cursor: not-allowed;
     }
 
+    input {
+      color: #ffffff;
+      background: #161b22;
+      border: 1px solid #30363d;
+    }
+
     .small {
       margin-top: 12px;
       color: #9da7b3;
@@ -109,11 +107,6 @@
     }
   </style>
 
-
-  <!--
-    TalkingHead 1.7
-    Three.js 0.180
-  -->
 
   <script type="importmap">
   {
@@ -129,7 +122,6 @@
     }
   }
   </script>
-
 </head>
 
 
@@ -140,29 +132,33 @@
   <h1>Sol Holo</h1>
 
   <p class="subtitle">
-    TEST 006 – Open Source Audio-Lip-Sync
+    TEST 006 – Deine Stimme → Audioanalyse → Lip-Sync
   </p>
 
 
   <div class="box">
-
     <div id="status">
-      TalkingHead wird geladen …
+      Sol Holo wird vorbereitet …
     </div>
-
   </div>
 
 
-  <div
-    id="avatar"
-  ></div>
+  <div id="avatar"></div>
 
 
   <div class="box">
 
     <strong>
-      Audiodatei auswählen
+      Sprachdatei
     </strong>
+
+    <button
+      id="repoVoiceButton"
+      disabled
+    >
+      Pam-Sol Test 005 abspielen
+    </button>
+
 
     <input
       id="audioFile"
@@ -171,11 +167,12 @@
       disabled
     >
 
+
     <button
-      id="playButton"
+      id="fileVoiceButton"
       disabled
     >
-      Audio mit Sol Holo abspielen
+      Ausgewählte Sprachdatei abspielen
     </button>
 
   </div>
@@ -183,10 +180,9 @@
 
   <p class="small">
     Sol Holo – Forschungs- und Entwicklungsprototyp.<br>
-    Open-Source-Lip-Sync:
-    TalkingHead by met4citizen.<br>
-    Avatar-Datei:
-    sol.glb
+    Lip-Sync: TalkingHead + HeadAudio.<br>
+    Test 006 verwendet echte Audiodaten zur Steuerung
+    der Lippenbewegung.
   </p>
 
 </div>
@@ -199,6 +195,12 @@ import {
 } from "talkinghead";
 
 
+import {
+  HeadAudioNode
+} from
+"https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/modules/headaudio.mjs";
+
+
 /* =====================================================
    ELEMENTE
 ===================================================== */
@@ -209,641 +211,51 @@ const avatarElement =
 const statusElement =
   document.getElementById("status");
 
-const audioInput =
+const repoVoiceButton =
+  document.getElementById("repoVoiceButton");
+
+const fileInput =
   document.getElementById("audioFile");
 
-const playButton =
-  document.getElementById("playButton");
+const fileVoiceButton =
+  document.getElementById("fileVoiceButton");
+
+
+/* =====================================================
+   KONSTANTEN
+===================================================== */
+
+/*
+  Deine bereits hochgeladene Sprachdatei.
+*/
+const REPO_VOICE_FILE =
+  "./Pam-Sol%20Test%20005.m4a";
+
+
+/*
+  Sol GLB wird zuerst versucht.
+
+  Solange sol.glb noch nicht im Repo vorhanden ist,
+  wird automatisch ein kompatibler Testavatar geladen.
+*/
+const SOL_AVATAR =
+  "./sol.glb";
+
+
+const TEST_AVATAR =
+  "https://models.readyplayer.me/64bfa15f0e72c63d7c3934a6.glb?morphTargets=ARKit,Oculus+Visemes,mouthOpen,mouthSmile,eyesClosed,eyesLookUp,eyesLookDown&textureSizeLimit=1024&textureFormat=png";
+
+
+/*
+  HeadAudio Dateien.
+*/
+const HEAD_WORKLET_URL =
+  "https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/modules/headworklet.mjs";
+
+
+const HEAD_MODEL_URL =
+  "https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/dist/model-en-mixed.bin";
 
 
 /* =====================================================
    STATUS
-===================================================== */
-
-function setStatus(text) {
-
-  statusElement.textContent =
-    text;
-
-}
-
-
-/* =====================================================
-   TALKINGHEAD
-===================================================== */
-
-let head = null;
-
-let avatarLoaded = false;
-
-
-/* =====================================================
-   AVATAR LADEN
-===================================================== */
-
-async function initAvatar() {
-
-  try {
-
-    setStatus(
-      "TalkingHead startet …"
-    );
-
-
-    /*
-      TalkingHead erzeugen.
-
-      Kein Google-TTS-Key nötig,
-      weil wir in diesem Test
-      keine Text-to-Speech-Funktion benutzen.
-    */
-
-    head =
-      new TalkingHead(
-        avatarElement,
-        {
-
-          lipsyncModules: [
-            "de",
-            "en"
-          ],
-
-          cameraView:
-            "upper",
-
-          avatarMood:
-            "neutral",
-
-          modelFPS:
-            30,
-
-          mixerGainSpeech:
-            1
-
-        }
-      );
-
-
-    setStatus(
-      "Sol Avatar wird geladen …"
-    );
-
-
-    /*
-      WICHTIG:
-
-      Die Datei sol.glb muss
-      im selben GitHub-Ordner
-      wie index.html liegen.
-    */
-
-    await head.showAvatar(
-      {
-
-        url:
-          "./sol.glb",
-
-        body:
-          "F",
-
-        avatarMood:
-          "neutral"
-
-      },
-      (event) => {
-
-        /*
-          Optional:
-          Download-Fortschritt
-          in Prozent anzeigen.
-        */
-
-        if (
-          event &&
-          event.lengthComputable
-        ) {
-
-          const percent =
-            Math.round(
-              event.loaded /
-              event.total *
-              100
-            );
-
-          setStatus(
-            "Sol wird geladen: " +
-            percent +
-            "%"
-          );
-
-        }
-
-      }
-    );
-
-
-    avatarLoaded = true;
-
-    audioInput.disabled =
-      false;
-
-
-    setStatus(
-      "Sol Holo ist bereit. ✅"
-    );
-
-  }
-
-  catch (error) {
-
-    console.error(
-      error
-    );
-
-
-    setStatus(
-      "Avatar-Fehler: " +
-      error.message
-    );
-
-  }
-
-}
-
-
-/* =====================================================
-   AUDIODATEI AUSGEWÄHLT
-===================================================== */
-
-audioInput.addEventListener(
-  "change",
-  function() {
-
-    if (
-      !avatarLoaded
-    ) {
-
-      playButton.disabled =
-        true;
-
-      return;
-
-    }
-
-
-    if (
-      audioInput.files.length === 0
-    ) {
-
-      playButton.disabled =
-        true;
-
-      return;
-
-    }
-
-
-    const file =
-      audioInput.files[0];
-
-
-    setStatus(
-      "Audio ausgewählt: " +
-      file.name
-    );
-
-
-    playButton.disabled =
-      false;
-
-  }
-);
-
-
-/* =====================================================
-   AUDIODATEI DEKODIEREN
-===================================================== */
-
-async function decodeAudioFile(file) {
-
-  const arrayBuffer =
-    await file.arrayBuffer();
-
-
-  const AudioContextClass =
-    window.AudioContext ||
-    window.webkitAudioContext;
-
-
-  if (
-    !AudioContextClass
-  ) {
-
-    throw new Error(
-      "Web Audio API wird nicht unterstützt."
-    );
-
-  }
-
-
-  const audioContext =
-    new AudioContextClass();
-
-
-  try {
-
-    const audioBuffer =
-      await audioContext
-        .decodeAudioData(
-          arrayBuffer.slice(0)
-        );
-
-
-    return {
-      audioBuffer,
-      audioContext
-    };
-
-  }
-
-  catch (error) {
-
-    await audioContext.close();
-
-    throw error;
-
-  }
-
-}
-
-
-/* =====================================================
-   AUDIO ABSPIELEN
-===================================================== */
-
-playButton.addEventListener(
-  "click",
-  async function() {
-
-    if (
-      !avatarLoaded ||
-      !head
-    ) {
-
-      setStatus(
-        "Sol Holo ist noch nicht bereit."
-      );
-
-      return;
-
-    }
-
-
-    const file =
-      audioInput.files[0];
-
-
-    if (!file) {
-
-      setStatus(
-        "Bitte zuerst eine Audiodatei auswählen."
-      );
-
-      return;
-
-    }
-
-
-    playButton.disabled =
-      true;
-
-
-    try {
-
-      setStatus(
-        "Audio wird vorbereitet …"
-      );
-
-
-      const {
-        audioBuffer,
-        audioContext
-      } =
-        await decodeAudioFile(
-          file
-        );
-
-
-      /*
-        WAV/MP3/M4A usw. werden vom
-        Browser zunächst decodiert.
-
-        Für TalkingHead erzeugen wir
-        anschließend ein WAV-Blob.
-      */
-
-      const wavBlob =
-        audioBufferToWavBlob(
-          audioBuffer
-        );
-
-
-      const wavArrayBuffer =
-        await wavBlob.arrayBuffer();
-
-
-      /*
-        speakAudio kann Audio abspielen.
-
-        isRaw bedeutet:
-        kein künstliches Pausen-/Break-System
-        innerhalb der Audiodaten.
-      */
-
-      setStatus(
-        "Sol Holo spricht …"
-      );
-
-
-      await head.speakAudio(
-        {
-
-          audio:
-            wavArrayBuffer,
-
-          isRaw:
-            true,
-
-          lipsyncLang:
-            "de"
-
-        }
-      );
-
-
-      setStatus(
-        "Audio fertig. ✅"
-      );
-
-
-      await audioContext.close();
-
-    }
-
-    catch (error) {
-
-      console.error(
-        error
-      );
-
-
-      setStatus(
-        "Audio-Fehler: " +
-        error.message
-      );
-
-    }
-
-    finally {
-
-      playButton.disabled =
-        false;
-
-    }
-
-  }
-);
-
-
-/* =====================================================
-   AUDIOBUFFER → WAV
-===================================================== */
-
-function audioBufferToWavBlob(
-  audioBuffer
-) {
-
-  const numberOfChannels =
-    audioBuffer.numberOfChannels;
-
-  const sampleRate =
-    audioBuffer.sampleRate;
-
-  const length =
-    audioBuffer.length *
-    numberOfChannels *
-    2 +
-    44;
-
-
-  const buffer =
-    new ArrayBuffer(
-      length
-    );
-
-
-  const view =
-    new DataView(
-      buffer
-    );
-
-
-  let offset =
-    0;
-
-
-  function writeString(
-    value
-  ) {
-
-    for (
-      let i = 0;
-      i < value.length;
-      i++
-    ) {
-
-      view.setUint8(
-        offset++,
-        value.charCodeAt(i)
-      );
-
-    }
-
-  }
-
-
-  function writeUint16(
-    value
-  ) {
-
-    view.setUint16(
-      offset,
-      value,
-      true
-    );
-
-    offset +=
-      2;
-
-  }
-
-
-  function writeUint32(
-    value
-  ) {
-
-    view.setUint32(
-      offset,
-      value,
-      true
-    );
-
-    offset +=
-      4;
-
-  }
-
-
-  /* WAV HEADER */
-
-  writeString(
-    "RIFF"
-  );
-
-
-  writeUint32(
-    length - 8
-  );
-
-
-  writeString(
-    "WAVE"
-  );
-
-
-  writeString(
-    "fmt "
-  );
-
-
-  writeUint32(
-    16
-  );
-
-
-  writeUint16(
-    1
-  );
-
-
-  writeUint16(
-    numberOfChannels
-  );
-
-
-  writeUint32(
-    sampleRate
-  );
-
-
-  writeUint32(
-    sampleRate *
-    numberOfChannels *
-    2
-  );
-
-
-  writeUint16(
-    numberOfChannels *
-    2
-  );
-
-
-  writeUint16(
-    16
-  );
-
-
-  writeString(
-    "data"
-  );
-
-
-  writeUint32(
-    audioBuffer.length *
-    numberOfChannels *
-    2
-  );
-
-
-  /* PCM */
-
-  for (
-    let sample = 0;
-    sample <
-    audioBuffer.length;
-    sample++
-  ) {
-
-    for (
-      let channel = 0;
-      channel <
-      numberOfChannels;
-      channel++
-    ) {
-
-      let value =
-        audioBuffer
-          .getChannelData(
-            channel
-          )[sample];
-
-
-      value =
-        Math.max(
-          -1,
-          Math.min(
-            1,
-            value
-          )
-        );
-
-
-      view.setInt16(
-        offset,
-        value < 0
-          ? value * 32768
-          : value * 32767,
-        true
-      );
-
-
-      offset +=
-        2;
-
-    }
-
-  }
-
-
-  return new Blob(
-    [buffer],
-    {
-      type:
-        "audio/wav"
-    }
-  );
-
-}
-
-
-/* =====================================================
-   START
-===================================================== */
-
-initAvatar();
-
-</script>
-
-</body>
-</html>
