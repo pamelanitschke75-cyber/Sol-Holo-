@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+  <title>Sol Holo – Test 006</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: #05070d;
+      color: white;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      padding: 18px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin: 8px 0 4px;
+      font-size: 32px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #9da7b3;
+      margin: 0 0 18px;
+      line-height: 1.4;
+    }
+
+    .box {
+      padding: 16px;
+      margin-bottom: 16px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 14px;
+    }
+
+    #status {
+      text-align: center;
+      font-weight: bold;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+
+    #avatar {
+      width: 100%;
+      height: 520px;
+      background: #080b24;
+      border: 1px solid #30363d;
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    button,
+    input {
+      width: 100%;
+      min-height: 50px;
+      margin-top: 12px;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 10px;
+    }
+
+    button {
+      border: 0;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    input {
+      color: white;
+      background: #161b22;
+      border: 1px solid #30363d;
+    }
+
+    .small {
+      margin-top: 12px;
+      color: #9da7b3;
+      font-size: 13px;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    .error {
+      color: #ff9b9b;
+    }
+
+    .success {
+      color: #9cffb1;
+    }
+  </style>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js/+esm",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/",
+      "talkinghead": "https://cdn.jsdelivr.net/npm/@met4citizen/talkinghead@1.7/modules/talkinghead.mjs",
+      "headaudio": "https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/dist/headaudio.min.mjs"
+    }
+  }
+  </script>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>Sol Holo</h1>
+
+  <p class="subtitle">
+    TEST 006 – Deine Stimme → Audioanalyse → Lip-Sync
+  </p>
+
+  <div class="box">
+    <div id="status">
+      JavaScript wird gestartet …
+    </div>
+  </div>
+
+  <div id="avatar"></div>
+
+  <div class="box">
+
+    <strong>Deine Sprachdatei</strong>
+
+    <button id="repoVoiceButton" disabled>
+      Pam-Sol Test 005 abspielen
+    </button>
+
+    <input
+      id="audioFile"
+      type="file"
+      accept="audio/*"
+      disabled
+    >
+
+    <button id="fileVoiceButton" disabled>
+      Andere Sprachdatei abspielen
+    </button>
+
+  </div>
+
+  <p class="small">
+    Sol Holo – Forschungs- und Entwicklungsprototyp.<br>
+    Test 006 – TalkingHead + HeadAudio.
+  </p>
+
+</div>
+
+<script type="module">
+
+import { TalkingHead } from "talkinghead";
+import { HeadAudio } from "headaudio";
+
+const status = document.getElementById("status");
+const avatarElement = document.getElementById("avatar");
+const repoVoiceButton =
+  document.getElementById("repoVoiceButton");
+const audioFile =
+  document.getElementById("audioFile");
+const fileVoiceButton =
+  document.getElementById("fileVoiceButton");
+
+let head = null;
+let headAudio = null;
+let selectedAudio = null;
+
+
+/* --------------------------------------------------
+   DATEIEN
+-------------------------------------------------- */
+
+const AVATAR_URL = "./sol.glb";
+
+const REPO_AUDIO_URL =
+  "./Pam-Sol Test 005.m4a";
+
+const HEAD_AUDIO_WORKLET =
+  "https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/dist/headworklet.min.mjs";
+
+const HEAD_AUDIO_MODEL =
+  "https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/dist/model-en-mixed.bin";
+
+
+/* --------------------------------------------------
+   STATUS
+-------------------------------------------------- */
+
+function setStatus(text, type = "") {
+
+  status.textContent = text;
+
+  status.classList.remove(
+    "error",
+    "success"
+  );
+
+  if (type) {
+    status.classList.add(type);
+  }
+}
+
+
+/* --------------------------------------------------
+   INITIALISIERUNG
+-------------------------------------------------- */
+
+async function init() {
+
+  try {
+
+    setStatus(
+      "1/4 – TalkingHead wird gestartet …"
+    );
+
+    head = new TalkingHead(
+      avatarElement,
+      {
+        ttsEndpoint: "N/A",
+        lipsyncModules: [],
+        cameraView: "upper",
+        mixerGainSpeech: 3,
+        cameraRotateEnable: false,
+        lightAmbientIntensity: 0,
+        lightDirectIntensity: 0,
+        lightSpotIntensity: 0
+      }
+    );
+
+
+    setStatus(
+      "2/4 – HeadAudio wird gestartet …"
+    );
+
+    await head.audioCtx.audioWorklet.addModule(
+      HEAD_AUDIO_WORKLET
+    );
+
+    headAudio = new HeadAudio(
+      head.audioCtx
+    );
+
+
+    setStatus(
+      "3/4 – Audio-Modell wird geladen …"
+    );
+
+    await headAudio.loadModel(
+      HEAD_AUDIO_MODEL
+    );
+
+
+    head.audioSpeechGainNode.connect(
+      headAudio
+    );
+
+
+    headAudio.onvalue = (
+      key,
+      value
+    ) => {
+
+      if (
+        head.mtAvatar &&
+        head.mtAvatar[key]
+      ) {
+
+        Object.assign(
+          head.mtAvatar[key],
+          {
+            newvalue: value,
+            needsUpdate: true
+          }
+        );
+
+      }
+
+    };
+
+
+    head.opt.update =
+      headAudio.update.bind(
+        headAudio
+      );
+
+
+    setStatus(
+      "4/4 – Sol Holo wird geladen …"
+    );
+
+
+    await head.showAvatar({
+      url: AVATAR_URL,
+      body: "F",
+      avatarMood: "neutral"
+    });
+
+
+    repoVoiceButton.disabled = false;
+    audioFile.disabled = false;
+
+
+    setStatus(
+      "Sol Holo ist bereit 💚",
+      "success"
+    );
+
+  }
+  catch (error) {
+
+    console.error(error);
+
+    setStatus(
+      "FEHLER: " +
+      (
+        error?.message ||
+        String(error)
+      ),
+      "error"
+    );
+
+  }
+
+}
+
+
+/* --------------------------------------------------
+   AUDIO ABSPIELEN
+-------------------------------------------------- */
+
+async function playAudio(url) {
+
+  try {
+
+    setStatus(
+      "Audio wird geladen …"
+    );
+
+
+    head.start();
+
+
+    if (
+      head.audioCtx.state !==
+      "running"
+    ) {
+
+      await head.audioCtx.resume();
+
+    }
+
+
+    const response =
+      await fetch(url);
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        "Audiodatei nicht gefunden: " +
+        response.status
+      );
+
+    }
+
+
+    const arrayBuffer =
+      await response.arrayBuffer();
+
+
+    const audioBuffer =
+      await head.audioCtx.decodeAudioData(
+        arrayBuffer.slice(0)
+      );
+
+
+    const source =
+      head.audioCtx.createBufferSource();
+
+
+    source.buffer =
+      audioBuffer;
+
+
+    source.connect(
+      head.audioSpeechGainNode
+    );
+
+
+    source.start();
+
+
+    setStatus(
+      "Deine Stimme läuft – Lip-Sync aktiv 💚",
+      "success"
+    );
+
+
+    source.onended = () => {
+
+      setStatus(
+        "Fertig – bereit für den nächsten Test.",
+        "success"
+      );
+
+    };
+
+  }
+  catch (error) {
+
+    console.error(error);
+
+    setStatus(
+      "AUDIO-FEHLER: " +
+      (
+        error?.message ||
+        String(error)
+      ),
+      "error"
+    );
+
+  }
+
+}
+
+
+/* --------------------------------------------------
+   REPOSITORY-SPRACHDATEI
+-------------------------------------------------- */
+
+repoVoiceButton.addEventListener(
+  "click",
+  async () => {
+
+    await playAudio(
+      REPO_AUDIO_URL
+    );
+
+  }
+);
+
+
+/* --------------------------------------------------
+   DATEI VOM HANDY AUSWÄHLEN
+-------------------------------------------------- */
+
+audioFile.addEventListener(
+  "change",
+  () => {
+
+    if (
+      !audioFile.files ||
+      !audioFile.files[0]
+    ) {
+
+      selectedAudio = null;
+      fileVoiceButton.disabled = true;
+
+      return;
+
+    }
+
+
+    if (selectedAudio) {
+
+      URL.revokeObjectURL(
+        selectedAudio
+      );
+
+    }
+
+
+    selectedAudio =
+      URL.createObjectURL(
+        audioFile.files[0]
+      );
+
+
+    fileVoiceButton.disabled = false;
+
+
+    setStatus(
+      "Sprachdatei ausgewählt – bereit."
+    );
+
+  }
+);
+
+
+/* --------------------------------------------------
+   AUSGEWÄHLTE DATEI ABSPIELEN
+-------------------------------------------------- */
+
+fileVoiceButton.addEventListener(
+  "click",
+  async () => {
+
+    if (!selectedAudio) {
+
+      setStatus(
+        "Bitte zuerst eine Sprachdatei auswählen.",
+        "error"
+      );
+
+      return;
+
+    }
+
+
+    await playAudio(
+      selectedAudio
+    );
+
+  }
+);
+
+
+/* --------------------------------------------------
+   START
+-------------------------------------------------- */
+
+init();
+
+</script>
+
+</body>
+</html>
