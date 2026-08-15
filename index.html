@@ -2,6 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
+
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0"
@@ -73,7 +74,7 @@
     }
 
     button:disabled {
-      opacity: 0.5;
+      opacity: 0.45;
       cursor: not-allowed;
     }
 
@@ -83,7 +84,7 @@
       margin-top: 20px;
       border: 0;
       border-radius: 12px;
-      background: black;
+      background: #000;
     }
 
     .small {
@@ -106,8 +107,6 @@
   </p>
 
 
-  <!-- STATUS -->
-
   <div class="box">
     <div id="status">
       LiveSpeak wird geladen …
@@ -115,11 +114,9 @@
   </div>
 
 
-  <!-- AUTHENTIFIZIERUNG -->
-
   <div class="box">
 
-    <strong>1. LiveSpeak verbinden</strong>
+    <strong>1. LiveSpeak authentifizieren</strong>
 
     <input
       id="accessToken"
@@ -143,8 +140,6 @@
   </div>
 
 
-  <!-- AUDIO -->
-
   <div class="box">
 
     <strong>2. Audiodatei auswählen</strong>
@@ -153,6 +148,7 @@
       id="audioFile"
       type="file"
       accept="audio/*"
+      disabled
     >
 
     <button
@@ -164,8 +160,6 @@
 
   </div>
 
-
-  <!-- AVATAR -->
 
   <iframe
     id="livespeak"
@@ -188,7 +182,6 @@
 
 
 <script>
-
 "use strict";
 
 
@@ -201,11 +194,15 @@ const LIVESPEAK_ORIGIN =
 
 const TARGET_SAMPLE_RATE = 16000;
 
-const PCM_CHUNK_SIZE = 16000;
+/*
+  0,25 Sekunden Audio pro Paket:
+  16000 Samples/Sekunde × 0,25
+*/
+const PCM_CHUNK_SIZE = 4000;
 
 
 /* =====================================================
-   HTML-ELEMENTE
+   ELEMENTE
 ===================================================== */
 
 const iframe =
@@ -228,36 +225,65 @@ const sendButton =
 
 
 /* =====================================================
-   STATUS
+   ZUSTÄNDE
 ===================================================== */
 
 let liveSpeakLoaded = false;
+
+let authenticationRequested = false;
+
+let authenticated = false;
+
 let avatarReady = false;
+
 let audioBusy = false;
 
 
+/* =====================================================
+   STATUS
+===================================================== */
+
 function setStatus(text) {
-
   statusBox.textContent = text;
-
 }
 
 
-function updateButtons() {
+function updateControls() {
 
+  /*
+    Authentifizieren erst, wenn LiveSpeak geladen ist.
+  */
   authButton.disabled =
-    !liveSpeakLoaded;
+    !liveSpeakLoaded ||
+    authenticationRequested ||
+    authenticated;
 
+
+  /*
+    Dateiauswahl gibt es ERST nach
+    erfolgreicher LiveSpeak-Anmeldung.
+  */
+  audioInput.disabled =
+    !authenticated;
+
+
+  /*
+    Senden nur:
+    - authentifiziert
+    - Avatar Ready
+    - Datei vorhanden
+    - kein Audio läuft
+  */
   sendButton.disabled =
+    !authenticated ||
     !avatarReady ||
     audioBusy ||
     audioInput.files.length === 0;
-
 }
 
 
 /* =====================================================
-   NACHRICHT AN LIVESPEAK
+   AN LIVESPEAK SENDEN
 ===================================================== */
 
 function sendToLiveSpeak(
@@ -266,11 +292,9 @@ function sendToLiveSpeak(
 ) {
 
   if (!iframe.contentWindow) {
-
     throw new Error(
-      "LiveSpeak ist nicht verfügbar."
+      "LiveSpeak iframe ist nicht verfügbar."
     );
-
   }
 
   iframe.contentWindow.postMessage(
@@ -278,21 +302,16 @@ function sendToLiveSpeak(
     LIVESPEAK_ORIGIN,
     transfer
   );
-
 }
 
 
 /* =====================================================
-   LIVESPEAK-NACHRICHTEN EMPFANGEN
+   LIVESPEAK EVENTS
 ===================================================== */
 
 window.addEventListener(
   "message",
   function(event) {
-
-    /*
-      Nur Nachrichten von MetaPerson akzeptieren.
-    */
 
     if (
       event.origin !==
@@ -301,9 +320,7 @@ window.addEventListener(
       return;
     }
 
-
     const data = event.data;
-
 
     if (
       !data ||
@@ -312,7 +329,6 @@ window.addEventListener(
       return;
     }
 
-
     console.log(
       "LiveSpeak:",
       data
@@ -320,7 +336,7 @@ window.addEventListener(
 
 
     /* -----------------------------------------
-       LIVESPEAK GELADEN
+       LIVESPEAK IST GELADEN
     ----------------------------------------- */
 
     if (
@@ -331,18 +347,16 @@ window.addEventListener(
       liveSpeakLoaded = true;
 
       setStatus(
-        "LiveSpeak geladen. Access Token eingeben."
+        "LiveSpeak geladen. Bitte Access Token eingeben."
       );
 
-      updateButtons();
-
+      updateControls();
       return;
-
     }
 
 
     /* -----------------------------------------
-       AVATAR-STATUS
+       AVATAR STATUS
     ----------------------------------------- */
 
     if (
@@ -353,95 +367,146 @@ window.addEventListener(
       const state =
         data.avatarState || "";
 
-
-      switch (state) {
-
-
-        case "WaitingForAuthentication":
-
-          avatarReady = false;
-
-          setStatus(
-            "LiveSpeak wartet auf Anmeldung."
-          );
-
-          break;
+      console.log(
+        "Avatar State:",
+        state
+      );
 
 
-        case "Authenticating":
+      if (
+        state ===
+        "WaitingForAuthentication"
+      ) {
 
-          avatarReady = false;
+        avatarReady = false;
 
-          setStatus(
-            "Anmeldung wird geprüft …"
-          );
-
-          break;
-
-
-        case "Initializing":
-
-          avatarReady = false;
-
-          setStatus(
-            "Sol Holo wird vorbereitet …"
-          );
-
-          break;
-
-
-        case "Thinking":
-
-          setStatus(
-            "Audio wird verarbeitet …"
-          );
-
-          break;
-
-
-        case "Speaking":
-
-          setStatus(
-            "Sol Holo spricht – Lip-Sync läuft. ✅"
-          );
-
-          break;
-
-
-        case "WaitingForTouch":
-
-          setStatus(
-            "Bitte einmal auf den Avatar tippen, damit Audio abgespielt werden darf."
-          );
-
-          break;
-
-
-        case "Ready":
-
-          avatarReady = true;
-          audioBusy = false;
-
-          setStatus(
-            "Sol Holo ist bereit. ✅"
-          );
-
-          break;
-
-
-        default:
-
-          setStatus(
-            "Avatar-Status: " + state
-          );
-
+        setStatus(
+          "LiveSpeak wartet auf Authentifizierung."
+        );
       }
 
 
-      updateButtons();
+      else if (
+        state ===
+        "Authenticating"
+      ) {
 
+        avatarReady = false;
+
+        setStatus(
+          "AvatarSDK prüft den Access Token …"
+        );
+      }
+
+
+      else if (
+        state ===
+        "Initializing"
+      ) {
+
+        avatarReady = false;
+
+        setStatus(
+          "LiveSpeak wird eingerichtet …"
+        );
+      }
+
+
+      else if (
+        state ===
+        "Thinking"
+      ) {
+
+        avatarReady = false;
+
+        setStatus(
+          "Audio wird verarbeitet …"
+        );
+      }
+
+
+      else if (
+        state ===
+        "Speaking"
+      ) {
+
+        avatarReady = false;
+
+        setStatus(
+          "Sol Holo spricht – Lip-Sync läuft. ✅"
+        );
+      }
+
+
+      else if (
+        state ===
+        "WaitingForTouch"
+      ) {
+
+        setStatus(
+          "Bitte einmal auf Sol tippen, um die Audiowiedergabe freizugeben."
+        );
+      }
+
+
+      else if (
+        state ===
+        "Ready"
+      ) {
+
+        /*
+          ENTSCHEIDENDE ÄNDERUNG:
+
+          Ein normales Ready direkt beim Laden
+          zählt NICHT automatisch als Anmeldung.
+
+          Erst wenn vorher ausdrücklich
+          authenticate gesendet wurde,
+          gilt dieses Ready als erfolgreicher
+          Abschluss der Anmeldung.
+        */
+
+        if (authenticationRequested) {
+
+          authenticated = true;
+
+          authenticationRequested = false;
+
+          avatarReady = true;
+
+          audioBusy = false;
+
+          setStatus(
+            "LiveSpeak authentifiziert. Sol Holo ist bereit. ✅"
+          );
+        }
+
+        else {
+
+          /*
+            Demo-/Initialzustand:
+            Noch KEIN Raw Audio senden!
+          */
+
+          avatarReady = false;
+
+          setStatus(
+            "Sol ist geladen. Jetzt LiveSpeak mit deinem Access Token verbinden."
+          );
+        }
+      }
+
+
+      else {
+
+        setStatus(
+          "Avatar-Status: " + state
+        );
+      }
+
+
+      updateControls();
       return;
-
     }
 
 
@@ -461,6 +526,21 @@ window.addEventListener(
         "Unbekannter LiveSpeak-Fehler";
 
 
+      /*
+        Wenn Authentifizierung fehlgeschlagen ist,
+        wieder Eingabe ermöglichen.
+      */
+
+      if (
+        authenticationRequested
+      ) {
+
+        authenticationRequested = false;
+        authenticated = false;
+        avatarReady = false;
+      }
+
+
       console.error(
         "LiveSpeak Fehler:",
         data.failedEventName,
@@ -472,9 +552,7 @@ window.addEventListener(
         "Fehler: " + reason
       );
 
-
-      updateButtons();
-
+      updateControls();
     }
 
   }
@@ -496,34 +574,37 @@ authButton.addEventListener(
     if (!accessToken) {
 
       setStatus(
-        "Bitte Access Token eingeben."
+        "Bitte zuerst deinen temporären Access Token eingeben."
       );
 
       return;
-
     }
 
 
+    authenticationRequested = true;
+    authenticated = false;
+    avatarReady = false;
+
+    updateControls();
+
+
     sendToLiveSpeak({
-
       eventName: "authenticate",
-
       accessToken: accessToken
-
     });
 
 
     /*
-      Token danach aus dem Eingabefeld entfernen.
+      Token danach aus dem sichtbaren
+      Feld entfernen.
     */
 
     tokenInput.value = "";
 
 
     setStatus(
-      "LiveSpeak wird verbunden …"
+      "LiveSpeak wird authentifiziert …"
     );
-
   }
 );
 
@@ -540,22 +621,23 @@ audioInput.addEventListener(
       audioInput.files.length > 0
     ) {
 
+      const file =
+        audioInput.files[0];
+
       setStatus(
         "Audio ausgewählt: " +
-        audioInput.files[0].name
+        file.name
       );
-
     }
 
-
-    updateButtons();
-
+    updateControls();
   }
 );
 
 
 /* =====================================================
-   AUDIO → 16 KHZ MONO FLOAT32 PCM
+   AUDIO DATEI →
+   16 KHZ / MONO / FLOAT32 PCM
 ===================================================== */
 
 async function convertAudioToPCM(file) {
@@ -572,13 +654,12 @@ async function convertAudioToPCM(file) {
   if (!AudioContextClass) {
 
     throw new Error(
-      "Web Audio API wird nicht unterstützt."
+      "Die Web Audio API wird von diesem Browser nicht unterstützt."
     );
-
   }
 
 
-  const audioContext =
+  const decodeContext =
     new AudioContextClass();
 
 
@@ -588,7 +669,7 @@ async function convertAudioToPCM(file) {
   try {
 
     decodedAudio =
-      await audioContext.decodeAudioData(
+      await decodeContext.decodeAudioData(
         arrayBuffer.slice(0)
       );
 
@@ -596,13 +677,13 @@ async function convertAudioToPCM(file) {
 
   finally {
 
-    await audioContext.close();
+    await decodeContext.close();
 
   }
 
 
   /*
-    Zielgröße für 16 kHz.
+    Anzahl Ziel-Samples bei 16 kHz.
   */
 
   const targetLength =
@@ -611,6 +692,10 @@ async function convertAudioToPCM(file) {
       TARGET_SAMPLE_RATE
     );
 
+
+  /*
+    Ein Kanal = Mono.
+  */
 
   const offlineContext =
     new OfflineAudioContext(
@@ -621,7 +706,7 @@ async function convertAudioToPCM(file) {
 
 
   /*
-    Stereo/Mehrkanal → Mono
+    Originalton zunächst zu Mono mischen.
   */
 
   const monoBuffer =
@@ -632,7 +717,7 @@ async function convertAudioToPCM(file) {
     );
 
 
-  const monoChannel =
+  const monoData =
     monoBuffer.getChannelData(0);
 
 
@@ -643,7 +728,7 @@ async function convertAudioToPCM(file) {
     channel++
   ) {
 
-    const sourceChannel =
+    const sourceData =
       decodedAudio.getChannelData(
         channel
       );
@@ -655,33 +740,26 @@ async function convertAudioToPCM(file) {
       i++
     ) {
 
-      monoChannel[i] +=
-
-        sourceChannel[i] /
-
+      monoData[i] +=
+        sourceData[i] /
         decodedAudio.numberOfChannels;
-
     }
-
   }
 
 
   /*
-    Auf 16 kHz resampeln.
+    Browser resampelt auf 16 kHz.
   */
 
   const sourceNode =
     offlineContext.createBufferSource();
 
-
   sourceNode.buffer =
     monoBuffer;
-
 
   sourceNode.connect(
     offlineContext.destination
   );
-
 
   sourceNode.start(0);
 
@@ -691,18 +769,17 @@ async function convertAudioToPCM(file) {
 
 
   /*
-    Eigene Float32-Kopie erzeugen.
+    Eigene Float32-Kopie.
   */
 
   return new Float32Array(
     rendered.getChannelData(0)
   );
-
 }
 
 
 /* =====================================================
-   PCM AN LIVESPEAK SENDEN
+   PCM AN RAW_STREAM SENDEN
 ===================================================== */
 
 async function sendPCM(pcm) {
@@ -716,7 +793,8 @@ async function sendPCM(pcm) {
 
     const end =
       Math.min(
-        offset + PCM_CHUNK_SIZE,
+        offset +
+        PCM_CHUNK_SIZE,
         pcm.length
       );
 
@@ -730,13 +808,9 @@ async function sendPCM(pcm) {
 
     sendToLiveSpeak(
       {
-
         eventName: "pcm",
-
         buffer: chunk.buffer
-
       },
-
       [
         chunk.buffer
       ]
@@ -747,41 +821,48 @@ async function sendPCM(pcm) {
 
 
     /*
-      Kleiner Yield für Mobilbrowser.
+      Kurze Pause zwischen den Paketen,
+      damit der Mobilbrowser Luft bekommt.
     */
 
     await new Promise(
       resolve =>
         setTimeout(
           resolve,
-          0
+          10
         )
     );
-
   }
 
 
   /*
-    Alle PCM-Daten sind übertragen.
-    Jetzt darf LiveSpeak Audio + Lip-Sync starten.
+    LiveSpeak mitteilen:
+    komplette Audiodatei angekommen.
   */
 
   sendToLiveSpeak({
-
     eventName: "audio_end"
-
   });
-
 }
 
 
 /* =====================================================
-   TEST 005 STARTEN
+   TEST 005
 ===================================================== */
 
 sendButton.addEventListener(
   "click",
   async function() {
+
+    if (!authenticated) {
+
+      setStatus(
+        "LiveSpeak muss zuerst authentifiziert werden."
+      );
+
+      return;
+    }
+
 
     if (!avatarReady) {
 
@@ -790,7 +871,6 @@ sendButton.addEventListener(
       );
 
       return;
-
     }
 
 
@@ -801,23 +881,23 @@ sendButton.addEventListener(
     if (!file) {
 
       setStatus(
-        "Bitte zuerst eine Audiodatei auswählen."
+        "Bitte eine Audiodatei auswählen."
       );
 
       return;
-
     }
 
 
     try {
 
       audioBusy = true;
+      avatarReady = false;
 
-      updateButtons();
+      updateControls();
 
 
       setStatus(
-        "Audio wird vorbereitet …"
+        "Audio wird in 16-kHz-Mono-PCM umgewandelt …"
       );
 
 
@@ -834,7 +914,7 @@ sendButton.addEventListener(
 
 
       setStatus(
-        "Audio wird an Sol Holo übertragen …"
+        "PCM wird an LiveSpeak übertragen …"
       );
 
 
@@ -844,27 +924,26 @@ sendButton.addEventListener(
 
 
       setStatus(
-        "Audio übertragen – Lip-Sync wird gestartet …"
+        "Audio vollständig übertragen. LiveSpeak verarbeitet den Lip-Sync …"
       );
 
     }
 
     catch (error) {
 
-      console.error(error);
-
+      console.error(
+        error
+      );
 
       audioBusy = false;
-
+      avatarReady = true;
 
       setStatus(
         "Audio-Fehler: " +
         error.message
       );
 
-
-      updateButtons();
-
+      updateControls();
     }
 
   }
@@ -875,7 +954,7 @@ sendButton.addEventListener(
    START
 ===================================================== */
 
-updateButtons();
+updateControls();
 
 </script>
 
