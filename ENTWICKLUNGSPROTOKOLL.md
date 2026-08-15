@@ -2491,3 +2491,355 @@ SOL HOLO
 **TECHNISCHER END-TO-END-FUNKTIONSNACHWEIS ERBRACHT ✅**
 
 Der nächste Schritt ist die Prüfung der Reproduzierbarkeit des erfolgreichen Testablaufs.
+
+---
+
+# TEST 006 — VOICE-DRIVEN LIP-SYNC / PAM VOICE
+
+**Datum:** 15.08.2026  
+**Projekt:** Sol Holo  
+**Testphase:** TEST 006  
+**Status:** 🟡 TEILERFOLG — MOBILE UI BLOCKER OFFEN
+
+---
+
+## 1. TESTZIEL
+
+Ziel von TEST 006 ist die Verarbeitung einer realen Sprachaufnahme von Pam zur Steuerung der Lippenbewegungen des Sol-Holo-Avatars.
+
+Vorgesehene Verarbeitungskette:
+
+Pam-Sprachaufnahme  
+→ Audio-Decoding  
+→ Audioanalyse  
+→ Viseme-Erkennung  
+→ Lip-Sync-Steuerung  
+→ Sol-Holo-Avatar
+
+Verwendete Audiodatei:
+
+`Pam-Sol Test 005.m4a`
+
+Die originale Sprachaufnahme von Pam soll verwendet werden.
+
+Für diesen Test wird keine synthetische Ersatzstimme benötigt.
+
+---
+
+## 2. TESTUMGEBUNG
+
+**Repository:** Sol-Holo  
+**Hosting:** GitHub Pages  
+**Branch:** `main`  
+**Deployment Source:** `/(root)`  
+**Frontend:** `index.html`  
+**Avatar-System:** TalkingHead  
+**Audioanalyse / Lip-Sync:** HeadAudio  
+**3D-Format:** GLB  
+**Audioquelle:** `Pam-Sol Test 005.m4a`  
+**Testplattform:** Smartphone / mobiler Browser
+
+---
+
+## 3. TECHNISCHE ARCHITEKTUR
+
+Pam-Sprachdatei:
+
+`Pam-Sol Test 005.m4a`
+
+Verarbeitung:
+
+Audio-Datei  
+→ Web Audio API  
+→ Audio-Decoding  
+→ Audio-Ausgabe  
+→ HeadAudio  
+→ Audioanalyse  
+→ Viseme-Erkennung  
+→ TalkingHead  
+→ Facial Blendshapes  
+→ Lip-Sync  
+→ Sol Holo
+
+Ziel ist eine möglichst browserbasierte Verarbeitung der Audiodaten.
+
+---
+
+## 4. SECURITY / CREDENTIALS
+
+Für TEST 006 werden keine privaten API-Schlüssel in der öffentlichen `index.html` gespeichert.
+
+Grundsatz:
+
+**PRIVATE CREDENTIALS**
+
+→ NICHT in `index.html`  
+→ NICHT öffentlich in GitHub  
+→ NICHT als Klartext im Frontend  
+→ NICHT als Bestandteil einer öffentlichen GitHub-Pages-URL
+
+API-Keys, Client Secrets und andere private Zugangsdaten bleiben außerhalb des öffentlichen Frontend-Codes.
+
+---
+
+## 5. VORHERIGER LIVE-SPEAK-ANSATZ
+
+Vor TEST 006 wurde eine LiveSpeak-/Raw-Streaming-Variante getestet.
+
+Dabei trat folgende Fehlermeldung auf:
+
+`Raw streaming isn't configured`
+
+Dieser Ansatz wurde für den aktuellen Entwicklungsstand nicht weiterverfolgt.
+
+TEST 006 verwendet deshalb eine alternative browserbasierte Architektur.
+
+Aktueller Stack:
+
+- TalkingHead für Avatar-Rendering
+- HeadAudio für Audioanalyse
+- Web Audio API für Audio-Decoding und Wiedergabe
+- GLB als Avatarformat
+- GitHub Pages als Test-Hosting
+- reale Pam-Sprachaufnahme als Audioquelle
+
+---
+
+## 6. GITHUB-PAGES-STATUS
+
+Folgende Komponenten wurden erfolgreich verifiziert:
+
+✅ Repository erreichbar  
+✅ Branch `main` aktiv  
+✅ GitHub Pages Deployment erfolgreich  
+✅ Deployment aus `/(root)`  
+✅ aktuelle `index.html` veröffentlicht  
+✅ öffentliche Testseite erreichbar  
+✅ TEST-006-Version wird geladen
+
+---
+
+## 7. AVATAR-STATUS
+
+Die Avatar-Initialisierung erreicht inzwischen erfolgreich die Darstellung eines kompatiblen Testavatars.
+
+Verifizierte Statusmeldung:
+
+`Testavatar bereit. Jetzt testen wir Pams Stimme.`
+
+Damit wurden folgende Punkte bestätigt:
+
+✅ TalkingHead startet  
+✅ 3D-Szene wird initialisiert  
+✅ Avatar wird geladen  
+✅ Avatar wird im mobilen Browser dargestellt  
+✅ Fallback-Avatar funktioniert  
+✅ Anwendung erreicht den Avatar-Ready-Zustand
+
+---
+
+## 8. SOL.GLB STATUS
+
+Für den endgültigen Sol-Holo-Avatar wird eine echte GLB-Datei benötigt.
+
+Vorgesehener Pfad:
+
+`./sol.glb`
+
+Die Datei muss ein tatsächlich exportiertes 3D-Modell im GLB-Format enthalten.
+
+Eine Text- oder HTML-Datei, die lediglich den Dateinamen `sol.glb` trägt, ist keine gültige GLB-Datei.
+
+Für den späteren vollständigen Lip-Sync muss das Sol-Modell geeignete Gesichtsanimationen bzw. Blendshapes/Visemes unterstützen.
+
+**Aktueller Status echte Sol-GLB: ⚪ AUSSTEHEND**
+
+Bis zur Integration einer echten Sol-GLB wird ein kompatibler Testavatar für die technische Validierung verwendet.
+
+---
+
+## 9. PAM-AUDIO-STATUS
+
+Folgende Sprachdatei wurde erfolgreich in das Repository hochgeladen:
+
+`Pam-Sol Test 005.m4a`
+
+Status:
+
+✅ Datei im Repository vorhanden  
+✅ reale Pam-Sprachaufnahme  
+✅ für TEST 006 als Audioquelle vorgesehen  
+✅ keine synthetische Ersatzstimme erforderlich
+
+Noch zu testen:
+
+⚪ Audio-Wiedergabe innerhalb TEST 006  
+⚪ HeadAudio-Analyse  
+⚪ Viseme-Erzeugung  
+⚪ sichtbare Lippenbewegungen  
+⚪ Synchronität zwischen Stimme und Mundbewegung
+
+---
+
+## 10. AKTUELLER BLOCKER
+
+**Fehlerklasse:** Mobile UI / Viewport / Scroll-Verhalten
+
+Der Avatar wird auf dem Smartphone erfolgreich dargestellt.
+
+Nach dem Laden nimmt der Avatar-/Canvas-Bereich jedoch einen großen Teil der mobilen Ansicht ein.
+
+Die darunterliegenden Audio-Bedienelemente können derzeit nicht erreicht werden.
+
+Aktueller Zustand:
+
+GitHub Pages → OK  
+Deployment → OK  
+JavaScript-Start → OK  
+TalkingHead → OK  
+Avatar-Rendering → OK  
+Fallback-Avatar → OK  
+Pam-Audio vorhanden → OK  
+Mobile Scroll → BLOCKIERT  
+Audio-Steuerung → NICHT ERREICHBAR  
+Audio-Playback → NOCH NICHT GETESTET  
+Lip-Sync → NOCH NICHT GETESTET
+
+---
+
+## 11. TECHNISCHE BEWERTUNG
+
+TEST 006 ist aktuell als **Teilerfolg** einzustufen.
+
+Der grundlegende Avatar-Stack funktioniert.
+
+Erfolgreich erreicht wurde:
+
+GitHub Pages  
+→ JavaScript  
+→ TalkingHead  
+→ 3D-Szene  
+→ Avatar-Rendering  
+→ Avatar-Ready
+
+Der aktuelle Blocker betrifft die mobile Benutzeroberfläche.
+
+Die bereits funktionierende Avatar-Initialisierung soll beim nächsten Entwicklungsschritt möglichst unverändert erhalten bleiben.
+
+---
+
+## 12. NÄCHSTER SCHRITT — TEST 006.1
+
+### MOBILE UI / SCROLL FIX
+
+Ziele:
+
+1. Avatar-Viewport auf Smartphones verkleinern.
+2. vertikales Scrollen zuverlässig ermöglichen.
+3. Audio-Bedienelemente unterhalb des Avatars erreichbar machen.
+4. bestehende Avatar-Initialisierung erhalten.
+5. funktionierende Rendering-Komponenten nicht unnötig verändern.
+
+**Erfolgskriterium:**
+
+Auf dem Smartphone kann vom Avatar zu den Audio-Steuerelementen gescrollt werden.
+
+---
+
+## 13. DANACH — TEST 006.2
+
+### PAM VOICE → AUDIOANALYSE → LIP-SYNC
+
+Nach Behebung des mobilen UI-Problems wird folgende Verarbeitung getestet:
+
+`Pam-Sol Test 005.m4a`
+
+→ Audiodatei laden  
+→ Audio decodieren  
+→ Pams Originalstimme wiedergeben  
+→ Audiosignal an HeadAudio übergeben  
+→ Audio analysieren  
+→ Viseme erzeugen  
+→ Viseme an TalkingHead übergeben  
+→ Facial Blendshapes steuern  
+→ Lippenbewegung erzeugen
+
+Zu prüfen:
+
+- Audio startet
+- Pams Originalstimme ist hörbar
+- Audioanalyse läuft
+- Avatar-Mund reagiert
+- Mundbewegungen folgen der Sprache
+- Audio und Lippenbewegung sind synchron
+- keine JavaScript-Fehler
+- mobile Wiedergabe funktioniert
+
+---
+
+## 14. TESTMATRIX
+
+| Komponente | Status |
+|---|---|
+| GitHub Repository | 🟢 OK |
+| Branch `main` | 🟢 OK |
+| GitHub Pages | 🟢 OK |
+| Deployment | 🟢 OK |
+| `index.html` | 🟢 OK |
+| JavaScript-Initialisierung | 🟢 OK |
+| TalkingHead | 🟢 OK |
+| 3D Rendering | 🟢 OK |
+| Fallback-Avatar | 🟢 OK |
+| Pam-Sprachdatei | 🟢 VORHANDEN |
+| echte `sol.glb` | ⚪ AUSSTEHEND |
+| Mobile Scroll | 🔴 BLOCKER |
+| Audio-Steuerung erreichbar | 🔴 BLOCKIERT |
+| Pam Audio Playback | ⚪ AUSSTEHEND |
+| HeadAudio-Analyse | ⚪ AUSSTEHEND |
+| Viseme-Erkennung | ⚪ AUSSTEHEND |
+| Lip-Sync | ⚪ AUSSTEHEND |
+| finale Sol-Integration | ⚪ AUSSTEHEND |
+
+---
+
+## 15. TESTERGEBNIS
+
+**TEST 006: 🟡 TEILERFOLG**
+
+Erfolgreicher aktueller Pfad:
+
+GitHub Pages  
+→ TalkingHead  
+→ 3D-Rendering  
+→ Testavatar  
+→ Avatar Ready
+
+Aktueller Blocker:
+
+**Mobile UI / Scroll-Verhalten**
+
+Nächster technischer Meilenstein:
+
+**TEST 006.1 — Mobile UI / Scroll Fix**
+
+Danach:
+
+**TEST 006.2 — Pam Voice / HeadAudio / Lip-Sync**
+
+Anschließend:
+
+**Integration einer echten lip-sync-fähigen `sol.glb`.**
+
+---
+
+## 16. SECURITY RULE
+
+Private API-Zugangsdaten bleiben außerhalb des öffentlichen Repository-Codes.
+
+**API KEY BLEIBT BEI PAM. 🔐**
+
+---
+
+## COMMIT MESSAGE
+
+TEST 006 – Avatar-Rendering verifiziert, Pam Voice vorbereitet, Mobile-UI-Blocker dokumentiert
