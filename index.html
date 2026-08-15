@@ -21,14 +21,9 @@
       margin: 0;
       min-height: 100%;
       overflow-y: auto;
-
       background: #05070d;
       color: #ffffff;
-
-      font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
+      font-family: Arial, Helvetica, sans-serif;
     }
 
     body {
@@ -43,47 +38,35 @@
 
     h1 {
       margin: 8px 0 4px;
-
       text-align: center;
-
       font-size: 30px;
     }
 
     .subtitle {
       margin: 0 0 14px;
-
       text-align: center;
-
       color: #9da7b3;
-
       line-height: 1.4;
     }
 
     .box {
       margin-bottom: 14px;
       padding: 14px;
-
       background: #0d1117;
-
       border: 1px solid #30363d;
       border-radius: 14px;
     }
 
     #status {
       text-align: center;
-
       font-weight: bold;
-
       line-height: 1.5;
-
       overflow-wrap: anywhere;
     }
 
     #diagnostics {
       margin-top: 10px;
-
       color: #9da7b3;
-
       font-size: 13px;
       line-height: 1.65;
     }
@@ -92,50 +75,37 @@
     input {
       width: 100%;
       min-height: 50px;
-
       margin-top: 10px;
       padding: 12px;
-
       border-radius: 10px;
-
       font-size: 16px;
     }
 
     button {
       border: 0;
-
       font-weight: bold;
-
       cursor: pointer;
     }
 
     button:disabled {
       opacity: 0.4;
-
       cursor: default;
     }
 
     input {
-      color: white;
-
+      color: #ffffff;
       background: #161b22;
-
       border: 1px solid #30363d;
     }
 
     #avatar {
       width: 100%;
       height: 380px;
-
       margin-bottom: 14px;
-
       overflow: hidden;
-
       background: #080b24;
-
       border: 1px solid #30363d;
       border-radius: 16px;
-
       touch-action: pan-y;
     }
 
@@ -148,214 +118,4 @@
     }
 
     .error {
-      color: #ff9b9b;
-    }
-
-    .waiting {
-      color: #ffd866;
-    }
-
-    .result {
-      margin-top: 12px;
-      padding: 12px;
-
-      background: #161b22;
-
-      border: 1px solid #30363d;
-      border-radius: 10px;
-
-      line-height: 1.6;
-    }
-
-    .small {
-      margin-top: 12px;
-
-      color: #9da7b3;
-
-      font-size: 13px;
-      line-height: 1.5;
-
-      text-align: center;
-    }
-  </style>
-
-
-  <!--
-    Nur Three.js bleibt in der Importmap.
-
-    TalkingHead und HeadAudio werden später
-    dynamisch geladen.
-
-    Dadurch kann ein fehlgeschlagener Import
-    die komplette Seite nicht mehr lautlos stoppen.
-  -->
-
-  <script type="importmap">
-  {
-    "imports": {
-
-      "three":
-        "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js/+esm",
-
-      "three/addons/":
-        "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
-
-    }
-  }
-  </script>
-
-</head>
-
-
-<body>
-
-<main class="container">
-
-
-  <h1>
-    Sol Holo
-  </h1>
-
-
-  <p class="subtitle">
-    TEST 006 — Pams Stimme → Audioanalyse → Lip-Sync
-  </p>
-
-
-  <!-- =================================================
-       STATUS
-  ================================================== -->
-
-  <section class="box">
-
-    <div id="status">
-      JavaScript gestartet. ✅
-    </div>
-
-
-    <div id="diagnostics">
-
-      JavaScript: ✅<br>
-
-      TalkingHead Modul: ⏳<br>
-
-      TalkingHead: ⏳<br>
-
-      Avatar: ⏳<br>
-
-      HeadAudio Modul: ⏳<br>
-
-      HeadAudio: ⏳<br>
-
-      Audio: ⏳<br>
-
-      Viseme erkannt: 0
-
-    </div>
-
-  </section>
-
-
-  <!-- =================================================
-       AUDIOBEDIENUNG
-  ================================================== -->
-
-  <section class="box">
-
-    <strong>
-      Pams Original-Sprachaufnahme
-    </strong>
-
-
-    <button
-      id="repoAudioButton"
-      disabled
-    >
-      🎙️ Pam-Sol Test 005 starten
-    </button>
-
-
-    <input
-      id="audioFile"
-      type="file"
-      accept="audio/*"
-      disabled
-    >
-
-
-    <button
-      id="localAudioButton"
-      disabled
-    >
-      🎙️ Ausgewählte Datei testen
-    </button>
-
-
-    <button
-      id="confirmButton"
-      disabled
-    >
-      ✅ Sichtbare Lippenbewegung bestätigen
-    </button>
-
-
-    <div
-      id="result"
-      class="result"
-    >
-      TEST 006 wartet auf den Audio-Test.
-    </div>
-
-  </section>
-
-
-  <!-- =================================================
-       AVATAR
-  ================================================== -->
-
-  <div id="avatar"></div>
-
-
-  <p class="small">
-
-    Sol Holo – Forschungs- und Entwicklungsprototyp.<br>
-
-    TEST 006:<br>
-
-    reale Sprachaufnahme →
-    Audioanalyse →
-    Viseme →
-    Lippenbewegung.
-
-  </p>
-
-
-</main>
-
-
-<script type="module">
-
-"use strict";
-
-
-/* =====================================================
-   MODULE
-===================================================== */
-
-/*
-  TalkingHead:
-
-  Dieselbe GitHub-CDN-Version,
-  die das offizielle Minimalbeispiel nutzt.
-*/
-
-const TALKINGHEAD_MODULE =
-  "https://cdn.jsdelivr.net/gh/" +
-  "met4citizen/TalkingHead@1.7/" +
-  "modules/talkinghead.mjs";
-
-
-/*
-  HeadAudio:
-
-  Dire
+      color: #ff9
