@@ -2,8 +2,11 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
   <title>Sol Holo – Test 006</title>
 
@@ -12,11 +15,12 @@
       box-sizing: border-box;
     }
 
-    html, body {
+    html,
+    body {
       margin: 0;
       min-height: 100%;
       background: #05070d;
-      color: white;
+      color: #ffffff;
       font-family: Arial, Helvetica, sans-serif;
     }
 
@@ -25,26 +29,27 @@
     }
 
     .container {
+      width: 100%;
       max-width: 900px;
       margin: 0 auto;
     }
 
     h1 {
-      text-align: center;
       margin: 8px 0 4px;
+      text-align: center;
       font-size: 32px;
     }
 
     .subtitle {
+      margin: 0 0 18px;
       text-align: center;
       color: #9da7b3;
-      margin: 0 0 18px;
       line-height: 1.4;
     }
 
     .box {
-      padding: 16px;
       margin-bottom: 16px;
+      padding: 16px;
       background: #0d1117;
       border: 1px solid #30363d;
       border-radius: 14px;
@@ -60,11 +65,11 @@
     #avatar {
       width: 100%;
       height: 520px;
+      margin-bottom: 16px;
+      overflow: hidden;
       background: #080b24;
       border: 1px solid #30363d;
       border-radius: 16px;
-      overflow: hidden;
-      margin-bottom: 16px;
     }
 
     button,
@@ -73,8 +78,8 @@
       min-height: 50px;
       margin-top: 12px;
       padding: 12px;
-      font-size: 16px;
       border-radius: 10px;
+      font-size: 16px;
     }
 
     button {
@@ -89,7 +94,7 @@
     }
 
     input {
-      color: white;
+      color: #ffffff;
       background: #161b22;
       border: 1px solid #30363d;
     }
@@ -102,16 +107,989 @@
       text-align: center;
     }
 
-    .error {
-      color: #ff9b9b;
-    }
-
     .success {
       color: #9cffb1;
     }
+
+    .error {
+      color: #ff9b9b;
+    }
   </style>
+
+
+  <!--
+    TalkingHead 1.7
+    Three.js 0.180
+    HeadAudio
+  -->
 
   <script type="importmap">
   {
     "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/
+      "three":
+        "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js/+esm",
+
+      "three/addons/":
+        "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/",
+
+      "talkinghead":
+        "https://cdn.jsdelivr.net/npm/@met4citizen/talkinghead@1.7/modules/talkinghead.mjs",
+
+      "headaudio":
+        "https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/dist/headaudio.min.mjs"
+    }
+  }
+  </script>
+</head>
+
+
+<body>
+
+<div class="container">
+
+  <h1>Sol Holo</h1>
+
+  <p class="subtitle">
+    TEST 006 – Pams Stimme → Audioanalyse → Lip-Sync
+  </p>
+
+
+  <!-- STATUS -->
+
+  <div class="box">
+
+    <div id="status">
+      Test 006 startet …
+    </div>
+
+  </div>
+
+
+  <!-- AVATAR -->
+
+  <div id="avatar"></div>
+
+
+  <!-- AUDIO -->
+
+  <div class="box">
+
+    <strong>
+      Pams Sprachaufnahme
+    </strong>
+
+
+    <button
+      id="repoVoiceButton"
+      disabled
+    >
+      Pam-Sol Test 005 abspielen
+    </button>
+
+
+    <input
+      id="audioFile"
+      type="file"
+      accept="audio/*"
+      disabled
+    >
+
+
+    <button
+      id="fileVoiceButton"
+      disabled
+    >
+      Andere Sprachdatei testen
+    </button>
+
+  </div>
+
+
+  <p class="small">
+    Sol Holo – Forschungs- und Entwicklungsprototyp.<br>
+    Test 006: echte Audiodaten → HeadAudio →
+    Viseme → TalkingHead Lip-Sync.<br>
+    Keine API-Schlüssel im Browser oder GitHub.
+  </p>
+
+</div>
+
+
+<script type="module">
+
+import {
+  TalkingHead
+} from "talkinghead";
+
+
+import {
+  HeadAudio
+} from "headaudio";
+
+
+/* =====================================================
+   HTML
+===================================================== */
+
+const avatarNode =
+  document.getElementById("avatar");
+
+const statusNode =
+  document.getElementById("status");
+
+const repoVoiceButton =
+  document.getElementById("repoVoiceButton");
+
+const audioFile =
+  document.getElementById("audioFile");
+
+const fileVoiceButton =
+  document.getElementById("fileVoiceButton");
+
+
+/* =====================================================
+   DATEIEN
+===================================================== */
+
+/*
+  Zuerst versuchen wir deine echte sol.glb.
+
+  Momentan ist diese Datei bei dir noch keine
+  echte GLB. Deshalb gibt es darunter einen
+  automatischen Testavatar als Fallback.
+*/
+
+const SOL_AVATAR_URL =
+  "./sol.glb";
+
+
+/*
+  Öffentlicher kompatibler Testavatar aus
+  dem HeadAudio-Projekt.
+
+  Der dient NUR dazu zu beweisen:
+
+  Pams Stimme
+       ↓
+  HeadAudio
+       ↓
+  Mundbewegung
+*/
+
+const FALLBACK_AVATAR_URL =
+  "https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/avatars/julia.glb";
+
+
+/*
+  Deine bereits hochgeladene Aufnahme.
+*/
+
+const PAM_AUDIO_URL =
+  "./Pam-Sol%20Test%20005.m4a";
+
+
+/*
+  HeadAudio Worklet + Modell.
+*/
+
+const HEAD_AUDIO_WORKLET =
+  "https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/dist/headworklet.min.mjs";
+
+
+const HEAD_AUDIO_MODEL =
+  "https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/dist/model-en-mixed.bin";
+
+
+/* =====================================================
+   VARIABLEN
+===================================================== */
+
+let head = null;
+
+let headAudio = null;
+
+let currentSource = null;
+
+let selectedObjectURL = null;
+
+let avatarReady = false;
+
+
+/* =====================================================
+   STATUS
+===================================================== */
+
+function setStatus(
+  text,
+  mode = ""
+) {
+
+  statusNode.textContent =
+    text;
+
+
+  statusNode.classList.remove(
+    "success",
+    "error"
+  );
+
+
+  if (mode) {
+
+    statusNode.classList.add(
+      mode
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   FEHLER AUCH SICHTBAR MACHEN
+===================================================== */
+
+window.addEventListener(
+  "error",
+  function(event) {
+
+    console.error(
+      "Globaler Fehler:",
+      event.error ||
+      event.message
+    );
+
+
+    setStatus(
+      "JavaScript-Fehler: " +
+      (
+        event.message ||
+        "unbekannt"
+      ),
+      "error"
+    );
+
+  }
+);
+
+
+window.addEventListener(
+  "unhandledrejection",
+  function(event) {
+
+    console.error(
+      "Promise-Fehler:",
+      event.reason
+    );
+
+
+    const message =
+      event.reason?.message ||
+      String(event.reason);
+
+
+    setStatus(
+      "Startfehler: " +
+      message,
+      "error"
+    );
+
+  }
+);
+
+
+/* =====================================================
+   TEST 006 INITIALISIEREN
+===================================================== */
+
+async function init() {
+
+  try {
+
+    /* ---------------------------------------------
+       1. TALKINGHEAD
+    --------------------------------------------- */
+
+    setStatus(
+      "1/5 – TalkingHead wird gestartet …"
+    );
+
+
+    head =
+      new TalkingHead(
+        avatarNode,
+        {
+
+          /*
+            Kein Cloud-TTS.
+
+            Wir benutzen Pams echte Aufnahme.
+          */
+
+          ttsEndpoint:
+            "N/A",
+
+          lipsyncModules:
+            [],
+
+          cameraView:
+            "head",
+
+          mixerGainSpeech:
+            3,
+
+          modelFPS:
+            30,
+
+          cameraRotateEnable:
+            false
+
+        }
+      );
+
+
+    /* ---------------------------------------------
+       2. AUDIOWORKLET
+    --------------------------------------------- */
+
+    setStatus(
+      "2/5 – HeadAudio Worklet wird geladen …"
+    );
+
+
+    await head.audioCtx.audioWorklet.addModule(
+      HEAD_AUDIO_WORKLET
+    );
+
+
+    /* ---------------------------------------------
+       3. HEADAUDIO
+    --------------------------------------------- */
+
+    setStatus(
+      "3/5 – Audioanalyse wird gestartet …"
+    );
+
+
+    headAudio =
+      new HeadAudio(
+        head.audioCtx,
+        {
+
+          processorOptions: {
+
+            vadEventsEnabled:
+              true,
+
+            visemeEventsEnabled:
+              true
+
+          },
+
+          parameterData: {
+
+            vadMode:
+              1,
+
+            /*
+              Startwert.
+              Das ist KEINE feste Stimmidentität.
+            */
+
+            speakerMeanHz:
+              200
+
+          }
+
+        }
+      );
+
+
+    /* ---------------------------------------------
+       4. VISeme-MODELL
+    --------------------------------------------- */
+
+    setStatus(
+      "4/5 – Lippenmodell wird geladen …"
+    );
+
+
+    await headAudio.loadModel(
+      HEAD_AUDIO_MODEL
+    );
+
+
+    /*
+      HeadAudio gibt Werte wie
+      viseme_aa, viseme_PP usw. aus.
+
+      Diese Werte gehen an TalkingHead.
+    */
+
+    headAudio.onvalue =
+      function(
+        key,
+        value
+      ) {
+
+        if (
+          !head ||
+          !head.mtAvatar
+        ) {
+          return;
+        }
+
+
+        if (
+          !head.mtAvatar[key]
+        ) {
+          return;
+        }
+
+
+        Object.assign(
+          head.mtAvatar[key],
+          {
+
+            newvalue:
+              value,
+
+            needsUpdate:
+              true
+
+          }
+        );
+
+      };
+
+
+    /*
+      Audioanalyse in TalkingHeads
+      Renderloop aktualisieren.
+    */
+
+    head.opt.update =
+      headAudio.update.bind(
+        headAudio
+      );
+
+
+    /* ---------------------------------------------
+       5. AVATAR
+    --------------------------------------------- */
+
+    setStatus(
+      "5/5 – Sol wird geladen …"
+    );
+
+
+    let solLoaded =
+      false;
+
+
+    /*
+      Zuerst sol.glb versuchen.
+    */
+
+    try {
+
+      await head.showAvatar(
+        {
+
+          url:
+            SOL_AVATAR_URL,
+
+          body:
+            "F",
+
+          avatarMood:
+            "neutral"
+
+        }
+      );
+
+
+      solLoaded =
+        true;
+
+
+      setStatus(
+        "Sol GLB geladen. Test 006 ist bereit. 💚",
+        "success"
+      );
+
+    }
+
+    catch (
+      solError
+    ) {
+
+      console.warn(
+        "sol.glb konnte nicht geladen werden:",
+        solError
+      );
+
+
+      /*
+        Unsere momentane sol.glb ist noch
+        keine echte 3D-Datei.
+
+        Deshalb laden wir automatisch
+        einen bekannten kompatiblen Avatar.
+      */
+
+      setStatus(
+        "sol.glb ist noch keine echte 3D-Datei – Testavatar wird geladen …"
+      );
+
+
+      await head.showAvatar(
+        {
+
+          url:
+            FALLBACK_AVATAR_URL,
+
+          body:
+            "F",
+
+          avatarMood:
+            "neutral"
+
+        }
+      );
+
+
+      setStatus(
+        "Testavatar bereit. Jetzt testen wir Pams Stimme. 💚",
+        "success"
+      );
+
+    }
+
+
+    avatarReady =
+      true;
+
+
+    repoVoiceButton.disabled =
+      false;
+
+
+    audioFile.disabled =
+      false;
+
+  }
+
+  catch (
+    error
+  ) {
+
+    console.error(
+      "Initialisierungsfehler:",
+      error
+    );
+
+
+    setStatus(
+      "STARTFEHLER: " +
+      (
+        error?.message ||
+        String(error)
+      ),
+      "error"
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   AUDIO ABSPIELEN + ANALYSIEREN
+===================================================== */
+
+async function playArrayBuffer(
+  arrayBuffer
+) {
+
+  if (
+    !head ||
+    !headAudio ||
+    !avatarReady
+  ) {
+
+    setStatus(
+      "Avatar oder Audioanalyse ist noch nicht bereit.",
+      "error"
+    );
+
+    return;
+
+  }
+
+
+  try {
+
+    /* ---------------------------------------------
+       AUDIO AUF SAMSUNG FREIGEBEN
+    --------------------------------------------- */
+
+    if (
+      head.audioCtx.state ===
+      "suspended"
+    ) {
+
+      await head.audioCtx.resume();
+
+    }
+
+
+    /* ---------------------------------------------
+       AUDIO DEKODIEREN
+    --------------------------------------------- */
+
+    setStatus(
+      "Pams Stimme wird vorbereitet …"
+    );
+
+
+    const decodedAudio =
+      await head.audioCtx.decodeAudioData(
+        arrayBuffer.slice(0)
+      );
+
+
+    /* ---------------------------------------------
+       VORHERIGES AUDIO STOPPEN
+    --------------------------------------------- */
+
+    if (
+      currentSource
+    ) {
+
+      try {
+
+        currentSource.stop();
+
+      }
+
+      catch (error) {
+        // bereits beendet
+      }
+
+
+      try {
+
+        currentSource.disconnect();
+
+      }
+
+      catch (error) {
+        // bereits getrennt
+      }
+
+
+      currentSource =
+        null;
+
+    }
+
+
+    /* ---------------------------------------------
+       AUDIOQUELLE
+    --------------------------------------------- */
+
+    const source =
+      head.audioCtx.createBufferSource();
+
+
+    source.buffer =
+      decodedAudio;
+
+
+    currentSource =
+      source;
+
+
+    /*
+      HeadAudio braucht das Originalsignal
+      ohne Verzögerung.
+    */
+
+    source.connect(
+      headAudio
+    );
+
+
+    /*
+      Die hörbare Stimme bekommt eine kleine
+      Verzögerung.
+
+      Das entspricht dem Prinzip der offiziellen
+      HeadAudio-TalkingHead-Demo und hilft,
+      Lippen und hörbare Stimme anzugleichen.
+    */
+
+    const delayNode =
+      head.audioCtx.createDelay(
+        1
+      );
+
+
+    delayNode.delayTime.value =
+      0.15;
+
+
+    source.connect(
+      delayNode
+    );
+
+
+    delayNode.connect(
+      head.audioCtx.destination
+    );
+
+
+    source.onended =
+      function() {
+
+        currentSource =
+          null;
+
+
+        setStatus(
+          "Test beendet. Pams Stimme wurde analysiert. ✅",
+          "success"
+        );
+
+      };
+
+
+    setStatus(
+      "Pams Stimme läuft – Lip-Sync wird live analysiert. 🎙️👄",
+      "success"
+    );
+
+
+    source.start(
+      0
+    );
+
+  }
+
+  catch (
+    error
+  ) {
+
+    console.error(
+      "Audiofehler:",
+      error
+    );
+
+
+    setStatus(
+      "AUDIO-FEHLER: " +
+      (
+        error?.message ||
+        String(error)
+      ),
+      "error"
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   PAM-SOL TEST 005 AUS GITHUB
+===================================================== */
+
+repoVoiceButton.addEventListener(
+  "click",
+  async function() {
+
+    try {
+
+      repoVoiceButton.disabled =
+        true;
+
+
+      setStatus(
+        "Pam-Sol Test 005 wird geladen …"
+      );
+
+
+      const response =
+        await fetch(
+          PAM_AUDIO_URL,
+          {
+
+            cache:
+              "no-store"
+
+          }
+        );
+
+
+      if (
+        !response.ok
+      ) {
+
+        throw new Error(
+          "Sprachdatei nicht gefunden – HTTP " +
+          response.status
+        );
+
+      }
+
+
+      const buffer =
+        await response.arrayBuffer();
+
+
+      await playArrayBuffer(
+        buffer
+      );
+
+    }
+
+    catch (
+      error
+    ) {
+
+      console.error(
+        error
+      );
+
+
+      setStatus(
+        "SPRACHDATEI-FEHLER: " +
+        (
+          error?.message ||
+          String(error)
+        ),
+        "error"
+      );
+
+    }
+
+    finally {
+
+      repoVoiceButton.disabled =
+        false;
+
+    }
+
+  }
+);
+
+
+/* =====================================================
+   EIGENE DATEI VOM HANDY
+===================================================== */
+
+audioFile.addEventListener(
+  "change",
+  function() {
+
+    if (
+      !audioFile.files ||
+      audioFile.files.length === 0
+    ) {
+
+      fileVoiceButton.disabled =
+        true;
+
+      return;
+
+    }
+
+
+    fileVoiceButton.disabled =
+      false;
+
+
+    setStatus(
+      "Sprachdatei ausgewählt. Bereit zum Testen."
+    );
+
+  }
+);
+
+
+fileVoiceButton.addEventListener(
+  "click",
+  async function() {
+
+    if (
+      !audioFile.files ||
+      !audioFile.files[0]
+    ) {
+
+      return;
+
+    }
+
+
+    try {
+
+      fileVoiceButton.disabled =
+        true;
+
+
+      const file =
+        audioFile.files[0];
+
+
+      const buffer =
+        await file.arrayBuffer();
+
+
+      await playArrayBuffer(
+        buffer
+      );
+
+    }
+
+    catch (
+      error
+    ) {
+
+      console.error(
+        error
+      );
+
+
+      setStatus(
+        "DATEIFEHLER: " +
+        (
+          error?.message ||
+          String(error)
+        ),
+        "error"
+      );
+
+    }
+
+    finally {
+
+      fileVoiceButton.disabled =
+        false;
+
+    }
+
+  }
+);
+
+
+/* =====================================================
+   START
+===================================================== */
+
+init();
+
+</script>
+
+</body>
+</html>
