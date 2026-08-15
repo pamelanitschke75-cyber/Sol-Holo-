@@ -2,413 +2,882 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
-  <title>Sol Holo</title>
+  <title>Sol Holo – Test 005</title>
 
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
-      padding: 16px;
+      padding: 20px;
       background: #0f1117;
       color: #e6edf3;
-      font-family: Arial, sans-serif;
+      font-family: Arial, Helvetica, sans-serif;
       text-align: center;
     }
 
     .container {
+      width: 100%;
       max-width: 900px;
       margin: 0 auto;
     }
 
     h1 {
-      margin-bottom: 6px;
+      margin-bottom: 5px;
     }
 
     .subtitle {
+      margin-top: 0;
       color: #9da7b3;
     }
 
-    textarea {
-      width: 100%;
-      min-height: 90px;
-      box-sizing: border-box;
-      padding: 12px;
-      margin-top: 14px;
-      font-size: 17px;
-      border-radius: 8px;
-    }
-
-    button {
-      margin-top: 12px;
-      padding: 12px 22px;
-      font-size: 17px;
-      cursor: pointer;
-      border-radius: 8px;
-    }
-
-    button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
+    .box {
+      margin-top: 15px;
+      padding: 15px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
     }
 
     #status {
-      margin-top: 15px;
+      font-weight: bold;
+      line-height: 1.5;
+    }
+
+    input,
+    button {
+      width: 100%;
+      margin-top: 12px;
+      padding: 14px;
+      font-size: 16px;
+      border-radius: 10px;
+    }
+
+    input {
+      color: white;
+      background: #0d1117;
+      border: 1px solid #30363d;
+    }
+
+    button {
+      border: none;
+      cursor: pointer;
       font-weight: bold;
     }
 
-    #answer {
-      margin-top: 15px;
-      padding: 14px;
-      background: #181c24;
-      border-radius: 8px;
-      text-align: left;
-      min-height: 40px;
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     iframe {
       width: 100%;
       height: 520px;
-      margin-top: 16px;
+      margin-top: 20px;
       border: 0;
-      border-radius: 8px;
+      border-radius: 12px;
+      background: black;
+    }
+
+    .small {
+      margin-top: 12px;
+      color: #9da7b3;
+      font-size: 13px;
+      line-height: 1.5;
     }
   </style>
 </head>
 
 <body>
 
-  <div class="container">
+<div class="container">
 
-    <h1>Sol Holo</h1>
+  <h1>Sol Holo</h1>
 
-    <p class="subtitle">
-      Pam → Sol / ChatGPT → Antwort → Stimme → LipSync → Sol Holo
-    </p>
+  <p class="subtitle">
+    TEST 005 – Direkte Audio-zu-Lippen-Synchronisation
+  </p>
 
-    <textarea
-      id="question"
-      placeholder="Frag Sol etwas ..."
-    ></textarea>
 
-    <br>
+  <!-- STATUS -->
 
-    <button id="askButton">
-      Sol fragen
+  <div class="box">
+    <div id="status">
+      LiveSpeak wird geladen …
+    </div>
+  </div>
+
+
+  <!-- AUTHENTIFIZIERUNG -->
+
+  <div class="box">
+
+    <strong>1. LiveSpeak verbinden</strong>
+
+    <input
+      id="accessToken"
+      type="password"
+      placeholder="Temporären AvatarSDK Access Token eingeben"
+      autocomplete="off"
+    >
+
+    <button
+      id="authButton"
+      disabled
+    >
+      LiveSpeak verbinden
     </button>
 
-    <div id="status">
-      Bereit.
+    <div class="small">
+      Keine Client-ID und kein Client-Secret
+      im öffentlichen GitHub-Code speichern.
     </div>
-
-    <div id="answer">
-      Sols Antwort erscheint hier.
-    </div>
-
-    <iframe
-      id="livespeak"
-      src="https://metaperson.avatarsdk.com/livespeak/index.html?mode=tts_azure3&lang=German"
-      allow="autoplay; microphone"
-      title="Sol Holo">
-    </iframe>
 
   </div>
 
-  <script>
+
+  <!-- AUDIO -->
+
+  <div class="box">
+
+    <strong>2. Audiodatei auswählen</strong>
+
+    <input
+      id="audioFile"
+      type="file"
+      accept="audio/*"
+    >
+
+    <button
+      id="sendButton"
+      disabled
+    >
+      Audio an Sol Holo senden
+    </button>
+
+  </div>
+
+
+  <!-- AVATAR -->
+
+  <iframe
+    id="livespeak"
+    src="https://metaperson.avatarsdk.com/livespeak/index.html?mode=raw_stream"
+    title="Sol Holo LiveSpeak"
+    allow="autoplay"
+    sandbox="allow-scripts allow-same-origin allow-forms"
+  ></iframe>
+
+
+  <p class="small">
+    Sol Holo – Forschungs- und Entwicklungsprototyp.<br>
+    Externe Avatar-Technologie:
+    MetaPerson / Avatar SDK.<br>
+    Test 005 prüft die direkte
+    Audio-zu-Lippen-Synchronisation.
+  </p>
+
+</div>
+
+
+<script>
+
+"use strict";
+
+
+/* =====================================================
+   EINSTELLUNGEN
+===================================================== */
+
+const LIVESPEAK_ORIGIN =
+  "https://metaperson.avatarsdk.com";
+
+const TARGET_SAMPLE_RATE = 16000;
+
+const PCM_CHUNK_SIZE = 16000;
+
+
+/* =====================================================
+   HTML-ELEMENTE
+===================================================== */
+
+const iframe =
+  document.getElementById("livespeak");
+
+const statusBox =
+  document.getElementById("status");
+
+const tokenInput =
+  document.getElementById("accessToken");
+
+const authButton =
+  document.getElementById("authButton");
+
+const audioInput =
+  document.getElementById("audioFile");
+
+const sendButton =
+  document.getElementById("sendButton");
+
+
+/* =====================================================
+   STATUS
+===================================================== */
+
+let liveSpeakLoaded = false;
+let avatarReady = false;
+let audioBusy = false;
+
+
+function setStatus(text) {
+
+  statusBox.textContent = text;
+
+}
+
+
+function updateButtons() {
+
+  authButton.disabled =
+    !liveSpeakLoaded;
+
+  sendButton.disabled =
+    !avatarReady ||
+    audioBusy ||
+    audioInput.files.length === 0;
+
+}
+
+
+/* =====================================================
+   NACHRICHT AN LIVESPEAK
+===================================================== */
+
+function sendToLiveSpeak(
+  message,
+  transfer = []
+) {
+
+  if (!iframe.contentWindow) {
+
+    throw new Error(
+      "LiveSpeak ist nicht verfügbar."
+    );
+
+  }
+
+  iframe.contentWindow.postMessage(
+    message,
+    LIVESPEAK_ORIGIN,
+    transfer
+  );
+
+}
+
+
+/* =====================================================
+   LIVESPEAK-NACHRICHTEN EMPFANGEN
+===================================================== */
+
+window.addEventListener(
+  "message",
+  function(event) {
 
     /*
-      Öffentliche Adresse des Sol-Holo-Backends.
-      KEIN API-Key gehört hier hinein.
+      Nur Nachrichten von MetaPerson akzeptieren.
     */
 
-    const BACKEND_URL =
-      "https://sol-holo.onrender.com";
+    if (
+      event.origin !==
+      LIVESPEAK_ORIGIN
+    ) {
+      return;
+    }
 
 
-    const question =
-      document.getElementById("question");
-
-    const askButton =
-      document.getElementById("askButton");
-
-    const status =
-      document.getElementById("status");
-
-    const answer =
-      document.getElementById("answer");
-
-    const avatar =
-      document.getElementById("livespeak");
+    const data = event.data;
 
 
-    let liveSpeakReady = false;
+    if (
+      !data ||
+      data.source !== "livespeak"
+    ) {
+      return;
+    }
 
 
-    /*
-      Nachrichten von MetaPerson LiveSpeak empfangen.
-    */
-
-    window.addEventListener(
-      "message",
-      function(event) {
-
-        const data = event.data;
-
-        if (!data) {
-          return;
-        }
-
-
-        /*
-          LiveSpeak wurde geladen.
-        */
-
-        if (
-          data.source === "livespeak" &&
-          data.eventName === "livespeak_loaded"
-        ) {
-
-          liveSpeakReady = true;
-
-          status.textContent =
-            "Sol Holo ist bereit.";
-
-          return;
-        }
-
-
-        /*
-          Status des Avatars.
-        */
-
-        if (
-          data.source === "livespeak" &&
-          data.eventName === "avatar_state_changed"
-        ) {
-
-          if (data.avatarState === "Speaking") {
-
-            status.textContent =
-              "Sol Holo spricht …";
-
-          }
-
-          else if (data.avatarState === "Thinking") {
-
-            status.textContent =
-              "Sprachausgabe wird vorbereitet …";
-
-          }
-
-          else if (data.avatarState === "Ready") {
-
-            status.textContent =
-              "Bereit.";
-
-          }
-
-          return;
-        }
-
-
-        /*
-          Fehler aus LiveSpeak.
-        */
-
-        if (
-          data.source === "livespeak" &&
-          data.eventName === "message_processing_error"
-        ) {
-
-          status.textContent =
-            "Avatar-Fehler: " +
-            (data.reason || "Unbekannter Fehler");
-
-        }
-
-      }
+    console.log(
+      "LiveSpeak:",
+      data
     );
 
 
-    /*
-      Pam stellt Sol eine Frage.
-    */
+    /* -----------------------------------------
+       LIVESPEAK GELADEN
+    ----------------------------------------- */
 
-    async function askSol() {
+    if (
+      data.eventName ===
+      "livespeak_loaded"
+    ) {
 
-      const text =
-        question.value.trim();
+      liveSpeakLoaded = true;
 
+      setStatus(
+        "LiveSpeak geladen. Access Token eingeben."
+      );
 
-      if (!text) {
+      updateButtons();
 
-        status.textContent =
-          "Bitte zuerst etwas fragen.";
-
-        return;
-      }
-
-
-      askButton.disabled = true;
-
-      status.textContent =
-        "Sol denkt …";
-
-      answer.textContent = "";
-
-
-      try {
-
-        /*
-          Frage an das Sol-Holo-Backend.
-        */
-
-        const response =
-          await fetch(
-            BACKEND_URL + "/sol",
-            {
-              method: "POST",
-
-              headers: {
-                "Content-Type": "application/json"
-              },
-
-              body: JSON.stringify({
-                message: text
-              })
-            }
-          );
-
-
-        let data;
-
-        try {
-
-          data = await response.json();
-
-        }
-
-        catch {
-
-          throw new Error(
-            "Das Backend hat keine gültige Antwort geliefert."
-          );
-
-        }
-
-
-        if (!response.ok) {
-
-          throw new Error(
-            data.error ||
-            "Backend-Fehler"
-          );
-
-        }
-
-
-        const solAnswer =
-          String(data.answer || "").trim();
-
-
-        if (!solAnswer) {
-
-          throw new Error(
-            "Sol hat keine Textantwort geliefert."
-          );
-
-        }
-
-
-        /*
-          Sols Antwort anzeigen.
-        */
-
-        answer.textContent =
-          solAnswer;
-
-
-        /*
-          Sols Antwort an MetaPerson LiveSpeak senden.
-        */
-
-        if (liveSpeakReady) {
-
-          avatar.contentWindow.postMessage(
-            {
-              eventName: "speak",
-              text: solAnswer
-            },
-            "*"
-          );
-
-          status.textContent =
-            "Sol Holo spricht …";
-
-        }
-
-        else {
-
-          status.textContent =
-            "Sols Antwort ist da. Der Avatar lädt noch.";
-
-        }
-
-      }
-
-      catch (error) {
-
-        console.error(error);
-
-        status.textContent =
-          "Fehler: " +
-          error.message;
-
-      }
-
-      finally {
-
-        askButton.disabled = false;
-
-      }
+      return;
 
     }
 
 
-    /*
-      Button: Sol fragen
-    */
+    /* -----------------------------------------
+       AVATAR-STATUS
+    ----------------------------------------- */
 
-    askButton.addEventListener(
-      "click",
-      askSol
-    );
+    if (
+      data.eventName ===
+      "avatar_state_changed"
+    ) {
+
+      const state =
+        data.avatarState || "";
 
 
-    /*
-      Enter = absenden
-      Shift + Enter = neue Zeile
-    */
+      switch (state) {
 
-    question.addEventListener(
-      "keydown",
-      function(event) {
 
-        if (
-          event.key === "Enter" &&
-          !event.shiftKey
-        ) {
+        case "WaitingForAuthentication":
 
-          event.preventDefault();
+          avatarReady = false;
 
-          askSol();
+          setStatus(
+            "LiveSpeak wartet auf Anmeldung."
+          );
 
-        }
+          break;
+
+
+        case "Authenticating":
+
+          avatarReady = false;
+
+          setStatus(
+            "Anmeldung wird geprüft …"
+          );
+
+          break;
+
+
+        case "Initializing":
+
+          avatarReady = false;
+
+          setStatus(
+            "Sol Holo wird vorbereitet …"
+          );
+
+          break;
+
+
+        case "Thinking":
+
+          setStatus(
+            "Audio wird verarbeitet …"
+          );
+
+          break;
+
+
+        case "Speaking":
+
+          setStatus(
+            "Sol Holo spricht – Lip-Sync läuft. ✅"
+          );
+
+          break;
+
+
+        case "WaitingForTouch":
+
+          setStatus(
+            "Bitte einmal auf den Avatar tippen, damit Audio abgespielt werden darf."
+          );
+
+          break;
+
+
+        case "Ready":
+
+          avatarReady = true;
+          audioBusy = false;
+
+          setStatus(
+            "Sol Holo ist bereit. ✅"
+          );
+
+          break;
+
+
+        default:
+
+          setStatus(
+            "Avatar-Status: " + state
+          );
 
       }
+
+
+      updateButtons();
+
+      return;
+
+    }
+
+
+    /* -----------------------------------------
+       FEHLER
+    ----------------------------------------- */
+
+    if (
+      data.eventName ===
+      "message_processing_error"
+    ) {
+
+      audioBusy = false;
+
+      const reason =
+        data.reason ||
+        "Unbekannter LiveSpeak-Fehler";
+
+
+      console.error(
+        "LiveSpeak Fehler:",
+        data.failedEventName,
+        reason
+      );
+
+
+      setStatus(
+        "Fehler: " + reason
+      );
+
+
+      updateButtons();
+
+    }
+
+  }
+);
+
+
+/* =====================================================
+   AUTHENTIFIZIERUNG
+===================================================== */
+
+authButton.addEventListener(
+  "click",
+  function() {
+
+    const accessToken =
+      tokenInput.value.trim();
+
+
+    if (!accessToken) {
+
+      setStatus(
+        "Bitte Access Token eingeben."
+      );
+
+      return;
+
+    }
+
+
+    sendToLiveSpeak({
+
+      eventName: "authenticate",
+
+      accessToken: accessToken
+
+    });
+
+
+    /*
+      Token danach aus dem Eingabefeld entfernen.
+    */
+
+    tokenInput.value = "";
+
+
+    setStatus(
+      "LiveSpeak wird verbunden …"
     );
 
-  </script>
+  }
+);
+
+
+/* =====================================================
+   DATEI AUSGEWÄHLT
+===================================================== */
+
+audioInput.addEventListener(
+  "change",
+  function() {
+
+    if (
+      audioInput.files.length > 0
+    ) {
+
+      setStatus(
+        "Audio ausgewählt: " +
+        audioInput.files[0].name
+      );
+
+    }
+
+
+    updateButtons();
+
+  }
+);
+
+
+/* =====================================================
+   AUDIO → 16 KHZ MONO FLOAT32 PCM
+===================================================== */
+
+async function convertAudioToPCM(file) {
+
+  const arrayBuffer =
+    await file.arrayBuffer();
+
+
+  const AudioContextClass =
+    window.AudioContext ||
+    window.webkitAudioContext;
+
+
+  if (!AudioContextClass) {
+
+    throw new Error(
+      "Web Audio API wird nicht unterstützt."
+    );
+
+  }
+
+
+  const audioContext =
+    new AudioContextClass();
+
+
+  let decodedAudio;
+
+
+  try {
+
+    decodedAudio =
+      await audioContext.decodeAudioData(
+        arrayBuffer.slice(0)
+      );
+
+  }
+
+  finally {
+
+    await audioContext.close();
+
+  }
+
+
+  /*
+    Zielgröße für 16 kHz.
+  */
+
+  const targetLength =
+    Math.ceil(
+      decodedAudio.duration *
+      TARGET_SAMPLE_RATE
+    );
+
+
+  const offlineContext =
+    new OfflineAudioContext(
+      1,
+      targetLength,
+      TARGET_SAMPLE_RATE
+    );
+
+
+  /*
+    Stereo/Mehrkanal → Mono
+  */
+
+  const monoBuffer =
+    offlineContext.createBuffer(
+      1,
+      decodedAudio.length,
+      decodedAudio.sampleRate
+    );
+
+
+  const monoChannel =
+    monoBuffer.getChannelData(0);
+
+
+  for (
+    let channel = 0;
+    channel <
+    decodedAudio.numberOfChannels;
+    channel++
+  ) {
+
+    const sourceChannel =
+      decodedAudio.getChannelData(
+        channel
+      );
+
+
+    for (
+      let i = 0;
+      i < decodedAudio.length;
+      i++
+    ) {
+
+      monoChannel[i] +=
+
+        sourceChannel[i] /
+
+        decodedAudio.numberOfChannels;
+
+    }
+
+  }
+
+
+  /*
+    Auf 16 kHz resampeln.
+  */
+
+  const sourceNode =
+    offlineContext.createBufferSource();
+
+
+  sourceNode.buffer =
+    monoBuffer;
+
+
+  sourceNode.connect(
+    offlineContext.destination
+  );
+
+
+  sourceNode.start(0);
+
+
+  const rendered =
+    await offlineContext.startRendering();
+
+
+  /*
+    Eigene Float32-Kopie erzeugen.
+  */
+
+  return new Float32Array(
+    rendered.getChannelData(0)
+  );
+
+}
+
+
+/* =====================================================
+   PCM AN LIVESPEAK SENDEN
+===================================================== */
+
+async function sendPCM(pcm) {
+
+  let offset = 0;
+
+
+  while (
+    offset < pcm.length
+  ) {
+
+    const end =
+      Math.min(
+        offset + PCM_CHUNK_SIZE,
+        pcm.length
+      );
+
+
+    const chunk =
+      pcm.slice(
+        offset,
+        end
+      );
+
+
+    sendToLiveSpeak(
+      {
+
+        eventName: "pcm",
+
+        buffer: chunk.buffer
+
+      },
+
+      [
+        chunk.buffer
+      ]
+    );
+
+
+    offset = end;
+
+
+    /*
+      Kleiner Yield für Mobilbrowser.
+    */
+
+    await new Promise(
+      resolve =>
+        setTimeout(
+          resolve,
+          0
+        )
+    );
+
+  }
+
+
+  /*
+    Alle PCM-Daten sind übertragen.
+    Jetzt darf LiveSpeak Audio + Lip-Sync starten.
+  */
+
+  sendToLiveSpeak({
+
+    eventName: "audio_end"
+
+  });
+
+}
+
+
+/* =====================================================
+   TEST 005 STARTEN
+===================================================== */
+
+sendButton.addEventListener(
+  "click",
+  async function() {
+
+    if (!avatarReady) {
+
+      setStatus(
+        "Sol Holo ist noch nicht bereit."
+      );
+
+      return;
+
+    }
+
+
+    const file =
+      audioInput.files[0];
+
+
+    if (!file) {
+
+      setStatus(
+        "Bitte zuerst eine Audiodatei auswählen."
+      );
+
+      return;
+
+    }
+
+
+    try {
+
+      audioBusy = true;
+
+      updateButtons();
+
+
+      setStatus(
+        "Audio wird vorbereitet …"
+      );
+
+
+      const pcm =
+        await convertAudioToPCM(
+          file
+        );
+
+
+      console.log(
+        "PCM Samples:",
+        pcm.length
+      );
+
+
+      setStatus(
+        "Audio wird an Sol Holo übertragen …"
+      );
+
+
+      await sendPCM(
+        pcm
+      );
+
+
+      setStatus(
+        "Audio übertragen – Lip-Sync wird gestartet …"
+      );
+
+    }
+
+    catch (error) {
+
+      console.error(error);
+
+
+      audioBusy = false;
+
+
+      setStatus(
+        "Audio-Fehler: " +
+        error.message
+      );
+
+
+      updateButtons();
+
+    }
+
+  }
+);
+
+
+/* =====================================================
+   START
+===================================================== */
+
+updateButtons();
+
+</script>
 
 </body>
 </html>
