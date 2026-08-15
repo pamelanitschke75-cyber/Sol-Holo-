@@ -5,106 +5,163 @@
 
   <meta
     name="viewport"
-    content="width=device-width, initial-scale=1.0"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
   >
 
-  <title>Sol Holo – Test 006</title>
+  <title>Sol Holo – TEST 006</title>
 
   <style>
     * {
       box-sizing: border-box;
     }
 
-    html,
-    body {
-      margin: 0;
+    html {
       min-height: 100%;
-      background: #05070d;
-      color: #ffffff;
-      font-family: Arial, Helvetica, sans-serif;
+      overflow-y: auto;
     }
 
     body {
-      padding: 18px;
+      margin: 0;
+      min-height: 100%;
+      overflow-y: auto;
+      overscroll-behavior-y: auto;
+
+      background: #05070d;
+      color: #ffffff;
+
+      font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+      padding:
+        max(14px, env(safe-area-inset-top))
+        14px
+        max(24px, env(safe-area-inset-bottom));
     }
 
     .container {
       width: 100%;
-      max-width: 900px;
+      max-width: 850px;
       margin: 0 auto;
     }
 
     h1 {
-      margin: 8px 0 4px;
+      margin: 6px 0 3px;
       text-align: center;
-      font-size: 32px;
+      font-size: 30px;
     }
 
     .subtitle {
-      margin: 0 0 18px;
+      margin: 0 0 14px;
       text-align: center;
       color: #9da7b3;
       line-height: 1.4;
     }
 
     .box {
-      margin-bottom: 16px;
-      padding: 16px;
+      width: 100%;
+      margin-bottom: 12px;
+      padding: 14px;
+
       background: #0d1117;
-      border: 1px solid #30363d;
+
+      border:
+        1px solid #30363d;
+
       border-radius: 14px;
     }
 
     #status {
-      text-align: center;
       font-weight: bold;
+      text-align: center;
       line-height: 1.5;
       overflow-wrap: anywhere;
     }
 
-    #avatar {
-      width: 100%;
-      height: 520px;
-      margin-bottom: 16px;
-      overflow: hidden;
-      background: #080b24;
-      border: 1px solid #30363d;
-      border-radius: 16px;
+    #diagnostics {
+      margin-top: 10px;
+
+      color: #9da7b3;
+
+      font-size: 13px;
+      line-height: 1.55;
+      text-align: left;
     }
 
     button,
     input {
+      display: block;
+
       width: 100%;
       min-height: 50px;
-      margin-top: 12px;
+
+      margin-top: 10px;
       padding: 12px;
+
       border-radius: 10px;
+
       font-size: 16px;
     }
 
     button {
       border: 0;
+
       font-weight: bold;
+
       cursor: pointer;
     }
 
     button:disabled {
-      opacity: 0.45;
+      opacity: 0.42;
       cursor: default;
     }
 
     input {
       color: #ffffff;
       background: #161b22;
-      border: 1px solid #30363d;
+
+      border:
+        1px solid #30363d;
     }
 
-    .small {
-      margin-top: 12px;
-      color: #9da7b3;
-      font-size: 13px;
-      line-height: 1.5;
-      text-align: center;
+    #avatar {
+      display: block;
+
+      width: 100%;
+
+      /*
+        MOBILER FIX:
+        kein riesiger 100vh-Canvas mehr.
+      */
+      height: clamp(
+        320px,
+        52vh,
+        480px
+      );
+
+      margin-bottom: 16px;
+
+      overflow: hidden;
+
+      background: #080b24;
+
+      border:
+        1px solid #30363d;
+
+      border-radius: 16px;
+
+      /*
+        Der 3D-Canvas soll unser Scrollen
+        auf dem Handy nicht abfangen.
+      */
+      touch-action: pan-y;
+      pointer-events: none;
+    }
+
+    #avatar canvas {
+      touch-action: pan-y !important;
+      pointer-events: none !important;
     }
 
     .success {
@@ -114,8 +171,50 @@
     .error {
       color: #ff9b9b;
     }
-  </style>
 
+    .waiting {
+      color: #ffd866;
+    }
+
+    .small {
+      margin: 12px 0 0;
+
+      color: #9da7b3;
+
+      font-size: 13px;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    .result {
+      margin-top: 12px;
+      padding: 12px;
+
+      background: #161b22;
+
+      border:
+        1px solid #30363d;
+
+      border-radius: 10px;
+
+      line-height: 1.55;
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+
+      h1 {
+        font-size: 27px;
+      }
+
+      #avatar {
+        height: 360px;
+      }
+    }
+  </style>
 
   <!--
     TalkingHead 1.7
@@ -142,954 +241,1117 @@
   </script>
 </head>
 
-
 <body>
 
-<div class="container">
+  <main class="container">
 
-  <h1>Sol Holo</h1>
+    <h1>Sol Holo</h1>
 
-  <p class="subtitle">
-    TEST 006 – Pams Stimme → Audioanalyse → Lip-Sync
-  </p>
+    <p class="subtitle">
+      TEST 006 — PAM VOICE → AUDIOANALYSE → LIP-SYNC
+    </p>
 
 
-  <!-- STATUS -->
+    <!-- =================================================
+         STATUS
+    ================================================== -->
 
-  <div class="box">
+    <section class="box">
 
-    <div id="status">
-      Test 006 startet …
-    </div>
+      <div id="status">
+        TEST 006 wird gestartet …
+      </div>
 
-  </div>
+      <div id="diagnostics">
+        TalkingHead: ⏳<br>
+        HeadAudio: ⏳<br>
+        Avatar: ⏳<br>
+        Audio: ⏳<br>
+        Viseme erkannt: 0
+      </div>
 
+    </section>
 
-  <!-- AVATAR -->
 
-  <div id="avatar"></div>
+    <!-- =================================================
+         TEST-STEUERUNG
+         ABSICHTLICH VOR DEM AVATAR
+    ================================================== -->
 
+    <section class="box">
 
-  <!-- AUDIO -->
+      <strong>
+        Pams Original-Sprachaufnahme
+      </strong>
 
-  <div class="box">
+      <button
+        id="repoAudioButton"
+        disabled
+      >
+        🎙️ Pam-Sol Test 005 starten
+      </button>
 
-    <strong>
-      Pams Sprachaufnahme
-    </strong>
 
+      <input
+        id="audioFile"
+        type="file"
+        accept="audio/*"
+        disabled
+      >
 
-    <button
-      id="repoVoiceButton"
-      disabled
-    >
-      Pam-Sol Test 005 abspielen
-    </button>
 
+      <button
+        id="localAudioButton"
+        disabled
+      >
+        🎙️ Ausgewählte Datei testen
+      </button>
 
-    <input
-      id="audioFile"
-      type="file"
-      accept="audio/*"
-      disabled
-    >
 
+      <button
+        id="confirmButton"
+        disabled
+      >
+        ✅ Sichtbare Lippenbewegung bestätigen
+      </button>
 
-    <button
-      id="fileVoiceButton"
-      disabled
-    >
-      Andere Sprachdatei testen
-    </button>
 
-  </div>
+      <div
+        id="result"
+        class="result"
+      >
+        TEST 006 wartet auf den Audio-Test.
+      </div>
 
+    </section>
 
-  <p class="small">
-    Sol Holo – Forschungs- und Entwicklungsprototyp.<br>
-    Test 006: echte Audiodaten → HeadAudio →
-    Viseme → TalkingHead Lip-Sync.<br>
-    Keine API-Schlüssel im Browser oder GitHub.
-  </p>
 
-</div>
+    <!-- =================================================
+         AVATAR
+    ================================================== -->
 
+    <div id="avatar"></div>
 
-<script type="module">
 
-import {
-  TalkingHead
-} from "talkinghead";
+    <p class="small">
+      Sol Holo – Forschungs- und Entwicklungsprototyp.<br>
+      TEST 006 prüft ausschließlich:
+      echte Sprachaufnahme → Audioanalyse →
+      Viseme → Lippenbewegung.<br>
+      Keine privaten API-Schlüssel im Frontend.
+    </p>
 
+  </main>
 
-import {
-  HeadAudio
-} from "headaudio";
 
+  <script type="module">
 
-/* =====================================================
-   HTML
-===================================================== */
+    import {
+      TalkingHead
+    } from "talkinghead";
 
-const avatarNode =
-  document.getElementById("avatar");
+    import {
+      HeadAudio
+    } from "headaudio";
 
-const statusNode =
-  document.getElementById("status");
 
-const repoVoiceButton =
-  document.getElementById("repoVoiceButton");
+    /* ===================================================
+       KONSTANTEN
+    =================================================== */
 
-const audioFile =
-  document.getElementById("audioFile");
+    /*
+      Bekannt kompatibler Ready-Player-Me-Testavatar.
 
-const fileVoiceButton =
-  document.getElementById("fileVoiceButton");
+      Wir verwenden ihn bewusst für TEST 006,
+      damit die Prüfung nicht von einer noch
+      unfertigen eigenen sol.glb abhängt.
+    */
 
-
-/* =====================================================
-   DATEIEN
-===================================================== */
-
-/*
-  Zuerst versuchen wir deine echte sol.glb.
-
-  Momentan ist diese Datei bei dir noch keine
-  echte GLB. Deshalb gibt es darunter einen
-  automatischen Testavatar als Fallback.
-*/
-
-const SOL_AVATAR_URL =
-  "./sol.glb";
-
-
-/*
-  Öffentlicher kompatibler Testavatar aus
-  dem HeadAudio-Projekt.
-
-  Der dient NUR dazu zu beweisen:
-
-  Pams Stimme
-       ↓
-  HeadAudio
-       ↓
-  Mundbewegung
-*/
-
-const FALLBACK_AVATAR_URL =
-  "https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/avatars/julia.glb";
-
-
-/*
-  Deine bereits hochgeladene Aufnahme.
-*/
-
-const PAM_AUDIO_URL =
-  "./Pam-Sol%20Test%20005.m4a";
-
-
-/*
-  HeadAudio Worklet + Modell.
-*/
-
-const HEAD_AUDIO_WORKLET =
-  "https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/dist/headworklet.min.mjs";
-
-
-const HEAD_AUDIO_MODEL =
-  "https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/dist/model-en-mixed.bin";
-
-
-/* =====================================================
-   VARIABLEN
-===================================================== */
-
-let head = null;
-
-let headAudio = null;
-
-let currentSource = null;
-
-let selectedObjectURL = null;
-
-let avatarReady = false;
-
-
-/* =====================================================
-   STATUS
-===================================================== */
-
-function setStatus(
-  text,
-  mode = ""
-) {
-
-  statusNode.textContent =
-    text;
-
-
-  statusNode.classList.remove(
-    "success",
-    "error"
-  );
-
-
-  if (mode) {
-
-    statusNode.classList.add(
-      mode
-    );
-
-  }
-
-}
-
-
-/* =====================================================
-   FEHLER AUCH SICHTBAR MACHEN
-===================================================== */
-
-window.addEventListener(
-  "error",
-  function(event) {
-
-    console.error(
-      "Globaler Fehler:",
-      event.error ||
-      event.message
-    );
-
-
-    setStatus(
-      "JavaScript-Fehler: " +
-      (
-        event.message ||
-        "unbekannt"
-      ),
-      "error"
-    );
-
-  }
-);
-
-
-window.addEventListener(
-  "unhandledrejection",
-  function(event) {
-
-    console.error(
-      "Promise-Fehler:",
-      event.reason
-    );
-
-
-    const message =
-      event.reason?.message ||
-      String(event.reason);
-
-
-    setStatus(
-      "Startfehler: " +
-      message,
-      "error"
-    );
-
-  }
-);
-
-
-/* =====================================================
-   TEST 006 INITIALISIEREN
-===================================================== */
-
-async function init() {
-
-  try {
-
-    /* ---------------------------------------------
-       1. TALKINGHEAD
-    --------------------------------------------- */
-
-    setStatus(
-      "1/5 – TalkingHead wird gestartet …"
-    );
-
-
-    head =
-      new TalkingHead(
-        avatarNode,
-        {
-
-          /*
-            Kein Cloud-TTS.
-
-            Wir benutzen Pams echte Aufnahme.
-          */
-
-          ttsEndpoint:
-            "N/A",
-
-          lipsyncModules:
-            [],
-
-          cameraView:
-            "head",
-
-          mixerGainSpeech:
-            3,
-
-          modelFPS:
-            30,
-
-          cameraRotateEnable:
-            false
-
-        }
-      );
-
-
-    /* ---------------------------------------------
-       2. AUDIOWORKLET
-    --------------------------------------------- */
-
-    setStatus(
-      "2/5 – HeadAudio Worklet wird geladen …"
-    );
-
-
-    await head.audioCtx.audioWorklet.addModule(
-      HEAD_AUDIO_WORKLET
-    );
-
-
-    /* ---------------------------------------------
-       3. HEADAUDIO
-    --------------------------------------------- */
-
-    setStatus(
-      "3/5 – Audioanalyse wird gestartet …"
-    );
-
-
-    headAudio =
-      new HeadAudio(
-        head.audioCtx,
-        {
-
-          processorOptions: {
-
-            vadEventsEnabled:
-              true,
-
-            visemeEventsEnabled:
-              true
-
-          },
-
-          parameterData: {
-
-            vadMode:
-              1,
-
-            /*
-              Startwert.
-              Das ist KEINE feste Stimmidentität.
-            */
-
-            speakerMeanHz:
-              200
-
-          }
-
-        }
-      );
-
-
-    /* ---------------------------------------------
-       4. VISeme-MODELL
-    --------------------------------------------- */
-
-    setStatus(
-      "4/5 – Lippenmodell wird geladen …"
-    );
-
-
-    await headAudio.loadModel(
-      HEAD_AUDIO_MODEL
-    );
+    const TEST_AVATAR_URL =
+      "https://models.readyplayer.me/64bfa15f0e72c63d7c3934a6.glb" +
+      "?morphTargets=ARKit,Oculus+Visemes,mouthOpen,mouthSmile," +
+      "eyesClosed,eyesLookUp,eyesLookDown" +
+      "&textureSizeLimit=1024" +
+      "&textureFormat=png";
 
 
     /*
-      HeadAudio gibt Werte wie
-      viseme_aa, viseme_PP usw. aus.
-
-      Diese Werte gehen an TalkingHead.
+      Bereits im GitHub-Repository
+      hochgeladene Sprachaufnahme.
     */
 
-    headAudio.onvalue =
-      function(
-        key,
-        value
-      ) {
+    const PAM_AUDIO_URL =
+      "./Pam-Sol%20Test%20005.m4a";
 
-        if (
-          !head ||
-          !head.mtAvatar
-        ) {
-          return;
+
+    /*
+      HeadAudio-Ressourcen.
+    */
+
+    const HEAD_AUDIO_WORKLET =
+      "https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/dist/headworklet.min.mjs";
+
+
+    const HEAD_AUDIO_MODEL =
+      "https://cdn.jsdelivr.net/gh/met4citizen/HeadAudio@main/dist/model-en-mixed.bin";
+
+
+    /* ===================================================
+       DOM
+    =================================================== */
+
+    const avatarNode =
+      document.getElementById(
+        "avatar"
+      );
+
+    const statusNode =
+      document.getElementById(
+        "status"
+      );
+
+    const diagnosticsNode =
+      document.getElementById(
+        "diagnostics"
+      );
+
+    const repoAudioButton =
+      document.getElementById(
+        "repoAudioButton"
+      );
+
+    const audioFileInput =
+      document.getElementById(
+        "audioFile"
+      );
+
+    const localAudioButton =
+      document.getElementById(
+        "localAudioButton"
+      );
+
+    const confirmButton =
+      document.getElementById(
+        "confirmButton"
+      );
+
+    const resultNode =
+      document.getElementById(
+        "result"
+      );
+
+
+    /* ===================================================
+       VARIABLEN
+    =================================================== */
+
+    let head = null;
+
+    let headAudio = null;
+
+    let delayNode = null;
+
+    let currentSource = null;
+
+    let systemReady = false;
+
+    let audioPlayedSuccessfully = false;
+
+    let playbackFinished = false;
+
+    let visemeCount = 0;
+
+    let lastViseme = "—";
+
+
+    const state = {
+
+      talkingHead:
+        "⏳",
+
+      headAudio:
+        "⏳",
+
+      avatar:
+        "⏳",
+
+      audio:
+        "⏳"
+
+    };
+
+
+    /* ===================================================
+       STATUS-HELFER
+    =================================================== */
+
+    function setStatus(
+      text,
+      mode = ""
+    ) {
+
+      statusNode.textContent =
+        text;
+
+
+      statusNode.classList.remove(
+        "success",
+        "error",
+        "waiting"
+      );
+
+
+      if (mode) {
+
+        statusNode.classList.add(
+          mode
+        );
+
+      }
+
+    }
+
+
+    function updateDiagnostics() {
+
+      diagnosticsNode.innerHTML =
+
+        "TalkingHead: " +
+        state.talkingHead +
+        "<br>" +
+
+        "HeadAudio: " +
+        state.headAudio +
+        "<br>" +
+
+        "Avatar: " +
+        state.avatar +
+        "<br>" +
+
+        "Audio: " +
+        state.audio +
+        "<br>" +
+
+        "Viseme erkannt: " +
+        visemeCount +
+        "<br>" +
+
+        "Letztes Viseme: " +
+        lastViseme;
+
+    }
+
+
+    function resetAudioTest() {
+
+      audioPlayedSuccessfully =
+        false;
+
+      playbackFinished =
+        false;
+
+      visemeCount =
+        0;
+
+      lastViseme =
+        "—";
+
+      confirmButton.disabled =
+        true;
+
+      state.audio =
+        "⏳";
+
+      updateDiagnostics();
+
+
+      resultNode.textContent =
+        "Audio-Test läuft noch nicht.";
+
+    }
+
+
+    /* ===================================================
+       GLOBALE FEHLER SICHTBAR MACHEN
+    =================================================== */
+
+    window.addEventListener(
+      "error",
+      function(event) {
+
+        console.error(
+          "Globaler Fehler:",
+          event.error ||
+          event.message
+        );
+
+
+        setStatus(
+          "JavaScript-Fehler: " +
+          (
+            event.message ||
+            "unbekannter Fehler"
+          ),
+          "error"
+        );
+
+      }
+    );
+
+
+    window.addEventListener(
+      "unhandledrejection",
+      function(event) {
+
+        console.error(
+          "Promise-Fehler:",
+          event.reason
+        );
+
+
+        const message =
+
+          event.reason?.message ||
+
+          String(
+            event.reason
+          );
+
+
+        setStatus(
+          "Startfehler: " +
+          message,
+          "error"
+        );
+
+      }
+    );
+
+
+    /* ===================================================
+       INITIALISIERUNG
+    =================================================== */
+
+    async function init() {
+
+      try {
+
+        /* -----------------------------------------------
+           1. TALKINGHEAD
+        ------------------------------------------------ */
+
+        setStatus(
+          "1/4 – TalkingHead wird gestartet …",
+          "waiting"
+        );
+
+
+        head =
+          new TalkingHead(
+            avatarNode,
+            {
+
+              /*
+                Kein Cloud-TTS.
+                TEST 006 verwendet Pams Datei.
+              */
+
+              ttsEndpoint:
+                "N/A",
+
+              lipsyncModules:
+                [],
+
+              cameraView:
+                "head",
+
+              mixerGainSpeech:
+                3,
+
+              modelFPS:
+                30,
+
+              cameraRotateEnable:
+                false,
+
+              lightAmbientIntensity:
+                0,
+
+              lightDirectIntensity:
+                0,
+
+              lightSpotIntensity:
+                0
+
+            }
+          );
+
+
+        state.talkingHead =
+          "✅";
+
+        updateDiagnostics();
+
+
+        /* -----------------------------------------------
+           2. HEADAUDIO WORKLET
+        ------------------------------------------------ */
+
+        setStatus(
+          "2/4 – HeadAudio wird geladen …",
+          "waiting"
+        );
+
+
+        await head.audioCtx.audioWorklet.addModule(
+          HEAD_AUDIO_WORKLET
+        );
+
+
+        headAudio =
+          new HeadAudio(
+            head.audioCtx,
+            {
+
+              processorOptions: {
+
+                vadEventsEnabled:
+                  true,
+
+                visemeEventsEnabled:
+                  true
+
+              },
+
+              parameterData: {
+
+                vadMode:
+                  1
+
+              }
+
+            }
+          );
+
+
+        /*
+          Viseme-Modell laden.
+        */
+
+        await headAudio.loadModel(
+          HEAD_AUDIO_MODEL
+        );
+
+
+        /*
+          Audio aus TalkingHeads Speech-Kanal
+          zusätzlich an HeadAudio schicken.
+        */
+
+        head.audioSpeechGainNode.connect(
+          headAudio
+        );
+
+
+        /*
+          Kleine Verzögerung der hörbaren Stimme.
+
+          HeadAudio analysiert zuerst,
+          Audio kommt rund 150 ms später hörbar an.
+          Dadurch liegen erkannte Viseme und Ton
+          näher zusammen.
+        */
+
+        delayNode =
+          new DelayNode(
+            head.audioCtx,
+            {
+              delayTime:
+                0.15
+            }
+          );
+
+
+        try {
+
+          head.audioSpeechGainNode.disconnect(
+            head.audioReverbNode
+          );
+
+        }
+
+        catch (error) {
+
+          console.log(
+            "Standard-Audiopfad war bereits getrennt.",
+            error
+          );
+
         }
 
 
-        if (
-          !head.mtAvatar[key]
-        ) {
-          return;
-        }
+        head.audioSpeechGainNode.connect(
+          delayNode
+        );
 
 
-        Object.assign(
-          head.mtAvatar[key],
+        delayNode.connect(
+          head.audioReverbNode
+        );
+
+
+        /*
+          Blendshape-Werte an den Avatar geben.
+        */
+
+        headAudio.onvalue =
+          (
+            key,
+            value
+          ) => {
+
+            if (
+              !head ||
+              !head.mtAvatar ||
+              !head.mtAvatar[key]
+            ) {
+
+              return;
+
+            }
+
+
+            Object.assign(
+              head.mtAvatar[key],
+              {
+
+                newvalue:
+                  value,
+
+                needsUpdate:
+                  true
+
+              }
+            );
+
+          };
+
+
+        /*
+          HeadAudio-Animation mit
+          TalkingHead synchronisieren.
+        */
+
+        head.opt.update =
+          headAudio.update.bind(
+            headAudio
+          );
+
+
+        /*
+          Messbarer Nachweis,
+          dass Viseme erkannt werden.
+        */
+
+        headAudio.onviseme =
+          function(event) {
+
+            visemeCount++;
+
+
+            if (
+              typeof event.viseme ===
+              "number"
+            ) {
+
+              lastViseme =
+                String(
+                  event.viseme
+                );
+
+            }
+
+            else {
+
+              lastViseme =
+                event.viseme ||
+                "erkannt";
+
+            }
+
+
+            updateDiagnostics();
+
+          };
+
+
+        headAudio.onstarted =
+          function() {
+
+            setStatus(
+              "Sprache erkannt – Lip-Sync läuft. 👄",
+              "success"
+            );
+
+          };
+
+
+        headAudio.onended =
+          function() {
+
+            updateDiagnostics();
+
+          };
+
+
+        state.headAudio =
+          "✅";
+
+        updateDiagnostics();
+
+
+        /* -----------------------------------------------
+           3. AVATAR
+        ------------------------------------------------ */
+
+        setStatus(
+          "3/4 – Testavatar wird geladen …",
+          "waiting"
+        );
+
+
+        await head.showAvatar(
           {
 
-            newvalue:
-              value,
+            url:
+              TEST_AVATAR_URL,
 
-            needsUpdate:
-              true
+            body:
+              "F",
+
+            avatarMood:
+              "neutral"
+
+          },
+
+          function(event) {
+
+            if (
+              event &&
+              event.lengthComputable
+            ) {
+
+              const percent =
+
+                Math.min(
+                  100,
+                  Math.round(
+                    event.loaded /
+                    event.total *
+                    100
+                  )
+                );
+
+
+              setStatus(
+                "3/4 – Avatar lädt: " +
+                percent +
+                "%",
+                "waiting"
+              );
+
+            }
 
           }
         );
 
-      };
+
+        state.avatar =
+          "✅";
+
+        updateDiagnostics();
 
 
-    /*
-      Audioanalyse in TalkingHeads
-      Renderloop aktualisieren.
-    */
+        /* -----------------------------------------------
+           4. READY
+        ------------------------------------------------ */
 
-    head.opt.update =
-      headAudio.update.bind(
-        headAudio
-      );
+        systemReady =
+          true;
 
 
-    /* ---------------------------------------------
-       5. AVATAR
-    --------------------------------------------- */
+        repoAudioButton.disabled =
+          false;
 
-    setStatus(
-      "5/5 – Sol wird geladen …"
-    );
+        audioFileInput.disabled =
+          false;
 
 
-    let solLoaded =
-      false;
+        setStatus(
+          "4/4 – TEST 006 bereit. Jetzt Pams Stimme starten. 💚",
+          "success"
+        );
 
 
-    /*
-      Zuerst sol.glb versuchen.
-    */
+        resultNode.textContent =
+          "System bereit. Tippe auf „Pam-Sol Test 005 starten“.";
 
-    try {
+      }
 
-      await head.showAvatar(
-        {
+      catch (error) {
 
-          url:
-            SOL_AVATAR_URL,
-
-          body:
-            "F",
-
-          avatarMood:
-            "neutral"
-
-        }
-      );
+        console.error(
+          "Initialisierungsfehler:",
+          error
+        );
 
 
-      solLoaded =
-        true;
+        setStatus(
+          "STARTFEHLER: " +
+          (
+            error?.message ||
+            String(error)
+          ),
+          "error"
+        );
 
-
-      setStatus(
-        "Sol GLB geladen. Test 006 ist bereit. 💚",
-        "success"
-      );
+      }
 
     }
 
-    catch (
-      solError
+
+    /* ===================================================
+       AUDIOCONTEXT FREIGEBEN
+    =================================================== */
+
+    async function ensureAudioRunning() {
+
+      if (!head) {
+
+        throw new Error(
+          "TalkingHead ist nicht initialisiert."
+        );
+
+      }
+
+
+      /*
+        Wichtig für Android/Mobilbrowser:
+        Start erfolgt nach Benutzeraktion.
+      */
+
+      head.start();
+
+
+      if (
+        head.audioCtx.state !==
+        "running"
+      ) {
+
+        await head.audioCtx.resume();
+
+      }
+
+
+      /*
+        HeadAudio-Prozessor aktivieren.
+      */
+
+      if (
+        headAudio &&
+        typeof headAudio.start ===
+        "function"
+      ) {
+
+        headAudio.start();
+
+      }
+
+    }
+
+
+    /* ===================================================
+       AUDIO ABSPIELEN
+    =================================================== */
+
+    async function playArrayBuffer(
+      arrayBuffer
     ) {
 
-      console.warn(
-        "sol.glb konnte nicht geladen werden:",
-        solError
+      if (!systemReady) {
+
+        throw new Error(
+          "TEST 006 ist noch nicht bereit."
+        );
+
+      }
+
+
+      resetAudioTest();
+
+
+      await ensureAudioRunning();
+
+
+      setStatus(
+        "Pams Sprachaufnahme wird decodiert …",
+        "waiting"
       );
 
 
       /*
-        Unsere momentane sol.glb ist noch
-        keine echte 3D-Datei.
-
-        Deshalb laden wir automatisch
-        einen bekannten kompatiblen Avatar.
+        M4A/Audio im Browser decodieren.
       */
 
-      setStatus(
-        "sol.glb ist noch keine echte 3D-Datei – Testavatar wird geladen …"
-      );
+      const decodedAudio =
+
+        await head.audioCtx.decodeAudioData(
+          arrayBuffer.slice(0)
+        );
 
 
-      await head.showAvatar(
-        {
+      /*
+        Eventuell laufende Quelle stoppen.
+      */
 
-          url:
-            FALLBACK_AVATAR_URL,
+      if (currentSource) {
 
-          body:
-            "F",
+        try {
 
-          avatarMood:
-            "neutral"
+          currentSource.stop();
 
         }
-      );
+
+        catch (error) {
+          // bereits beendet
+        }
 
 
-      setStatus(
-        "Testavatar bereit. Jetzt testen wir Pams Stimme. 💚",
-        "success"
-      );
+        try {
 
-    }
+          currentSource.disconnect();
 
+        }
 
-    avatarReady =
-      true;
-
-
-    repoVoiceButton.disabled =
-      false;
-
-
-    audioFile.disabled =
-      false;
-
-  }
-
-  catch (
-    error
-  ) {
-
-    console.error(
-      "Initialisierungsfehler:",
-      error
-    );
-
-
-    setStatus(
-      "STARTFEHLER: " +
-      (
-        error?.message ||
-        String(error)
-      ),
-      "error"
-    );
-
-  }
-
-}
-
-
-/* =====================================================
-   AUDIO ABSPIELEN + ANALYSIEREN
-===================================================== */
-
-async function playArrayBuffer(
-  arrayBuffer
-) {
-
-  if (
-    !head ||
-    !headAudio ||
-    !avatarReady
-  ) {
-
-    setStatus(
-      "Avatar oder Audioanalyse ist noch nicht bereit.",
-      "error"
-    );
-
-    return;
-
-  }
-
-
-  try {
-
-    /* ---------------------------------------------
-       AUDIO AUF SAMSUNG FREIGEBEN
-    --------------------------------------------- */
-
-    if (
-      head.audioCtx.state ===
-      "suspended"
-    ) {
-
-      await head.audioCtx.resume();
-
-    }
-
-
-    /* ---------------------------------------------
-       AUDIO DEKODIEREN
-    --------------------------------------------- */
-
-    setStatus(
-      "Pams Stimme wird vorbereitet …"
-    );
-
-
-    const decodedAudio =
-      await head.audioCtx.decodeAudioData(
-        arrayBuffer.slice(0)
-      );
-
-
-    /* ---------------------------------------------
-       VORHERIGES AUDIO STOPPEN
-    --------------------------------------------- */
-
-    if (
-      currentSource
-    ) {
-
-      try {
-
-        currentSource.stop();
+        catch (error) {
+          // bereits getrennt
+        }
 
       }
 
-      catch (error) {
-        // bereits beendet
-      }
+
+      /*
+        Audioquelle erzeugen.
+      */
+
+      const source =
+        head.audioCtx.createBufferSource();
 
 
-      try {
-
-        currentSource.disconnect();
-
-      }
-
-      catch (error) {
-        // bereits getrennt
-      }
+      source.buffer =
+        decodedAudio;
 
 
       currentSource =
-        null;
-
-    }
+        source;
 
 
-    /* ---------------------------------------------
-       AUDIOQUELLE
-    --------------------------------------------- */
+      /*
+        WICHTIGER PFAD:
 
-    const source =
-      head.audioCtx.createBufferSource();
+        Pams Audio
+             ↓
+        audioSpeechGainNode
+             ├─→ HeadAudio
+             └─→ Delay → hörbare Ausgabe
 
+        Damit analysiert HeadAudio
+        exakt dieselbe Aufnahme,
+        die wir hören.
+      */
 
-    source.buffer =
-      decodedAudio;
-
-
-    currentSource =
-      source;
-
-
-    /*
-      HeadAudio braucht das Originalsignal
-      ohne Verzögerung.
-    */
-
-    source.connect(
-      headAudio
-    );
-
-
-    /*
-      Die hörbare Stimme bekommt eine kleine
-      Verzögerung.
-
-      Das entspricht dem Prinzip der offiziellen
-      HeadAudio-TalkingHead-Demo und hilft,
-      Lippen und hörbare Stimme anzugleichen.
-    */
-
-    const delayNode =
-      head.audioCtx.createDelay(
-        1
+      source.connect(
+        head.audioSpeechGainNode
       );
 
 
-    delayNode.delayTime.value =
-      0.15;
+      source.onended =
+        function() {
+
+          currentSource =
+            null;
 
 
-    source.connect(
-      delayNode
-    );
+          playbackFinished =
+            true;
 
 
-    delayNode.connect(
-      head.audioCtx.destination
-    );
+          state.audio =
+            "✅";
 
 
-    source.onended =
-      function() {
-
-        currentSource =
-          null;
+          updateDiagnostics();
 
 
-        setStatus(
-          "Test beendet. Pams Stimme wurde analysiert. ✅",
-          "success"
-        );
+          if (
+            visemeCount > 0
+          ) {
 
-      };
-
-
-    setStatus(
-      "Pams Stimme läuft – Lip-Sync wird live analysiert. 🎙️👄",
-      "success"
-    );
+            audioPlayedSuccessfully =
+              true;
 
 
-    source.start(
-      0
-    );
-
-  }
-
-  catch (
-    error
-  ) {
-
-    console.error(
-      "Audiofehler:",
-      error
-    );
+            confirmButton.disabled =
+              false;
 
 
-    setStatus(
-      "AUDIO-FEHLER: " +
-      (
-        error?.message ||
-        String(error)
-      ),
-      "error"
-    );
-
-  }
-
-}
+            setStatus(
+              "Audio + Viseme erkannt ✅ Jetzt Lippenbewegung ansehen.",
+              "success"
+            );
 
 
-/* =====================================================
-   PAM-SOL TEST 005 AUS GITHUB
-===================================================== */
-
-repoVoiceButton.addEventListener(
-  "click",
-  async function() {
-
-    try {
-
-      repoVoiceButton.disabled =
-        true;
-
-
-      setStatus(
-        "Pam-Sol Test 005 wird geladen …"
-      );
-
-
-      const response =
-        await fetch(
-          PAM_AUDIO_URL,
-          {
-
-            cache:
-              "no-store"
+            resultNode.innerHTML =
+              "<strong>Technischer Audio-Pfad erfolgreich.</strong><br>" +
+              "Audio: ✅<br>" +
+              "HeadAudio/Viseme: ✅<br>" +
+              "Erkannte Viseme-Ereignisse: " +
+              visemeCount +
+              "<br><br>" +
+              "Wenn sich der Mund sichtbar passend bewegt hat, " +
+              "tippe auf „Sichtbare Lippenbewegung bestätigen“.";
 
           }
-        );
+
+          else {
+
+            audioPlayedSuccessfully =
+              false;
 
 
-      if (
-        !response.ok
-      ) {
+            setStatus(
+              "Audio lief, aber es wurden keine Viseme erkannt.",
+              "error"
+            );
 
-        throw new Error(
-          "Sprachdatei nicht gefunden – HTTP " +
-          response.status
-        );
+
+            resultNode.innerHTML =
+              "Audio-Wiedergabe: ✅<br>" +
+              "Viseme-Erkennung: ❌<br>" +
+              "TEST 006 bleibt offen.";
+
+          }
+
+        };
+
+
+      state.audio =
+        "▶️";
+
+
+      updateDiagnostics();
+
+
+      setStatus(
+        "Pams Stimme läuft – HeadAudio analysiert live. 🎙️👄",
+        "success"
+      );
+
+
+      source.start(
+        0
+      );
+
+    }
+
+
+    /* ===================================================
+       PAM-AUDIO AUS DEM REPOSITORY
+    =================================================== */
+
+    repoAudioButton.addEventListener(
+      "click",
+      async function() {
+
+        try {
+
+          repoAudioButton.disabled =
+            true;
+
+
+          setStatus(
+            "Pam-Sol Test 005 wird geladen …",
+            "waiting"
+          );
+
+
+          const response =
+
+            await fetch(
+              PAM_AUDIO_URL,
+              {
+                cache:
+                  "no-store"
+              }
+            );
+
+
+          if (!response.ok) {
+
+            throw new Error(
+              "Pam-Sprachdatei nicht gefunden – HTTP " +
+              response.status
+            );
+
+          }
+
+
+          const arrayBuffer =
+
+            await response.arrayBuffer();
+
+
+          await playArrayBuffer(
+            arrayBuffer
+          );
+
+        }
+
+        catch (error) {
+
+          console.error(
+            "Audiofehler:",
+            error
+          );
+
+
+          state.audio =
+            "❌";
+
+          updateDiagnostics();
+
+
+          setStatus(
+            "AUDIO-FEHLER: " +
+            (
+              error?.message ||
+              String(error)
+            ),
+            "error"
+          );
+
+        }
+
+        finally {
+
+          repoAudioButton.disabled =
+            false;
+
+        }
 
       }
-
-
-      const buffer =
-        await response.arrayBuffer();
-
-
-      await playArrayBuffer(
-        buffer
-      );
-
-    }
-
-    catch (
-      error
-    ) {
-
-      console.error(
-        error
-      );
-
-
-      setStatus(
-        "SPRACHDATEI-FEHLER: " +
-        (
-          error?.message ||
-          String(error)
-        ),
-        "error"
-      );
-
-    }
-
-    finally {
-
-      repoVoiceButton.disabled =
-        false;
-
-    }
-
-  }
-);
-
-
-/* =====================================================
-   EIGENE DATEI VOM HANDY
-===================================================== */
-
-audioFile.addEventListener(
-  "change",
-  function() {
-
-    if (
-      !audioFile.files ||
-      audioFile.files.length === 0
-    ) {
-
-      fileVoiceButton.disabled =
-        true;
-
-      return;
-
-    }
-
-
-    fileVoiceButton.disabled =
-      false;
-
-
-    setStatus(
-      "Sprachdatei ausgewählt. Bereit zum Testen."
     );
 
-  }
-);
 
-
-fileVoiceButton.addEventListener(
-  "click",
-  async function() {
-
-    if (
-      !audioFile.files ||
-      !audioFile.files[0]
-    ) {
-
-      return;
-
-    }
-
-
-    try {
-
-      fileVoiceButton.disabled =
-        true;
-
-
-      const file =
-        audioFile.files[0];
-
-
-      const buffer =
-        await file.arrayBuffer();
-
-
-      await playArrayBuffer(
-        buffer
-      );
-
-    }
-
-    catch (
-      error
-    ) {
-
-      console.error(
-        error
-      );
-
-
-      setStatus(
-        "DATEIFEHLER: " +
-        (
-          error?.message ||
-          String(error)
-        ),
-        "error"
-      );
-
-    }
-
-    finally {
-
-      fileVoiceButton.disabled =
-        false;
-
-    }
-
-  }
-);
-
-
-/* =====================================================
-   START
-===================================================== */
-
-init();
-
-</script>
-
-</body>
-</html>
+    /* ===================================================
+       ALTERN
