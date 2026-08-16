@@ -2,17 +2,21 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-  <title>Sol Holo – TEST 006</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  >
+
+  <title>Sol Holo – TEST 007</title>
 
   <style>
     * {
       box-sizing: border-box;
     }
 
-    html, body {
+    html,
+    body {
       margin: 0;
       min-height: 100%;
       background: #05070d;
@@ -21,7 +25,8 @@
     }
 
     body {
-      padding: 18px;
+      padding: 16px;
+      overflow-y: auto;
     }
 
     .container {
@@ -31,52 +36,59 @@
     }
 
     h1 {
-      margin: 12px 0 4px;
+      margin: 10px 0 4px;
       text-align: center;
       font-size: 34px;
     }
 
     .subtitle {
+      margin-bottom: 20px;
       text-align: center;
       color: #9da7b3;
-      line-height: 1.5;
-      margin-bottom: 22px;
+      line-height: 1.45;
     }
 
     .box {
+      margin-bottom: 18px;
+      padding: 18px;
       background: #0d1117;
       border: 1px solid #30363d;
       border-radius: 18px;
-      padding: 20px;
-      margin-bottom: 18px;
     }
 
     #status {
       text-align: center;
       font-size: 19px;
       font-weight: bold;
+      line-height: 1.5;
       color: #ffd866;
-      margin-bottom: 18px;
     }
 
     #diagnostics {
-      color: #aab4c0;
+      margin-top: 16px;
+      color: #9da7b3;
+      font-size: 14px;
       line-height: 1.8;
-      font-size: 15px;
     }
 
-    button,
-    input[type="file"] {
+    input,
+    button {
       width: 100%;
       min-height: 54px;
       margin-top: 12px;
-      border-radius: 12px;
-      border: 1px solid #3b4552;
       padding: 12px;
+      border-radius: 12px;
       font-size: 16px;
     }
 
+    input {
+      color: white;
+      background: #161b22;
+      border: 1px solid #30363d;
+    }
+
     button {
+      border: none;
       background: #245cff;
       color: white;
       font-weight: bold;
@@ -84,280 +96,8 @@
     }
 
     button:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
+      opacity: 0.4;
+      cursor: default;
     }
 
-    input[type="file"] {
-      background: #161b22;
-      color: white;
-    }
-
-    audio {
-      width: 100%;
-      margin-top: 16px;
-    }
-
-    .success {
-      color: #9cffb1 !important;
-    }
-
-    .error {
-      color: #ff9b9b !important;
-    }
-
-    .waiting {
-      color: #ffd866 !important;
-    }
-
-    .small {
-      color: #8b949e;
-      font-size: 13px;
-      line-height: 1.5;
-      margin-top: 14px;
-    }
-  </style>
-</head>
-
-<body>
-
-<div class="container">
-
-  <h1>Sol Holo</h1>
-
-  <div class="subtitle">
-    TEST 006 — Pams Stimme → Audioanalyse → Lip-Sync
-  </div>
-
-  <div class="box">
-
-    <div id="status">
-      TEST 006 bereit.
-    </div>
-
-    <div id="diagnostics">
-      JavaScript: ⏳<br>
-      Datei: ⏳<br>
-      Audio: ⏳<br>
-      Analyse: ⏳<br>
-      Lip-Sync: ⏳
-    </div>
-
-  </div>
-
-  <div class="box">
-
-    <h2>Pams Original-Sprachaufnahme</h2>
-
-    <input
-      id="audioFile"
-      type="file"
-      accept="audio/*"
-    >
-
-    <button
-      id="testButton"
-      disabled
-    >
-      Ausgewählte Datei testen
-    </button>
-
-    <audio
-      id="audioPlayer"
-      controls
-    ></audio>
-
-    <div class="small">
-      TEST 006 startet zunächst ohne HeadAudio.
-      Damit prüfen wir zuerst zuverlässig, ob Sol Holo,
-      Dateiauswahl und Audio auf dem Handy funktionieren.
-    </div>
-
-  </div>
-
-</div>
-
-<script>
-  const status =
-    document.getElementById("status");
-
-  const diagnostics =
-    document.getElementById("diagnostics");
-
-  const audioFile =
-    document.getElementById("audioFile");
-
-  const testButton =
-    document.getElementById("testButton");
-
-  const audioPlayer =
-    document.getElementById("audioPlayer");
-
-  let selectedFile = null;
-  let objectURL = null;
-
-  function showDiagnostics(values = {}) {
-
-    diagnostics.innerHTML =
-      "JavaScript: " +
-      (values.javascript ?? "⏳") +
-      "<br>" +
-
-      "Datei: " +
-      (values.file ?? "⏳") +
-      "<br>" +
-
-      "Audio: " +
-      (values.audio ?? "⏳") +
-      "<br>" +
-
-      "Analyse: " +
-      (values.analysis ?? "⏳") +
-      "<br>" +
-
-      "Lip-Sync: " +
-      (values.lips ?? "⏳");
-  }
-
-  function setStatus(text, type = "waiting") {
-
-    status.textContent = text;
-
-    status.className = type;
-  }
-
-  showDiagnostics({
-    javascript: "✅",
-    file: "⏳",
-    audio: "⏳",
-    analysis: "noch nicht aktiviert",
-    lips: "noch nicht aktiviert"
-  });
-
-  setStatus(
-    "TEST 006 bereit — Audiodatei auswählen.",
-    "success"
-  );
-
-  audioFile.addEventListener(
-    "change",
-    function () {
-
-      selectedFile =
-        audioFile.files &&
-        audioFile.files[0];
-
-      if (!selectedFile) {
-
-        testButton.disabled = true;
-
-        showDiagnostics({
-          javascript: "✅",
-          file: "❌",
-          audio: "⏳",
-          analysis: "noch nicht aktiviert",
-          lips: "noch nicht aktiviert"
-        });
-
-        return;
-      }
-
-      if (objectURL) {
-        URL.revokeObjectURL(objectURL);
-      }
-
-      objectURL =
-        URL.createObjectURL(selectedFile);
-
-      audioPlayer.src = objectURL;
-
-      testButton.disabled = false;
-
-      showDiagnostics({
-        javascript: "✅",
-        file: "✅ " + selectedFile.name,
-        audio: "bereit",
-        analysis: "noch nicht aktiviert",
-        lips: "noch nicht aktiviert"
-      });
-
-      setStatus(
-        "Datei geladen. Jetzt testen.",
-        "success"
-      );
-    }
-  );
-
-  testButton.addEventListener(
-    "click",
-    async function () {
-
-      if (!selectedFile) {
-        return;
-      }
-
-      try {
-
-        setStatus(
-          "Audio wird gestartet …",
-          "waiting"
-        );
-
-        await audioPlayer.play();
-
-        showDiagnostics({
-          javascript: "✅",
-          file: "✅",
-          audio: "✅ läuft",
-          analysis: "nächster Schritt",
-          lips: "nächster Schritt"
-        });
-
-        setStatus(
-          "Audio läuft! Grundtest bestanden. ✅",
-          "success"
-        );
-
-      } catch (error) {
-
-        console.error(error);
-
-        showDiagnostics({
-          javascript: "✅",
-          file: "✅",
-          audio: "❌",
-          analysis: "—",
-          lips: "—"
-        });
-
-        setStatus(
-          "Audio konnte nicht gestartet werden: " +
-          (error?.message || String(error)),
-          "error"
-        );
-      }
-    }
-  );
-
-  audioPlayer.addEventListener(
-    "ended",
-    function () {
-
-      setStatus(
-        "Audio vollständig abgespielt. ✅",
-        "success"
-      );
-
-      showDiagnostics({
-        javascript: "✅",
-        file: "✅",
-        audio: "✅ vollständig",
-        analysis: "nächster Schritt",
-        lips: "nächster Schritt"
-      });
-    }
-  );
-</script>
-
-</body>
-</html>
+    audio
