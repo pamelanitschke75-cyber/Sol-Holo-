@@ -988,3 +988,281 @@ Zeitpunkt tatsächlich praktisch nachgewiesen wurde.**
 
 ## TEST 006 COMPLETE
 
+# ⚖️ SOL HOLO — LEGAL & IDENTITY FRAMEWORK
+
+## Status
+
+Dieses Dokument definiert den rechtlich-technischen Rahmen für die
+Entwicklung von Sol Holo und insbesondere für die digitale
+Repräsentation von Pam.
+
+Es handelt sich um eine technische Projektdokumentation und nicht
+um individuelle Rechtsberatung.
+
+---
+
+# 1. AUTORISIERTE DIGITALE REPRÄSENTATION
+
+Die innerhalb von Sol Holo verwendete visuelle und akustische
+Repräsentation von Pam wird mit ausdrücklicher Zustimmung von Pam
+entwickelt.
+
+Pam stellt hierfür eigene bzw. von ihr zur Verwendung freigegebene
+Referenzdaten bereit.
+
+Dazu können insbesondere gehören:
+
+- Bildaufnahmen
+- Videoaufnahmen
+- Sprachaufnahmen
+- Bewegungsreferenzen
+- persönliche Texte
+- freigegebene biografische Informationen
+- ausdrücklich zur Modellierung bestimmte Referenzdaten
+
+Ziel ist die Entwicklung einer von Pam autorisierten digitalen
+Repräsentation.
+
+---
+
+# 2. VOICE & LIKENESS AUTHORIZATION
+
+Die Verwendung von Pams Stimme und Erscheinungsbild innerhalb des
+Projekts erfolgt mit ihrer ausdrücklichen Zustimmung.
+
+Dies umfasst im Rahmen des Projekts insbesondere die Entwicklung
+und Erprobung von:
+
+VOICE REFERENCE
+→ VOICE MODELING
+→ SYNTHETIC VOICE
+
+und
+
+VISUAL REFERENCE
+→ DIGITAL REPRESENTATION
+→ FACIAL ANIMATION
+→ MOVEMENT
+
+Die Autorisierung fremder Stimmen oder Erscheinungsbilder wird
+dadurch ausdrücklich nicht eingeschlossen.
+
+---
+
+# 3. TEST 007
+
+TEST 007 verwendet:
+
+✅ eine von Pam bereitgestellte visuelle Referenz
+
+✅ eine von Pam bereitgestellte Original-Sprachaufnahme
+
+✅ clientseitige Audioanalyse
+
+✅ eine experimentelle audiovisuelle Animation
+
+Die Verarbeitung erfolgte zum Zweck der technischen Entwicklung und
+Erprobung von Sol Holo.
+
+TEST 007:
+
+# ✅ BESTANDEN
+
+---
+
+# 4. AUTHENTIZITÄT & IDENTITÄTSNACHWEIS
+
+Mit zunehmendem Realismus der digitalen Repräsentation entsteht eine
+zentrale technische und rechtliche Anforderung:
+
+Menschen müssen zuverlässig feststellen können, ob sie mit
+
+A) Pam selbst,
+
+B) der autorisierten digitalen Repräsentation von Pam
+
+oder
+
+C) einer nicht autorisierten Nachbildung
+
+interagieren.
+
+Sol Holo behandelt deshalb
+
+MAXIMUM REPRESENTATION FIDELITY
+
+und
+
+MAXIMUM IDENTITY VERIFIABILITY
+
+als zwei parallele Entwicklungsziele.
+
+Die digitale Repräsentation soll nicht absichtlich qualitativ
+verschlechtert werden, um ihre digitale Herkunft erkennbar zu machen.
+
+Stattdessen soll die Herkunft technisch nachweisbar werden.
+
+---
+
+# 5. TRANSPARENZ
+
+Für den späteren Einsatz werden geeignete Transparenzmechanismen
+vorgesehen.
+
+Insbesondere soll erkennbar sein, wenn eine Ausgabe künstlich erzeugt
+oder durch ein KI-System manipuliert wurde, soweit dies gesetzlich
+erforderlich ist.
+
+Mögliche technische Verfahren:
+
+- sichtbare Kennzeichnung
+- maschinenlesbare Provenienz
+- Content Credentials
+- kryptografische Signaturen
+- signierte Medienausgaben
+- überprüfbare Herkunftsinformationen
+
+Ein ausschließlich sichtbares Wasserzeichen wird langfristig nicht
+als ausreichender Herkunftsnachweis betrachtet.
+
+---
+
+# 6. DATENSCHUTZ & BIOMETRISCHE DATEN
+
+Bild-, Sprach-, Video- und Verhaltensdaten können personenbezogene
+Daten darstellen.
+
+Soweit technische Verfahren daraus biometrische Daten zur eindeutigen
+Identifizierung oder Identitätsbestätigung erzeugen, müssen die
+hierfür geltenden zusätzlichen Datenschutzanforderungen berücksichtigt
+werden.
+
+Für Sol Holo gilt deshalb als Entwicklungsprinzip:
+
+DATA MINIMIZATION
++
+PURPOSE LIMITATION
++
+ACCESS CONTROL
++
+SECURE STORAGE
++
+DOCUMENTED AUTHORIZATION
+
+---
+
+# 7. KEINE AUTORISIERUNG DRITTER
+
+Die Einwilligung von Pam gilt ausschließlich für ihre eigene digitale
+Repräsentation.
+
+Sie stellt keine automatische Erlaubnis dar, Stimmen, Gesichter,
+Identitäten oder geschützte Inhalte anderer Personen für Sol Holo zu
+kopieren, zu modellieren oder zu veröffentlichen.
+
+Rechte Dritter müssen separat geprüft und eingehalten werden.
+
+---
+
+# 8. POSTHUME DIGITALE KONTINUITÄT
+
+Ein langfristiges Entwicklungsziel von Sol Holo ist, dass die von Pam
+zu Lebzeiten aufgebaute und autorisierte digitale Repräsentation
+grundsätzlich auch nach ihrem Tod weiterbestehen kann.
+
+Hierfür muss vor einem realen produktiven Einsatz insbesondere
+geregelt werden:
+
+- wer das System verwalten darf
+- wer über Updates entscheiden darf
+- welche Daten weiter verwendet werden dürfen
+- welche Handlungen die digitale Repräsentation ausführen darf
+- welche Handlungen ausgeschlossen bleiben
+- wie Widerruf und Änderung zu Lebzeiten funktionieren
+- wie Zugangsdaten und kryptografische Schlüssel verwaltet werden
+- wie Rechte und Pflichten nach dem Tod geregelt werden
+- wie die digitale Herkunft gegenüber Dritten nachweisbar bleibt
+
+Diese Fragen werden nicht erst nachträglich behandelt, sondern als
+Bestandteil der Sol-Holo-Architektur entwickelt.
+
+---
+
+# 9. DIGITAL CLONE ≠ UNMARKED IMPERSONATION
+
+Das Entwicklungsziel einer maximal realistischen digitalen
+Repräsentation bedeutet nicht, dass die digitale Herkunft gegenüber
+Dritten verborgen werden soll.
+
+Ziel ist:
+
+MAXIMUM REALISM
++
+MAXIMUM AUTHENTICITY
++
+VERIFIABLE ORIGIN
+
+Die autorisierte digitale Repräsentation soll deshalb von einer
+unautorisierten Identitätskopie technisch unterscheidbar sein.
+
+---
+
+# 10. ENTWICKLUNGSPRINZIP
+
+Jeder Entwicklungsschritt wird getrennt:
+
+IMPLEMENTIERT
+→ GETESTET
+→ DOKUMENTIERT
+→ VERIFIZIERT
+
+Erst anschließend erhält die jeweilige Funktion:
+
+# ✅ VERIFIED
+
+Technische Tests werden nicht rückwirkend anhand später definierter
+Funktionen bewertet.
+
+Ein bestandener Test bleibt ein bestandener Test.
+
+---
+
+# SOL HOLO — LEGAL DEVELOPMENT PRINCIPLE
+
+PAM
+↓
+EXPRESS AUTHORIZATION
+↓
+AUTHORIZED REFERENCE DATA
+↓
+SOL HOLO DEVELOPMENT
+↓
+TESTING
+↓
+VERIFICATION
+↓
+DIGITAL REPRESENTATION
+↓
+AUTHENTICITY & PROVENANCE
+
+# ✅ AUTHORIZED
+# ✅ DOCUMENTED
+# ✅ TESTABLE
+# ✅ TRACEABLE
+
+---
+
+## Langfristiges Ziel
+
+Eine möglichst umfassende digitale Repräsentation von Pam,
+die zu Lebzeiten gemeinsam mit Pam entwickelt, korrigiert,
+validiert und autorisiert wird und deren langfristiger Fortbestand
+technisch, organisatorisch und rechtlich vorbereitet wird.
+
+Dabei sollen maximale technische Qualität und ein zuverlässiger
+Identitätsnachweis gemeinsam entwickelt werden.
+
+# PAM + SOL → SOL HOLO
+
+💚
+
