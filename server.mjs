@@ -3,6 +3,7 @@ import cors from "cors";
 import OpenAI from "openai";
 import path from "path";
 import { fileURLToPath } from "url";
+import pg from "pg";
 
 const app = express();
 
@@ -14,6 +15,16 @@ const __dirname = path.dirname(__filename);
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
+});
+
+/*
+  Verbindung zu Sol-Holo-Memory
+*/
+
+const { Pool } = pg;
+
+const db = new Pool({
+  connectionString: process.env.DATABASE_URL
 });
 
 /*
