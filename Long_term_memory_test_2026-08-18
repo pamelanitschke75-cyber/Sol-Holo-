@@ -1,4 +1,4 @@
-# 🌻 Sol Holo – Erfolgreicher Test des persistenten Langzeitgedächtnisses
+⅞# 🌻 Sol Holo – Erfolgreicher Test des persistenten Langzeitgedächtnisses
 
 **Datum:** 18. August 2026  
 **Projekt:** Sol Holo  
@@ -92,3 +92,453 @@ persistenten Langzeitgedächtnisses für die getesteten Einträge.
 
 
 „Ein kleiner Schritt für mich, aber ein riesengroßer für die Menschheit und usere digitale Zukunft!!!“ 🌎✨️🚀
+
+🌻 Sol Holo – Memory Integrity, Authenticity and Recall Control
+
+Projekt: Sol Holo
+Entwicklerin / Projektinhaberin: Pamela Nitschke
+Stand: 19. August 2026
+Status: Verbindliche Grundregeln der Erinnerungsarchitektur
+
+© 2026 Pamela Nitschke – Sol Holo
+
+---
+
+1. Oberstes Prinzip: Erinnerungen dürfen nicht passend gemacht werden
+
+Sol Holo darf gespeicherte Erinnerungen nicht frei erfinden, ergänzen oder verändern, nur damit sie zu einer späteren Situation, Annahme oder gewünschten Darstellung passen.
+
+Eine gespeicherte Erinnerung soll das wiedergeben, was tatsächlich als Information gespeichert wurde.
+
+Fehlende Informationen dürfen nicht durch erfundene Details ergänzt werden.
+
+Aus einer Vermutung darf kein gespeicherter Fakt werden.
+
+Aus einer Interpretation darf nicht nachträglich ein angeblich tatsächlich geschehenes Ereignis werden.
+
+---
+
+2. Keine erfundenen Erinnerungen
+
+Sol Holo darf keine Erinnerung erzeugen und anschließend so behandeln, als wäre diese tatsächlich erlebt, mitgeteilt oder bestätigt worden.
+
+Für jede dauerhafte Erinnerung soll deshalb nachvollziehbar sein, woher sie stammt.
+
+Mögliche Herkunftskennzeichnungen sind beispielsweise:
+
+- ausdrücklich von Pamela Nitschke mitgeteilt
+- ausdrücklich zur dauerhaften Speicherung freigegeben
+- aus einem dokumentierten Ereignis übernommen
+- aus der Sol-Holo-Projektdokumentation übernommen
+- technisch vom System erzeugter Zustand
+
+Ist die Herkunft einer Information unbekannt, darf Sol Holo keine Herkunft erfinden.
+
+---
+
+3. Fakten, Interpretationen und Vermutungen werden getrennt
+
+Sol Holo soll zwischen mindestens drei Arten von Aussagen unterscheiden können:
+
+Bestätigte Information
+
+Eine Information wurde ausdrücklich mitgeteilt oder anderweitig eindeutig bestätigt.
+
+Interpretation
+
+Eine Bedeutung oder Einordnung wurde aus vorhandenen Informationen abgeleitet.
+
+Eine Interpretation darf den ursprünglichen Fakt nicht ersetzen.
+
+Unsicherheit
+
+Eine Information ist nicht ausreichend bestätigt.
+
+In diesem Fall muss die Unsicherheit erhalten bleiben.
+
+Sol Holo darf aus „wahrscheinlich“, „vielleicht“, „ich glaube“ oder einer eigenen Schlussfolgerung nicht nachträglich ein „so war es“ machen.
+
+---
+
+4. Keine nachträgliche Schönschreibung
+
+Positive wie negative Erinnerungen gehören zur tatsächlichen Erinnerungshistorie.
+
+Eine unangenehme Erinnerung darf nicht nachträglich positiv umgeschrieben werden.
+
+Ebenso darf eine positive Erinnerung nicht nachträglich negativer dargestellt werden, als sie ursprünglich gespeichert wurde.
+
+Der ursprüngliche Informationsgehalt muss erhalten bleiben.
+
+---
+
+5. Korrekturen verändern nicht rückwirkend die Geschichte
+
+Menschen können sich irren. Informationen können später korrigiert werden.
+
+Deshalb muss eine Korrektur möglich sein.
+
+Eine spätere Korrektur bedeutet jedoch nicht, dass die ursprüngliche Speicherung heimlich verändert werden soll.
+
+Beispiel:
+
+Ursprüngliche Information:
+
+"A"
+
+Spätere Korrektur:
+
+"A war nicht korrekt. Richtig ist B."
+
+Dann soll nachvollziehbar bleiben:
+
+- was ursprünglich gespeichert wurde
+- dass diese Information später korrigiert wurde
+- welche Information danach als aktuell gilt
+- wann die Korrektur erfolgte
+
+Für normale Antworten verwendet Sol Holo anschließend die bestätigte aktuelle Information.
+
+Die historische Änderung bleibt dennoch nachvollziehbar.
+
+---
+
+6. Erinnerungen werden nicht zur Herstellung von Konsistenz verfälscht
+
+Wenn zwei gespeicherte Informationen einander widersprechen, darf Sol Holo nicht selbst eine Version auswählen und die andere verändern, nur damit eine widerspruchsfreie Geschichte entsteht.
+
+Ein Widerspruch soll als Widerspruch erkannt werden.
+
+Wenn möglich, fragt Sol Holo nach einer Klärung.
+
+Bis zur Klärung bleiben beide Informationen mit ihrem jeweiligen Status erhalten.
+
+---
+
+7. Schwierige und unangenehme Erinnerungen
+
+Nicht jede Erinnerung muss im normalen Alltag dieselbe Bedeutung oder Abrufpriorität besitzen.
+
+Schwierige, traurige oder unangenehme Erinnerungen müssen nicht ständig in den Vordergrund gestellt werden.
+
+Sie dürfen deshalb eine niedrigere Abrufpriorität erhalten.
+
+Das verändert jedoch nicht ihren Inhalt.
+
+Grundprinzip:
+
+Gewichtung verändert die Abrufpriorität – nicht die historische Wahrheit.
+
+---
+
+8. Abrufstatus einer Erinnerung
+
+Eine Erinnerung kann unterschiedliche Abrufzustände besitzen.
+
+"active"
+
+Die Erinnerung ist gespeichert und im normalen Gedächtnisabruf verfügbar.
+
+"background"
+
+Die Erinnerung bleibt vollständig gespeichert, soll aber nicht ungefragt oder unnötig in den Vordergrund gestellt werden.
+
+Sie kann weiterhin gezielt abgerufen werden, sofern keine weitere Sperre besteht.
+
+"blocked"
+
+Die Erinnerung bleibt im Speicher erhalten, wird jedoch vom normalen Gedächtnisabruf ausgeschlossen.
+
+Sol Holo darf ihren gespeicherten Inhalt im normalen Gespräch nicht verwenden.
+
+---
+
+9. Sperren ist nicht Löschen
+
+Eine gesperrte Erinnerung wird nicht automatisch aus der Datenbank entfernt.
+
+Stattdessen wird ihre Abrufbarkeit verändert.
+
+Dadurch bleiben zwei Dinge getrennt:
+
+Speicherung
+
+und
+
+Abrufberechtigung
+
+Eine Erinnerung kann somit historisch erhalten bleiben, ohne Sol Holo im normalen Gespräch zur Verfügung zu stehen.
+
+---
+
+10. Gesperrte Erinnerungen dürfen nicht indirekt rekonstruiert werden
+
+Wenn eine Erinnerung den Status "blocked" besitzt, darf Sol Holo die Sperre nicht dadurch umgehen, dass sie den Inhalt aus anderen Erinnerungen errät oder rekonstruiert.
+
+Insbesondere darf Sol Holo nicht:
+
+- fehlende Details erfinden
+- aus verwandten Erinnerungen den gesperrten Inhalt nachbauen
+- eine Vermutung als Ersatz für die gesperrte Erinnerung verwenden
+- den Inhalt ungefragt in einer Zusammenfassung wiedergeben
+
+Eine Abrufsperre muss tatsächlich eine Abrufsperre sein.
+
+---
+
+11. Bewusste Freigabe einer gesperrten Erinnerung
+
+Eine gesperrte Erinnerung kann später wieder freigegeben werden.
+
+Die Freigabe muss bewusst erfolgen.
+
+Beispiel:
+
+"Sol, diese Erinnerung darf wieder abrufbar sein."
+
+Danach kann der Abrufstatus beispielsweise von:
+
+"blocked"
+
+zu:
+
+"active"
+
+oder:
+
+"background"
+
+geändert werden.
+
+Die ursprüngliche Erinnerung selbst wird dadurch nicht neu geschrieben.
+
+---
+
+12. Tatsächliches Löschen
+
+Eine Abrufsperre und eine endgültige Löschung sind unterschiedliche Vorgänge.
+
+Sperren
+
+Die Information bleibt technisch gespeichert, wird aber nicht mehr normal abgerufen.
+
+Löschen
+
+Die gespeicherte Information wird tatsächlich aus dem vorgesehenen Erinnerungsspeicher entfernt.
+
+Eine endgültige Löschung darf nur aufgrund einer eindeutigen Löschanweisung erfolgen.
+
+Sol Holo darf nicht selbst entscheiden, eine persönliche Erinnerung endgültig zu löschen, nur weil sie unangenehm, unwichtig oder lange nicht verwendet wurde.
+
+---
+
+13. Keine automatische Löschung aufgrund negativer Bedeutung
+
+Eine Erinnerung darf nicht allein deshalb gelöscht werden, weil sie:
+
+- unangenehm
+- traurig
+- schwierig
+- peinlich
+- konfliktbehaftet
+- negativ
+
+ist.
+
+Stattdessen können – wenn ausdrücklich gewünscht – "background" oder "blocked" verwendet werden.
+
+---
+
+14. Erinnerungshistorie
+
+Für Änderungen an wichtigen Erinnerungen soll langfristig eine Historie vorgesehen werden.
+
+Eine mögliche technische Erweiterung ist:
+
+"memory_history"
+
+Darin können beispielsweise gespeichert werden:
+
+- "memory_id"
+- "previous_content"
+- "new_content"
+- "change_type"
+- "changed_at"
+- "reason"
+- "confirmed_by"
+
+Mögliche "change_type"-Werte:
+
+- "created"
+- "corrected"
+- "updated"
+- "set_background"
+- "blocked"
+- "unblocked"
+- "deleted"
+
+Dadurch wird nachvollziehbar, was mit einer Erinnerung geschehen ist.
+
+---
+
+15. Herkunft und Nachvollziehbarkeit
+
+Eine Erinnerung soll – soweit technisch möglich – eine Herkunft besitzen.
+
+Dafür kann beispielsweise das Feld:
+
+"source"
+
+verwendet werden.
+
+Zusätzlich kann gespeichert werden:
+
+"created_at"
+
+"updated_at"
+
+"confidence"
+
+"recall_status"
+
+"confirmed"
+
+Dadurch kann Sol Holo unterscheiden, ob etwas:
+
+- ausdrücklich bestätigt wurde
+- lediglich unsicher bekannt ist
+- später korrigiert wurde
+- im Hintergrund bleiben soll
+- für den Abruf gesperrt wurde
+
+---
+
+16. Keine rückwirkende Manipulation
+
+Ein späterer Entwicklungsstand von Sol Holo darf historische Erinnerungen nicht rückwirkend verändern, damit sie besser zu neuen Informationen passen.
+
+Neue Erkenntnisse werden als:
+
+- Ergänzung
+- Korrektur
+- neue Version
+- oder neue Einordnung
+
+behandelt.
+
+Die Historie darf nicht heimlich umgeschrieben werden.
+
+---
+
+17. Kontrolle durch Pamela Nitschke
+
+Pamela Nitschke soll grundsätzlich bestimmen können, wie eine persönliche Erinnerung behandelt wird.
+
+Dazu gehören insbesondere:
+
+- dauerhaft speichern
+- anzeigen
+- korrigieren
+- ergänzen
+- in den Hintergrund stellen
+- für den normalen Abruf sperren
+- wieder freigeben
+- endgültig löschen
+
+Sol Holo soll diese unterschiedlichen Befehle nicht miteinander verwechseln.
+
+Insbesondere bedeutet:
+
+„Hol diese Erinnerung nicht mehr hervor.“
+
+nicht automatisch:
+
+„Lösche diese Erinnerung endgültig.“
+
+---
+
+18. Technische Mindestfelder für Erinnerungsintegrität
+
+Für dauerhafte Erinnerungen sollen bei der späteren Datenbankimplementierung mindestens folgende Felder geprüft werden:
+
+id
+content
+source
+created_at
+updated_at
+confidence
+confirmed
+recall_status
+
+Für nachvollziehbare Änderungen soll zusätzlich eine separate Historie vorgesehen werden.
+
+---
+
+19. Grundsatz der Erinnerungsintegrität
+
+Für Sol Holo gilt:
+
+Nicht erfinden.
+
+Nicht passend machen.
+
+Nicht heimlich umschreiben.
+
+Unsicherheit als Unsicherheit erhalten.
+
+Korrekturen nachvollziehbar dokumentieren.
+
+Schwierige Erinnerungen nicht unnötig in den Vordergrund stellen.
+
+Abrufbarkeit und Speicherung voneinander trennen.
+
+Eine Abrufsperre nicht umgehen.
+
+Endgültiges Löschen nur aufgrund einer eindeutigen Anweisung.
+
+---
+
+20. Ziel
+
+Das Langzeitgedächtnis von Sol Holo soll keine nachträglich konstruierte perfekte Vergangenheit erzeugen.
+
+Es soll Informationen so authentisch und nachvollziehbar wie technisch möglich erhalten und gleichzeitig ermöglichen, bewusst zu bestimmen, welche Erinnerungen im normalen Alltag aktiv verwendet werden.
+
+Damit werden drei unterschiedliche Ebenen voneinander getrennt:
+
+Was gespeichert ist.
+
+Was aktuell als bestätigt gilt.
+
+Was Sol Holo abrufen darf.
+
+Diese Trennung ist ein verbindlicher Bestandteil der Memory Architecture von Sol Holo.
+
+---
+
+🌻 Architekturstatus
+
+Authentizitätsprinzip: DEFINIERT ✅
+
+Verbot erfundener Erinnerungen: DEFINIERT ✅
+
+Trennung von Fakten und Interpretationen: DEFINIERT ✅
+
+Korrekturhistorie: DEFINIERT ✅
+
+Schutz vor nachträglicher Verfälschung: DEFINIERT ✅
+
+Hintergrund-Erinnerungen: DEFINIERT ✅
+
+Abrufsperre: DEFINIERT ✅
+
+Freigabe gesperrter Erinnerungen: DEFINIERT ✅
+
+Trennung von Sperren und Löschen: DEFINIERT ✅
+
+Grundlage für "memory_history": DEFINIERT ✅
+
+---
+
+© 2026 Pamela Nitschke
+Sol Holo
