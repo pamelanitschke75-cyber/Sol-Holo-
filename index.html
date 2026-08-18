@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sol Holo – TEST 008</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#05070d">
 
 <style>
 *{
@@ -548,6 +550,22 @@ addMessage(
   "Sol Holo ist bereit.",
   "system-message"
 );
+/*
+  Sol Holo Service Worker
+*/
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/service-worker.js")
+      .catch((error) => {
+        console.error(
+          "Service Worker konnte nicht registriert werden:",
+          error
+        );
+      });
+  });
+}
 
 </script>
 
