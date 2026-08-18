@@ -1,0 +1,10 @@
+{
+  "name": "Sol Holo",
+  "short_name": "Sol Holo",
+  "description": "Sol Holo – persönliche digitale Begleiterin",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#05070d",
+  "theme_color": "#05070d",
+  "lang": "de"
+}
