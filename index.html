@@ -11,21 +11,40 @@ body{
   padding:16px;
   background:#05070d;
   color:white;
-  font-family:Arial,sans-serif
+  font-family:Arial,sans-serif;
 }
-main{max-width:700px;margin:auto}
-h1{text-align:center;font-size:34px}
-p{text-align:center;color:#9da7b3}
+
+main{
+  max-width:700px;
+  margin:auto;
+}
+
+h1{
+  text-align:center;
+  font-size:34px;
+}
+
+p{
+  text-align:center;
+  color:#9da7b3;
+}
+
 .box{
   margin:18px 0;
   padding:18px;
   border:1px solid #30363d;
-  border-radius:18px
+  border-radius:18px;
 }
-input,button,audio{
+
+input,
+button,
+audio,
+textarea{
   width:100%;
-  margin-top:12px
+  box-sizing:border-box;
+  margin-top:12px;
 }
+
 button{
   padding:16px;
   border:0;
@@ -33,9 +52,24 @@ button{
   background:#245cff;
   color:white;
   font-weight:bold;
-  font-size:17px
+  font-size:17px;
 }
-button:disabled{opacity:.4}
+
+button:disabled{
+  opacity:.4;
+}
+
+textarea{
+  min-height:110px;
+  resize:vertical;
+  padding:14px;
+  border-radius:12px;
+  border:1px solid #30363d;
+  background:#090d18;
+  color:white;
+  font-size:16px;
+}
+
 #stage{
   position:relative;
   min-height:350px;
@@ -45,14 +79,16 @@ button:disabled{opacity:.4}
   justify-content:center;
   overflow:hidden;
   border-radius:16px;
-  background:#090d18
+  background:#090d18;
 }
+
 #avatar{
   display:none;
   max-width:100%;
   max-height:520px;
-  transition:transform .05s linear
+  transition:transform .05s linear;
 }
+
 #mouth{
   display:none;
   position:absolute;
@@ -62,156 +98,51 @@ button:disabled{opacity:.4}
   height:8px;
   background:#351018;
   border-radius:50%;
-  transform:translate(-50%,-50%)
+  transform:translate(-50%,-50%);
 }
+
 #status{
   text-align:center;
   font-weight:bold;
-  color:#9cffb1
-}
-</style>
-</head>
-
-<body>
-<main>
-
-<h1>Sol Holo</h1>
-<p>TEST 007 — Audio → Bewegung → Mundreaktion</p>
-
-<div class="box">
-  <div id="status">Klon und Audio auswählen.</div>
-</div>
-
-<div class="box">
-  <b>1. Klon</b>
-
-  <input id="pic" type="file" accept="image/*">
-
-  <div id="stage">
-    <span id="hint">Klon-Bild auswählen</span>
-    <img id="avatar">
-    <div id="mouth"></div>
-  </div>
-</div>
-
-<div class="box">
-  <b>2. Pams Original-Sprachaufnahme</b>
-
-  <input id="file" type="file" accept="audio/*">
-
-  <button id="go" disabled>
-    TEST 007 starten
-  </button>
-
-  <audio id="audio" controls></audio>
-</div>
-
-</main>
-
-<script>
-const pic=document.querySelector("#pic");
-const file=document.querySelector("#file");
-const avatar=document.querySelector("#avatar");
-const mouth=document.querySelector("#mouth");
-const hint=document.querySelector("#hint");
-const audio=document.querySelector("#audio");
-const go=document.querySelector("#go");
-const status=document.querySelector("#status");
-
-let imageOK=false;
-let audioOK=false;
-let ctx,analyser,source,raf;
-
-function ready(){
-  go.disabled=!(imageOK&&audioOK);
+  color:#9cffb1;
 }
 
-pic.onchange=()=>{
-  const f=pic.files[0];
-  if(!f)return;
+#chat{
+  margin-top:15px;
+  max-height:420px;
+  overflow-y:auto;
+}
 
-  avatar.src=URL.createObjectURL(f);
-  avatar.style.display="block";
-  mouth.style.display="block";
-  hint.style.display="none";
+.message{
+  margin:10px 0;
+  padding:12px 14px;
+  border-radius:14px;
+  line-height:1.45;
+  white-space:pre-wrap;
+}
 
-  imageOK=true;
-  ready();
+.user-message{
+  background:#14264f;
+}
 
-  status.textContent="Klon geladen ✅";
-};
+.sol-message{
+  background:#15271b;
+}
 
-file.onchange=()=>{
-  const f=file.files[0];
-  if(!f)return;
+.system-message{
+  background:#2a2020;
+  color:#ffb3b3;
+}
 
-  audio.src=URL.createObjectURL(f);
+.message strong{
+  display:block;
+  margin-bottom:5px;
+}
 
-  audioOK=true;
-  ready();
-
-  status.textContent="Audio geladen ✅";
-};
-
-go.onclick=async()=>{
-  try{
-    ctx ||= new AudioContext();
-    await ctx.resume();
-
-    if(!analyser){
-      analyser=ctx.createAnalyser();
-      analyser.fftSize=256;
-
-      source=ctx.createMediaElementSource(audio);
-      source.connect(analyser);
-      analyser.connect(ctx.destination);
-    }
-
-    const data=new Uint8Array(analyser.frequencyBinCount);
-
-    function move(){
-      analyser.getByteFrequencyData(data);
-
-      let sum=0;
-      for(const n of data)sum+=n;
-
-      const level=Math.min((sum/data.length)/80,1);
-
-      avatar.style.transform=
-        `scale(${1+level*.025})`;
-
-      mouth.style.transform=
-        `translate(-50%,-50%) scaleY(${.3+level*5})`;
-
-      raf=requestAnimationFrame(move);
-    }
-
-    cancelAnimationFrame(raf);
-    move();
-
-    audio.currentTime=0;
-    await audio.play();
-
-    status.textContent=
-      "TEST 007 läuft — Audio → Bewegung ✅";
-
-  }catch(e){
-    status.textContent="Fehler: "+e.message;
-  }
-};
-
-audio.onended=()=>{
-  cancelAnimationFrame(raf);
-
-  avatar.style.transform="none";
-
-  mouth.style.transform=
-    "translate(-50%,-50%) scaleY(.3)";
-
-  status.textContent=
-    "TEST 007 Durchlauf beendet ✅";
-};
-</script>
-
-</body>
-</html>
+#chatStatus{
+  margin-top:10px;
+  text-align:center;
+  color:#9da7b3;
+  min-height:20px;
+}
+</style
