@@ -90,6 +90,7 @@ button{
   color:white;
   font-weight:bold;
   font-size:17px;
+  cursor:pointer;
 }
 
 button:disabled{
@@ -142,12 +143,413 @@ button:disabled{
 <main>
 
 <h1>Sol Holo</h1>
-<p class="subtitle">Avatar · Sprache · Langzeitgedächtnis</p>
+
+<p class="subtitle">
+Avatar · Sprache · Langzeitgedächtnis
+</p>
 
 <section class="box">
-  <h2>1. Avatar</h2>
 
-  <input id="imageInput" type="file" accept="image/*">
+<h2>1. Avatar</h2>
 
-  <div id="stage">
-    <img id="avatarImage
+<input
+  id="imageInput"
+  type="file"
+  accept="image/*"
+>
+
+<div id="stage">
+
+<img
+  id="avatarImage"
+  alt="Sol Holo Avatar"
+>
+
+</div>
+
+</section>
+
+
+<section class="box">
+
+<h2>2. Audio</h2>
+
+<input
+  id="audioInput"
+  type="file"
+  accept="audio/*"
+>
+
+<audio
+  id="audioPlayer"
+  controls>
+</audio>
+
+<div id="status">
+Bereit.
+</div>
+
+</section>
+
+
+<section class="box">
+
+<h2>3. Mit Sol sprechen</h2>
+
+<textarea
+  id="messageInput"
+  placeholder="Schreib Sol etwas ...">
+</textarea>
+
+<button id="sendButton">
+Nachricht an Sol senden
+</button>
+
+<button id="memoryButton">
+Langzeitgedächtnis anzeigen
+</button>
+
+<div id="chatStatus"></div>
+
+<div id="chat"></div>
+
+</section>
+
+</main>
+
+
+<script>
+
+const imageInput =
+  document.getElementById("imageInput");
+
+const avatarImage =
+  document.getElementById("avatarImage");
+
+const audioInput =
+  document.getElementById("audioInput");
+
+const audioPlayer =
+  document.getElementById("audioPlayer");
+
+const messageInput =
+  document.getElementById("messageInput");
+
+const sendButton =
+  document.getElementById("sendButton");
+
+const memoryButton =
+  document.getElementById("memoryButton");
+
+const chat =
+  document.getElementById("chat");
+
+const chatStatus =
+  document.getElementById("chatStatus");
+
+const status =
+  document.getElementById("status");
+
+
+/*
+  Avatar-Bild laden
+*/
+
+imageInput.addEventListener(
+  "change",
+  () => {
+
+    const file =
+      imageInput.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const url =
+      URL.createObjectURL(file);
+
+    avatarImage.src = url;
+
+    avatarImage.style.display =
+      "block";
+
+    status.textContent =
+      "Avatar geladen.";
+  }
+);
+
+
+/*
+  Audio laden
+*/
+
+audioInput.addEventListener(
+  "change",
+  () => {
+
+    const file =
+      audioInput.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const url =
+      URL.createObjectURL(file);
+
+    audioPlayer.src = url;
+
+    status.textContent =
+      "Audio geladen.";
+  }
+);
+
+
+/*
+  Nachricht im Chat anzeigen
+*/
+
+function addMessage(
+  speaker,
+  text,
+  className
+) {
+
+  const element =
+    document.createElement("div");
+
+  element.className =
+    `message ${className}`;
+
+  const name =
+    document.createElement("strong");
+
+  name.textContent =
+    speaker;
+
+  const content =
+    document.createElement("div");
+
+  content.textContent =
+    text;
+
+  element.appendChild(name);
+
+  element.appendChild(content);
+
+  chat.appendChild(element);
+
+  chat.scrollTop =
+    chat.scrollHeight;
+}
+
+
+/*
+  Nachricht an Sol senden
+*/
+
+async function sendMessage(
+  forcedMessage = null
+) {
+
+  const message =
+    String(
+      forcedMessage ??
+      messageInput.value
+    ).trim();
+
+  if (!message) {
+    return;
+  }
+
+
+  addMessage(
+    "Pam",
+    message,
+    "user-message"
+  );
+
+
+  if (!forcedMessage) {
+    messageInput.value = "";
+  }
+
+
+  sendButton.disabled = true;
+
+  memoryButton.disabled = true;
+
+  chatStatus.textContent =
+    "Sol denkt ...";
+
+
+  try {
+
+    const response =
+      await fetch(
+        "/sol",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+              message: message
+            })
+        }
+      );
+
+
+    let data;
+
+    try {
+
+      data =
+        await response.json();
+
+    } catch {
+
+      throw new Error(
+        "Der Server hat keine gültige Antwort geliefert."
+      );
+
+    }
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        data?.error ||
+        "Fehler bei der Anfrage an Sol."
+      );
+
+    }
+
+
+    const answer =
+      String(
+        data?.answer || ""
+      ).trim();
+
+
+    if (!answer) {
+
+      throw new Error(
+        "Sol hat keine Antwort geliefert."
+      );
+
+    }
+
+
+    addMessage(
+      "Sol",
+      answer,
+      "sol-message"
+    );
+
+
+    chatStatus.textContent =
+      "Antwort erhalten.";
+
+
+  } catch (error) {
+
+    console.error(error);
+
+
+    addMessage(
+      "System",
+      error?.message ||
+      "Unbekannter Fehler.",
+      "system-message"
+    );
+
+
+    chatStatus.textContent =
+      "Verbindung zu Sol fehlgeschlagen.";
+
+  } finally {
+
+    sendButton.disabled =
+      false;
+
+    memoryButton.disabled =
+      false;
+
+  }
+}
+
+
+/*
+  Nachricht senden
+*/
+
+sendButton.addEventListener(
+  "click",
+  () => {
+
+    sendMessage();
+
+  }
+);
+
+
+/*
+  Langzeitgedächtnis abrufen
+*/
+
+memoryButton.addEventListener(
+  "click",
+  () => {
+
+    sendMessage(
+      "Sol, was weißt du dauerhaft?"
+    );
+
+  }
+);
+
+
+/*
+  Enter = senden
+  Shift + Enter = neue Zeile
+*/
+
+messageInput.addEventListener(
+  "keydown",
+  (event) => {
+
+    if (
+      event.key === "Enter" &&
+      !event.shiftKey
+    ) {
+
+      event.preventDefault();
+
+      sendMessage();
+
+    }
+
+  }
+);
+
+
+/*
+  Startmeldung
+*/
+
+addMessage(
+  "System",
+  "Sol Holo ist bereit.",
+  "system-message"
+);
+
+</script>
+
+</body>
+</html>
