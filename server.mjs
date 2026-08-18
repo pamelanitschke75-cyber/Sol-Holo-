@@ -28,7 +28,7 @@ const db = new Pool({
 });
 
 /*
-  Memory-Tabelle anlegen
+  Memory-Tabellen anlegen
 */
 
 async function initializeMemory() {
@@ -38,6 +38,15 @@ async function initializeMemory() {
       role TEXT NOT NULL,
       content TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS sol_long_term_memory (
+      id BIGSERIAL PRIMARY KEY,
+      content TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
 
@@ -59,7 +68,7 @@ app.get("/", (req, res) => {
 });
 
 /*
-  Letzte Erinnerungen laden
+  Letzte Gesprächserinnerungen laden
 */
 
 async function loadRecentMemory() {
@@ -74,7 +83,7 @@ async function loadRecentMemory() {
 }
 
 /*
-  Erinnerung speichern
+  Gesprächserinnerung speichern
 */
 
 async function saveMemory(role, content) {
@@ -84,6 +93,156 @@ async function saveMemory(role, content) {
       VALUES ($1, $2)
     `,
     [role, content]
+  );
+}
+
+/*
+  Langzeiterinnerung speichern
+*/
+
+async function saveLongTermMemory(content) {
+  const cleanContent = String(content || "").trim();
+
+  if (!cleanContent) {
+    return false;
+  }
+
+  const duplicate = await db.query(
+    `
+      SELECT id
+      FROM sol_long_term_memory
+      WHERE LOWER(content) = LOWER($1)
+      LIMIT 1
+    `,
+    [cleanContent]
+  );
+
+  if (duplicate.rows.length > 0) {
+    return false;
+  }
+
+  await db.query(
+    `
+      INSERT INTO sol_long_term_memory (content)
+      VALUES ($1)
+    `,
+    [cleanContent]
+  );
+
+  return true;
+}
+
+/*
+  Langzeiterinnerung vergessen
+*/
+
+async function forgetLongTermMemory(searchText) {
+  const cleanSearchText = String(searchText || "").trim();
+
+  if (!cleanSearchText) {
+    return 0;
+  }
+
+  const result = await db.query(
+    `
+      DELETE FROM sol_long_term_memory
+      WHERE LOWER(content) LIKE LOWER($1)
+      RETURNING id
+    `,
+    [`%${cleanSearchText}%`]
+  );
+
+  return result.rowCount;
+}
+
+/*
+  Relevante Langzeiterinnerungen laden
+*/
+
+async function loadRelevantLongTermMemory(message) {
+  const cleanMessage = String(message || "").trim();
+
+  if (!cleanMessage) {
+    return [];
+  }
+
+  /*
+    Zuerst versuchen wir eine Volltextsuche.
+    Falls nichts gefunden wird, werden einige aktuelle
+    Langzeiterinnerungen als Fallback geladen.
+  */
+
+  try {
+    const result = await db.query(
+      `
+        SELECT content,
+               ts_rank(
+                 to_tsvector('german', content),
+                 plainto_tsquery('german', $1)
+               ) AS relevance
+        FROM sol_long_term_memory
+        WHERE to_tsvector('german', content)
+              @@ plainto_tsquery('german', $1)
+        ORDER BY relevance DESC, id DESC
+        LIMIT 12
+      `,
+      [cleanMessage]
+    );
+
+    if (result.rows.length > 0) {
+      return result.rows;
+    }
+  } catch (error) {
+    console.error("Fehler bei Langzeit-Memory-Suche:", error);
+  }
+
+  const fallback = await db.query(`
+    SELECT content
+    FROM sol_long_term_memory
+    ORDER BY id DESC
+    LIMIT 8
+  `);
+
+  return fallback.rows;
+}
+
+/*
+  Alle Langzeiterinnerungen laden
+*/
+
+async function loadAllLongTermMemory() {
+  const result = await db.query(`
+    SELECT id, content, created_at
+    FROM sol_long_term_memory
+    ORDER BY id ASC
+  `);
+
+  return result.rows;
+}
+
+/*
+  Explizite Memory-Befehle erkennen
+*/
+
+function extractRememberCommand(message) {
+  const match = message.match(
+    /^\s*(?:sol[\s,:\-]*)?merke\s+dir\s+dauerhaft\s*:?\s*(.+)$/i
+  );
+
+  return match?.[1]?.trim() || null;
+}
+
+function extractForgetCommand(message) {
+  const match = message.match(
+    /^\s*(?:sol[\s,:\-]*)?vergiss\s+dauerhaft\s*:?\s*(.+)$/i
+  );
+
+  return match?.[1]?.trim() || null;
+}
+
+function isListMemoryCommand(message) {
+  return /^\s*(?:sol[\s,:\-]*)?(?:was\s+weißt\s+du\s+dauerhaft|zeige\s+(?:mir\s+)?deine\s+langzeiterinnerungen)\s*\??\s*$/i.test(
+    message
   );
 }
 
@@ -108,6 +267,82 @@ app.post("/sol", async (req, res) => {
     }
 
     /*
+      Befehl:
+      "Sol, merke dir dauerhaft: ..."
+    */
+
+    const rememberContent = extractRememberCommand(message);
+
+    if (rememberContent) {
+      await saveMemory("user", message);
+
+      const saved = await saveLongTermMemory(rememberContent);
+
+      const answer = saved
+        ? `Ja, Pam. Das habe ich dauerhaft gespeichert: ${rememberContent}`
+        : `Pam, diese Information ist bereits in meinem Langzeitgedächtnis gespeichert.`;
+
+      await saveMemory("assistant", answer);
+
+      return res.json({
+        answer
+      });
+    }
+
+    /*
+      Befehl:
+      "Sol, vergiss dauerhaft: ..."
+    */
+
+    const forgetContent = extractForgetCommand(message);
+
+    if (forgetContent) {
+      await saveMemory("user", message);
+
+      const deletedCount = await forgetLongTermMemory(forgetContent);
+
+      const answer =
+        deletedCount > 0
+          ? `Ja, Pam. Ich habe ${deletedCount} passende Langzeiterinnerung${deletedCount === 1 ? "" : "en"} entfernt.`
+          : `Pam, dazu habe ich keine passende Langzeiterinnerung gefunden.`;
+
+      await saveMemory("assistant", answer);
+
+      return res.json({
+        answer
+      });
+    }
+
+    /*
+      Befehl:
+      "Sol, was weißt du dauerhaft?"
+    */
+
+    if (isListMemoryCommand(message)) {
+      await saveMemory("user", message);
+
+      const longTermMemories = await loadAllLongTermMemory();
+
+      let answer;
+
+      if (longTermMemories.length === 0) {
+        answer = "Pam, mein Langzeitgedächtnis enthält momentan noch keine Einträge.";
+      } else {
+        const memoryList = longTermMemories
+          .map((memory, index) => `${index + 1}. ${memory.content}`)
+          .join("\n");
+
+        answer = `Pam, aktuell habe ich folgende dauerhafte Erinnerungen gespeichert:\n\n${memoryList}`;
+      }
+
+      await saveMemory("assistant", answer);
+
+      return res.json({
+        answer
+      });
+    }
+
+    /*
       Frühere Unterhaltung laden
     */
 
@@ -123,6 +358,19 @@ app.post("/sol", async (req, res) => {
         return `${speaker}: ${memory.content}`;
       })
       .join("\n");
+
+    /*
+      Relevante Langzeiterinnerungen laden
+    */
+
+    const longTermMemories =
+      await loadRelevantLongTermMemory(message);
+
+    const longTermMemoryText =
+      longTermMemories
+        .map((memory) => `- ${memory.content}`)
+        .join("\n") ||
+      "Keine passenden Langzeiterinnerungen gefunden.";
 
     /*
       Aktuelle Nachricht speichern
@@ -161,14 +409,30 @@ Die inhaltliche Antwort wird von Sol erzeugt.
 
 Behaupte nicht, ein Mensch zu sein.
 
-Du besitzt ein persistentes Gesprächsgedächtnis.
+Du besitzt zwei Arten von Gedächtnis:
 
-Hier sind die zuletzt gespeicherten Unterhaltungen:
+1. Gesprächsgedächtnis:
+   Die letzten gespeicherten Gesprächsnachrichten.
 
-${memoryText || "Noch keine früheren Erinnerungen vorhanden."}
+2. Langzeitgedächtnis:
+   Dauerhaft gespeicherte Informationen, die Pam
+   ausdrücklich als langfristige Erinnerung festgelegt hat.
 
-Nutze diese Informationen nur dann, wenn sie für die
-aktuelle Unterhaltung relevant sind.
+Verwende Erinnerungen nur dann, wenn sie für die aktuelle
+Unterhaltung wirklich relevant sind.
+
+Erfinde keine Erinnerungen.
+
+Wenn eine Information nicht im Gedächtnis steht,
+behaupte nicht, dass du dich daran erinnerst.
+
+LANGZEITGEDÄCHTNIS:
+
+${longTermMemoryText}
+
+LETZTE UNTERHALTUNG:
+
+${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
 `,
 
       input: message
@@ -189,7 +453,7 @@ aktuelle Unterhaltung relevant sind.
     await saveMemory("assistant", answer);
 
     return res.json({
-      answer: answer
+      answer
     });
 
   } catch (error) {
