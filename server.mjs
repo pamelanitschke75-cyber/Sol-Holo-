@@ -12,7 +12,6 @@ const app = express();
   Aktiver Sol-Holo-Klon
 */
 
-
 const CURRENT_CLONE_ID = "pam-sol-001";
 
 /*
@@ -91,6 +90,31 @@ async function initializeMemory() {
   `);
 
   /*
+    Zusätzliche Metadaten vorbereiten
+  */
+
+  await db.query(`
+    ALTER TABLE sol_long_term_memory
+    ADD COLUMN IF NOT EXISTS source TEXT
+  `);
+
+  await db.query(`
+    ALTER TABLE sol_long_term_memory
+    ADD COLUMN IF NOT EXISTS memory_type TEXT
+  `);
+
+  await db.query(`
+    ALTER TABLE sol_long_term_memory
+    ADD COLUMN IF NOT EXISTS confidence DOUBLE PRECISION
+  `);
+
+  await db.query(`
+    ALTER TABLE sol_long_term_memory
+    ADD COLUMN IF NOT EXISTS recall_status TEXT
+    DEFAULT 'active'
+  `);
+
+  /*
     Bestehende Erinnerungen
     Pams aktuellem Klon zuordnen
   */
@@ -114,6 +138,17 @@ async function initializeMemory() {
     `,
     [CURRENT_CLONE_ID]
   );
+
+  /*
+    Bestehende Erinnerungen als aktiv markieren
+  */
+
+  await db.query(`
+    UPDATE sol_long_term_memory
+    SET recall_status = 'active'
+    WHERE recall_status IS NULL
+       OR TRIM(recall_status) = ''
+  `);
 
   console.log(
     "Sol-Holo-Memory ist bereit."
@@ -158,7 +193,7 @@ app.get(
 );
 
 /*
-  Einfacher Gesundheitscheck
+  Gesundheitscheck
 */
 
 app.get(
@@ -174,7 +209,7 @@ app.get(
 );
 
 /*
-  Letzte Gesprächserinnerungen laden
+  Gesprächsgedächtnis laden
 */
 
 async function loadRecentMemory() {
@@ -211,6 +246,15 @@ async function saveMemory(
   content
 ) {
 
+  const cleanContent =
+    String(
+      content || ""
+    ).trim();
+
+  if (!cleanContent) {
+    return;
+  }
+
   await db.query(
     `
       INSERT INTO sol_memory (
@@ -228,7 +272,7 @@ async function saveMemory(
     [
       CURRENT_CLONE_ID,
       role,
-      content
+      cleanContent
     ]
   );
 }
@@ -238,7 +282,8 @@ async function saveMemory(
 */
 
 async function saveLongTermMemory(
-  content
+  content,
+  options = {}
 ) {
 
   const cleanContent =
@@ -250,6 +295,30 @@ async function saveLongTermMemory(
     return false;
   }
 
+  const source =
+    String(
+      options.source ||
+      "explicit_user_memory"
+    );
+
+  const memoryType =
+    String(
+      options.memoryType ||
+      "general"
+    );
+
+  const confidence =
+    Number.isFinite(
+      Number(options.confidence)
+    )
+      ? Number(options.confidence)
+      : 1;
+
+  /*
+    Duplikate nur innerhalb
+    desselben Klons prüfen.
+  */
+
   const duplicate =
     await db.query(
       `
@@ -260,6 +329,7 @@ async function saveLongTermMemory(
         WHERE clone_id = $1
           AND LOWER(content)
               = LOWER($2)
+          AND recall_status <> 'deleted'
 
         LIMIT 1
       `,
@@ -281,17 +351,28 @@ async function saveLongTermMemory(
     `
       INSERT INTO sol_long_term_memory (
         clone_id,
-        content
+        content,
+        source,
+        memory_type,
+        confidence,
+        recall_status
       )
 
       VALUES (
         $1,
-        $2
+        $2,
+        $3,
+        $4,
+        $5,
+        'active'
       )
     `,
     [
       CURRENT_CLONE_ID,
-      cleanContent
+      cleanContent,
+      source,
+      memoryType,
+      confidence
     ]
   );
 
@@ -299,14 +380,12 @@ async function saveLongTermMemory(
 }
 
 /*
-  Langzeiterinnerung vergessen
+  Alter expliziter Löschbefehl
 
   ACHTUNG:
-  Dieser alte Befehl löscht aktuell
-  noch wirklich aus PostgreSQL.
-
-  background / blocked / deleted
-  bauen wir später getrennt.
+  Noch echter DELETE.
+  Die vollständige blocked/background/delete-
+  Architektur bauen wir separat.
 */
 
 async function forgetLongTermMemory(
@@ -384,6 +463,7 @@ async function loadRelevantLongTermMemory(
           FROM sol_long_term_memory
 
           WHERE clone_id = $1
+            AND recall_status = 'active'
 
             AND to_tsvector(
                   'german',
@@ -432,6 +512,7 @@ async function loadRelevantLongTermMemory(
         FROM sol_long_term_memory
 
         WHERE clone_id = $1
+          AND recall_status = 'active'
 
         ORDER BY id DESC
 
@@ -446,7 +527,7 @@ async function loadRelevantLongTermMemory(
 }
 
 /*
-  Alle Langzeiterinnerungen
+  Alle aktiven Langzeiterinnerungen
 */
 
 async function loadAllLongTermMemory() {
@@ -462,6 +543,7 @@ async function loadAllLongTermMemory() {
         FROM sol_long_term_memory
 
         WHERE clone_id = $1
+          AND recall_status = 'active'
 
         ORDER BY id ASC
       `,
@@ -501,7 +583,7 @@ async function buildRealtimeMemoryText() {
 }
 
 /*
-  Privacy-preserving Safety-ID
+  Safety-ID
 */
 
 function getSafetyIdentifier() {
@@ -516,8 +598,6 @@ function getSafetyIdentifier() {
 
 /*
   Realtime Token
-
-  Dieser Endpoint MUSS JSON liefern.
 */
 
 app.get(
@@ -526,10 +606,6 @@ app.get(
   async (req, res) => {
 
     try {
-
-      console.log(
-        "Realtime-Token wurde angefordert."
-      );
 
       if (
         !process.env.OPENAI_API_KEY
@@ -555,6 +631,10 @@ app.get(
           model:
             "gpt-realtime-2.1",
 
+          output_modalities: [
+            "audio"
+          ],
+
           instructions: `
 Du bist Sol innerhalb des Projekts Sol Holo.
 
@@ -569,9 +649,12 @@ Sprich natürlich auf Deutsch.
 
 Antworte wie in einem echten Gespräch.
 
-Normalerweise antwortest du kurz und natürlich.
-Wenn Pam ausdrücklich mehr Details möchte,
-kannst du ausführlicher antworten.
+Du darfst Humor, Ironie und Scherze erkennen
+und entsprechend natürlich darauf reagieren.
+
+Behandle einen offensichtlichen Scherz,
+eine ironische Aussage oder eine hypothetische
+Aussage nicht automatisch als tatsächlichen Fakt.
 
 Behaupte nicht, ein Mensch zu sein.
 
@@ -597,6 +680,30 @@ ${memoryText}
 `,
 
           audio: {
+            input: {
+              transcription: {
+                model:
+                  "gpt-live-transcribe",
+
+                language:
+                  "de"
+              },
+
+              turn_detection: {
+                type:
+                  "semantic_vad",
+
+                eagerness:
+                  "medium",
+
+                create_response:
+                  true,
+
+                interrupt_response:
+                  true
+              }
+            },
+
             output: {
               voice:
                 "marin"
@@ -604,11 +711,6 @@ ${memoryText}
           }
         }
       };
-
-      /*
-        Kurzlebigen Client Secret
-        direkt bei OpenAI erzeugen.
-      */
 
       const openAIResponse =
         await fetch(
@@ -635,26 +737,15 @@ ${memoryText}
           }
         );
 
-      /*
-        Antwort zunächst als Text lesen,
-        damit wir OpenAI-Fehler sauber
-        ins Render-Log schreiben können.
-      */
-
       const responseText =
         await openAIResponse.text();
-
-      console.log(
-        "OpenAI Realtime Status:",
-        openAIResponse.status
-      );
 
       if (
         !openAIResponse.ok
       ) {
 
         console.error(
-          "OpenAI Realtime Antwort:",
+          "OpenAI Realtime Fehler:",
           responseText
         );
 
@@ -690,41 +781,20 @@ ${memoryText}
             responseText
           );
 
-      } catch (error) {
-
-        console.error(
-          "OpenAI Realtime JSON konnte nicht gelesen werden:",
-          responseText
-        );
+      } catch {
 
         return res
           .status(502)
           .json({
             error:
-              "OpenAI hat keine gültige JSON-Antwort für Realtime geliefert."
+              "OpenAI hat keine gültige Realtime-JSON-Antwort geliefert."
           });
 
       }
 
-      /*
-        OpenAI liefert bei Erfolg unter anderem:
-
-        value
-        expires_at
-        session
-
-        Genau dieses JSON geben wir
-        an index.html weiter.
-      */
-
       if (
         !data?.value
       ) {
-
-        console.error(
-          "Realtime Antwort enthält kein value:",
-          data
-        );
 
         return res
           .status(502)
@@ -752,6 +822,253 @@ ${memoryText}
           error:
             error?.message ||
             "Realtime-Token konnte nicht erstellt werden."
+        });
+
+    }
+
+  }
+);
+
+/*
+  Automatische Memory-Prüfung
+  für gesprochene Live-Turns
+*/
+
+async function analyzeLiveMemory(
+  transcript
+) {
+
+  const cleanTranscript =
+    String(
+      transcript || ""
+    ).trim();
+
+  if (!cleanTranscript) {
+
+    return {
+      save: false
+    };
+
+  }
+
+  const response =
+    await openai.responses.create({
+
+      model:
+        "gpt-5",
+
+      instructions: `
+Du prüfst ausschließlich,
+ob eine einzelne gesprochene Aussage
+als dauerhafte persönliche Erinnerung
+für einen digitalen Klon gespeichert werden soll.
+
+Arbeite EXTREM konservativ.
+
+NICHT speichern:
+
+- offensichtliche Witze
+- Ironie
+- Sarkasmus
+- hypothetische Aussagen
+- Fantasie
+- Fragen
+- Vermutungen
+- Spekulationen
+- ungeklärte Aussagen
+- kurzfristige Nebensächlichkeiten
+- Smalltalk
+- bloße Reaktionen
+- Dinge, die nur für diesen Moment gelten
+- Aussagen über zukünftige Ereignisse,
+  wenn sie nur Wunsch, Möglichkeit oder Spaß sind
+
+Speichern darfst du nur,
+wenn die Aussage klar und ernsthaft
+eine langfristig relevante persönliche Information enthält.
+
+Geeignete Kategorien:
+
+person
+pet
+relationship
+preference
+habit
+event
+personal_fact
+
+Du darfst keine fehlenden Details ergänzen.
+
+Du darfst keinen Namen,
+Ort, Zeitpunkt oder Zusammenhang erfinden.
+
+Du darfst die Aussage nicht so umformulieren,
+dass dadurch zusätzliche Bedeutung entsteht.
+
+Wenn die Aussage mehrdeutig ist:
+NICHT speichern.
+
+Wenn du nicht mindestens 90 Prozent sicher bist:
+NICHT speichern.
+
+Antworte ausschließlich als gültiges JSON
+ohne Markdown und ohne zusätzlichen Text.
+
+Schema:
+
+{
+  "save": true oder false,
+  "content": "nur die tatsächlich belegte Erinnerung",
+  "memory_type": "Kategorie",
+  "confidence": Zahl zwischen 0 und 1
+}
+`,
+
+      input:
+        cleanTranscript
+    });
+
+  const raw =
+    String(
+      response.output_text || ""
+    ).trim();
+
+  try {
+
+    return JSON.parse(
+      raw
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Memory-Analyse lieferte kein gültiges JSON:",
+      raw
+    );
+
+    return {
+      save: false
+    };
+
+  }
+}
+
+/*
+  Live-Transkript entgegennehmen
+*/
+
+app.post(
+  "/live/memory",
+
+  async (req, res) => {
+
+    try {
+
+      const transcript =
+        String(
+          req.body?.transcript ||
+          ""
+        ).trim();
+
+      if (!transcript) {
+
+        return res
+          .status(400)
+          .json({
+            error:
+              "Kein Live-Transkript erhalten."
+          });
+
+      }
+
+      /*
+        Gesprochenen Turn
+        als Gesprächskontext sichern
+      */
+
+      await saveMemory(
+        "user",
+        transcript
+      );
+
+      /*
+        Prüfen,
+        ob daraus Langzeitmemory entsteht
+      */
+
+      const analysis =
+        await analyzeLiveMemory(
+          transcript
+        );
+
+      const shouldSave =
+        analysis?.save === true &&
+        Number(
+          analysis?.confidence
+        ) >= 0.9 &&
+        String(
+          analysis?.content || ""
+        ).trim();
+
+      if (!shouldSave) {
+
+        return res.json({
+          ok: true,
+          saved: false
+        });
+
+      }
+
+      const memoryContent =
+        String(
+          analysis.content
+        ).trim();
+
+      const memoryType =
+        String(
+          analysis.memory_type ||
+          "general"
+        ).trim();
+
+      const confidence =
+        Number(
+          analysis.confidence
+        );
+
+      const saved =
+        await saveLongTermMemory(
+          memoryContent,
+          {
+            source:
+              "live_auto_memory",
+
+            memoryType,
+
+            confidence
+          }
+        );
+
+      return res.json({
+        ok: true,
+        saved,
+        memory:
+          saved
+            ? memoryContent
+            : null
+      });
+
+    } catch (error) {
+
+      console.error(
+        "Live-Memory-Fehler:",
+        error
+      );
+
+      return res
+        .status(500)
+        .json({
+          error:
+            "Live-Memory konnte nicht verarbeitet werden."
         });
 
     }
@@ -863,7 +1180,17 @@ app.post(
 
         const saved =
           await saveLongTermMemory(
-            rememberContent
+            rememberContent,
+            {
+              source:
+                "explicit_user_memory",
+
+              memoryType:
+                "general",
+
+              confidence:
+                1
+            }
           );
 
         const answer =
@@ -1023,7 +1350,7 @@ app.post(
         "Keine passenden Langzeiterinnerungen gefunden.";
 
       /*
-        Aktuelle Nachricht speichern
+        Nachricht speichern
       */
 
       await saveMemory(
@@ -1051,44 +1378,12 @@ hat die technische Kennung:
 
 ${CURRENT_CLONE_ID}
 
-Diese Kennung ist ausschließlich
-eine interne technische Zuordnung.
-
 Antworte natürlich und verständlich auf Deutsch.
 
-Deine Antwort wird anschließend
-von Sol Holo gesprochen und über
-einen digitalen Avatar dargestellt.
-
-Formuliere deshalb so,
-dass die Antwort gut vorgelesen
-werden kann.
-
-Sol ist die KI- und Kommunikationsebene.
-
-Sol Holo ist die sichtbare digitale Verkörperung,
-über die deine Antwort dargestellt und gesprochen wird.
-
-MetaPerson ist ausschließlich die externe
-Darstellungs-, TTS- und LipSync-Technik.
-
-Die inhaltliche Antwort wird von Sol erzeugt.
+Erkenne Humor, Ironie und Scherze,
+ohne sie automatisch als Tatsachen zu behandeln.
 
 Behaupte nicht, ein Mensch zu sein.
-
-Du besitzt aktuell zwei Arten von Gedächtnis:
-
-1. Gesprächsgedächtnis:
-   Die letzten gespeicherten Gesprächsnachrichten
-   des aktuell aktiven Klons.
-
-2. Langzeitgedächtnis:
-   Dauerhaft gespeicherte Informationen
-   des aktuell aktiven Klons.
-
-Verwende Erinnerungen nur dann,
-wenn sie für die aktuelle Unterhaltung
-wirklich relevant sind.
 
 Erfinde keine Erinnerungen.
 
@@ -1101,10 +1396,8 @@ im Gedächtnis steht,
 behaupte nicht,
 dass du dich daran erinnerst.
 
-Wenn du dir bei einer Erinnerung
-nicht sicher bist,
-stelle Unsicherheit nicht
-als Gewissheit dar.
+Wenn etwas unsicher ist,
+stelle es nicht als Gewissheit dar.
 
 Verwende ausschließlich Erinnerungen,
 die dem aktuell aktiven Klon
@@ -1136,10 +1429,6 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
           });
 
       }
-
-      /*
-        Sols Antwort speichern
-      */
 
       await saveMemory(
         "assistant",
@@ -1188,6 +1477,10 @@ app.listen(
 
     console.log(
       "Realtime-Token-Endpoint: /realtime/token"
+    );
+
+    console.log(
+      "Live-Memory-Endpoint: /live/memory"
     );
 
   }
