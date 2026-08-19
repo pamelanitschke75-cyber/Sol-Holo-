@@ -1127,3 +1127,217 @@ async function startLiveConversation() {
               "OpenAI Realtime Fehler:",
               realtimeEvent
             );
+
+            liveStatus.textContent =
+              "❌ OpenAI Realtime meldet einen Fehler.";
+          }
+
+        } catch (error) {
+
+          console.error(
+            "Realtime Event konnte nicht gelesen werden:",
+            error
+          );
+        }
+      }
+    );
+
+
+    /*
+      WebRTC Status
+    */
+
+    pc.addEventListener(
+      "connectionstatechange",
+      () => {
+
+        if (!pc) {
+          return;
+        }
+
+        console.log(
+          "WebRTC Status:",
+          pc.connectionState
+        );
+
+        if (
+          pc.connectionState ===
+          "connected"
+        ) {
+
+          liveStatus.textContent =
+            "🌻 Live verbunden – sprich mit Sol.";
+
+          stopLiveButton.disabled =
+            false;
+        }
+
+        if (
+          pc.connectionState ===
+          "failed"
+        ) {
+
+          stopLiveConversation();
+
+          liveStatus.textContent =
+            "❌ WebRTC-Verbindung fehlgeschlagen.";
+        }
+      }
+    );
+
+
+    /*
+      SDP Offer
+    */
+
+    liveStatus.textContent =
+      "Live-Verbindung wird aufgebaut ...";
+
+    const offer =
+      await pc.createOffer();
+
+    await pc.setLocalDescription(
+      offer
+    );
+
+
+    /*
+      OpenAI Realtime Call
+    */
+
+    const sdpResponse =
+      await fetch(
+        "https://api.openai.com/v1/realtime/calls",
+        {
+          method:
+            "POST",
+
+          headers: {
+
+            Authorization:
+              `Bearer ${ephemeralKey}`,
+
+            "Content-Type":
+              "application/sdp"
+          },
+
+          body:
+            offer.sdp
+        }
+      );
+
+    const answerSdp =
+      await sdpResponse.text();
+
+    if (
+      !sdpResponse.ok
+    ) {
+
+      console.error(
+        "OpenAI SDP Antwort:",
+        answerSdp
+      );
+
+      throw new Error(
+        `OpenAI Live-Verbindung fehlgeschlagen (${sdpResponse.status}).`
+      );
+    }
+
+
+    /*
+      SDP Antwort setzen
+    */
+
+    await pc.setRemoteDescription({
+
+      type:
+        "answer",
+
+      sdp:
+        answerSdp
+
+    });
+
+    liveStatus.textContent =
+      "🌻 Verbindung zu Sol wird fertiggestellt ...";
+
+  } catch (error) {
+
+    console.error(
+      "Sol Holo Live Fehler:",
+      error
+    );
+
+    const errorMessage =
+      error?.message ||
+      "Live-Gespräch konnte nicht gestartet werden.";
+
+    stopLiveConversation();
+
+    liveStatus.textContent =
+      `❌ ${errorMessage}`;
+  }
+}
+
+
+/*
+  Stop Button
+*/
+
+stopLiveButton.addEventListener(
+  "click",
+  () => {
+
+    stopLiveConversation();
+
+    liveStatus.textContent =
+      "Live-Gespräch beendet.";
+  }
+);
+
+
+/*
+  Startmeldung
+*/
+
+addMessage(
+  "System",
+  "Sol Holo ist bereit.",
+  "system-message"
+);
+
+
+/*
+  Service Worker
+*/
+
+if (
+  "serviceWorker" in navigator
+) {
+
+  window.addEventListener(
+    "load",
+    () => {
+
+      navigator.serviceWorker
+        .register(
+          "/service-worker.js"
+        )
+        .catch(
+          error => {
+
+            console.error(
+              "Service Worker Fehler:",
+              error
+            );
+
+          }
+        );
+    }
+  );
+}
+
+</script>
+
+</body>
+</html>
