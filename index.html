@@ -201,4 +201,735 @@ h1 {
 }
 
 #messageInput::placeholder {
-  color: #9ba2
+  color: #9ba2ae;
+}
+
+#sendButton {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #64a9ff;
+  font-size: 28px;
+}
+
+#liveButton {
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  border: 2px solid #f0c76d;
+  background:
+    radial-gradient(circle, #443016 0%, #17130c 66%);
+  color: white;
+  font-size: 38px;
+  box-shadow:
+    0 0 10px rgba(255,204,90,.35),
+    0 0 30px rgba(255,190,60,.16);
+}
+
+#liveButton.listening {
+  border-color: #58df8a;
+  box-shadow:
+    0 0 12px rgba(65,230,110,.45),
+    0 0 36px rgba(65,230,110,.22);
+}
+
+#liveStatus {
+  margin-top: 18px;
+  min-height: 30px;
+  text-align: center;
+  color: #f2c75e;
+  font-size: 18px;
+}
+
+#wave {
+  letter-spacing: 3px;
+  color: #d99e28;
+  opacity: .8;
+}
+
+/*
+  Menü
+*/
+
+#drawer {
+  position: fixed;
+  z-index: 100;
+  top: 0;
+  left: -320px;
+  width: 300px;
+  height: 100vh;
+  padding: 32px 22px;
+  background: #090d15;
+  border-right: 1px solid #303744;
+  transition: left .25s ease;
+  box-shadow: 12px 0 40px rgba(0,0,0,.4);
+}
+
+#drawer.open {
+  left: 0;
+}
+
+#drawer h2 {
+  margin-top: 5px;
+}
+
+.drawerButton {
+  width: 100%;
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid #384151;
+  border-radius: 14px;
+  background: #141a24;
+  color: white;
+  font-size: 17px;
+  text-align: left;
+}
+
+#memoryStatus,
+#chatStatus,
+#micStatus {
+  margin-top: 15px;
+  color: #aeb7c6;
+  line-height: 1.45;
+  font-size: 14px;
+}
+
+/*
+  Verdeckter Chat-Verlauf
+*/
+
+#chat {
+  display: none;
+}
+
+@media (max-width: 520px) {
+
+  h1 {
+    font-size: 34px;
+  }
+
+  #subtitle {
+    font-size: 15px;
+  }
+
+  #greeting {
+    padding-left: 24px;
+  }
+
+  #greetingTitle {
+    font-size: 27px;
+  }
+
+  #solStage {
+    height: 62vh;
+    min-height: 470px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div id="app">
+
+<div id="backgroundGlow"></div>
+
+<header>
+
+<button
+  id="menuButton"
+  type="button"
+  aria-label="Menü">
+☰
+</button>
+
+<h1>Sol Holo 🌻</h1>
+
+<div id="subtitle">
+Deine KI. Dein Holo. Immer für dich da.
+</div>
+
+<div id="onlineState">
+<span id="onlineDot">●</span>
+Online
+</div>
+
+</header>
+
+
+<section id="greeting">
+
+<h2 id="greetingTitle">
+Hallo Pam 💛
+</h2>
+
+<p id="greetingText">
+Schön, dass du da bist.<br>
+Wie kann ich dir helfen?
+</p>
+
+</section>
+
+
+<section id="solStage">
+
+<img
+  id="solImage"
+  src="/sol-holo-pam.png"
+  alt="Sol Holo"
+>
+
+<div id="holoBase"></div>
+
+</section>
+
+
+<section id="controls">
+
+<div id="inputRow">
+
+<div id="messageWrap">
+
+<input
+  id="messageInput"
+  type="text"
+  placeholder="Schreib mir etwas..."
+  autocomplete="off"
+>
+
+<button
+  id="sendButton"
+  type="button"
+  aria-label="Nachricht senden">
+➤
+</button>
+
+</div>
+
+<button
+  id="liveButton"
+  type="button"
+  aria-label="Mit Sol sprechen">
+🎙️
+</button>
+
+</div>
+
+<div id="liveStatus">
+<span id="wave">·······</span>
+&nbsp; Ich bin da. &nbsp;
+<span id="wave">·······</span>
+</div>
+
+</section>
+
+
+<div id="chat"></div>
+
+</div>
+
+
+<aside id="drawer">
+
+<h2>Sol Holo 🌻</h2>
+
+<button
+  id="memoryButton"
+  class="drawerButton"
+  type="button">
+🧠 Langzeitgedächtnis anzeigen
+</button>
+
+<button
+  id="closeMenuButton"
+  class="drawerButton"
+  type="button">
+← Zurück zu Sol
+</button>
+
+<div id="chatStatus"></div>
+
+<div id="micStatus">
+🎙️ Mikrofon bereit.
+</div>
+
+<div id="memoryStatus">
+🧠 Memory bereit.
+</div>
+
+</aside>
+
+
+<audio
+  id="realtimeAudio"
+  autoplay>
+</audio>
+
+
+<script>
+
+const BACKEND_URL =
+  "https://sol-holo.onrender.com";
+
+
+const messageInput =
+  document.getElementById("messageInput");
+
+const sendButton =
+  document.getElementById("sendButton");
+
+const memoryButton =
+  document.getElementById("memoryButton");
+
+const liveButton =
+  document.getElementById("liveButton");
+
+const liveStatus =
+  document.getElementById("liveStatus");
+
+const memoryStatus =
+  document.getElementById("memoryStatus");
+
+const chatStatus =
+  document.getElementById("chatStatus");
+
+const micStatus =
+  document.getElementById("micStatus");
+
+const realtimeAudio =
+  document.getElementById("realtimeAudio");
+
+const menuButton =
+  document.getElementById("menuButton");
+
+const closeMenuButton =
+  document.getElementById("closeMenuButton");
+
+const drawer =
+  document.getElementById("drawer");
+
+
+let pc = null;
+let dc = null;
+let microphoneStream = null;
+
+
+/*
+  Menü
+*/
+
+menuButton.addEventListener(
+  "click",
+  () => {
+    drawer.classList.add("open");
+  }
+);
+
+closeMenuButton.addEventListener(
+  "click",
+  () => {
+    drawer.classList.remove("open");
+  }
+);
+
+
+/*
+  Text an Sol
+*/
+
+async function sendMessage(
+  forcedMessage = null
+) {
+
+  const message =
+    String(
+      forcedMessage ??
+      messageInput.value
+    ).trim();
+
+  if (!message) {
+    return;
+  }
+
+  if (!forcedMessage) {
+    messageInput.value = "";
+  }
+
+  chatStatus.textContent =
+    "Sol denkt ...";
+
+  try {
+
+    const response =
+      await fetch(
+        `${BACKEND_URL}/sol`,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+              message
+            })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+
+      throw new Error(
+        data?.error ||
+        "Verbindung zu Sol fehlgeschlagen."
+      );
+    }
+
+    const answer =
+      String(
+        data?.answer ||
+        ""
+      ).trim();
+
+    if (!answer) {
+
+      throw new Error(
+        "Sol hat keine Antwort geliefert."
+      );
+    }
+
+    /*
+      Vorerst zeigen wir Sols Text
+      natürlich direkt unter der Begrüßung.
+    */
+
+    document.getElementById(
+      "greetingText"
+    ).textContent =
+      answer;
+
+    chatStatus.textContent =
+      "Antwort erhalten.";
+
+  } catch (error) {
+
+    console.error(error);
+
+    chatStatus.textContent =
+      error?.message ||
+      "Verbindung fehlgeschlagen.";
+
+  }
+}
+
+
+sendButton.addEventListener(
+  "click",
+  () => {
+    sendMessage();
+  }
+);
+
+
+messageInput.addEventListener(
+  "keydown",
+  (event) => {
+
+    if (
+      event.key === "Enter"
+    ) {
+
+      event.preventDefault();
+
+      sendMessage();
+
+    }
+
+  }
+);
+
+
+memoryButton.addEventListener(
+  "click",
+  () => {
+
+    sendMessage(
+      "Sol, was weißt du dauerhaft?"
+    );
+
+    drawer.classList.remove(
+      "open"
+    );
+
+  }
+);
+
+
+/*
+  Live-Memory
+*/
+
+async function sendLiveTranscriptToMemory(
+  transcript
+) {
+
+  const cleanTranscript =
+    String(
+      transcript || ""
+    ).trim();
+
+  if (!cleanTranscript) {
+    return;
+  }
+
+  memoryStatus.textContent =
+    "🧠 Memory prüft ...";
+
+  try {
+
+    const response =
+      await fetch(
+        `${BACKEND_URL}/live/memory`,
+        {
+          method:
+            "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+              transcript:
+                cleanTranscript
+            })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+
+      throw new Error(
+        data?.error ||
+        "Memory konnte nicht verarbeitet werden."
+      );
+    }
+
+    if (
+      data.saved
+    ) {
+
+      memoryStatus.textContent =
+        `🧠 Gespeichert: ${data.memory}`;
+
+    } else {
+
+      memoryStatus.textContent =
+        "🧠 Keine dauerhafte Erinnerung nötig.";
+    }
+
+  } catch (error) {
+
+    console.error(
+      error
+    );
+
+    memoryStatus.textContent =
+      "🧠 Memory-Fehler.";
+
+  }
+}
+
+
+/*
+  Mikrofon öffnen
+*/
+
+async function openFilteredMicrophone() {
+
+  if (
+    !navigator.mediaDevices ||
+    !navigator.mediaDevices.getUserMedia
+  ) {
+
+    throw new Error(
+      "Kein Mikrofonzugriff möglich."
+    );
+
+  }
+
+  micStatus.textContent =
+    "🎙️ Mikrofon wird aktiviert ...";
+
+  const stream =
+    await navigator.mediaDevices
+      .getUserMedia({
+
+        audio: {
+
+          echoCancellation:
+            true,
+
+          noiseSuppression:
+            true,
+
+          autoGainControl:
+            true,
+
+          channelCount:
+            1
+
+        }
+
+      });
+
+  micStatus.textContent =
+    "🎙️ Mikrofonfilter aktiv.";
+
+  return stream;
+}
+
+
+/*
+  Live stoppen
+*/
+
+function stopLiveConversation() {
+
+  if (dc) {
+
+    try {
+      dc.close();
+    } catch {}
+
+    dc = null;
+
+  }
+
+  if (pc) {
+
+    try {
+      pc.close();
+    } catch {}
+
+    pc = null;
+
+  }
+
+  if (
+    microphoneStream
+  ) {
+
+    microphoneStream
+      .getTracks()
+      .forEach(
+        track =>
+          track.stop()
+      );
+
+    microphoneStream =
+      null;
+
+  }
+
+  realtimeAudio.srcObject =
+    null;
+
+  liveButton.classList.remove(
+    "listening"
+  );
+
+  liveButton.textContent =
+    "🎙️";
+
+  liveStatus.innerHTML =
+    '<span id="wave">·······</span>&nbsp; Ich bin da. &nbsp;<span id="wave">·······</span>';
+
+  micStatus.textContent =
+    "🎙️ Mikrofon bereit.";
+}
+
+
+/*
+  Live starten
+*/
+
+async function startLiveConversation() {
+
+  if (pc) {
+
+    stopLiveConversation();
+    return;
+
+  }
+
+  liveStatus.textContent =
+    "Sol verbindet sich ...";
+
+  try {
+
+    const tokenResponse =
+      await fetch(
+        `${BACKEND_URL}/realtime/token`,
+        {
+          method:
+            "GET",
+
+          cache:
+            "no-store"
+        }
+      );
+
+    const responseText =
+      await tokenResponse.text();
+
+    let tokenData;
+
+    try {
+
+      tokenData =
+        JSON.parse(
+          responseText
+        );
+
+    } catch {
+
+      throw new Error(
+        "Realtime-Verbindung konnte nicht vorbereitet werden."
+      );
+
+    }
+
+    if (
+      !tokenResponse.ok
+    ) {
+
+      throw new Error(
+        tokenData?.error ||
+        "Realtime-Verbindung fehlgeschlagen."
+      );
+
+    }
+
+    const ephemeralKey =
+      String(
+        tokenData?.value ||
+        tokenData?.client_secret?.value ||
+        ""
+      ).trim();
+
+    if (
+      !ephemeralKey
+    ) {
+
+      throw new Error(
+        "Ke
