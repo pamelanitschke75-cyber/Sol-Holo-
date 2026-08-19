@@ -63,6 +63,10 @@ body {
     );
 }
 
+/*
+  HEADER
+*/
+
 header {
   position: relative;
   z-index: 20;
@@ -74,10 +78,13 @@ header {
   position: absolute;
   left: 18px;
   top: 22px;
+
   width: 52px;
   height: 52px;
+
   border: none;
   background: transparent;
+
   color: white;
   font-size: 32px;
   cursor: pointer;
@@ -87,6 +94,7 @@ header {
   position: absolute;
   right: 20px;
   top: 34px;
+
   font-size: 15px;
   color: #d6dbe5;
 }
@@ -97,21 +105,29 @@ header {
 
 h1 {
   margin: 0;
+
   font-size: 40px;
   font-weight: 600;
+
   text-shadow:
     0 0 22px rgba(255,196,90,.25);
 }
 
 #subtitle {
   margin-top: 7px;
+
   color: #f3c969;
   font-size: 17px;
 }
 
+/*
+  BEGRÜSSUNG
+*/
+
 #greeting {
   position: relative;
   z-index: 10;
+
   padding: 22px 28px 0;
 }
 
@@ -127,51 +143,83 @@ h1 {
   margin: 0;
 }
 
+/*
+  SOL HOLO CLONE
+*/
+
 #solStage {
   position: relative;
   z-index: 4;
+
   height: min(52vh, 590px);
   min-height: 390px;
+
   margin-top: -25px;
+
   display: flex;
   align-items: flex-end;
   justify-content: center;
+
   overflow: hidden;
 }
 
 #solCloneWrap {
   position: relative;
+
   display: inline-block;
+
   height: 95%;
   max-width: 100%;
+
   transform-origin: center bottom;
 }
 
 #solImage {
   display: block;
+
   height: 100%;
   width: auto;
   max-width: 100%;
+
   object-fit: contain;
   object-position: center bottom;
 
   filter:
-    drop-shadow(0 0 8px rgba(70,145,255,.42))
-    drop-shadow(0 0 24px rgba(25,105,255,.22));
+    drop-shadow(
+      0 0 8px rgba(70,145,255,.42)
+    )
+    drop-shadow(
+      0 0 24px rgba(25,105,255,.22)
+    );
 
   user-select: none;
   pointer-events: none;
 }
 
+/*
+  LIP SYNC
+*/
+
 #mouthPatch {
   position: absolute;
+
   display: none;
+
   z-index: 8;
+
   pointer-events: none;
+
   background-repeat: no-repeat;
+
   transform-origin: 50% 42%;
-  will-change: transform, filter, opacity;
-  border-radius: 48% 48% 46% 46%;
+
+  will-change:
+    transform,
+    filter,
+    opacity;
+
+  border-radius:
+    48% 48% 46% 46%;
 
   -webkit-mask-image:
     radial-gradient(
@@ -192,9 +240,13 @@ h1 {
 
 #mouthDepth {
   position: absolute;
+
   display: none;
+
   z-index: 7;
+
   pointer-events: none;
+
   border-radius: 50%;
 
   background:
@@ -206,35 +258,57 @@ h1 {
     );
 
   transform-origin: center;
+
   opacity: 0;
-  will-change: transform, opacity;
+
+  will-change:
+    transform,
+    opacity;
 }
 
 #solCloneWrap.sol-speaking {
-  animation: solSpeakingPresence 1.9s ease-in-out infinite;
+  animation:
+    solSpeakingPresence
+    1.9s ease-in-out infinite;
 }
 
 @keyframes solSpeakingPresence {
+
   0% {
-    transform: translateY(0) scale(1);
+    transform:
+      translateY(0)
+      scale(1);
   }
 
   50% {
-    transform: translateY(-1px) scale(1.0015);
+    transform:
+      translateY(-1px)
+      scale(1.0015);
   }
 
   100% {
-    transform: translateY(0) scale(1);
+    transform:
+      translateY(0)
+      scale(1);
   }
 }
 
+/*
+  HOLOGRAMM BASIS
+*/
+
 #holoBase {
   position: absolute;
+
   bottom: 14px;
+
   width: 78%;
   height: 24px;
+
   border-radius: 50%;
-  border: 2px solid rgba(80,160,255,.8);
+
+  border:
+    2px solid rgba(80,160,255,.8);
 
   box-shadow:
     0 0 8px #54a6ff,
@@ -242,15 +316,29 @@ h1 {
     0 0 55px rgba(40,120,255,.35);
 }
 
+/*
+  CHAT
+*/
+
 #chatPanel {
   position: relative;
   z-index: 25;
-  margin: -4px 20px 14px;
+
+  margin:
+    -4px 20px 14px;
+
   padding: 14px;
-  border: 1px solid rgba(78,91,110,.75);
+
+  border:
+    1px solid rgba(78,91,110,.75);
+
   border-radius: 20px;
-  background: rgba(7,11,18,.82);
-  backdrop-filter: blur(10px);
+
+  background:
+    rgba(7,11,18,.82);
+
+  backdrop-filter:
+    blur(10px);
 }
 
 #chat {
@@ -261,10 +349,15 @@ h1 {
 
 .message {
   margin: 9px 0;
+
   padding: 11px 13px;
+
   border-radius: 15px;
+
   line-height: 1.45;
+
   white-space: pre-wrap;
+
   font-size: 17px;
 }
 
@@ -285,40 +378,68 @@ h1 {
 
 .system-message {
   color: #c9d0db;
-  background: rgba(36,43,54,.70);
+
+  background:
+    rgba(36,43,54,.70);
 }
+
+/*
+  CONTROLS
+*/
 
 #controls {
   position: relative;
   z-index: 30;
-  padding: 0 20px 26px;
+
+  padding:
+    0 20px 26px;
 }
 
 #inputRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 72px;
+
+  grid-template-columns:
+    minmax(0, 1fr) 72px;
+
   gap: 10px;
+
   align-items: center;
 }
 
 #messageWrap {
   display: flex;
+
   align-items: center;
+
   min-height: 66px;
-  padding: 8px 8px 8px 18px;
+
+  padding:
+    8px 8px 8px 18px;
+
   border-radius: 34px;
-  border: 1px solid #46505e;
-  background: rgba(10,14,21,.95);
-  backdrop-filter: blur(10px);
+
+  border:
+    1px solid #46505e;
+
+  background:
+    rgba(10,14,21,.95);
+
+  backdrop-filter:
+    blur(10px);
 }
 
 #messageInput {
   flex: 1;
+
   min-width: 0;
+
   border: none;
   outline: none;
+
   background: transparent;
+
   color: white;
+
   font-size: 18px;
 }
 
@@ -328,13 +449,20 @@ h1 {
 
 #sendButton {
   flex: 0 0 auto;
+
   width: 48px;
   height: 48px;
+
   border-radius: 50%;
+
   border: none;
+
   background: transparent;
+
   color: #64a9ff;
+
   font-size: 28px;
+
   cursor: pointer;
 }
 
@@ -342,11 +470,18 @@ h1 {
   opacity: .45;
 }
 
+/*
+  LIVE BUTTON
+*/
+
 #liveButton {
   width: 72px;
   height: 72px;
+
   border-radius: 50%;
-  border: 2px solid #f0c76d;
+
+  border:
+    2px solid #f0c76d;
 
   background:
     radial-gradient(
@@ -356,7 +491,9 @@ h1 {
     );
 
   color: white;
+
   font-size: 32px;
+
   cursor: pointer;
 
   box-shadow:
@@ -374,55 +511,94 @@ h1 {
 
 #liveStatus {
   margin-top: 16px;
+
   min-height: 30px;
+
   text-align: center;
+
   color: #f2c75e;
+
   font-size: 18px;
+
   white-space: pre-wrap;
 }
 
 .wave {
   letter-spacing: 3px;
+
   color: #d99e28;
+
   opacity: .8;
 }
 
+/*
+  LAUTSTÄRKE
+*/
+
 #volumeControls {
   display: flex;
+
   justify-content: center;
+
   gap: 8px;
+
   margin-top: 14px;
+
   flex-wrap: wrap;
 }
 
 .volumeButton {
   padding: 10px 14px;
-  border: 1px solid #3d4654;
+
+  border:
+    1px solid #3d4654;
+
   border-radius: 14px;
+
   background: #151b24;
+
   color: white;
+
   font-size: 15px;
+
   cursor: pointer;
 }
 
 .volumeButton.active {
   border-color: #f0c76d;
+
   background: #2b2112;
+
   color: #ffe29a;
 }
 
+/*
+  DRAWER
+*/
+
 #drawer {
   position: fixed;
+
   z-index: 100;
+
   top: 0;
   left: -320px;
+
   width: 300px;
   height: 100vh;
+
   padding: 32px 22px;
+
   background: #090d15;
-  border-right: 1px solid #303744;
-  transition: left .25s ease;
-  box-shadow: 12px 0 40px rgba(0,0,0,.4);
+
+  border-right:
+    1px solid #303744;
+
+  transition:
+    left .25s ease;
+
+  box-shadow:
+    12px 0 40px rgba(0,0,0,.4);
 }
 
 #drawer.open {
@@ -431,14 +607,24 @@ h1 {
 
 .drawerButton {
   width: 100%;
+
   margin-top: 14px;
+
   padding: 16px;
-  border: 1px solid #384151;
+
+  border:
+    1px solid #384151;
+
   border-radius: 14px;
+
   background: #141a24;
+
   color: white;
+
   font-size: 17px;
+
   text-align: left;
+
   cursor: pointer;
 }
 
@@ -447,12 +633,20 @@ h1 {
 #micStatus,
 #lipSyncStatus {
   margin-top: 15px;
+
   color: #aeb7c6;
+
   line-height: 1.45;
+
   font-size: 14px;
 }
 
+/*
+  MOBIL
+*/
+
 @media (max-width: 520px) {
+
   h1 {
     font-size: 34px;
   }
@@ -484,6 +678,7 @@ h1 {
     padding-right: 14px;
   }
 }
+
 </style>
 </head>
 
@@ -495,7 +690,10 @@ h1 {
 
 <header>
 
-<button id="menuButton" type="button" aria-label="Menü">
+<button
+  id="menuButton"
+  type="button"
+  aria-label="Menü">
 ☰
 </button>
 
@@ -512,6 +710,7 @@ Online
 
 </header>
 
+
 <section id="greeting">
 
 <h2 id="greetingTitle">
@@ -524,6 +723,7 @@ Schön, dass du da bist. Wie kann ich dir helfen?
 
 </section>
 
+
 <section id="solStage">
 
 <div id="solCloneWrap">
@@ -535,6 +735,7 @@ Schön, dass du da bist. Wie kann ich dir helfen?
 >
 
 <div id="mouthDepth"></div>
+
 <div id="mouthPatch"></div>
 
 </div>
@@ -542,6 +743,7 @@ Schön, dass du da bist. Wie kann ich dir helfen?
 <div id="holoBase"></div>
 
 </section>
+
 
 <section id="chatPanel">
 
@@ -555,6 +757,7 @@ Ich bin da. Du kannst mir schreiben oder mit mir sprechen. 🌻
 </div>
 
 </section>
+
 
 <section id="controls">
 
@@ -587,25 +790,44 @@ Ich bin da. Du kannst mir schreiben oder mit mir sprechen. 🌻
 
 </div>
 
+
 <div id="liveStatus">
 
-<span class="wave">·······</span>
-&nbsp; Ich bin da. &nbsp;
-<span class="wave">·······</span>
+<span class="wave">
+·······
+</span>
+
+&nbsp;
+Ich bin da.
+&nbsp;
+
+<span class="wave">
+·······
+</span>
 
 </div>
 
+
 <div id="volumeControls">
 
-<button id="volumeMute" class="volumeButton" type="button">
+<button
+  id="volumeMute"
+  class="volumeButton"
+  type="button">
 🔇 Stumm
 </button>
 
-<button id="volumeLow" class="volumeButton active" type="button">
+<button
+  id="volumeLow"
+  class="volumeButton active"
+  type="button">
 🔉 Leise
 </button>
 
-<button id="volumeNormal" class="volumeButton" type="button">
+<button
+  id="volumeNormal"
+  class="volumeButton"
+  type="button">
 🔊 Normal
 </button>
 
@@ -615,15 +837,24 @@ Ich bin da. Du kannst mir schreiben oder mit mir sprechen. 🌻
 
 </div>
 
+
 <aside id="drawer">
 
-<h2>Sol Holo 🌻</h2>
+<h2>
+Sol Holo 🌻
+</h2>
 
-<button id="memoryButton" class="drawerButton" type="button">
+<button
+  id="memoryButton"
+  class="drawerButton"
+  type="button">
 🧠 Langzeitgedächtnis anzeigen
 </button>
 
-<button id="closeMenuButton" class="drawerButton" type="button">
+<button
+  id="closeMenuButton"
+  class="drawerButton"
+  type="button">
 ← Zurück zu Sol
 </button>
 
@@ -645,116 +876,243 @@ Schreiben bereit.
 
 </aside>
 
-<audio id="realtimeAudio" autoplay></audio>
+
+<audio
+  id="realtimeAudio"
+  autoplay>
+</audio>
+
 
 <script>
+
+/*
+  ==========================================================
+  SOL HOLO
+  HOLO UI 004
+  ==========================================================
+*/
 
 const BACKEND_URL =
   "https://sol-holo.onrender.com";
 
+
+/*
+  ELEMENTE
+*/
+
 const messageInput =
-  document.getElementById("messageInput");
+  document.getElementById(
+    "messageInput"
+  );
 
 const sendButton =
-  document.getElementById("sendButton");
+  document.getElementById(
+    "sendButton"
+  );
 
 const memoryButton =
-  document.getElementById("memoryButton");
+  document.getElementById(
+    "memoryButton"
+  );
 
 const liveButton =
-  document.getElementById("liveButton");
+  document.getElementById(
+    "liveButton"
+  );
 
 const liveStatus =
-  document.getElementById("liveStatus");
+  document.getElementById(
+    "liveStatus"
+  );
 
 const memoryStatus =
-  document.getElementById("memoryStatus");
+  document.getElementById(
+    "memoryStatus"
+  );
 
 const chatStatus =
-  document.getElementById("chatStatus");
+  document.getElementById(
+    "chatStatus"
+  );
 
 const micStatus =
-  document.getElementById("micStatus");
+  document.getElementById(
+    "micStatus"
+  );
 
 const lipSyncStatus =
-  document.getElementById("lipSyncStatus");
+  document.getElementById(
+    "lipSyncStatus"
+  );
 
 const realtimeAudio =
-  document.getElementById("realtimeAudio");
+  document.getElementById(
+    "realtimeAudio"
+  );
 
 const menuButton =
-  document.getElementById("menuButton");
+  document.getElementById(
+    "menuButton"
+  );
 
 const closeMenuButton =
-  document.getElementById("closeMenuButton");
+  document.getElementById(
+    "closeMenuButton"
+  );
 
 const drawer =
-  document.getElementById("drawer");
+  document.getElementById(
+    "drawer"
+  );
 
 const chat =
-  document.getElementById("chat");
+  document.getElementById(
+    "chat"
+  );
 
 const volumeMute =
-  document.getElementById("volumeMute");
+  document.getElementById(
+    "volumeMute"
+  );
 
 const volumeLow =
-  document.getElementById("volumeLow");
+  document.getElementById(
+    "volumeLow"
+  );
 
 const volumeNormal =
-  document.getElementById("volumeNormal");
+  document.getElementById(
+    "volumeNormal"
+  );
+
+
+/*
+  CLONE / LIP SYNC
+*/
 
 const solCloneWrap =
-  document.getElementById("solCloneWrap");
+  document.getElementById(
+    "solCloneWrap"
+  );
 
 const solImage =
-  document.getElementById("solImage");
+  document.getElementById(
+    "solImage"
+  );
 
 const mouthPatch =
-  document.getElementById("mouthPatch");
+  document.getElementById(
+    "mouthPatch"
+  );
 
 const mouthDepth =
-  document.getElementById("mouthDepth");
+  document.getElementById(
+    "mouthDepth"
+  );
+
+
+/*
+  LIP-SYNC KALIBRIERUNG
+*/
 
 const LIP_SYNC_FACE = {
-  x: 0.500,
-  y: 0.392,
-  width: 0.145,
-  height: 0.072
+
+  x:
+    0.500,
+
+  y:
+    0.392,
+
+  width:
+    0.145,
+
+  height:
+    0.072
+
 };
 
-let pc = null;
-let dc = null;
-let microphoneStream = null;
 
-let lipAudioContext = null;
-let lipSourceNode = null;
-let lipAnalyser = null;
-let lipSilentGain = null;
-let lipAnimationFrame = null;
-let lipTimeData = null;
-let lipFrequencyData = null;
-let lipSyncRunning = false;
+/*
+  WEBRTC
+*/
 
-let currentMouthOpen = 0;
-let currentMouthWide = 0;
-let currentMouthRound = 0;
+let pc =
+  null;
 
-function clamp(value, min, max) {
+let dc =
+  null;
+
+let microphoneStream =
+  null;
+
+
+/*
+  LIP SYNC ENGINE
+*/
+
+let lipAudioContext =
+  null;
+
+let lipSourceNode =
+  null;
+
+let lipAnalyser =
+  null;
+
+let lipSilentGain =
+  null;
+
+let lipAnimationFrame =
+  null;
+
+let lipTimeData =
+  null;
+
+let lipFrequencyData =
+  null;
+
+let lipSyncRunning =
+  false;
+
+let currentMouthOpen =
+  0;
+
+let currentMouthWide =
+  0;
+
+let currentMouthRound =
+  0;
+
+
+function clamp(
+  value,
+  min,
+  max
+) {
+
   return Math.min(
     max,
-    Math.max(min, value)
+    Math.max(
+      min,
+      value
+    )
   );
 }
 
+
 async function ensureLipAudioContext() {
 
-  if (!lipAudioContext) {
+  if (
+    !lipAudioContext
+  ) {
 
     const AudioContextClass =
       window.AudioContext ||
       window.webkitAudioContext;
 
-    if (!AudioContextClass) {
+    if (
+      !AudioContextClass
+    ) {
 
       lipSyncStatus.textContent =
         "👄 Audio-Lip-Sync wird von diesem Browser nicht unterstützt.";
@@ -766,11 +1124,20 @@ async function ensureLipAudioContext() {
       new AudioContextClass();
   }
 
-  if (lipAudioContext.state === "suspended") {
+
+  if (
+    lipAudioContext.state ===
+    "suspended"
+  ) {
 
     try {
+
       await lipAudioContext.resume();
-    } catch (error) {
+
+    } catch (
+      error
+    ) {
+
       console.error(
         "Lip-Sync AudioContext:",
         error
@@ -778,14 +1145,19 @@ async function ensureLipAudioContext() {
     }
   }
 
+
   return true;
 }
 
+
 function updateMouthGeometry() {
 
-  if (!solImage.complete) {
+  if (
+    !solImage.complete
+  ) {
     return;
   }
+
 
   const imageRect =
     solImage.getBoundingClientRect();
@@ -793,12 +1165,14 @@ function updateMouthGeometry() {
   const wrapperRect =
     solCloneWrap.getBoundingClientRect();
 
+
   if (
     imageRect.width <= 0 ||
     imageRect.height <= 0
   ) {
     return;
   }
+
 
   const imageLeft =
     imageRect.left -
@@ -808,6 +1182,7 @@ function updateMouthGeometry() {
     imageRect.top -
     wrapperRect.top;
 
+
   const patchWidth =
     imageRect.width *
     LIP_SYNC_FACE.width;
@@ -816,15 +1191,21 @@ function updateMouthGeometry() {
     imageRect.height *
     LIP_SYNC_FACE.height;
 
+
   const centerX =
     imageLeft +
-    imageRect.width *
-    LIP_SYNC_FACE.x;
+    (
+      imageRect.width *
+      LIP_SYNC_FACE.x
+    );
 
   const centerY =
     imageTop +
-    imageRect.height *
-    LIP_SYNC_FACE.y;
+    (
+      imageRect.height *
+      LIP_SYNC_FACE.y
+    );
+
 
   const left =
     centerX -
@@ -833,6 +1214,7 @@ function updateMouthGeometry() {
   const top =
     centerY -
     patchHeight / 2;
+
 
   mouthPatch.style.left =
     `${left}px`;
@@ -865,17 +1247,31 @@ function updateMouthGeometry() {
       )
     }px`;
 
+
   mouthDepth.style.left =
-    `${centerX - patchWidth * 0.31}px`;
+    `${
+      centerX -
+      patchWidth * 0.31
+    }px`;
 
   mouthDepth.style.top =
-    `${centerY - patchHeight * 0.10}px`;
+    `${
+      centerY -
+      patchHeight * 0.10
+    }px`;
 
   mouthDepth.style.width =
-    `${patchWidth * 0.62}px`;
+    `${
+      patchWidth *
+      0.62
+    }px`;
 
   mouthDepth.style.height =
-    `${patchHeight * 0.47}px`;
+    `${
+      patchHeight *
+      0.47
+    }px`;
+
 
   mouthPatch.style.display =
     "block";
@@ -884,52 +1280,90 @@ function updateMouthGeometry() {
     "block";
 }
 
-function getFrequencyBand(minHz, maxHz) {
+
+function getFrequencyBand(
+  minHz,
+  maxHz
+) {
 
   if (
     !lipAnalyser ||
     !lipFrequencyData ||
     !lipAudioContext
   ) {
+
     return 0;
   }
 
+
   const nyquist =
-    lipAudioContext.sampleRate / 2;
+    lipAudioContext.sampleRate /
+    2;
+
 
   const startIndex =
     Math.floor(
-      (minHz / nyquist) *
+      (
+        minHz /
+        nyquist
+      ) *
       lipFrequencyData.length
     );
+
 
   const endIndex =
     Math.min(
       lipFrequencyData.length - 1,
+
       Math.ceil(
-        (maxHz / nyquist) *
+        (
+          maxHz /
+          nyquist
+        ) *
         lipFrequencyData.length
       )
     );
 
-  let total = 0;
-  let count = 0;
+
+  let total =
+    0;
+
+  let count =
+    0;
+
 
   for (
-    let i = startIndex;
-    i <= endIndex;
+    let i =
+      startIndex;
+
+    i <=
+      endIndex;
+
     i++
   ) {
-    total += lipFrequencyData[i];
+
+    total +=
+      lipFrequencyData[i];
+
     count++;
   }
 
-  if (count === 0) {
+
+  if (
+    count === 0
+  ) {
+
     return 0;
   }
 
-  return total / count / 255;
+
+  return (
+    total /
+    count /
+    255
+  );
 }
+
 
 function animateLipSync() {
 
@@ -937,8 +1371,10 @@ function animateLipSync() {
     !lipSyncRunning ||
     !lipAnalyser
   ) {
+
     return;
   }
+
 
   lipAnalyser.getByteTimeDomainData(
     lipTimeData
@@ -948,7 +1384,10 @@ function animateLipSync() {
     lipFrequencyData
   );
 
-  let sum = 0;
+
+  let sum =
+    0;
+
 
   for (
     let i = 0;
@@ -957,10 +1396,17 @@ function animateLipSync() {
   ) {
 
     const sample =
-      (lipTimeData[i] - 128) / 128;
+      (
+        lipTimeData[i] -
+        128
+      ) /
+      128;
 
-    sum += sample * sample;
+    sum +=
+      sample *
+      sample;
   }
+
 
   const rms =
     Math.sqrt(
@@ -968,61 +1414,109 @@ function animateLipSync() {
       lipTimeData.length
     );
 
+
   const low =
-    getFrequencyBand(90, 500);
+    getFrequencyBand(
+      90,
+      500
+    );
 
   const middle =
-    getFrequencyBand(500, 1900);
+    getFrequencyBand(
+      500,
+      1900
+    );
 
   const high =
-    getFrequencyBand(1900, 5200);
+    getFrequencyBand(
+      1900,
+      5200
+    );
+
 
   const rawOpen =
     clamp(
-      (rms - 0.008) * 13.5,
+      (
+        rms -
+        0.008
+      ) *
+      13.5,
       0,
       1
     );
+
 
   const rawWide =
     clamp(
-      middle * 0.80 +
-      high * 0.55 -
-      low * 0.18,
+      (
+        middle *
+        0.80 +
+        high *
+        0.55 -
+        low *
+        0.18
+      ),
       0,
       1
     );
+
 
   const rawRound =
     clamp(
-      low * 0.72 +
-      middle * 0.25 -
-      high * 0.15,
+      (
+        low *
+        0.72 +
+        middle *
+        0.25 -
+        high *
+        0.15
+      ),
       0,
       1
     );
 
+
   const openSpeed =
-    rawOpen > currentMouthOpen
-      ? 0.45
-      : 0.24;
+    rawOpen >
+      currentMouthOpen
+      ?
+      0.45
+      :
+      0.24;
+
 
   currentMouthOpen +=
-    (rawOpen - currentMouthOpen) *
+    (
+      rawOpen -
+      currentMouthOpen
+    ) *
     openSpeed;
 
+
   currentMouthWide +=
-    (rawWide - currentMouthWide) *
+    (
+      rawWide -
+      currentMouthWide
+    ) *
     0.20;
 
+
   currentMouthRound +=
-    (rawRound - currentMouthRound) *
+    (
+      rawRound -
+      currentMouthRound
+    ) *
     0.18;
 
-  const speaking =
-    currentMouthOpen > 0.035;
 
-  if (speaking) {
+  const speaking =
+    currentMouthOpen >
+    0.035;
+
+
+  if (
+    speaking
+  ) {
 
     solCloneWrap.classList.add(
       "sol-speaking"
@@ -1035,10 +1529,12 @@ function animateLipSync() {
     );
   }
 
+
   const scaleY =
     1 +
     currentMouthOpen *
     0.72;
+
 
   const wideInfluence =
     currentMouthWide *
@@ -1048,6 +1544,7 @@ function animateLipSync() {
       0.55
     );
 
+
   const scaleX =
     1 +
     wideInfluence *
@@ -1055,9 +1552,11 @@ function animateLipSync() {
     currentMouthRound *
     0.055;
 
+
   const moveY =
     currentMouthOpen *
     1.8;
+
 
   mouthPatch.style.transform =
     `
@@ -1066,16 +1565,22 @@ function animateLipSync() {
       scaleY(${scaleY})
     `;
 
+
   const depthOpacity =
     clamp(
-      (currentMouthOpen - 0.18) *
+      (
+        currentMouthOpen -
+        0.18
+      ) *
       0.72,
       0,
       0.42
     );
 
+
   mouthDepth.style.opacity =
     depthOpacity;
+
 
   mouthDepth.style.transform =
     `
@@ -1092,6 +1597,7 @@ function animateLipSync() {
       })
     `;
 
+
   mouthPatch.style.opacity =
     clamp(
       0.72 +
@@ -1101,26 +1607,40 @@ function animateLipSync() {
       1
     );
 
+
   lipAnimationFrame =
     requestAnimationFrame(
       animateLipSync
     );
 }
 
-async function startLipSync(stream) {
 
-  if (!stream) {
+async function startLipSync(
+  stream
+) {
+
+  if (
+    !stream
+  ) {
     return;
   }
+
 
   const ready =
     await ensureLipAudioContext();
 
-  if (!ready) {
+
+  if (
+    !ready
+  ) {
     return;
   }
 
-  stopLipSync(false);
+
+  stopLipSync(
+    false
+  );
+
 
   try {
 
@@ -1130,9 +1650,11 @@ async function startLipSync(stream) {
           stream
         );
 
+
     lipAnalyser =
       lipAudioContext
         .createAnalyser();
+
 
     lipAnalyser.fftSize =
       1024;
@@ -1140,105 +1662,155 @@ async function startLipSync(stream) {
     lipAnalyser.smoothingTimeConstant =
       0.62;
 
+
     lipTimeData =
       new Uint8Array(
         lipAnalyser.fftSize
       );
+
 
     lipFrequencyData =
       new Uint8Array(
         lipAnalyser.frequencyBinCount
       );
 
+
     lipSilentGain =
       lipAudioContext
         .createGain();
 
+
     lipSilentGain.gain.value =
       0;
+
 
     lipSourceNode.connect(
       lipAnalyser
     );
 
+
     lipAnalyser.connect(
       lipSilentGain
     );
+
 
     lipSilentGain.connect(
       lipAudioContext.destination
     );
 
+
     updateMouthGeometry();
+
 
     lipSyncRunning =
       true;
 
+
     lipSyncStatus.textContent =
       "👄 Lip-Sync aktiv.";
 
+
     animateLipSync();
 
-  } catch (error) {
+
+  } catch (
+    error
+  ) {
 
     console.error(
       "Lip-Sync Fehler:",
       error
     );
 
+
     lipSyncStatus.textContent =
       "👄 Lip-Sync konnte nicht gestartet werden.";
   }
 }
 
+
 function stopLipSync(
   resetStatus = true
 ) {
 
-  lipSyncRunning = false;
+  lipSyncRunning =
+    false;
 
-  if (lipAnimationFrame) {
+
+  if (
+    lipAnimationFrame
+  ) {
 
     cancelAnimationFrame(
       lipAnimationFrame
     );
 
-    lipAnimationFrame = null;
+    lipAnimationFrame =
+      null;
   }
 
-  if (lipSourceNode) {
+
+  if (
+    lipSourceNode
+  ) {
 
     try {
+
       lipSourceNode.disconnect();
+
     } catch {}
 
-    lipSourceNode = null;
+    lipSourceNode =
+      null;
   }
 
-  if (lipAnalyser) {
+
+  if (
+    lipAnalyser
+  ) {
 
     try {
+
       lipAnalyser.disconnect();
+
     } catch {}
 
-    lipAnalyser = null;
+    lipAnalyser =
+      null;
   }
 
-  if (lipSilentGain) {
+
+  if (
+    lipSilentGain
+  ) {
 
     try {
+
       lipSilentGain.disconnect();
+
     } catch {}
 
-    lipSilentGain = null;
+    lipSilentGain =
+      null;
   }
 
-  lipTimeData = null;
-  lipFrequencyData = null;
 
-  currentMouthOpen = 0;
-  currentMouthWide = 0;
-  currentMouthRound = 0;
+  lipTimeData =
+    null;
+
+  lipFrequencyData =
+    null;
+
+
+  currentMouthOpen =
+    0;
+
+  currentMouthWide =
+    0;
+
+  currentMouthRound =
+    0;
+
 
   mouthPatch.style.transform =
     "translateY(0) scaleX(1) scaleY(1)";
@@ -1246,62 +1818,87 @@ function stopLipSync(
   mouthPatch.style.opacity =
     "0.72";
 
+
   mouthDepth.style.opacity =
     "0";
 
+
   mouthDepth.style.transform =
     "scaleX(1) scaleY(.25)";
+
 
   solCloneWrap.classList.remove(
     "sol-speaking"
   );
 
-  if (resetStatus) {
+
+  if (
+    resetStatus
+  ) {
 
     lipSyncStatus.textContent =
       "👄 Lip-Sync bereit.";
   }
 }
 
+
 solImage.addEventListener(
   "load",
   () => {
+
     updateMouthGeometry();
   }
 );
+
 
 window.addEventListener(
   "resize",
   () => {
+
     updateMouthGeometry();
   }
 );
 
-if ("ResizeObserver" in window) {
+
+if (
+  "ResizeObserver" in window
+) {
 
   const cloneResizeObserver =
     new ResizeObserver(
       () => {
+
         updateMouthGeometry();
       }
     );
+
 
   cloneResizeObserver.observe(
     solCloneWrap
   );
 }
 
-let solVolume = 0.22;
+
+/*
+  LAUTSTÄRKE
+*/
+
+let solVolume =
+  0.22;
+
 
 function setSolVolume(
   volume,
   activeButton
 ) {
 
-  solVolume = volume;
+  solVolume =
+    volume;
+
 
   realtimeAudio.volume =
     solVolume;
+
 
   volumeMute.classList.remove(
     "active"
@@ -1315,14 +1912,17 @@ function setSolVolume(
     "active"
   );
 
+
   activeButton.classList.add(
     "active"
   );
 }
 
+
 volumeMute.addEventListener(
   "click",
   () => {
+
     setSolVolume(
       0,
       volumeMute
@@ -1330,9 +1930,11 @@ volumeMute.addEventListener(
   }
 );
 
+
 volumeLow.addEventListener(
   "click",
   () => {
+
     setSolVolume(
       0.22,
       volumeLow
@@ -1340,15 +1942,22 @@ volumeLow.addEventListener(
   }
 );
 
+
 volumeNormal.addEventListener(
   "click",
   () => {
+
     setSolVolume(
       1,
       volumeNormal
     );
   }
 );
+
+
+/*
+  CHAT
+*/
 
 function addMessage(
   speaker,
@@ -1361,51 +1970,80 @@ function addMessage(
       "div"
     );
 
+
   element.className =
     `message ${className}`;
+
 
   const name =
     document.createElement(
       "strong"
     );
 
+
   name.textContent =
     speaker;
+
 
   const content =
     document.createElement(
       "div"
     );
 
+
   content.textContent =
     text;
 
-  element.appendChild(name);
-  element.appendChild(content);
 
-  chat.appendChild(element);
+  element.appendChild(
+    name
+  );
+
+
+  element.appendChild(
+    content
+  );
+
+
+  chat.appendChild(
+    element
+  );
+
 
   chat.scrollTop =
     chat.scrollHeight;
 }
 
+
+/*
+  MENÜ
+*/
+
 menuButton.addEventListener(
   "click",
   () => {
+
     drawer.classList.add(
       "open"
     );
   }
 );
 
+
 closeMenuButton.addEventListener(
   "click",
   () => {
+
     drawer.classList.remove(
       "open"
     );
   }
 );
+
+
+/*
+  SCHREIBEN
+*/
 
 async function sendMessage(
   forcedMessage = null
@@ -1417,11 +2055,18 @@ async function sendMessage(
       messageInput.value
     ).trim();
 
-  if (!message) {
+
+  if (
+    !message
+  ) {
+
     return;
   }
 
-  if (!forcedMessage) {
+
+  if (
+    !forcedMessage
+  ) {
 
     addMessage(
       "Pam",
@@ -1429,13 +2074,19 @@ async function sendMessage(
       "user-message"
     );
 
-    messageInput.value = "";
+
+    messageInput.value =
+      "";
   }
 
-  sendButton.disabled = true;
+
+  sendButton.disabled =
+    true;
+
 
   chatStatus.textContent =
     "Sol denkt ...";
+
 
   try {
 
@@ -1443,9 +2094,12 @@ async function sendMessage(
       await fetch(
         `${BACKEND_URL}/sol`,
         {
-          method: "POST",
+
+          method:
+            "POST",
 
           headers: {
+
             "Content-Type":
               "application/json"
           },
@@ -1457,10 +2111,14 @@ async function sendMessage(
         }
       );
 
+
     const data =
       await response.json();
 
-    if (!response.ok) {
+
+    if (
+      !response.ok
+    ) {
 
       throw new Error(
         data?.error ||
@@ -1468,18 +2126,23 @@ async function sendMessage(
       );
     }
 
+
     const answer =
       String(
         data?.answer ||
         ""
       ).trim();
 
-    if (!answer) {
+
+    if (
+      !answer
+    ) {
 
       throw new Error(
         "Sol hat keine Antwort geliefert."
       );
     }
+
 
     addMessage(
       "Sol",
@@ -1487,44 +2150,60 @@ async function sendMessage(
       "sol-message"
     );
 
+
     chatStatus.textContent =
       "Antwort erhalten.";
 
-  } catch (error) {
+
+  } catch (
+    error
+  ) {
 
     console.error(
       "Textchat Fehler:",
       error
     );
 
+
     addMessage(
       "System",
+
       error?.message ||
       "Verbindung zu Sol fehlgeschlagen.",
+
       "system-message"
     );
+
 
     chatStatus.textContent =
       "Textchat-Fehler.";
 
+
   } finally {
 
-    sendButton.disabled = false;
+    sendButton.disabled =
+      false;
   }
 }
+
 
 sendButton.addEventListener(
   "click",
   () => {
+
     sendMessage();
   }
 );
+
 
 messageInput.addEventListener(
   "keydown",
   event => {
 
-    if (event.key === "Enter") {
+    if (
+      event.key ===
+      "Enter"
+    ) {
 
       event.preventDefault();
 
@@ -1532,6 +2211,11 @@ messageInput.addEventListener(
     }
   }
 );
+
+
+/*
+  MEMORY
+*/
 
 memoryButton.addEventListener(
   "click",
@@ -1541,11 +2225,17 @@ memoryButton.addEventListener(
       "open"
     );
 
+
     await sendMessage(
       "Sol, was weißt du dauerhaft?"
     );
   }
 );
+
+
+/*
+  LIVE MEMORY
+*/
 
 async function sendLiveTranscriptToMemory(
   transcript
@@ -1557,12 +2247,18 @@ async function sendLiveTranscriptToMemory(
       ""
     ).trim();
 
-  if (!cleanTranscript) {
+
+  if (
+    !cleanTranscript
+  ) {
+
     return;
   }
 
+
   memoryStatus.textContent =
     "🧠 Memory prüft ...";
+
 
   try {
 
@@ -1570,25 +2266,33 @@ async function sendLiveTranscriptToMemory(
       await fetch(
         `${BACKEND_URL}/live/memory`,
         {
-          method: "POST",
+
+          method:
+            "POST",
 
           headers: {
+
             "Content-Type":
               "application/json"
           },
 
           body:
             JSON.stringify({
+
               transcript:
                 cleanTranscript
             })
         }
       );
 
+
     const data =
       await response.json();
 
-    if (!response.ok) {
+
+    if (
+      !response.ok
+    ) {
 
       throw new Error(
         data?.error ||
@@ -1596,7 +2300,10 @@ async function sendLiveTranscriptToMemory(
       );
     }
 
-    if (data.saved) {
+
+    if (
+      data.saved
+    ) {
 
       memoryStatus.textContent =
         `🧠 Gespeichert: ${data.memory}`;
@@ -1607,17 +2314,26 @@ async function sendLiveTranscriptToMemory(
         "🧠 Keine dauerhafte Erinnerung nötig.";
     }
 
-  } catch (error) {
+
+  } catch (
+    error
+  ) {
 
     console.error(
       "Live-Memory Fehler:",
       error
     );
 
+
     memoryStatus.textContent =
       "🧠 Memory-Fehler.";
   }
 }
+
+
+/*
+  MIKROFON
+*/
 
 async function openFilteredMicrophone() {
 
@@ -1631,83 +2347,138 @@ async function openFilteredMicrophone() {
     );
   }
 
+
   micStatus.textContent =
     "🎙️ Mikrofon wird aktiviert ...";
+
 
   const stream =
     await navigator.mediaDevices
       .getUserMedia({
+
         audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          channelCount: 1
+
+          echoCancellation:
+            true,
+
+          noiseSuppression:
+            true,
+
+          autoGainControl:
+            true,
+
+          channelCount:
+            1
         }
       });
+
 
   micStatus.textContent =
     "🎙️ Mikrofonfilter aktiv.";
 
+
   return stream;
 }
+
+
+/*
+  LIVE STOPPEN
+*/
 
 function stopLiveConversation() {
 
   stopLipSync();
 
-  if (dc) {
+
+  if (
+    dc
+  ) {
 
     try {
+
       dc.close();
+
     } catch {}
 
-    dc = null;
+
+    dc =
+      null;
   }
 
-  if (pc) {
+
+  if (
+    pc
+  ) {
 
     try {
+
       pc.close();
+
     } catch {}
 
-    pc = null;
+
+    pc =
+      null;
   }
 
-  if (microphoneStream) {
+
+  if (
+    microphoneStream
+  ) {
 
     microphoneStream
       .getTracks()
       .forEach(
-        track => track.stop()
+        track =>
+          track.stop()
       );
 
-    microphoneStream = null;
+
+    microphoneStream =
+      null;
   }
 
-  realtimeAudio.srcObject = null;
+
+  realtimeAudio.srcObject =
+    null;
+
 
   liveButton.classList.remove(
     "listening"
   );
 
+
   liveStatus.innerHTML =
     '<span class="wave">·······</span>&nbsp; Ich bin da. &nbsp;<span class="wave">·······</span>';
+
 
   micStatus.textContent =
     "🎙️ Mikrofon bereit.";
 }
 
+
+/*
+  LIVE STARTEN
+*/
+
 async function startLiveConversation() {
 
-  if (pc) {
+  if (
+    pc
+  ) {
+
     stopLiveConversation();
+
     return;
   }
 
+
   await ensureLipAudioContext();
+
 
   liveStatus.textContent =
     "Sol verbindet sich ...";
+
 
   try {
 
@@ -1715,15 +2486,22 @@ async function startLiveConversation() {
       await fetch(
         `${BACKEND_URL}/realtime/token`,
         {
-          method: "GET",
-          cache: "no-store"
+
+          method:
+            "GET",
+
+          cache:
+            "no-store"
         }
       );
+
 
     const responseText =
       await tokenResponse.text();
 
+
     let tokenData;
+
 
     try {
 
@@ -1732,6 +2510,7 @@ async function startLiveConversation() {
           responseText
         );
 
+
     } catch {
 
       throw new Error(
@@ -1739,13 +2518,17 @@ async function startLiveConversation() {
       );
     }
 
-    if (!tokenResponse.ok) {
+
+    if (
+      !tokenResponse.ok
+    ) {
 
       throw new Error(
         tokenData?.error ||
         `Realtime-Token Fehler (${tokenResponse.status}).`
       );
     }
+
 
     const ephemeralKey =
       String(
@@ -1754,15 +2537,20 @@ async function startLiveConversation() {
         ""
       ).trim();
 
-    if (!ephemeralKey) {
+
+    if (
+      !ephemeralKey
+    ) {
 
       throw new Error(
         "Kein Realtime-Schlüssel erhalten."
       );
     }
 
+
     pc =
       new RTCPeerConnection();
+
 
     pc.ontrack =
       event => {
@@ -1770,46 +2558,66 @@ async function startLiveConversation() {
         const stream =
           event.streams?.[0];
 
-        if (!stream) {
+
+        if (
+          !stream
+        ) {
+
           return;
         }
+
 
         realtimeAudio.srcObject =
           stream;
 
+
         realtimeAudio.volume =
           solVolume;
 
+
         realtimeAudio
           .play()
-          .catch(() => {});
+          .catch(
+            () => {}
+          );
 
-        startLipSync(stream);
+
+        startLipSync(
+          stream
+        );
       };
+
 
     microphoneStream =
       await openFilteredMicrophone();
+
 
     const audioTrack =
       microphoneStream
         .getAudioTracks()[0];
 
-    if (!audioTrack) {
+
+    if (
+      !audioTrack
+    ) {
 
       throw new Error(
         "Keine Mikrofonspur gefunden."
       );
     }
 
+
     pc.addTrack(
       audioTrack,
       microphoneStream
     );
 
+
     dc =
       pc.createDataChannel(
         "oai-events"
       );
+
 
     dc.addEventListener(
       "open",
@@ -1819,10 +2627,12 @@ async function startLiveConversation() {
           "listening"
         );
 
+
         liveStatus.textContent =
           "🌻 Ich höre dir zu ...";
       }
     );
+
 
     dc.addEventListener(
       "message",
@@ -1835,6 +2645,7 @@ async function startLiveConversation() {
               event.data
             );
 
+
           if (
             realtimeEvent.type ===
             "input_audio_buffer.speech_started"
@@ -1844,6 +2655,7 @@ async function startLiveConversation() {
               "🎙️ Ich höre dir zu ...";
           }
 
+
           if (
             realtimeEvent.type ===
             "input_audio_buffer.speech_stopped"
@@ -1852,6 +2664,7 @@ async function startLiveConversation() {
             liveStatus.textContent =
               "🌻 Einen Moment ...";
           }
+
 
           if (
             realtimeEvent.type ===
@@ -1864,7 +2677,10 @@ async function startLiveConversation() {
                 ""
               ).trim();
 
-            if (transcript) {
+
+            if (
+              transcript
+            ) {
 
               sendLiveTranscriptToMemory(
                 transcript
@@ -1872,9 +2688,18 @@ async function startLiveConversation() {
             }
           }
 
+
           if (
             realtimeEvent.type ===
-            "response.output_audio.delta" ||
+            "response.output_audio.delta"
+          ) {
+
+            liveStatus.textContent =
+              "🌻 Sol spricht ...";
+          }
+
+
+          if (
             realtimeEvent.type ===
             "response.audio.delta"
           ) {
@@ -1883,9 +2708,18 @@ async function startLiveConversation() {
               "🌻 Sol spricht ...";
           }
 
+
           if (
             realtimeEvent.type ===
-            "response.output_audio.done" ||
+            "response.output_audio.done"
+          ) {
+
+            liveStatus.textContent =
+              "🌻 Ich höre dir zu ...";
+          }
+
+
+          if (
             realtimeEvent.type ===
             "response.done"
           ) {
@@ -1893,6 +2727,7 @@ async function startLiveConversation() {
             liveStatus.textContent =
               "🌻 Ich höre dir zu ...";
           }
+
 
           if (
             realtimeEvent.type ===
@@ -1904,11 +2739,15 @@ async function startLiveConversation() {
               realtimeEvent
             );
 
+
             liveStatus.textContent =
               "Sol hat gerade ein Verbindungsproblem.";
           }
 
-        } catch (error) {
+
+        } catch (
+          error
+        ) {
 
           console.error(
             "Realtime Event Fehler:",
@@ -1918,13 +2757,18 @@ async function startLiveConversation() {
       }
     );
 
+
     pc.addEventListener(
       "connectionstatechange",
       () => {
 
-        if (!pc) {
+        if (
+          !pc
+        ) {
+
           return;
         }
+
 
         if (
           pc.connectionState ===
@@ -1935,9 +2779,11 @@ async function startLiveConversation() {
             "listening"
           );
 
+
           liveStatus.textContent =
             "🌻 Ich höre dir zu ...";
         }
+
 
         if (
           pc.connectionState ===
@@ -1946,26 +2792,33 @@ async function startLiveConversation() {
 
           stopLiveConversation();
 
+
           liveStatus.textContent =
             "Verbindung zu Sol unterbrochen.";
         }
       }
     );
 
+
     const offer =
       await pc.createOffer();
+
 
     await pc.setLocalDescription(
       offer
     );
 
+
     const sdpResponse =
       await fetch(
         "https://api.openai.com/v1/realtime/calls",
         {
-          method: "POST",
+
+          method:
+            "POST",
 
           headers: {
+
             Authorization:
               `Bearer ${ephemeralKey}`,
 
@@ -1978,39 +2831,55 @@ async function startLiveConversation() {
         }
       );
 
+
     const answerSdp =
       await sdpResponse.text();
 
-    if (!sdpResponse.ok) {
+
+    if (
+      !sdpResponse.ok
+    ) {
 
       console.error(
         "OpenAI SDP Fehlerstatus:",
         sdpResponse.status
       );
 
+
       console.error(
         "OpenAI SDP Antwort:",
         answerSdp
       );
+
 
       throw new Error(
         `OpenAI Realtime Fehler ${sdpResponse.status}:\n${answerSdp.slice(0,700)}`
       );
     }
 
+
     await pc.setRemoteDescription({
-      type: "answer",
-      sdp: answerSdp
+
+      type:
+        "answer",
+
+      sdp:
+        answerSdp
     });
 
-  } catch (error) {
+
+  } catch (
+    error
+  ) {
 
     console.error(
       "Sol Live Fehler:",
       error
     );
 
+
     stopLiveConversation();
+
 
     liveStatus.textContent =
       error?.message ||
@@ -2018,22 +2887,44 @@ async function startLiveConversation() {
   }
 }
 
+
+/*
+  LIVE BUTTON
+*/
+
 liveButton.addEventListener(
   "click",
   () => {
 
-    if (pc) {
+    if (
+      pc
+    ) {
+
       stopLiveConversation();
+
     } else {
+
       startLiveConversation();
     }
   }
 );
 
+
+/*
+  STANDARD-LAUTSTÄRKE
+*/
+
 realtimeAudio.volume =
   solVolume;
 
-if ("serviceWorker" in navigator) {
+
+/*
+  SERVICE WORKER
+*/
+
+if (
+  "serviceWorker" in navigator
+) {
 
   window.addEventListener(
     "load",
@@ -2056,7 +2947,14 @@ if ("serviceWorker" in navigator) {
   );
 }
 
-if (solImage.complete) {
+
+/*
+  MUNDPOSITION INITIALISIEREN
+*/
+
+if (
+  solImage.complete
+) {
 
   requestAnimationFrame(
     updateMouthGeometry
