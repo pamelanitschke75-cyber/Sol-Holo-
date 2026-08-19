@@ -2,6 +2,11 @@ name: Sol Holo Android APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/android-build.yml"
 
 jobs:
   build-android:
