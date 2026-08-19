@@ -190,4 +190,3101 @@ h1 {
   width: auto;
   max-width: 100%;
 
-  object
+  object-fit: contain;
+  object-position: center bottom;
+
+  filter:
+    drop-shadow(
+      0 0 8px rgba(70,145,255,.42)
+    )
+    drop-shadow(
+      0 0 24px rgba(25,105,255,.22)
+    );
+
+  user-select: none;
+  pointer-events: none;
+}
+
+/*
+  Mund-Patch
+
+  Dieser Patch enthält exakt denselben
+  Bildbereich wie der echte Mund.
+
+  Er wird während Sol spricht nur ganz
+  leicht verformt.
+
+  Dadurch bleibt das echte Gesicht sichtbar.
+*/
+
+#mouthPatch {
+  position: absolute;
+
+  display: none;
+
+  z-index: 8;
+
+  pointer-events: none;
+
+  background-repeat: no-repeat;
+
+  transform-origin:
+    50% 42%;
+
+  will-change:
+    transform,
+    filter,
+    opacity;
+
+  border-radius:
+    48% 48% 46% 46%;
+
+  /*
+    Weicher Übergang zum Originalbild.
+  */
+
+  -webkit-mask-image:
+    radial-gradient(
+      ellipse at center,
+      #000 42%,
+      rgba(0,0,0,.92) 58%,
+      transparent 78%
+    );
+
+  mask-image:
+    radial-gradient(
+      ellipse at center,
+      #000 42%,
+      rgba(0,0,0,.92) 58%,
+      transparent 78%
+    );
+}
+
+/*
+  Kleine Schattenzone hinter dem Mund.
+
+  Nur bei stärkerer Öffnung sichtbar.
+*/
+
+#mouthDepth {
+  position: absolute;
+
+  display: none;
+
+  z-index: 7;
+
+  pointer-events: none;
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(5,2,3,.86) 0%,
+      rgba(15,4,7,.58) 40%,
+      transparent 75%
+    );
+
+  transform-origin: center;
+
+  opacity: 0;
+
+  will-change:
+    transform,
+    opacity;
+}
+
+/*
+  Wenn Sol spricht bekommt der Clone
+  zusätzlich eine extrem leichte Bewegung.
+
+  Kein Wackeln.
+  Nur minimale Lebendigkeit.
+*/
+
+#solCloneWrap.sol-speaking {
+  animation:
+    solSpeakingPresence
+    1.9s ease-in-out infinite;
+}
+
+@keyframes solSpeakingPresence {
+
+  0% {
+    transform:
+      translateY(0)
+      scale(1);
+  }
+
+  50% {
+    transform:
+      translateY(-1px)
+      scale(1.0015);
+  }
+
+  100% {
+    transform:
+      translateY(0)
+      scale(1);
+  }
+}
+
+/*
+  Hologramm-Basis
+*/
+
+#holoBase {
+  position: absolute;
+
+  bottom: 14px;
+
+  width: 78%;
+  height: 24px;
+
+  border-radius: 50%;
+
+  border:
+    2px solid rgba(80,160,255,.8);
+
+  box-shadow:
+    0 0 8px #54a6ff,
+    0 0 26px rgba(40,120,255,.75),
+    0 0 55px rgba(40,120,255,.35);
+}
+
+/*
+  CHAT
+*/
+
+#chatPanel {
+  position: relative;
+  z-index: 25;
+
+  margin:
+    -4px 20px 14px;
+
+  padding: 14px;
+
+  border:
+    1px solid rgba(78,91,110,.75);
+
+  border-radius: 20px;
+
+  background:
+    rgba(7,11,18,.82);
+
+  backdrop-filter:
+    blur(10px);
+}
+
+#chat {
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.message {
+  margin: 9px 0;
+
+  padding: 11px 13px;
+
+  border-radius: 15px;
+
+  line-height: 1.45;
+
+  white-space: pre-wrap;
+
+  font-size: 17px;
+}
+
+.message strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.user-message {
+  margin-left: 28px;
+  background: #14264f;
+}
+
+.sol-message {
+  margin-right: 28px;
+  background: #15271b;
+}
+
+.system-message {
+  color: #c9d0db;
+
+  background:
+    rgba(36,43,54,.70);
+}
+
+/*
+  CONTROLS
+*/
+
+#controls {
+  position: relative;
+  z-index: 30;
+
+  padding:
+    0 20px 26px;
+}
+
+#inputRow {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr) 72px;
+
+  gap: 10px;
+
+  align-items: center;
+}
+
+#messageWrap {
+  display: flex;
+
+  align-items: center;
+
+  min-height: 66px;
+
+  padding:
+    8px 8px 8px 18px;
+
+  border-radius: 34px;
+
+  border:
+    1px solid #46505e;
+
+  background:
+    rgba(10,14,21,.95);
+
+  backdrop-filter:
+    blur(10px);
+}
+
+#messageInput {
+  flex: 1;
+
+  min-width: 0;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+
+  color: white;
+
+  font-size: 18px;
+}
+
+#messageInput::placeholder {
+  color: #9ba2ae;
+}
+
+#sendButton {
+  flex: 0 0 auto;
+
+  width: 48px;
+  height: 48px;
+
+  border-radius: 50%;
+
+  border: none;
+
+  background: transparent;
+
+  color: #64a9ff;
+
+  font-size: 28px;
+
+  cursor: pointer;
+}
+
+#sendButton:disabled {
+  opacity: .45;
+}
+
+/*
+  LIVE BUTTON
+*/
+
+#liveButton {
+  width: 72px;
+  height: 72px;
+
+  border-radius: 50%;
+
+  border:
+    2px solid #f0c76d;
+
+  background:
+    radial-gradient(
+      circle,
+      #443016 0%,
+      #17130c 66%
+    );
+
+  color: white;
+
+  font-size: 32px;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 0 10px rgba(255,204,90,.35),
+    0 0 30px rgba(255,190,60,.16);
+}
+
+#liveButton.listening {
+  border-color: #58df8a;
+
+  box-shadow:
+    0 0 12px rgba(65,230,110,.45),
+    0 0 36px rgba(65,230,110,.22);
+}
+
+#liveStatus {
+  margin-top: 16px;
+
+  min-height: 30px;
+
+  text-align: center;
+
+  color: #f2c75e;
+
+  font-size: 18px;
+
+  white-space: pre-wrap;
+}
+
+.wave {
+  letter-spacing: 3px;
+
+  color: #d99e28;
+
+  opacity: .8;
+}
+
+/*
+  LAUTSTÄRKE
+*/
+
+#volumeControls {
+  display: flex;
+
+  justify-content: center;
+
+  gap: 8px;
+
+  margin-top: 14px;
+
+  flex-wrap: wrap;
+}
+
+.volumeButton {
+  padding: 10px 14px;
+
+  border:
+    1px solid #3d4654;
+
+  border-radius: 14px;
+
+  background: #151b24;
+
+  color: white;
+
+  font-size: 15px;
+
+  cursor: pointer;
+}
+
+.volumeButton.active {
+  border-color: #f0c76d;
+
+  background: #2b2112;
+
+  color: #ffe29a;
+}
+
+/*
+  DRAWER
+*/
+
+#drawer {
+  position: fixed;
+
+  z-index: 100;
+
+  top: 0;
+  left: -320px;
+
+  width: 300px;
+  height: 100vh;
+
+  padding: 32px 22px;
+
+  background: #090d15;
+
+  border-right:
+    1px solid #303744;
+
+  transition:
+    left .25s ease;
+
+  box-shadow:
+    12px 0 40px rgba(0,0,0,.4);
+}
+
+#drawer.open {
+  left: 0;
+}
+
+.drawerButton {
+  width: 100%;
+
+  margin-top: 14px;
+
+  padding: 16px;
+
+  border:
+    1px solid #384151;
+
+  border-radius: 14px;
+
+  background: #141a24;
+
+  color: white;
+
+  font-size: 17px;
+
+  text-align: left;
+
+  cursor: pointer;
+}
+
+#memoryStatus,
+#chatStatus,
+#micStatus,
+#lipSyncStatus {
+  margin-top: 15px;
+
+  color: #aeb7c6;
+
+  line-height: 1.45;
+
+  font-size: 14px;
+}
+
+/*
+  MOBIL
+*/
+
+@media (max-width: 520px) {
+
+  h1 {
+    font-size: 34px;
+  }
+
+  #subtitle {
+    font-size: 15px;
+  }
+
+  #greeting {
+    padding-left: 24px;
+  }
+
+  #greetingTitle {
+    font-size: 27px;
+  }
+
+  #solStage {
+    height: 46vh;
+    min-height: 350px;
+  }
+
+  #chatPanel {
+    margin-left: 14px;
+    margin-right: 14px;
+  }
+
+  #controls {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="app">
+
+<div id="backgroundGlow"></div>
+
+<header>
+
+<button
+  id="menuButton"
+  type="button"
+  aria-label="Menü">
+☰
+</button>
+
+<h1>Sol Holo 🌻</h1>
+
+<div id="subtitle">
+Deine KI. Dein Holo. Immer für dich da.
+</div>
+
+<div id="onlineState">
+<span id="onlineDot">●</span>
+Online
+</div>
+
+</header>
+
+
+<section id="greeting">
+
+<h2 id="greetingTitle">
+Hallo Pam 💛
+</h2>
+
+<p id="greetingText">
+Schön, dass du da bist. Wie kann ich dir helfen?
+</p>
+
+</section>
+
+
+<section id="solStage">
+
+<div id="solCloneWrap">
+
+<img
+  id="solImage"
+  src="/file_000000009bf88246b8f682a46e1a429d.png"
+  alt="Sol Holo Clone"
+>
+
+<div id="mouthDepth"></div>
+
+<div id="mouthPatch"></div>
+
+</div>
+
+<div id="holoBase"></div>
+
+</section>
+
+
+<section id="chatPanel">
+
+<div id="chat">
+
+<div class="message system-message">
+<strong>Sol Holo</strong>
+Ich bin da. Du kannst mir schreiben oder mit mir sprechen. 🌻
+</div>
+
+</div>
+
+</section>
+
+
+<section id="controls">
+
+<div id="inputRow">
+
+<div id="messageWrap">
+
+<input
+  id="messageInput"
+  type="text"
+  placeholder="Schreib Sol etwas..."
+  autocomplete="off"
+>
+
+<button
+  id="sendButton"
+  type="button"
+  aria-label="Nachricht senden">
+➤
+</button>
+
+</div>
+
+<button
+  id="liveButton"
+  type="button"
+  aria-label="Mit Sol sprechen">
+🎙️
+</button>
+
+</div>
+
+
+<div id="liveStatus">
+
+<span class="wave">
+·······
+</span>
+
+&nbsp;
+Ich bin da.
+&nbsp;
+
+<span class="wave">
+·······
+</span>
+
+</div>
+
+
+<div id="volumeControls">
+
+<button
+  id="volumeMute"
+  class="volumeButton"
+  type="button">
+🔇 Stumm
+</button>
+
+<button
+  id="volumeLow"
+  class="volumeButton active"
+  type="button">
+🔉 Leise
+</button>
+
+<button
+  id="volumeNormal"
+  class="volumeButton"
+  type="button">
+🔊 Normal
+</button>
+
+</div>
+
+</section>
+
+</div>
+
+
+<aside id="drawer">
+
+<h2>
+Sol Holo 🌻
+</h2>
+
+<button
+  id="memoryButton"
+  class="drawerButton"
+  type="button">
+🧠 Langzeitgedächtnis anzeigen
+</button>
+
+<button
+  id="closeMenuButton"
+  class="drawerButton"
+  type="button">
+← Zurück zu Sol
+</button>
+
+<div id="chatStatus">
+Schreiben bereit.
+</div>
+
+<div id="micStatus">
+🎙️ Mikrofon bereit.
+</div>
+
+<div id="memoryStatus">
+🧠 Memory bereit.
+</div>
+
+<div id="lipSyncStatus">
+👄 Lip-Sync bereit.
+</div>
+
+</aside>
+
+
+<audio
+  id="realtimeAudio"
+  autoplay>
+</audio>
+
+
+<script>
+
+/*
+  ==========================================================
+  SOL HOLO
+  HOLO UI 004
+  ==========================================================
+
+  Bestehende Funktionen:
+
+  - Schreiben
+  - Sol Antworten
+  - Langzeitgedächtnis
+  - Live Memory
+  - Mikrofon
+  - Realtime WebRTC
+  - Lautstärke
+  - Service Worker
+
+  Neu:
+
+  - Audio-Analyse der echten Sol-Stimme
+  - Lip-Sync am Clone
+  - variable Mundöffnung
+  - variable Mundbreite
+  - weiche Mundbewegung
+  - Stop / Reset bei Sprechende
+
+  ==========================================================
+*/
+
+
+const BACKEND_URL =
+  "https://sol-holo.onrender.com";
+
+
+/*
+  ELEMENTE
+*/
+
+const messageInput =
+  document.getElementById(
+    "messageInput"
+  );
+
+const sendButton =
+  document.getElementById(
+    "sendButton"
+  );
+
+const memoryButton =
+  document.getElementById(
+    "memoryButton"
+  );
+
+const liveButton =
+  document.getElementById(
+    "liveButton"
+  );
+
+const liveStatus =
+  document.getElementById(
+    "liveStatus"
+  );
+
+const memoryStatus =
+  document.getElementById(
+    "memoryStatus"
+  );
+
+const chatStatus =
+  document.getElementById(
+    "chatStatus"
+  );
+
+const micStatus =
+  document.getElementById(
+    "micStatus"
+  );
+
+const lipSyncStatus =
+  document.getElementById(
+    "lipSyncStatus"
+  );
+
+const realtimeAudio =
+  document.getElementById(
+    "realtimeAudio"
+  );
+
+const menuButton =
+  document.getElementById(
+    "menuButton"
+  );
+
+const closeMenuButton =
+  document.getElementById(
+    "closeMenuButton"
+  );
+
+const drawer =
+  document.getElementById(
+    "drawer"
+  );
+
+const chat =
+  document.getElementById(
+    "chat"
+  );
+
+const volumeMute =
+  document.getElementById(
+    "volumeMute"
+  );
+
+const volumeLow =
+  document.getElementById(
+    "volumeLow"
+  );
+
+const volumeNormal =
+  document.getElementById(
+    "volumeNormal"
+  );
+
+
+/*
+  CLONE / LIP SYNC
+*/
+
+const solCloneWrap =
+  document.getElementById(
+    "solCloneWrap"
+  );
+
+const solImage =
+  document.getElementById(
+    "solImage"
+  );
+
+const mouthPatch =
+  document.getElementById(
+    "mouthPatch"
+  );
+
+const mouthDepth =
+  document.getElementById(
+    "mouthDepth"
+  );
+
+
+/*
+  ==========================================================
+  LIP-SYNC KALIBRIERUNG
+  ==========================================================
+
+  Diese Werte beschreiben die Position des Mundes
+  innerhalb des Clone-Fotos.
+
+  x      = horizontal
+  y      = vertikal
+  width  = Breite des Mundbereiches
+  height = Höhe des Mundbereiches
+
+  Werte 0 - 1 beziehen sich auf das ganze Bild.
+
+  Bei eurem derzeitigen Clone ist der Mund
+  ungefähr mittig im Gesicht.
+
+  Diese Werte verändern KEIN anderes System.
+*/
+
+const LIP_SYNC_FACE = {
+
+  x:
+    0.500,
+
+  y:
+    0.392,
+
+  width:
+    0.145,
+
+  height:
+    0.072
+
+};
+
+
+/*
+  WEBRTC
+*/
+
+let pc =
+  null;
+
+let dc =
+  null;
+
+let microphoneStream =
+  null;
+
+
+/*
+  ==========================================================
+  LIP SYNC ENGINE
+  ==========================================================
+*/
+
+let lipAudioContext =
+  null;
+
+let lipSourceNode =
+  null;
+
+let lipAnalyser =
+  null;
+
+let lipSilentGain =
+  null;
+
+let lipAnimationFrame =
+  null;
+
+let lipTimeData =
+  null;
+
+let lipFrequencyData =
+  null;
+
+let lipSyncRunning =
+  false;
+
+
+/*
+  Geglättete Werte.
+
+  Wichtig für natürlichere Bewegung.
+*/
+
+let currentMouthOpen =
+  0;
+
+let currentMouthWide =
+  0;
+
+let currentMouthRound =
+  0;
+
+
+/*
+  Hilfsfunktion
+*/
+
+function clamp(
+  value,
+  min,
+  max
+) {
+
+  return Math.min(
+    max,
+    Math.max(
+      min,
+      value
+    )
+  );
+}
+
+
+/*
+  AudioContext vorbereiten
+*/
+
+async function ensureLipAudioContext() {
+
+  if (
+    !lipAudioContext
+  ) {
+
+    const AudioContextClass =
+      window.AudioContext ||
+      window.webkitAudioContext;
+
+    if (
+      !AudioContextClass
+    ) {
+
+      lipSyncStatus.textContent =
+        "👄 Audio-Lip-Sync wird von diesem Browser nicht unterstützt.";
+
+      return false;
+    }
+
+    lipAudioContext =
+      new AudioContextClass();
+  }
+
+
+  if (
+    lipAudioContext.state ===
+    "suspended"
+  ) {
+
+    try {
+
+      await lipAudioContext.resume();
+
+    } catch (
+      error
+    ) {
+
+      console.error(
+        "Lip-Sync AudioContext:",
+        error
+      );
+    }
+  }
+
+
+  return true;
+}
+
+
+/*
+  Mundposition aus dem echten Bild berechnen.
+*/
+
+function updateMouthGeometry() {
+
+  if (
+    !solImage.complete
+  ) {
+    return;
+  }
+
+
+  const imageRect =
+    solImage.getBoundingClientRect();
+
+  const wrapperRect =
+    solCloneWrap.getBoundingClientRect();
+
+
+  if (
+    imageRect.width <= 0 ||
+    imageRect.height <= 0
+  ) {
+    return;
+  }
+
+
+  const imageLeft =
+    imageRect.left -
+    wrapperRect.left;
+
+  const imageTop =
+    imageRect.top -
+    wrapperRect.top;
+
+
+  const patchWidth =
+    imageRect.width *
+    LIP_SYNC_FACE.width;
+
+  const patchHeight =
+    imageRect.height *
+    LIP_SYNC_FACE.height;
+
+
+  const centerX =
+    imageLeft +
+    (
+      imageRect.width *
+      LIP_SYNC_FACE.x
+    );
+
+  const centerY =
+    imageTop +
+    (
+      imageRect.height *
+      LIP_SYNC_FACE.y
+    );
+
+
+  const left =
+    centerX -
+    patchWidth / 2;
+
+  const top =
+    centerY -
+    patchHeight / 2;
+
+
+  /*
+    Mund-Patch
+  */
+
+  mouthPatch.style.left =
+    `${left}px`;
+
+  mouthPatch.style.top =
+    `${top}px`;
+
+  mouthPatch.style.width =
+    `${patchWidth}px`;
+
+  mouthPatch.style.height =
+    `${patchHeight}px`;
+
+  mouthPatch.style.backgroundImage =
+    `url("${solImage.src}")`;
+
+  mouthPatch.style.backgroundSize =
+    `${imageRect.width}px ${imageRect.height}px`;
+
+  mouthPatch.style.backgroundPosition =
+    `${-(
+      imageRect.width *
+      LIP_SYNC_FACE.x -
+      patchWidth / 2
+    )}px ${
+      -(
+        imageRect.height *
+        LIP_SYNC_FACE.y -
+        patchHeight / 2
+      )
+    }px`;
+
+
+  /*
+    Mundtiefe
+  */
+
+  mouthDepth.style.left =
+    `${
+      centerX -
+      patchWidth * 0.31
+    }px`;
+
+  mouthDepth.style.top =
+    `${
+      centerY -
+      patchHeight * 0.10
+    }px`;
+
+  mouthDepth.style.width =
+    `${
+      patchWidth *
+      0.62
+    }px`;
+
+  mouthDepth.style.height =
+    `${
+      patchHeight *
+      0.47
+    }px`;
+
+
+  mouthPatch.style.display =
+    "block";
+
+  mouthDepth.style.display =
+    "block";
+}
+
+
+/*
+  Frequenzband lesen.
+*/
+
+function getFrequencyBand(
+  minHz,
+  maxHz
+) {
+
+  if (
+    !lipAnalyser ||
+    !lipFrequencyData ||
+    !lipAudioContext
+  ) {
+
+    return 0;
+  }
+
+
+  const nyquist =
+    lipAudioContext.sampleRate /
+    2;
+
+
+  const startIndex =
+    Math.floor(
+      (
+        minHz /
+        nyquist
+      ) *
+      lipFrequencyData.length
+    );
+
+
+  const endIndex =
+    Math.min(
+      lipFrequencyData.length - 1,
+
+      Math.ceil(
+        (
+          maxHz /
+          nyquist
+        ) *
+        lipFrequencyData.length
+      )
+    );
+
+
+  let total =
+    0;
+
+  let count =
+    0;
+
+
+  for (
+    let i =
+      startIndex;
+
+    i <=
+      endIndex;
+
+    i++
+  ) {
+
+    total +=
+      lipFrequencyData[i];
+
+    count++;
+  }
+
+
+  if (
+    count === 0
+  ) {
+
+    return 0;
+  }
+
+
+  return (
+    total /
+    count /
+    255
+  );
+}
+
+
+/*
+  Eine einzelne Lip-Sync-Frame.
+*/
+
+function animateLipSync() {
+
+  if (
+    !lipSyncRunning ||
+    !lipAnalyser
+  ) {
+
+    return;
+  }
+
+
+  lipAnalyser.getByteTimeDomainData(
+    lipTimeData
+  );
+
+  lipAnalyser.getByteFrequencyData(
+    lipFrequencyData
+  );
+
+
+  /*
+    RMS = tatsächliche momentane
+    Audioenergie.
+  */
+
+  let sum =
+    0;
+
+
+  for (
+    let i = 0;
+    i < lipTimeData.length;
+    i++
+  ) {
+
+    const sample =
+      (
+        lipTimeData[i] -
+        128
+      ) /
+      128;
+
+    sum +=
+      sample *
+      sample;
+  }
+
+
+  const rms =
+    Math.sqrt(
+      sum /
+      lipTimeData.length
+    );
+
+
+  /*
+    Sprachfrequenzen grob aufteilen.
+  */
+
+  const low =
+    getFrequencyBand(
+      90,
+      500
+    );
+
+  const middle =
+    getFrequencyBand(
+      500,
+      1900
+    );
+
+  const high =
+    getFrequencyBand(
+      1900,
+      5200
+    );
+
+
+  /*
+    Audio -> Mundöffnung
+  */
+
+  const rawOpen =
+    clamp(
+      (
+        rms -
+        0.008
+      ) *
+      13.5,
+      0,
+      1
+    );
+
+
+  /*
+    Breitere Laute:
+    höhere Mitten / Höhen.
+  */
+
+  const rawWide =
+    clamp(
+      (
+        middle *
+        0.80 +
+        high *
+        0.55 -
+        low *
+        0.18
+      ),
+      0,
+      1
+    );
+
+
+  /*
+    Rundere Laute:
+    stärkere tiefe / mittlere Energie.
+  */
+
+  const rawRound =
+    clamp(
+      (
+        low *
+        0.72 +
+        middle *
+        0.25 -
+        high *
+        0.15
+      ),
+      0,
+      1
+    );
+
+
+  /*
+    Glättung.
+
+    Mund folgt Sprache schnell,
+    schließt aber weicher.
+  */
+
+  const openSpeed =
+    rawOpen >
+      currentMouthOpen
+      ?
+      0.45
+      :
+      0.24;
+
+
+  currentMouthOpen +=
+    (
+      rawOpen -
+      currentMouthOpen
+    ) *
+    openSpeed;
+
+
+  currentMouthWide +=
+    (
+      rawWide -
+      currentMouthWide
+    ) *
+    0.20;
+
+
+  currentMouthRound +=
+    (
+      rawRound -
+      currentMouthRound
+    ) *
+    0.18;
+
+
+  /*
+    Stille erkennen.
+  */
+
+  const speaking =
+    currentMouthOpen >
+    0.035;
+
+
+  if (
+    speaking
+  ) {
+
+    solCloneWrap.classList.add(
+      "sol-speaking"
+    );
+
+  } else {
+
+    solCloneWrap.classList.remove(
+      "sol-speaking"
+    );
+  }
+
+
+  /*
+    Mundform.
+
+    Sehr bewusst begrenzt,
+    damit das Gesicht nicht
+    gummiartig aussieht.
+  */
+
+  const scaleY =
+    1 +
+    currentMouthOpen *
+    0.72;
+
+
+  const wideInfluence =
+    currentMouthWide *
+    (
+      1 -
+      currentMouthRound *
+      0.55
+    );
+
+
+  const scaleX =
+    1 +
+    wideInfluence *
+    0.11 -
+    currentMouthRound *
+    0.055;
+
+
+  /*
+    Bei Mundöffnung minimal nach unten.
+
+    Das simuliert Kieferbewegung.
+  */
+
+  const moveY =
+    currentMouthOpen *
+    1.8;
+
+
+  mouthPatch.style.transform =
+    `
+      translateY(${moveY}px)
+      scaleX(${scaleX})
+      scaleY(${scaleY})
+    `;
+
+
+  /*
+    Schatten innerhalb des Mundes.
+
+    Bleibt sehr dezent.
+  */
+
+  const depthOpacity =
+    clamp(
+      (
+        currentMouthOpen -
+        0.18
+      ) *
+      0.72,
+      0,
+      0.42
+    );
+
+
+  mouthDepth.style.opacity =
+    depthOpacity;
+
+
+  mouthDepth.style.transform =
+    `
+      scaleX(${
+        0.88 +
+        wideInfluence *
+        0.20
+      })
+
+      scaleY(${
+        0.28 +
+        currentMouthOpen *
+        0.95
+      })
+    `;
+
+
+  /*
+    Bei geschlossenen Lippen
+    Patch optisch fast vollständig
+    im Original verschwinden lassen.
+  */
+
+  mouthPatch.style.opacity =
+    clamp(
+      0.72 +
+      currentMouthOpen *
+      0.28,
+      0.72,
+      1
+    );
+
+
+  lipAnimationFrame =
+    requestAnimationFrame(
+      animateLipSync
+    );
+}
+
+
+/*
+  Lip-Sync an Sols echten
+  Realtime-Audiostream hängen.
+*/
+
+async function startLipSync(
+  stream
+) {
+
+  if (
+    !stream
+  ) {
+    return;
+  }
+
+
+  const ready =
+    await ensureLipAudioContext();
+
+
+  if (
+    !ready
+  ) {
+    return;
+  }
+
+
+  /*
+    Alten Stream sauber trennen.
+  */
+
+  stopLipSync(
+    false
+  );
+
+
+  try {
+
+    lipSourceNode =
+      lipAudioContext
+        .createMediaStreamSource(
+          stream
+        );
+
+
+    lipAnalyser =
+      lipAudioContext
+        .createAnalyser();
+
+
+    /*
+      Gute Balance:
+      schnell genug für Sprache,
+      aber nicht hektisch.
+    */
+
+    lipAnalyser.fftSize =
+      1024;
+
+    lipAnalyser.smoothingTimeConstant =
+      0.62;
+
+
+    lipTimeData =
+      new Uint8Array(
+        lipAnalyser.fftSize
+      );
+
+
+    lipFrequencyData =
+      new Uint8Array(
+        lipAnalyser.frequencyBinCount
+      );
+
+
+    /*
+      Wir spielen das Audio weiterhin
+      über realtimeAudio.
+
+      Dieser Gain ist deshalb stumm.
+      Er sorgt nur dafür, dass der
+      Analysegraph aktiv bleibt.
+    */
+
+    lipSilentGain =
+      lipAudioContext
+        .createGain();
+
+
+    lipSilentGain.gain.value =
+      0;
+
+
+    lipSourceNode.connect(
+      lipAnalyser
+    );
+
+
+    lipAnalyser.connect(
+      lipSilentGain
+    );
+
+
+    lipSilentGain.connect(
+      lipAudioContext.destination
+    );
+
+
+    updateMouthGeometry();
+
+
+    lipSyncRunning =
+      true;
+
+
+    lipSyncStatus.textContent =
+      "👄 Lip-Sync aktiv.";
+
+
+    animateLipSync();
+
+
+  } catch (
+    error
+  ) {
+
+    console.error(
+      "Lip-Sync Fehler:",
+      error
+    );
+
+
+    lipSyncStatus.textContent =
+      "👄 Lip-Sync konnte nicht gestartet werden.";
+  }
+}
+
+
+/*
+  Lip-Sync stoppen.
+*/
+
+function stopLipSync(
+  resetStatus = true
+) {
+
+  lipSyncRunning =
+    false;
+
+
+  if (
+    lipAnimationFrame
+  ) {
+
+    cancelAnimationFrame(
+      lipAnimationFrame
+    );
+
+    lipAnimationFrame =
+      null;
+  }
+
+
+  if (
+    lipSourceNode
+  ) {
+
+    try {
+
+      lipSourceNode.disconnect();
+
+    } catch {}
+
+    lipSourceNode =
+      null;
+  }
+
+
+  if (
+    lipAnalyser
+  ) {
+
+    try {
+
+      lipAnalyser.disconnect();
+
+    } catch {}
+
+    lipAnalyser =
+      null;
+  }
+
+
+  if (
+    lipSilentGain
+  ) {
+
+    try {
+
+      lipSilentGain.disconnect();
+
+    } catch {}
+
+    lipSilentGain =
+      null;
+  }
+
+
+  lipTimeData =
+    null;
+
+  lipFrequencyData =
+    null;
+
+
+  currentMouthOpen =
+    0;
+
+  currentMouthWide =
+    0;
+
+  currentMouthRound =
+    0;
+
+
+  mouthPatch.style.transform =
+    "translateY(0) scaleX(1) scaleY(1)";
+
+  mouthPatch.style.opacity =
+    "0.72";
+
+
+  mouthDepth.style.opacity =
+    "0";
+
+
+  mouthDepth.style.transform =
+    "scaleX(1) scaleY(.25)";
+
+
+  solCloneWrap.classList.remove(
+    "sol-speaking"
+  );
+
+
+  if (
+    resetStatus
+  ) {
+
+    lipSyncStatus.textContent =
+      "👄 Lip-Sync bereit.";
+  }
+}
+
+
+/*
+  Bild laden / drehen / skalieren
+*/
+
+solImage.addEventListener(
+  "load",
+  () => {
+
+    updateMouthGeometry();
+  }
+);
+
+
+window.addEventListener(
+  "resize",
+  () => {
+
+    updateMouthGeometry();
+  }
+);
+
+
+if (
+  "ResizeObserver" in window
+) {
+
+  const cloneResizeObserver =
+    new ResizeObserver(
+      () => {
+
+        updateMouthGeometry();
+      }
+    );
+
+
+  cloneResizeObserver.observe(
+    solCloneWrap
+  );
+}
+
+
+/*
+  ==========================================================
+  LAUTSTÄRKE
+  ==========================================================
+*/
+
+let solVolume =
+  0.22;
+
+
+function setSolVolume(
+  volume,
+  activeButton
+) {
+
+  solVolume =
+    volume;
+
+
+  realtimeAudio.volume =
+    solVolume;
+
+
+  volumeMute.classList.remove(
+    "active"
+  );
+
+  volumeLow.classList.remove(
+    "active"
+  );
+
+  volumeNormal.classList.remove(
+    "active"
+  );
+
+
+  activeButton.classList.add(
+    "active"
+  );
+}
+
+
+volumeMute.addEventListener(
+  "click",
+  () => {
+
+    setSolVolume(
+      0,
+      volumeMute
+    );
+  }
+);
+
+
+volumeLow.addEventListener(
+  "click",
+  () => {
+
+    setSolVolume(
+      0.22,
+      volumeLow
+    );
+  }
+);
+
+
+volumeNormal.addEventListener(
+  "click",
+  () => {
+
+    setSolVolume(
+      1,
+      volumeNormal
+    );
+  }
+);
+
+
+/*
+  ==========================================================
+  CHAT
+  ==========================================================
+*/
+
+function addMessage(
+  speaker,
+  text,
+  className
+) {
+
+  const element =
+    document.createElement(
+      "div"
+    );
+
+
+  element.className =
+    `message ${className}`;
+
+
+  const name =
+    document.createElement(
+      "strong"
+    );
+
+
+  name.textContent =
+    speaker;
+
+
+  const content =
+    document.createElement(
+      "div"
+    );
+
+
+  content.textContent =
+    text;
+
+
+  element.appendChild(
+    name
+  );
+
+
+  element.appendChild(
+    content
+  );
+
+
+  chat.appendChild(
+    element
+  );
+
+
+  chat.scrollTop =
+    chat.scrollHeight;
+}
+
+
+/*
+  ==========================================================
+  MENÜ
+  ==========================================================
+*/
+
+menuButton.addEventListener(
+  "click",
+  () => {
+
+    drawer.classList.add(
+      "open"
+    );
+  }
+);
+
+
+closeMenuButton.addEventListener(
+  "click",
+  () => {
+
+    drawer.classList.remove(
+      "open"
+    );
+  }
+);
+
+
+/*
+  ==========================================================
+  SCHREIBEN
+  ==========================================================
+*/
+
+async function sendMessage(
+  forcedMessage = null
+) {
+
+  const message =
+    String(
+      forcedMessage ??
+      messageInput.value
+    ).trim();
+
+
+  if (
+    !message
+  ) {
+
+    return;
+  }
+
+
+  if (
+    !forcedMessage
+  ) {
+
+    addMessage(
+      "Pam",
+      message,
+      "user-message"
+    );
+
+
+    messageInput.value =
+      "";
+  }
+
+
+  sendButton.disabled =
+    true;
+
+
+  chatStatus.textContent =
+    "Sol denkt ...";
+
+
+  try {
+
+    const response =
+      await fetch(
+        `${BACKEND_URL}/sol`,
+        {
+
+          method:
+            "POST",
+
+          headers: {
+
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+              message
+            })
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok
+    ) {
+
+      throw new Error(
+        data?.error ||
+        "Verbindung zu Sol fehlgeschlagen."
+      );
+    }
+
+
+    const answer =
+      String(
+        data?.answer ||
+        ""
+      ).trim();
+
+
+    if (
+      !answer
+    ) {
+
+      throw new Error(
+        "Sol hat keine Antwort geliefert."
+      );
+    }
+
+
+    addMessage(
+      "Sol",
+      answer,
+      "sol-message"
+    );
+
+
+    chatStatus.textContent =
+      "Antwort erhalten.";
+
+
+  } catch (
+    error
+  ) {
+
+    console.error(
+      "Textchat Fehler:",
+      error
+    );
+
+
+    addMessage(
+      "System",
+
+      error?.message ||
+      "Verbindung zu Sol fehlgeschlagen.",
+
+      "system-message"
+    );
+
+
+    chatStatus.textContent =
+      "Textchat-Fehler.";
+
+
+  } finally {
+
+    sendButton.disabled =
+      false;
+  }
+}
+
+
+sendButton.addEventListener(
+  "click",
+  () => {
+
+    sendMessage();
+  }
+);
+
+
+messageInput.addEventListener(
+  "keydown",
+  event => {
+
+    if (
+      event.key ===
+      "Enter"
+    ) {
+
+      event.preventDefault();
+
+      sendMessage();
+    }
+  }
+);
+
+
+/*
+  ==========================================================
+  MEMORY
+  ==========================================================
+*/
+
+memoryButton.addEventListener(
+  "click",
+  async () => {
+
+    drawer.classList.remove(
+      "open"
+    );
+
+
+    await sendMessage(
+      "Sol, was weißt du dauerhaft?"
+    );
+  }
+);
+
+
+/*
+  ==========================================================
+  LIVE MEMORY
+  ==========================================================
+*/
+
+async function sendLiveTranscriptToMemory(
+  transcript
+) {
+
+  const cleanTranscript =
+    String(
+      transcript ||
+      ""
+    ).trim();
+
+
+  if (
+    !cleanTranscript
+  ) {
+
+    return;
+  }
+
+
+  memoryStatus.textContent =
+    "🧠 Memory prüft ...";
+
+
+  try {
+
+    const response =
+      await fetch(
+        `${BACKEND_URL}/live/memory`,
+        {
+
+          method:
+            "POST",
+
+          headers: {
+
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+
+              transcript:
+                cleanTranscript
+            })
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok
+    ) {
+
+      throw new Error(
+        data?.error ||
+        "Memory konnte nicht verarbeitet werden."
+      );
+    }
+
+
+    if (
+      data.saved
+    ) {
+
+      memoryStatus.textContent =
+        `🧠 Gespeichert: ${data.memory}`;
+
+    } else {
+
+      memoryStatus.textContent =
+        "🧠 Keine dauerhafte Erinnerung nötig.";
+    }
+
+
+  } catch (
+    error
+  ) {
+
+    console.error(
+      "Live-Memory Fehler:",
+      error
+    );
+
+
+    memoryStatus.textContent =
+      "🧠 Memory-Fehler.";
+  }
+}
+
+
+/*
+  ==========================================================
+  MIKROFON
+  ==========================================================
+*/
+
+async function openFilteredMicrophone() {
+
+  if (
+    !navigator.mediaDevices ||
+    !navigator.mediaDevices.getUserMedia
+  ) {
+
+    throw new Error(
+      "Kein Mikrofonzugriff möglich."
+    );
+  }
+
+
+  micStatus.textContent =
+    "🎙️ Mikrofon wird aktiviert ...";
+
+
+  const stream =
+    await navigator.mediaDevices
+      .getUserMedia({
+
+        audio: {
+
+          echoCancellation:
+            true,
+
+          noiseSuppression:
+            true,
+
+          autoGainControl:
+            true,
+
+          channelCount:
+            1
+        }
+      });
+
+
+  micStatus.textContent =
+    "🎙️ Mikrofonfilter aktiv.";
+
+
+  return stream;
+}
+
+
+/*
+  ==========================================================
+  LIVE STOPPEN
+  ==========================================================
+*/
+
+function stopLiveConversation() {
+
+  stopLipSync();
+
+
+  if (
+    dc
+  ) {
+
+    try {
+
+      dc.close();
+
+    } catch {}
+
+
+    dc =
+      null;
+  }
+
+
+  if (
+    pc
+  ) {
+
+    try {
+
+      pc.close();
+
+    } catch {}
+
+
+    pc =
+      null;
+  }
+
+
+  if (
+    microphoneStream
+  ) {
+
+    microphoneStream
+      .getTracks()
+      .forEach(
+        track =>
+          track.stop()
+      );
+
+
+    microphoneStream =
+      null;
+  }
+
+
+  realtimeAudio.srcObject =
+    null;
+
+
+  liveButton.classList.remove(
+    "listening"
+  );
+
+
+  liveStatus.innerHTML =
+    '<span class="wave">·······</span>&nbsp; Ich bin da. &nbsp;<span class="wave">·······</span>';
+
+
+  micStatus.textContent =
+    "🎙️ Mikrofon bereit.";
+}
+
+
+/*
+  ==========================================================
+  LIVE STARTEN
+  ==========================================================
+*/
+
+async function startLiveConversation() {
+
+  /*
+    Wenn bereits verbunden:
+    Gespräch beenden.
+  */
+
+  if (
+    pc
+  ) {
+
+    stopLiveConversation();
+
+    return;
+  }
+
+
+  /*
+    AudioContext möglichst direkt
+    nach Nutzerklick aktivieren.
+
+    Wichtig auf mobilen Browsern.
+  */
+
+  await ensureLipAudioContext();
+
+
+  liveStatus.textContent =
+    "Sol verbindet sich ...";
+
+
+  try {
+
+    /*
+      Realtime Token vom eigenen Backend.
+    */
+
+    const tokenResponse =
+      await fetch(
+        `${BACKEND_URL}/realtime/token`,
+        {
+
+          method:
+            "GET",
+
+          cache:
+            "no-store"
+        }
+      );
+
+
+    const responseText =
+      await tokenResponse.text();
+
+
+    let tokenData;
+
+
+    try {
+
+      tokenData =
+        JSON.parse(
+          responseText
+        );
+
+
+    } catch {
+
+      throw new Error(
+        "Realtime-Verbindung konnte nicht vorbereitet werden."
+      );
+    }
+
+
+    if (
+      !tokenResponse.ok
+    ) {
+
+      throw new Error(
+        tokenData?.error ||
+        `Realtime-Token Fehler (${tokenResponse.status}).`
+      );
+    }
+
+
+    const ephemeralKey =
+      String(
+        tokenData?.value ||
+        tokenData?.client_secret?.value ||
+        ""
+      ).trim();
+
+
+    if (
+      !ephemeralKey
+    ) {
+
+      throw new Error(
+        "Kein Realtime-Schlüssel erhalten."
+      );
+    }
+
+
+    /*
+      WebRTC
+    */
+
+    pc =
+      new RTCPeerConnection();
+
+
+    /*
+      Sols echte Audio-Ausgabe.
+    */
+
+    pc.ontrack =
+      event => {
+
+        const stream =
+          event.streams?.[0];
+
+
+        if (
+          !stream
+        ) {
+
+          return;
+        }
+
+
+        /*
+          Audio normal abspielen.
+        */
+
+        realtimeAudio.srcObject =
+          stream;
+
+
+        realtimeAudio.volume =
+          solVolume;
+
+
+        realtimeAudio
+          .play()
+          .catch(
+            () => {}
+          );
+
+
+        /*
+          NEU:
+
+          Dasselbe Audio gleichzeitig
+          an Lip-Sync geben.
+        */
+
+        startLipSync(
+          stream
+        );
+      };
+
+
+    /*
+      Mikrofon.
+    */
+
+    microphoneStream =
+      await openFilteredMicrophone();
+
+
+    const audioTrack =
+      microphoneStream
+        .getAudioTracks()[0];
+
+
+    if (
+      !audioTrack
+    ) {
+
+      throw new Error(
+        "Keine Mikrofonspur gefunden."
+      );
+    }
+
+
+    pc.addTrack(
+      audioTrack,
+      microphoneStream
+    );
+
+
+    /*
+      OpenAI Event Channel.
+    */
+
+    dc =
+      pc.createDataChannel(
+        "oai-events"
+      );
+
+
+    dc.addEventListener(
+      "open",
+      () => {
+
+        liveButton.classList.add(
+          "listening"
+        );
+
+
+        liveStatus.textContent =
+          "🌻 Ich höre dir zu ...";
+      }
+    );
+
+
+    /*
+      Realtime Events.
+    */
+
+    dc.addEventListener(
+      "message",
+      event => {
+
+        try {
+
+          const realtimeEvent =
+            JSON.parse(
+              event.data
+            );
+
+
+          /*
+            Nutzer beginnt zu sprechen.
+          */
+
+          if (
+            realtimeEvent.type ===
+            "input_audio_buffer.speech_started"
+          ) {
+
+            liveStatus.textContent =
+              "🎙️ Ich höre dir zu ...";
+          }
+
+
+          /*
+            Nutzer hört auf.
+          */
+
+          if (
+            realtimeEvent.type ===
+            "input_audio_buffer.speech_stopped"
+          ) {
+
+            liveStatus.textContent =
+              "🌻 Einen Moment ...";
+          }
+
+
+          /*
+            Nutzer-Transkript fertig.
+          */
+
+          if (
+            realtimeEvent.type ===
+            "conversation.item.input_audio_transcription.completed"
+          ) {
+
+            const transcript =
+              String(
+                realtimeEvent.transcript ||
+                ""
+              ).trim();
+
+
+            if (
+              transcript
+            ) {
+
+              sendLiveTranscriptToMemory(
+                transcript
+              );
+            }
+          }
+
+
+          /*
+            Aktuelle OpenAI Audio-Ausgabe.
+          */
+
+          if (
+            realtimeEvent.type ===
+            "response.output_audio.delta"
+          ) {
+
+            liveStatus.textContent =
+              "🌻 Sol spricht ...";
+          }
+
+
+          /*
+            Kompatibilität mit älterem Eventnamen.
+          */
+
+          if (
+            realtimeEvent.type ===
+            "response.audio.delta"
+          ) {
+
+            liveStatus.textContent =
+              "🌻 Sol spricht ...";
+          }
+
+
+          /*
+            Audio fertig.
+          */
+
+          if (
+            realtimeEvent.type ===
+            "response.output_audio.done"
+          ) {
+
+            liveStatus.textContent =
+              "🌻 Ich höre dir zu ...";
+          }
+
+
+          /*
+            Gesamte Antwort fertig.
+          */
+
+          if (
+            realtimeEvent.type ===
+            "response.done"
+          ) {
+
+            liveStatus.textContent =
+              "🌻 Ich höre dir zu ...";
+          }
+
+
+          /*
+            OpenAI Fehler.
+          */
+
+          if (
+            realtimeEvent.type ===
+            "error"
+          ) {
+
+            console.error(
+              "Realtime Fehler:",
+              realtimeEvent
+            );
+
+
+            liveStatus.textContent =
+              "Sol hat gerade ein Verbindungsproblem.";
+          }
+
+
+        } catch (
+          error
+        ) {
+
+          console.error(
+            "Realtime Event Fehler:",
+            error
+          );
+        }
+      }
+    );
+
+
+    /*
+      Verbindungsstatus.
+    */
+
+    pc.addEventListener(
+      "connectionstatechange",
+      () => {
+
+        if (
+          !pc
+        ) {
+
+          return;
+        }
+
+
+        if (
+          pc.connectionState ===
+          "connected"
+        ) {
+
+          liveButton.classList.add(
+            "listening"
+          );
+
+
+          liveStatus.textContent =
+            "🌻 Ich höre dir zu ...";
+        }
+
+
+        if (
+          pc.connectionState ===
+          "failed"
+        ) {
+
+          stopLiveConversation();
+
+
+          liveStatus.textContent =
+            "Verbindung zu Sol unterbrochen.";
+        }
+      }
+    );
+
+
+    /*
+      SDP Offer.
+    */
+
+    const offer =
+      await pc.createOffer();
+
+
+    await pc.setLocalDescription(
+      offer
+    );
+
+
+    /*
+      OpenAI Realtime Verbindung.
+    */
+
+    const sdpResponse =
+      await fetch(
+        "https://api.openai.com/v1/realtime/calls",
+        {
+
+          method:
+            "POST",
+
+          headers: {
+
+            Authorization:
+              `Bearer ${ephemeralKey}`,
+
+            "Content-Type":
+              "application/sdp"
+          },
+
+          body:
+            offer.sdp
+        }
+      );
+
+
+    const answerSdp =
+      await sdpResponse.text();
+
+
+    if (
+      !sdpResponse.ok
+    ) {
+
+      console.error(
+        "OpenAI SDP Fehlerstatus:",
+        sdpResponse.status
+      );
+
+
+      console.error(
+        "OpenAI SDP Antwort:",
+        answerSdp
+      );
+
+
+      throw new Error(
+        `OpenAI Realtime Fehler ${sdpResponse.status}:\n${answerSdp.slice(0,700)}`
+      );
+    }
+
+
+    /*
+      Antwort der WebRTC Verbindung setzen.
+    */
+
+    await pc.setRemoteDescription({
+
+      type:
+        "answer",
+
+      sdp:
+        answerSdp
+    });
+
+
+  } catch (
+    error
+  ) {
+
+    console.error(
+      "Sol Live Fehler:",
+      error
+    );
+
+
+    stopLiveConversation();
+
+
+    liveStatus.textContent =
+      error?.message ||
+      "Live-Verbindung fehlgeschlagen.";
+  }
+}
+
+
+/*
+  LIVE BUTTON
+*/
+
+liveButton.addEventListener(
+  "click",
+  () => {
+
+    if (
+      pc
+    ) {
+
+      stopLiveConversation();
+
+    } else {
+
+      startLiveConversation();
+    }
+  }
+);
+
+
+/*
+  ==========================================================
+  STANDARD-LAUTSTÄRKE
+  ==========================================================
+*/
+
+realtimeAudio.volume =
+  solVolume;
+
+
+/*
+  ==========================================================
+  SERVICE WORKER
+  ==========================================================
+*/
+
+if (
+  "serviceWorker" in navigator
+) {
+
+  window.addEventListener(
+    "load",
+    () => {
+
+      navigator.serviceWorker
+        .register(
+          "/service-worker.js"
+        )
+        .catch(
+          error => {
+
+            console.error(
+              "Service Worker Fehler:",
+              error
+            );
+          }
+        );
+    }
+  );
+}
+
+
+/*
+  Initiale Mundposition berechnen,
+  falls Bild bereits aus Cache geladen ist.
+*/
+
+if (
+  solImage.complete
+) {
+
+  requestAnimationFrame(
+    updateMouthGeometry
+  );
+}
+
+</script>
+
+</body>
+</html>
