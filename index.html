@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sol Holo – TEST 008</title>
+
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#05070d">
 
@@ -97,13 +98,20 @@ button{
 
 button:disabled{
   opacity:.5;
+  cursor:default;
+}
+
+.secondary-button{
+  background:#30363d;
 }
 
 #status,
-#chatStatus{
+#chatStatus,
+#liveStatus{
   text-align:center;
-  margin-top:10px;
+  margin-top:12px;
   color:#9cffb1;
+  line-height:1.4;
 }
 
 #chat{
@@ -137,6 +145,18 @@ button:disabled{
   background:#2a2020;
   color:#ffb3b3;
 }
+
+.live-indicator{
+  text-align:center;
+  font-size:46px;
+  margin:14px 0 4px;
+}
+
+.live-hint{
+  text-align:center;
+  color:#9da7b3;
+  line-height:1.5;
+}
 </style>
 </head>
 
@@ -147,8 +167,9 @@ button:disabled{
 <h1>Sol Holo</h1>
 
 <p class="subtitle">
-Avatar · Sprache · Langzeitgedächtnis
+Avatar · Sprache · Langzeitgedächtnis · Live
 </p>
+
 
 <section class="box">
 
@@ -196,7 +217,7 @@ Bereit.
 
 <section class="box">
 
-<h2>3. Mit Sol sprechen</h2>
+<h2>3. Mit Sol schreiben</h2>
 
 <textarea
   id="messageInput"
@@ -217,10 +238,50 @@ Langzeitgedächtnis anzeigen
 
 </section>
 
+
+<section class="box">
+
+<h2>4. Live mit Sol sprechen</h2>
+
+<div class="live-indicator">
+🎙️ 🌻
+</div>
+
+<p class="live-hint">
+Starte ein Live-Gespräch und sprich direkt mit Sol.
+Das Mikrofon bleibt während des Gesprächs verbunden.
+</p>
+
+<button id="startLiveButton">
+Live-Gespräch starten
+</button>
+
+<button
+  id="stopLiveButton"
+  class="secondary-button"
+  disabled>
+Live-Gespräch beenden
+</button>
+
+<div id="liveStatus">
+Live-Verbindung noch nicht gestartet.
+</div>
+
+<audio
+  id="realtimeAudio"
+  autoplay>
+</audio>
+
+</section>
+
 </main>
 
 
 <script>
+
+/*
+  Elemente
+*/
 
 const imageInput =
   document.getElementById("imageInput");
@@ -251,6 +312,27 @@ const chatStatus =
 
 const status =
   document.getElementById("status");
+
+const startLiveButton =
+  document.getElementById("startLiveButton");
+
+const stopLiveButton =
+  document.getElementById("stopLiveButton");
+
+const liveStatus =
+  document.getElementById("liveStatus");
+
+const realtimeAudio =
+  document.getElementById("realtimeAudio");
+
+
+/*
+  Realtime-Objekte
+*/
+
+let realtimePeerConnection = null;
+let realtimeDataChannel = null;
+let realtimeMicrophoneStream = null;
 
 
 /*
@@ -348,7 +430,7 @@ function addMessage(
 
 
 /*
-  Nachricht an Sol senden
+  Textnachricht an Sol senden
 */
 
 async function sendMessage(
@@ -365,32 +447,27 @@ async function sendMessage(
     return;
   }
 
-
   addMessage(
     "Pam",
     message,
     "user-message"
   );
 
-
   if (!forcedMessage) {
     messageInput.value = "";
   }
 
-
   sendButton.disabled = true;
-
   memoryButton.disabled = true;
 
   chatStatus.textContent =
     "Sol denkt ...";
 
-
   try {
 
     const response =
       await fetch(
-        "https://sol-holo.onrender.com/sol",
+        "/sol",
         {
           method: "POST",
 
@@ -401,11 +478,10 @@ async function sendMessage(
 
           body:
             JSON.stringify({
-              message: message
+              message
             })
         }
       );
-
 
     let data;
 
@@ -422,7 +498,6 @@ async function sendMessage(
 
     }
 
-
     if (!response.ok) {
 
       throw new Error(
@@ -432,12 +507,10 @@ async function sendMessage(
 
     }
 
-
     const answer =
       String(
         data?.answer || ""
       ).trim();
-
 
     if (!answer) {
 
@@ -447,22 +520,18 @@ async function sendMessage(
 
     }
 
-
     addMessage(
       "Sol",
       answer,
       "sol-message"
     );
 
-
     chatStatus.textContent =
       "Antwort erhalten.";
-
 
   } catch (error) {
 
     console.error(error);
-
 
     addMessage(
       "System",
@@ -471,24 +540,20 @@ async function sendMessage(
       "system-message"
     );
 
-
     chatStatus.textContent =
       "Verbindung zu Sol fehlgeschlagen.";
 
   } finally {
 
-    sendButton.disabled =
-      false;
-
-    memoryButton.disabled =
-      false;
+    sendButton.disabled = false;
+    memoryButton.disabled = false;
 
   }
 }
 
 
 /*
-  Nachricht senden
+  Text senden
 */
 
 sendButton.addEventListener(
@@ -542,32 +607,193 @@ messageInput.addEventListener(
 
 
 /*
-  Startmeldung
+  Live-Verbindung vollständig beenden
 */
 
-addMessage(
-  "System",
-  "Sol Holo ist bereit.",
-  "system-message"
-);
-/*
-  Sol Holo Service Worker
-*/
+function stopRealtimeConversation() {
 
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/service-worker.js")
-      .catch((error) => {
-        console.error(
-          "Service Worker konnte nicht registriert werden:",
-          error
-        );
-      });
-  });
+  if (realtimeDataChannel) {
+
+    try {
+      realtimeDataChannel.close();
+    } catch {}
+
+    realtimeDataChannel = null;
+  }
+
+  if (realtimePeerConnection) {
+
+    try {
+      realtimePeerConnection.close();
+    } catch {}
+
+    realtimePeerConnection = null;
+  }
+
+  if (realtimeMicrophoneStream) {
+
+    realtimeMicrophoneStream
+      .getTracks()
+      .forEach(
+        (track) => track.stop()
+      );
+
+    realtimeMicrophoneStream = null;
+  }
+
+  realtimeAudio.srcObject = null;
+
+  startLiveButton.disabled = false;
+  stopLiveButton.disabled = true;
+
+  liveStatus.textContent =
+    "Live-Gespräch beendet.";
 }
 
-</script>
 
-</body>
-</html>
+/*
+  Echtes Live-Gespräch starten
+*/
+
+async function startRealtimeConversation() {
+
+  if (realtimePeerConnection) {
+    return;
+  }
+
+  startLiveButton.disabled = true;
+
+  liveStatus.textContent =
+    "Sol Live wird vorbereitet ...";
+
+  try {
+
+    /*
+      Kurzlebigen Realtime-Schlüssel
+      vom eigenen Backend holen
+    */
+
+    const tokenResponse =
+      await fetch(
+        "/realtime/token",
+        {
+          method: "GET",
+          cache: "no-store"
+        }
+      );
+
+    let tokenData;
+
+    try {
+
+      tokenData =
+        await tokenResponse.json();
+
+    } catch {
+
+      throw new Error(
+        "Der Realtime-Server hat keine gültige Antwort geliefert."
+      );
+
+    }
+
+    if (!tokenResponse.ok) {
+
+      throw new Error(
+        tokenData?.error ||
+        "Realtime-Schlüssel konnte nicht erstellt werden."
+      );
+
+    }
+
+    const ephemeralKey =
+      String(
+        tokenData?.value || ""
+      ).trim();
+
+    if (!ephemeralKey) {
+
+      throw new Error(
+        "Kein gültiger Realtime-Schlüssel erhalten."
+      );
+
+    }
+
+    liveStatus.textContent =
+      "Mikrofon wird geöffnet ...";
+
+
+    /*
+      WebRTC-Verbindung
+    */
+
+    const peerConnection =
+      new RTCPeerConnection();
+
+    realtimePeerConnection =
+      peerConnection;
+
+
+    /*
+      Sols Live-Audio direkt abspielen
+    */
+
+    peerConnection.ontrack =
+      (event) => {
+
+        const stream =
+          event.streams?.[0];
+
+        if (stream) {
+
+          realtimeAudio.srcObject =
+            stream;
+
+          realtimeAudio
+            .play()
+            .catch(() => {});
+
+        }
+
+      };
+
+
+    /*
+      Mikrofon öffnen
+    */
+
+    realtimeMicrophoneStream =
+      await navigator.mediaDevices
+        .getUserMedia({
+          audio: true
+        });
+
+    const microphoneTrack =
+      realtimeMicrophoneStream
+        .getAudioTracks()[0];
+
+    if (!microphoneTrack) {
+
+      throw new Error(
+        "Kein Mikrofon gefunden."
+      );
+
+    }
+
+    peerConnection.addTrack(
+      microphoneTrack,
+      realtimeMicrophoneStream
+    );
+
+
+    /*
+      Realtime Event-Kanal
+    */
+
+    const dataChannel =
+      peerConnection
+        .createDataChannel(
+          "oai-events"
+        );
+
+    realtime
