@@ -1,54 +1,25 @@
-const CACHE_NAME = "sol-holo-v2";
+const CACHE_VERSION = "sol-holo-004-clean";
 
-const APP_FILES = [
-  "/",
-  "/index.html",
-  "/manifest.json",
-  "/file_000000009bf88246b8f682a46e1a429d.png"
-];
-
-self.addEventListener("install", (event) => {
+self.addEventListener("install", () => {
   self.skipWaiting();
+});
 
+self.addEventListener("activate", event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(APP_FILES);
-    })
+    caches.keys()
+      .then(names =>
+        Promise.all(
+          names.map(name => caches.delete(name))
+        )
+      )
+      .then(() => self.clients.claim())
   );
 });
 
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((names) => {
-      return Promise.all(
-        names
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
-      );
-    }).then(() => {
-      return self.clients.claim();
-    })
-  );
-});
+/*
+  Absichtlich kein Fetch-Cache.
 
-self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") {
-    return;
-  }
-
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        const copy = response.clone();
-
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, copy);
-        });
-
-        return response;
-      })
-      .catch(() => {
-        return caches.match(event.request);
-      })
-  );
-});
+  Dadurch lädt Sol Holo index.html,
+  das Holo-Bild und alle anderen Dateien
+  direkt vom aktuellen Stand.
+*/
