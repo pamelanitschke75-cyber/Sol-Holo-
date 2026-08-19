@@ -1,50 +1,50 @@
 /*
   SOL HOLO
-  VOICE ID – TEST 001
-
-  Zweck:
-  Sprechererkennung vorbereiten,
-  ohne das funktionierende Sol-Holo-System
-  zu verändern.
+  VOICE ID – TEST 002
 
   Ziel:
+  Pam / Steffi / unknown
 
-  Pam     -> pam
-  Steffi  -> steffi
-  unsicher -> unknown
-
-  WICHTIG:
-
-  Diese Datei ist momentan absichtlich
-  NICHT mit server.mjs verbunden.
-
-  Dadurch bleiben folgende bereits
-  funktionierende Komponenten unangetastet:
-
-  - Textchat
+  Dieser Test läuft GETRENNT von:
+  - server.mjs
   - LiveSpeak
-  - Mikrofon
-  - OpenAI Realtime
-  - Langzeitgedächtnis
-  - Lip-Sync
+  - Memory
+  - Sol Holo UI
 
-  Referenzaufnahmen im Repository:
-
-  Pam's Stimme vom 19.08.2026.m4a
-  Steffis Stimme vom 19.08.2026.m4a
+  Dadurch bleibt der funktionierende
+  Sol-Holo-Stand unangetastet.
 */
+
+import fs from "fs";
+import OpenAI from "openai";
+
+/*
+  OpenAI
+*/
+
+const openai =
+  new OpenAI({
+    apiKey:
+      process.env.OPENAI_API_KEY
+  });
 
 
 /*
   Sprecher
 */
 
-export const SPEAKERS = {
+const SPEAKERS = {
 
   pam: {
     id: "pam",
     name: "Pam",
-    cloneId: "pam-sol-001",
+
+    /*
+      Für den echten API-Test
+      sollte dieser Referenzclip
+      2–10 Sekunden lang sein.
+    */
+
     referenceAudio:
       "Pam's Stimme vom 19.08.2026.m4a"
   },
@@ -52,93 +52,291 @@ export const SPEAKERS = {
   steffi: {
     id: "steffi",
     name: "Steffi",
+
+    /*
+      Für den echten API-Test
+      sollte dieser Referenzclip
+      2–10 Sekunden lang sein.
+    */
+
     referenceAudio:
       "Steffis Stimme vom 19.08.2026.m4a"
-  },
-
-  unknown: {
-    id: "unknown",
-    name: "Unbekannt"
   }
 
 };
 
 
 /*
-  Sicherheitsgrenze
-
-  Eine unsichere Sprecherzuordnung
-  darf niemals automatisch einer
-  bekannten Person zugeordnet werden.
+  Audiodatei in Data-URL umwandeln
 */
 
-export const VOICE_ID_POLICY = {
+function audioFileToDataUrl(
+  filePath
+) {
 
-  unknownOnUncertainty: true,
+  if (
+    !fs.existsSync(
+      filePath
+    )
+  ) {
 
-  allowUnknownMemory:
-    false,
+    throw new Error(
+      `Audiodatei nicht gefunden: ${filePath}`
+    );
+  }
 
-  allowAutomaticGuess:
-    false
+  const audioBuffer =
+    fs.readFileSync(
+      filePath
+    );
 
-};
+  const base64 =
+    audioBuffer.toString(
+      "base64"
+    );
+
+  return (
+    `data:audio/mp4;base64,${base64}`
+  );
+}
 
 
 /*
-  Ergebnisformat der späteren
-  Sprechererkennung
+  Sprechername normalisieren
 */
 
-export function createVoiceIdResult(
-  speaker = "unknown",
-  confidence = 0
+function normalizeSpeaker(
+  speaker
 ) {
 
-  const normalizedSpeaker =
+  const value =
     String(
-      speaker || "unknown"
-    ).toLowerCase();
+      speaker || ""
+    )
+      .trim()
+      .toLowerCase();
 
-  const knownSpeaker =
-    SPEAKERS[
-      normalizedSpeaker
-    ];
+  if (
+    value === "pam"
+  ) {
 
-  if (!knownSpeaker) {
+    return "pam";
+
+  }
+
+  if (
+    value === "steffi"
+  ) {
+
+    return "steffi";
+
+  }
+
+  return "unknown";
+}
+
+
+/*
+  Gesamtergebnis aus allen
+  Sprechersegmenten bestimmen
+*/
+
+function determineMainSpeaker(
+  segments
+) {
+
+  const totals = {
+
+    pam:
+      0,
+
+    steffi:
+      0,
+
+    unknown:
+      0
+
+  };
+
+
+  for (
+    const segment
+    of segments
+  ) {
+
+    const speaker =
+      normalizeSpeaker(
+        segment?.speaker
+      );
+
+    const start =
+      Number(
+        segment?.start ||
+        0
+      );
+
+    const end =
+      Number(
+        segment?.end ||
+        0
+      );
+
+    const duration =
+      Math.max(
+        0,
+        end - start
+      );
+
+    totals[
+      speaker
+    ] +=
+      duration;
+
+  }
+
+
+  console.log(
+    "Sprechzeiten:",
+    totals
+  );
+
+
+  /*
+    Höchsten Wert bestimmen
+  */
+
+  const sorted =
+    Object.entries(
+      totals
+    )
+      .sort(
+        (
+          a,
+          b
+        ) =>
+          b[1] - a[1]
+      );
+
+
+  const [
+    bestSpeaker,
+    bestDuration
+  ] =
+    sorted[0];
+
+
+  const secondDuration =
+    sorted[1]?.[1] ||
+    0;
+
+
+  /*
+    Keine brauchbare Sprache
+  */
+
+  if (
+    bestDuration <= 0
+  ) {
 
     return {
-      speaker: "unknown",
-      name: "Unbekannt",
-      confidence: 0,
-      verified: false
+
+      speaker:
+        "unknown",
+
+      confidence:
+        0,
+
+      reason:
+        "Keine verwertbaren Sprechersegmente."
+
     };
 
   }
 
-  const numericConfidence =
-    Number(
-      confidence
-    );
+
+  /*
+    Wenn OpenAI keinen bekannten
+    Sprecher zuordnen konnte
+  */
+
+  if (
+    bestSpeaker ===
+    "unknown"
+  ) {
+
+    return {
+
+      speaker:
+        "unknown",
+
+      confidence:
+        0,
+
+      reason:
+        "Sprecher konnte keiner bekannten Referenz zugeordnet werden."
+
+    };
+
+  }
+
+
+  /*
+    Einfache relative Sicherheit
+
+    Noch KEINE biometrische
+    Sicherheitsgarantie.
+
+    Nur Testwert für TEST 002.
+  */
+
+  const totalKnown =
+    totals.pam +
+    totals.steffi;
+
+  const confidence =
+    totalKnown > 0
+      ? bestDuration /
+        totalKnown
+      : 0;
+
+
+  /*
+    Wenn Pam und Steffi
+    fast gleich stark vorkommen,
+    lieber UNKNOWN.
+  */
+
+  if (
+    Math.abs(
+      bestDuration -
+      secondDuration
+    ) < 0.75
+  ) {
+
+    return {
+
+      speaker:
+        "unknown",
+
+      confidence,
+
+      reason:
+        "Sprecherzuordnung zu unsicher."
+
+    };
+
+  }
+
 
   return {
 
     speaker:
-      knownSpeaker.id,
+      bestSpeaker,
 
-    name:
-      knownSpeaker.name,
+    confidence,
 
-    confidence:
-      Number.isFinite(
-        numericConfidence
-      )
-        ? numericConfidence
-        : 0,
-
-    verified:
-      knownSpeaker.id !==
-      "unknown"
+    reason:
+      "Bekannter Sprecher erkannt."
 
   };
 
@@ -146,98 +344,96 @@ export function createVoiceIdResult(
 
 
 /*
-  Memory-Schutz
-
-  Noch NICHT an server.mjs angeschlossen.
-
-  Später darf nur eine erfolgreich
-  erkannte Person ihre Aussage an
-  das zugehörige persönliche Memory
-  weitergeben.
+  Hauptfunktion
 */
 
-export function mayWriteMemory(
-  voiceResult
+async function identifySpeaker(
+  testAudioPath
 ) {
 
-  if (
-    !voiceResult
-  ) {
-    return false;
-  }
-
-  if (
-    voiceResult.speaker ===
-    "unknown"
-  ) {
-    return false;
-  }
-
-  return (
-    voiceResult.verified ===
-    true
+  console.log(
+    "--------------------------------"
   );
 
-}
+  console.log(
+    "SOL HOLO VOICE ID – TEST 002"
+  );
+
+  console.log(
+    "--------------------------------"
+  );
 
 
-/*
-  Diagnose
+  if (
+    !process.env.OPENAI_API_KEY
+  ) {
 
-  Dieser Teil bestätigt beim späteren
-  Testen auf Render lediglich,
-  dass das Voice-ID-Modul geladen wurde.
+    throw new Error(
+      "OPENAI_API_KEY fehlt."
+    );
 
-  Es findet hier NOCH KEINE
-  biometrische Sprechererkennung statt.
-*/
-
-export function voiceIdStatus() {
-
-  return {
-
-    system:
-      "Sol Holo Voice ID",
-
-    test:
-      "VOICE-ID TEST 001",
-
-    ready:
-      true,
-
-    connectedToLiveSpeak:
-      false,
-
-    speakerIdentificationActive:
-      false,
-
-    references: {
-
-      pam:
-        SPEAKERS.pam
-          .referenceAudio,
-
-      steffi:
-        SPEAKERS.steffi
-          .referenceAudio
-
-    },
-
-    possibleResults: [
-      "pam",
-      "steffi",
-      "unknown"
-    ]
-
-  };
-
-}
+  }
 
 
-console.log(
-  "Sol Holo Voice ID – TEST 001 vorbereitet."
-);
+  if (
+    !testAudioPath
+  ) {
 
-console.log(
-  "Voice-ID ist noch NICHT mit LiveSpeak verbunden."
-);
+    throw new Error(
+      "Keine Test-Audiodatei angegeben."
+    );
+
+  }
+
+
+  if (
+    !fs.existsSync(
+      testAudioPath
+    )
+  ) {
+
+    throw new Error(
+      `Test-Audio nicht gefunden: ${testAudioPath}`
+    );
+
+  }
+
+
+  /*
+    Referenzstimmen laden
+  */
+
+  console.log(
+    "Pam-Referenz wird geladen ..."
+  );
+
+  const pamReference =
+    audioFileToDataUrl(
+      SPEAKERS.pam
+        .referenceAudio
+    );
+
+
+  console.log(
+    "Steffi-Referenz wird geladen ..."
+  );
+
+  const steffiReference =
+    audioFileToDataUrl(
+      SPEAKERS.steffi
+        .referenceAudio
+    );
+
+
+  console.log(
+    "Test-Audio:",
+    testAudioPath
+  );
+
+
+  /*
+    OpenAI Speaker Diarization
+
+    OpenAI kann bekannte Sprecher
+    anhand kurzer Referenzclips
+    auf
