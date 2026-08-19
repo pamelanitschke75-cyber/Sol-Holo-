@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>Sol Holo – HOLO UI 003</title>
+<title>Sol Holo – HOLO UI 004</title>
 
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#05070d">
@@ -33,8 +33,15 @@ body {
   min-height: 100vh;
   max-width: 760px;
   margin: auto;
+
   background:
-    radial-gradient(circle at 50% 35%, #112238 0%, #070b12 38%, #020307 75%);
+    radial-gradient(
+      circle at 50% 35%,
+      #112238 0%,
+      #070b12 38%,
+      #020307 75%
+    );
+
   overflow: hidden;
 }
 
@@ -42,10 +49,23 @@ body {
   position: absolute;
   inset: 0;
   pointer-events: none;
+
   background:
-    radial-gradient(circle at 18% 44%, rgba(255,180,70,.10), transparent 28%),
-    radial-gradient(circle at 85% 42%, rgba(20,100,255,.12), transparent 30%);
+    radial-gradient(
+      circle at 18% 44%,
+      rgba(255,180,70,.10),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 85% 42%,
+      rgba(20,100,255,.12),
+      transparent 30%
+    );
 }
+
+/*
+  HEADER
+*/
 
 header {
   position: relative;
@@ -58,10 +78,13 @@ header {
   position: absolute;
   left: 18px;
   top: 22px;
+
   width: 52px;
   height: 52px;
+
   border: none;
   background: transparent;
+
   color: white;
   font-size: 32px;
   cursor: pointer;
@@ -71,6 +94,7 @@ header {
   position: absolute;
   right: 20px;
   top: 34px;
+
   font-size: 15px;
   color: #d6dbe5;
 }
@@ -81,20 +105,29 @@ header {
 
 h1 {
   margin: 0;
+
   font-size: 40px;
   font-weight: 600;
-  text-shadow: 0 0 22px rgba(255,196,90,.25);
+
+  text-shadow:
+    0 0 22px rgba(255,196,90,.25);
 }
 
 #subtitle {
   margin-top: 7px;
+
   color: #f3c969;
   font-size: 17px;
 }
 
+/*
+  BEGRÜSSUNG
+*/
+
 #greeting {
   position: relative;
   z-index: 10;
+
   padding: 22px 28px 0;
 }
 
@@ -110,1349 +143,51 @@ h1 {
   margin: 0;
 }
 
+/*
+  SOL HOLO CLONE
+*/
+
 #solStage {
   position: relative;
   z-index: 4;
+
   height: min(52vh, 590px);
   min-height: 390px;
+
   margin-top: -25px;
+
   display: flex;
   align-items: flex-end;
   justify-content: center;
+
   overflow: hidden;
 }
 
+/*
+  Wrapper für den Clone.
+  Hier sitzt jetzt auch die Lip-Sync-Schicht.
+*/
+
+#solCloneWrap {
+  position: relative;
+
+  display: inline-block;
+
+  height: 95%;
+  max-width: 100%;
+
+  transform-origin: center bottom;
+}
+
+/*
+  Originalbild bleibt erhalten.
+*/
+
 #solImage {
   display: block;
-  max-height: 95%;
+
+  height: 100%;
+  width: auto;
   max-width: 100%;
-  object-fit: contain;
-  object-position: center bottom;
-  filter:
-    drop-shadow(0 0 8px rgba(70,145,255,.42))
-    drop-shadow(0 0 24px rgba(25,105,255,.22));
-}
 
-#holoBase {
-  position: absolute;
-  bottom: 14px;
-  width: 78%;
-  height: 24px;
-  border-radius: 50%;
-  border: 2px solid rgba(80,160,255,.8);
-  box-shadow:
-    0 0 8px #54a6ff,
-    0 0 26px rgba(40,120,255,.75),
-    0 0 55px rgba(40,120,255,.35);
-}
-
-#chatPanel {
-  position: relative;
-  z-index: 25;
-  margin: -4px 20px 14px;
-  padding: 14px;
-  border: 1px solid rgba(78,91,110,.75);
-  border-radius: 20px;
-  background: rgba(7,11,18,.82);
-  backdrop-filter: blur(10px);
-}
-
-#chat {
-  max-height: 240px;
-  overflow-y: auto;
-  padding: 2px;
-}
-
-.message {
-  margin: 9px 0;
-  padding: 11px 13px;
-  border-radius: 15px;
-  line-height: 1.45;
-  white-space: pre-wrap;
-  font-size: 17px;
-}
-
-.message strong {
-  display: block;
-  margin-bottom: 4px;
-}
-
-.user-message {
-  margin-left: 28px;
-  background: #14264f;
-}
-
-.sol-message {
-  margin-right: 28px;
-  background: #15271b;
-}
-
-.system-message {
-  color: #c9d0db;
-  background: rgba(36,43,54,.70);
-}
-
-#controls {
-  position: relative;
-  z-index: 30;
-  padding: 0 20px 26px;
-}
-
-#inputRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 72px;
-  gap: 10px;
-  align-items: center;
-}
-
-#messageWrap {
-  display: flex;
-  align-items: center;
-  min-height: 66px;
-  padding: 8px 8px 8px 18px;
-  border-radius: 34px;
-  border: 1px solid #46505e;
-  background: rgba(10,14,21,.95);
-  backdrop-filter: blur(10px);
-}
-
-#messageInput {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: white;
-  font-size: 18px;
-}
-
-#messageInput::placeholder {
-  color: #9ba2ae;
-}
-
-#sendButton {
-  flex: 0 0 auto;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  color: #64a9ff;
-  font-size: 28px;
-  cursor: pointer;
-}
-
-#sendButton:disabled {
-  opacity: .45;
-}
-
-#liveButton {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  border: 2px solid #f0c76d;
-  background:
-    radial-gradient(circle, #443016 0%, #17130c 66%);
-  color: white;
-  font-size: 32px;
-  cursor: pointer;
-  box-shadow:
-    0 0 10px rgba(255,204,90,.35),
-    0 0 30px rgba(255,190,60,.16);
-}
-
-#liveButton.listening {
-  border-color: #58df8a;
-  box-shadow:
-    0 0 12px rgba(65,230,110,.45),
-    0 0 36px rgba(65,230,110,.22);
-}
-
-#liveStatus {
-  margin-top: 16px;
-  min-height: 30px;
-  text-align: center;
-  color: #f2c75e;
-  font-size: 18px;
-  white-space: pre-wrap;
-}
-
-.wave {
-  letter-spacing: 3px;
-  color: #d99e28;
-  opacity: .8;
-}
-
-/*
-  Lautstärke
-*/
-
-#volumeControls {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 14px;
-  flex-wrap: wrap;
-}
-
-.volumeButton {
-  padding: 10px 14px;
-  border: 1px solid #3d4654;
-  border-radius: 14px;
-  background: #151b24;
-  color: white;
-  font-size: 15px;
-  cursor: pointer;
-}
-
-.volumeButton.active {
-  border-color: #f0c76d;
-  background: #2b2112;
-  color: #ffe29a;
-}
-
-#drawer {
-  position: fixed;
-  z-index: 100;
-  top: 0;
-  left: -320px;
-  width: 300px;
-  height: 100vh;
-  padding: 32px 22px;
-  background: #090d15;
-  border-right: 1px solid #303744;
-  transition: left .25s ease;
-  box-shadow: 12px 0 40px rgba(0,0,0,.4);
-}
-
-#drawer.open {
-  left: 0;
-}
-
-.drawerButton {
-  width: 100%;
-  margin-top: 14px;
-  padding: 16px;
-  border: 1px solid #384151;
-  border-radius: 14px;
-  background: #141a24;
-  color: white;
-  font-size: 17px;
-  text-align: left;
-  cursor: pointer;
-}
-
-#memoryStatus,
-#chatStatus,
-#micStatus {
-  margin-top: 15px;
-  color: #aeb7c6;
-  line-height: 1.45;
-  font-size: 14px;
-}
-
-@media (max-width: 520px) {
-  h1 {
-    font-size: 34px;
-  }
-
-  #subtitle {
-    font-size: 15px;
-  }
-
-  #greeting {
-    padding-left: 24px;
-  }
-
-  #greetingTitle {
-    font-size: 27px;
-  }
-
-  #solStage {
-    height: 46vh;
-    min-height: 350px;
-  }
-
-  #chatPanel {
-    margin-left: 14px;
-    margin-right: 14px;
-  }
-
-  #controls {
-    padding-left: 14px;
-    padding-right: 14px;
-  }
-}
-</style>
-</head>
-
-<body>
-
-<div id="app">
-
-<div id="backgroundGlow"></div>
-
-<header>
-
-<button
-  id="menuButton"
-  type="button"
-  aria-label="Menü">
-☰
-</button>
-
-<h1>Sol Holo 🌻</h1>
-
-<div id="subtitle">
-Deine KI. Dein Holo. Immer für dich da.
-</div>
-
-<div id="onlineState">
-<span id="onlineDot">●</span>
-Online
-</div>
-
-</header>
-
-<section id="greeting">
-
-<h2 id="greetingTitle">
-Hallo Pam 💛
-</h2>
-
-<p id="greetingText">
-Schön, dass du da bist. Wie kann ich dir helfen?
-</p>
-
-</section>
-
-<section id="solStage">
-
-<img
-  id="solImage"
-  src="/file_000000009bf88246b8f682a46e1a429d.png"
-  alt="Sol Holo"
->
-
-<div id="holoBase"></div>
-
-</section>
-
-<section id="chatPanel">
-
-<div id="chat">
-
-<div class="message system-message">
-<strong>Sol Holo</strong>
-Ich bin da. Du kannst mir schreiben oder mit mir sprechen. 🌻
-</div>
-
-</div>
-
-</section>
-
-<section id="controls">
-
-<div id="inputRow">
-
-<div id="messageWrap">
-
-<input
-  id="messageInput"
-  type="text"
-  placeholder="Schreib Sol etwas..."
-  autocomplete="off"
->
-
-<button
-  id="sendButton"
-  type="button"
-  aria-label="Nachricht senden">
-➤
-</button>
-
-</div>
-
-<button
-  id="liveButton"
-  type="button"
-  aria-label="Mit Sol sprechen">
-🎙️
-</button>
-
-</div>
-
-<div id="liveStatus">
-<span class="wave">·······</span>
-&nbsp; Ich bin da. &nbsp;
-<span class="wave">·······</span>
-</div>
-
-<div id="volumeControls">
-
-<button
-  id="volumeMute"
-  class="volumeButton"
-  type="button">
-🔇 Stumm
-</button>
-
-<button
-  id="volumeLow"
-  class="volumeButton active"
-  type="button">
-🔉 Leise
-</button>
-
-<button
-  id="volumeNormal"
-  class="volumeButton"
-  type="button">
-🔊 Normal
-</button>
-
-</div>
-
-</section>
-
-</div>
-
-<aside id="drawer">
-
-<h2>Sol Holo 🌻</h2>
-
-<button
-  id="memoryButton"
-  class="drawerButton"
-  type="button">
-🧠 Langzeitgedächtnis anzeigen
-</button>
-
-<button
-  id="closeMenuButton"
-  class="drawerButton"
-  type="button">
-← Zurück zu Sol
-</button>
-
-<div id="chatStatus">
-Schreiben bereit.
-</div>
-
-<div id="micStatus">
-🎙️ Mikrofon bereit.
-</div>
-
-<div id="memoryStatus">
-🧠 Memory bereit.
-</div>
-
-</aside>
-
-<audio
-  id="realtimeAudio"
-  autoplay>
-</audio>
-
-<script>
-
-const BACKEND_URL =
-  "https://sol-holo.onrender.com";
-
-const messageInput =
-  document.getElementById("messageInput");
-
-const sendButton =
-  document.getElementById("sendButton");
-
-const memoryButton =
-  document.getElementById("memoryButton");
-
-const liveButton =
-  document.getElementById("liveButton");
-
-const liveStatus =
-  document.getElementById("liveStatus");
-
-const memoryStatus =
-  document.getElementById("memoryStatus");
-
-const chatStatus =
-  document.getElementById("chatStatus");
-
-const micStatus =
-  document.getElementById("micStatus");
-
-const realtimeAudio =
-  document.getElementById("realtimeAudio");
-
-const menuButton =
-  document.getElementById("menuButton");
-
-const closeMenuButton =
-  document.getElementById("closeMenuButton");
-
-const drawer =
-  document.getElementById("drawer");
-
-const chat =
-  document.getElementById("chat");
-
-const volumeMute =
-  document.getElementById("volumeMute");
-
-const volumeLow =
-  document.getElementById("volumeLow");
-
-const volumeNormal =
-  document.getElementById("volumeNormal");
-
-let pc = null;
-let dc = null;
-let microphoneStream = null;
-
-/*
-  Lautstärke
-
-  Standard:
-  LEISE
-*/
-
-let solVolume =
-  0.22;
-
-function setSolVolume(
-  volume,
-  activeButton
-) {
-
-  solVolume =
-    volume;
-
-  realtimeAudio.volume =
-    solVolume;
-
-  volumeMute.classList.remove(
-    "active"
-  );
-
-  volumeLow.classList.remove(
-    "active"
-  );
-
-  volumeNormal.classList.remove(
-    "active"
-  );
-
-  activeButton.classList.add(
-    "active"
-  );
-}
-
-volumeMute.addEventListener(
-  "click",
-  () => {
-    setSolVolume(
-      0,
-      volumeMute
-    );
-  }
-);
-
-volumeLow.addEventListener(
-  "click",
-  () => {
-    setSolVolume(
-      0.22,
-      volumeLow
-    );
-  }
-);
-
-volumeNormal.addEventListener(
-  "click",
-  () => {
-    setSolVolume(
-      1,
-      volumeNormal
-    );
-  }
-);
-
-/*
-  Chat
-*/
-
-function addMessage(
-  speaker,
-  text,
-  className
-) {
-
-  const element =
-    document.createElement(
-      "div"
-    );
-
-  element.className =
-    `message ${className}`;
-
-  const name =
-    document.createElement(
-      "strong"
-    );
-
-  name.textContent =
-    speaker;
-
-  const content =
-    document.createElement(
-      "div"
-    );
-
-  content.textContent =
-    text;
-
-  element.appendChild(
-    name
-  );
-
-  element.appendChild(
-    content
-  );
-
-  chat.appendChild(
-    element
-  );
-
-  chat.scrollTop =
-    chat.scrollHeight;
-}
-
-/*
-  Menü
-*/
-
-menuButton.addEventListener(
-  "click",
-  () => {
-    drawer.classList.add(
-      "open"
-    );
-  }
-);
-
-closeMenuButton.addEventListener(
-  "click",
-  () => {
-    drawer.classList.remove(
-      "open"
-    );
-  }
-);
-
-/*
-  Schreiben
-*/
-
-async function sendMessage(
-  forcedMessage = null
-) {
-
-  const message =
-    String(
-      forcedMessage ??
-      messageInput.value
-    ).trim();
-
-  if (!message) {
-    return;
-  }
-
-  if (!forcedMessage) {
-
-    addMessage(
-      "Pam",
-      message,
-      "user-message"
-    );
-
-    messageInput.value =
-      "";
-  }
-
-  sendButton.disabled =
-    true;
-
-  chatStatus.textContent =
-    "Sol denkt ...";
-
-  try {
-
-    const response =
-      await fetch(
-        `${BACKEND_URL}/sol`,
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          body:
-            JSON.stringify({
-              message
-            })
-        }
-      );
-
-    const data =
-      await response.json();
-
-    if (!response.ok) {
-
-      throw new Error(
-        data?.error ||
-        "Verbindung zu Sol fehlgeschlagen."
-      );
-    }
-
-    const answer =
-      String(
-        data?.answer ||
-        ""
-      ).trim();
-
-    if (!answer) {
-
-      throw new Error(
-        "Sol hat keine Antwort geliefert."
-      );
-    }
-
-    addMessage(
-      "Sol",
-      answer,
-      "sol-message"
-    );
-
-    chatStatus.textContent =
-      "Antwort erhalten.";
-
-  } catch (error) {
-
-    console.error(
-      "Textchat Fehler:",
-      error
-    );
-
-    addMessage(
-      "System",
-      error?.message ||
-      "Verbindung zu Sol fehlgeschlagen.",
-      "system-message"
-    );
-
-    chatStatus.textContent =
-      "Textchat-Fehler.";
-
-  } finally {
-
-    sendButton.disabled =
-      false;
-  }
-}
-
-sendButton.addEventListener(
-  "click",
-  () => {
-    sendMessage();
-  }
-);
-
-messageInput.addEventListener(
-  "keydown",
-  (event) => {
-
-    if (
-      event.key ===
-      "Enter"
-    ) {
-
-      event.preventDefault();
-
-      sendMessage();
-    }
-  }
-);
-
-/*
-  Memory
-*/
-
-memoryButton.addEventListener(
-  "click",
-  async () => {
-
-    drawer.classList.remove(
-      "open"
-    );
-
-    await sendMessage(
-      "Sol, was weißt du dauerhaft?"
-    );
-  }
-);
-
-/*
-  Live Memory
-*/
-
-async function sendLiveTranscriptToMemory(
-  transcript
-) {
-
-  const cleanTranscript =
-    String(
-      transcript ||
-      ""
-    ).trim();
-
-  if (!cleanTranscript) {
-    return;
-  }
-
-  memoryStatus.textContent =
-    "🧠 Memory prüft ...";
-
-  try {
-
-    const response =
-      await fetch(
-        `${BACKEND_URL}/live/memory`,
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          body:
-            JSON.stringify({
-              transcript:
-                cleanTranscript
-            })
-        }
-      );
-
-    const data =
-      await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        data?.error ||
-        "Memory konnte nicht verarbeitet werden."
-      );
-    }
-
-    if (
-      data.saved
-    ) {
-
-      memoryStatus.textContent =
-        `🧠 Gespeichert: ${data.memory}`;
-
-    } else {
-
-      memoryStatus.textContent =
-        "🧠 Keine dauerhafte Erinnerung nötig.";
-    }
-
-  } catch (error) {
-
-    console.error(
-      "Live-Memory Fehler:",
-      error
-    );
-
-    memoryStatus.textContent =
-      "🧠 Memory-Fehler.";
-  }
-}
-
-/*
-  Mikrofon
-*/
-
-async function openFilteredMicrophone() {
-
-  if (
-    !navigator.mediaDevices ||
-    !navigator.mediaDevices.getUserMedia
-  ) {
-
-    throw new Error(
-      "Kein Mikrofonzugriff möglich."
-    );
-  }
-
-  micStatus.textContent =
-    "🎙️ Mikrofon wird aktiviert ...";
-
-  const stream =
-    await navigator.mediaDevices
-      .getUserMedia({
-        audio: {
-          echoCancellation:
-            true,
-          noiseSuppression:
-            true,
-          autoGainControl:
-            true,
-          channelCount:
-            1
-        }
-      });
-
-  micStatus.textContent =
-    "🎙️ Mikrofonfilter aktiv.";
-
-  return stream;
-}
-
-/*
-  Live stoppen
-*/
-
-function stopLiveConversation() {
-
-  if (dc) {
-    try {
-      dc.close();
-    } catch {}
-    dc = null;
-  }
-
-  if (pc) {
-    try {
-      pc.close();
-    } catch {}
-    pc = null;
-  }
-
-  if (
-    microphoneStream
-  ) {
-
-    microphoneStream
-      .getTracks()
-      .forEach(
-        track =>
-          track.stop()
-      );
-
-    microphoneStream =
-      null;
-  }
-
-  realtimeAudio.srcObject =
-    null;
-
-  liveButton.classList.remove(
-    "listening"
-  );
-
-  liveStatus.innerHTML =
-    '<span class="wave">·······</span>&nbsp; Ich bin da. &nbsp;<span class="wave">·······</span>';
-
-  micStatus.textContent =
-    "🎙️ Mikrofon bereit.";
-}
-
-/*
-  Live starten
-*/
-
-async function startLiveConversation() {
-
-  if (pc) {
-
-    stopLiveConversation();
-    return;
-  }
-
-  liveStatus.textContent =
-    "Sol verbindet sich ...";
-
-  try {
-
-    const tokenResponse =
-      await fetch(
-        `${BACKEND_URL}/realtime/token`,
-        {
-          method: "GET",
-          cache: "no-store"
-        }
-      );
-
-    const responseText =
-      await tokenResponse.text();
-
-    let tokenData;
-
-    try {
-
-      tokenData =
-        JSON.parse(
-          responseText
-        );
-
-    } catch {
-
-      throw new Error(
-        "Realtime-Verbindung konnte nicht vorbereitet werden."
-      );
-    }
-
-    if (
-      !tokenResponse.ok
-    ) {
-
-      throw new Error(
-        tokenData?.error ||
-        `Realtime-Token Fehler (${tokenResponse.status}).`
-      );
-    }
-
-    const ephemeralKey =
-      String(
-        tokenData?.value ||
-        tokenData?.client_secret?.value ||
-        ""
-      ).trim();
-
-    if (
-      !ephemeralKey
-    ) {
-
-      throw new Error(
-        "Kein Realtime-Schlüssel erhalten."
-      );
-    }
-
-    pc =
-      new RTCPeerConnection();
-
-    pc.ontrack =
-      (event) => {
-
-        const stream =
-          event.streams?.[0];
-
-        if (!stream) {
-          return;
-        }
-
-        realtimeAudio.srcObject =
-          stream;
-
-        realtimeAudio.volume =
-          solVolume;
-
-        realtimeAudio
-          .play()
-          .catch(
-            () => {}
-          );
-      };
-
-    microphoneStream =
-      await openFilteredMicrophone();
-
-    const audioTrack =
-      microphoneStream
-        .getAudioTracks()[0];
-
-    if (!audioTrack) {
-
-      throw new Error(
-        "Keine Mikrofonspur gefunden."
-      );
-    }
-
-    pc.addTrack(
-      audioTrack,
-      microphoneStream
-    );
-
-    dc =
-      pc.createDataChannel(
-        "oai-events"
-      );
-
-    dc.addEventListener(
-      "open",
-      () => {
-
-        liveButton.classList.add(
-          "listening"
-        );
-
-        liveStatus.textContent =
-          "🌻 Ich höre dir zu ...";
-      }
-    );
-
-    dc.addEventListener(
-      "message",
-      (event) => {
-
-        try {
-
-          const realtimeEvent =
-            JSON.parse(
-              event.data
-            );
-
-          if (
-            realtimeEvent.type ===
-            "input_audio_buffer.speech_started"
-          ) {
-
-            liveStatus.textContent =
-              "🎙️ Ich höre dir zu ...";
-          }
-
-          if (
-            realtimeEvent.type ===
-            "input_audio_buffer.speech_stopped"
-          ) {
-
-            liveStatus.textContent =
-              "🌻 Einen Moment ...";
-          }
-
-          if (
-            realtimeEvent.type ===
-            "conversation.item.input_audio_transcription.completed"
-          ) {
-
-            const transcript =
-              String(
-                realtimeEvent.transcript ||
-                ""
-              ).trim();
-
-            if (
-              transcript
-            ) {
-
-              sendLiveTranscriptToMemory(
-                transcript
-              );
-            }
-          }
-
-          if (
-            realtimeEvent.type ===
-              "response.output_audio.delta" ||
-            realtimeEvent.type ===
-              "response.audio.delta"
-          ) {
-
-            liveStatus.textContent =
-              "🌻 Sol spricht ...";
-          }
-
-          if (
-            realtimeEvent.type ===
-            "response.done"
-          ) {
-
-            liveStatus.textContent =
-              "🌻 Ich höre dir zu ...";
-          }
-
-          if (
-            realtimeEvent.type ===
-            "error"
-          ) {
-
-            console.error(
-              "Realtime Fehler:",
-              realtimeEvent
-            );
-
-            liveStatus.textContent =
-              "Sol hat gerade ein Verbindungsproblem.";
-          }
-
-        } catch (error) {
-
-          console.error(
-            "Realtime Event Fehler:",
-            error
-          );
-        }
-      }
-    );
-
-    pc.addEventListener(
-      "connectionstatechange",
-      () => {
-
-        if (!pc) {
-          return;
-        }
-
-        if (
-          pc.connectionState ===
-          "connected"
-        ) {
-
-          liveButton.classList.add(
-            "listening"
-          );
-
-          liveStatus.textContent =
-            "🌻 Ich höre dir zu ...";
-        }
-
-        if (
-          pc.connectionState ===
-          "failed"
-        ) {
-
-          stopLiveConversation();
-
-          liveStatus.textContent =
-            "Verbindung zu Sol unterbrochen.";
-        }
-      }
-    );
-
-    const offer =
-      await pc.createOffer();
-
-    await pc.setLocalDescription(
-      offer
-    );
-
-    const sdpResponse =
-      await fetch(
-        "https://api.openai.com/v1/realtime/calls",
-        {
-          method: "POST",
-
-          headers: {
-            Authorization:
-              `Bearer ${ephemeralKey}`,
-
-            "Content-Type":
-              "application/sdp"
-          },
-
-          body:
-            offer.sdp
-        }
-      );
-
-    const answerSdp =
-      await sdpResponse.text();
-
-    if (
-      !sdpResponse.ok
-    ) {
-
-      console.error(
-        "OpenAI SDP Fehlerstatus:",
-        sdpResponse.status
-      );
-
-      console.error(
-        "OpenAI SDP Antwort:",
-        answerSdp
-      );
-
-      throw new Error(
-        `OpenAI Realtime Fehler ${sdpResponse.status}:\n${answerSdp.slice(0,700)}`
-      );
-    }
-
-    await pc.setRemoteDescription({
-      type: "answer",
-      sdp: answerSdp
-    });
-
-  } catch (error) {
-
-    console.error(
-      "Sol Live Fehler:",
-      error
-    );
-
-    stopLiveConversation();
-
-    liveStatus.textContent =
-      error?.message ||
-      "Live-Verbindung fehlgeschlagen.";
-  }
-}
-
-liveButton.addEventListener(
-  "click",
-  () => {
-
-    if (pc) {
-
-      stopLiveConversation();
-
-    } else {
-
-      startLiveConversation();
-    }
-  }
-);
-
-/*
-  Standard-Lautstärke direkt anwenden
-*/
-
-realtimeAudio.volume =
-  solVolume;
-
-/*
-  Service Worker
-*/
-
-if (
-  "serviceWorker" in navigator
-) {
-
-  window.addEventListener(
-    "load",
-    () => {
-
-      navigator.serviceWorker
-        .register(
-          "/service-worker.js"
-        )
-        .catch(
-          error => {
-
-            console.error(
-              "Service Worker Fehler:",
-              error
-            );
-          }
-        );
-    }
-  );
-}
-
-</script>
-
-</body>
-</html>
+  object
