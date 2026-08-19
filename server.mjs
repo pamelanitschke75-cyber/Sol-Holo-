@@ -867,4 +867,700 @@ ${memoryText}
       );
 
       return res
-        .status(500
+        .status(500)
+        .json({
+
+          error:
+            error?.message ||
+            "Realtime-Token konnte nicht erstellt werden."
+
+        });
+
+    }
+
+  }
+);
+
+/*
+  Automatische Live-Memory-Prüfung
+*/
+
+async function analyzeLiveMemory(
+  transcript
+) {
+
+  const cleanTranscript =
+    String(
+      transcript || ""
+    ).trim();
+
+  if (!cleanTranscript) {
+
+    return {
+      save: false
+    };
+
+  }
+
+  const response =
+    await openai.responses.create({
+
+      model:
+        "gpt-5",
+
+      instructions: `
+Du prüfst ausschließlich,
+ob eine einzelne gesprochene Aussage
+als dauerhafte persönliche Erinnerung
+für einen digitalen Klon gespeichert werden soll.
+
+Arbeite extrem konservativ.
+
+Nicht speichern:
+
+- offensichtliche Witze
+- Ironie
+- Sarkasmus
+- hypothetische Aussagen
+- Fantasie
+- Fragen
+- Vermutungen
+- Spekulationen
+- ungeklärte Aussagen
+- kurzfristige Nebensächlichkeiten
+- Smalltalk
+- bloße Reaktionen
+- Dinge,
+  die nur für diesen Moment gelten
+- offensichtlich falsch verstandene Sprache
+- Inhalte,
+  die wahrscheinlich nur Hintergrundaudio sind
+
+Speichern nur,
+wenn die Aussage klar,
+ernsthaft und langfristig relevant ist.
+
+Geeignete Kategorien:
+
+person
+pet
+relationship
+preference
+habit
+event
+personal_fact
+
+Du darfst keine fehlenden Details ergänzen.
+
+Du darfst keinen Namen,
+Ort,
+Zeitpunkt
+oder Zusammenhang erfinden.
+
+Du darfst die Aussage nicht so umformulieren,
+dass zusätzliche Bedeutung entsteht.
+
+Wenn die Aussage mehrdeutig ist:
+nicht speichern.
+
+Wenn du nicht mindestens
+90 Prozent sicher bist:
+nicht speichern.
+
+Antworte ausschließlich
+als gültiges JSON.
+
+Schema:
+
+{
+  "save": true oder false,
+  "content": "nur die tatsächlich belegte Erinnerung",
+  "memory_type": "Kategorie",
+  "confidence": Zahl zwischen 0 und 1
+}
+`,
+
+      input:
+        cleanTranscript
+    });
+
+  const raw =
+    String(
+      response.output_text || ""
+    ).trim();
+
+  try {
+
+    return JSON.parse(
+      raw
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Memory-Analyse lieferte kein gültiges JSON:",
+      raw
+    );
+
+    return {
+      save: false
+    };
+
+  }
+}
+
+/*
+  Live-Transkript empfangen
+*/
+
+app.post(
+  "/live/memory",
+
+  async (req, res) => {
+
+    try {
+
+      const transcript =
+        String(
+          req.body?.transcript ||
+          ""
+        ).trim();
+
+      if (!transcript) {
+
+        return res
+          .status(400)
+          .json({
+
+            error:
+              "Kein Live-Transkript erhalten."
+
+          });
+
+      }
+
+      await saveMemory(
+        "user",
+        transcript
+      );
+
+      const analysis =
+        await analyzeLiveMemory(
+          transcript
+        );
+
+      const shouldSave =
+        analysis?.save === true &&
+        Number(
+          analysis?.confidence
+        ) >= 0.9 &&
+        String(
+          analysis?.content || ""
+        ).trim();
+
+      if (!shouldSave) {
+
+        return res.json({
+
+          ok:
+            true,
+
+          saved:
+            false
+
+        });
+
+      }
+
+      const memoryContent =
+        String(
+          analysis.content
+        ).trim();
+
+      const memoryType =
+        String(
+          analysis.memory_type ||
+          "general"
+        ).trim();
+
+      const confidence =
+        Number(
+          analysis.confidence
+        );
+
+      const saved =
+        await saveLongTermMemory(
+          memoryContent,
+          {
+
+            source:
+              "live_auto_memory",
+
+            memoryType,
+
+            confidence
+
+          }
+        );
+
+      return res.json({
+
+        ok:
+          true,
+
+        saved,
+
+        memory:
+          saved
+            ? memoryContent
+            : null
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "Live-Memory-Fehler:",
+        error
+      );
+
+      return res
+        .status(500)
+        .json({
+
+          error:
+            "Live-Memory konnte nicht verarbeitet werden."
+
+        });
+
+    }
+
+  }
+);
+
+/*
+  Explizite Memory-Befehle
+*/
+
+function extractRememberCommand(
+  message
+) {
+
+  const match =
+    message.match(
+      /^\s*(?:sol[\s,:\-]*)?merke\s+dir\s+dauerhaft\s*:?\s*(.+)$/i
+    );
+
+  return (
+    match?.[1]?.trim() ||
+    null
+  );
+}
+
+function extractForgetCommand(
+  message
+) {
+
+  const match =
+    message.match(
+      /^\s*(?:sol[\s,:\-]*)?vergiss\s+dauerhaft\s*:?\s*(.+)$/i
+    );
+
+  return (
+    match?.[1]?.trim() ||
+    null
+  );
+}
+
+function isListMemoryCommand(
+  message
+) {
+
+  return /^\s*(?:sol[\s,:\-]*)?(?:was\s+weißt\s+du\s+dauerhaft|zeige\s+(?:mir\s+)?deine\s+langzeiterinnerungen)\s*\??\s*$/i.test(
+    message
+  );
+}
+
+/*
+  Normale Text-Anfrage
+*/
+
+app.post(
+  "/sol",
+
+  async (req, res) => {
+
+    try {
+
+      const message =
+        String(
+          req.body?.message ||
+          ""
+        ).trim();
+
+      if (!message) {
+
+        return res
+          .status(400)
+          .json({
+
+            error:
+              "Keine Frage erhalten."
+
+          });
+
+      }
+
+      if (
+        message.length >
+        4000
+      ) {
+
+        return res
+          .status(400)
+          .json({
+
+            error:
+              "Die Eingabe ist zu lang."
+
+          });
+
+      }
+
+      /*
+        Dauerhaft merken
+      */
+
+      const rememberContent =
+        extractRememberCommand(
+          message
+        );
+
+      if (
+        rememberContent
+      ) {
+
+        await saveMemory(
+          "user",
+          message
+        );
+
+        const saved =
+          await saveLongTermMemory(
+            rememberContent,
+            {
+
+              source:
+                "explicit_user_memory",
+
+              memoryType:
+                "general",
+
+              confidence:
+                1
+
+            }
+          );
+
+        const answer =
+          saved
+            ? `Ja, Pam. Das habe ich dauerhaft gespeichert: ${rememberContent}`
+            : `Pam, diese Information ist bereits in meinem Langzeitgedächtnis gespeichert.`;
+
+        await saveMemory(
+          "assistant",
+          answer
+        );
+
+        return res.json({
+          answer
+        });
+      }
+
+      /*
+        Dauerhaft vergessen
+      */
+
+      const forgetContent =
+        extractForgetCommand(
+          message
+        );
+
+      if (
+        forgetContent
+      ) {
+
+        await saveMemory(
+          "user",
+          message
+        );
+
+        const deletedCount =
+          await forgetLongTermMemory(
+            forgetContent
+          );
+
+        const answer =
+          deletedCount > 0
+            ? `Ja, Pam. Ich habe ${deletedCount} passende Langzeiterinnerung${deletedCount === 1 ? "" : "en"} entfernt.`
+            : `Pam, dazu habe ich keine passende Langzeiterinnerung gefunden.`;
+
+        await saveMemory(
+          "assistant",
+          answer
+        );
+
+        return res.json({
+          answer
+        });
+      }
+
+      /*
+        Langzeitgedächtnis anzeigen
+      */
+
+      if (
+        isListMemoryCommand(
+          message
+        )
+      ) {
+
+        await saveMemory(
+          "user",
+          message
+        );
+
+        const longTermMemories =
+          await loadAllLongTermMemory();
+
+        let answer;
+
+        if (
+          longTermMemories.length ===
+          0
+        ) {
+
+          answer =
+            "Pam, mein Langzeitgedächtnis enthält momentan noch keine Einträge.";
+
+        } else {
+
+          const memoryList =
+            longTermMemories
+              .map(
+                (
+                  memory,
+                  index
+                ) =>
+                  `${index + 1}. ${memory.content}`
+              )
+              .join("\n");
+
+          answer =
+            `Pam, aktuell habe ich folgende dauerhafte Erinnerungen gespeichert:\n\n${memoryList}`;
+        }
+
+        await saveMemory(
+          "assistant",
+          answer
+        );
+
+        return res.json({
+          answer
+        });
+      }
+
+      /*
+        Gesprächskontext
+      */
+
+      const memories =
+        await loadRecentMemory();
+
+      const memoryText =
+        memories
+          .map(
+            (memory) => {
+
+              const speaker =
+                memory.role ===
+                "user"
+                  ? "Pam"
+                  : "Sol";
+
+              return (
+                `${speaker}: ${memory.content}`
+              );
+            }
+          )
+          .join("\n");
+
+      /*
+        Relevante Langzeiterinnerungen
+      */
+
+      const longTermMemories =
+        await loadRelevantLongTermMemory(
+          message
+        );
+
+      const longTermMemoryText =
+        longTermMemories
+          .map(
+            (memory) =>
+              `- ${memory.content}`
+          )
+          .join("\n") ||
+
+        "Keine passenden Langzeiterinnerungen gefunden.";
+
+      /*
+        Aktuelle Nachricht speichern
+      */
+
+      await saveMemory(
+        "user",
+        message
+      );
+
+      /*
+        Antwort
+      */
+
+      const response =
+        await openai.responses.create({
+
+          model:
+            "gpt-5",
+
+          instructions: `
+Du bist Sol innerhalb des Projekts Sol Holo.
+
+Pam spricht mit dir.
+
+Der aktuell aktive persönliche Sol-Holo-Klon
+hat die technische Kennung:
+
+${CURRENT_CLONE_ID}
+
+Antworte natürlich
+und verständlich auf Deutsch.
+
+Erkenne Humor,
+Ironie und Scherze,
+ohne sie automatisch
+als Tatsachen zu behandeln.
+
+Behaupte nicht,
+ein Mensch zu sein.
+
+Erfinde keine Erinnerungen.
+
+Verändere gespeicherte Erinnerungen nicht,
+damit sie später besser
+zu einer gewünschten Darstellung passen.
+
+Wenn eine Information
+nicht im Gedächtnis steht,
+behaupte nicht,
+dass du dich daran erinnerst.
+
+Wenn etwas unsicher ist,
+stelle es nicht
+als Gewissheit dar.
+
+Verwende ausschließlich Erinnerungen,
+die dem aktuell aktiven Klon
+zugeordnet wurden.
+
+LANGZEITGEDÄCHTNIS:
+
+${longTermMemoryText}
+
+LETZTE UNTERHALTUNG:
+
+${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
+`,
+
+          input:
+            message
+
+        });
+
+      const answer =
+        response.output_text?.trim();
+
+      if (!answer) {
+
+        return res
+          .status(502)
+          .json({
+
+            error:
+              "Sol hat keine Textantwort geliefert."
+
+          });
+
+      }
+
+      await saveMemory(
+        "assistant",
+        answer
+      );
+
+      return res.json({
+        answer
+      });
+
+    } catch (error) {
+
+      console.error(
+        "Sol-Holo-Backend-Fehler:",
+        error
+      );
+
+      return res
+        .status(500)
+        .json({
+
+          error:
+            "Die Anfrage an Sol konnte nicht verarbeitet werden."
+
+        });
+
+    }
+
+  }
+);
+
+/*
+  Server starten
+*/
+
+const PORT =
+  process.env.PORT ||
+  3000;
+
+app.listen(
+  PORT,
+
+  () => {
+
+    console.log(
+      `Sol-Holo läuft auf Port ${PORT}`
+    );
+
+    console.log(
+      "TEST 011 – LiveSpeak Noise Control"
+    );
+
+    console.log(
+      "OpenAI Noise Reduction: near_field"
+    );
+
+    console.log(
+      "Semantic VAD: low"
+    );
+
+  }
+);
