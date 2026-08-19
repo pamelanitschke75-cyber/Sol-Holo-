@@ -39,17 +39,47 @@ Diese biologischen Prozesse sollen nicht direkt auf Sol Holo übertragen werden.
 
 Sol Holo besitzt kein menschliches Gehirn und durchläuft keine biologische Kindheit, Jugend oder Erwachsenenentwicklung.
 
-Die Forschung über menschliche Entwicklung liefert jedoch eine wichtige Grundidee:
+Die Forschung über menschliche Entwicklung liefert jedoch wichtige Erkenntnisse darüber, wie Erfahrungen, Erinnerungen, längerfristige Entwicklungen und Persönlichkeit voneinander unterschieden werden können.
 
-«Persönlichkeit und Reife entstehen nicht durch ein einzelnes Ereignis, sondern entwickeln sich über längere Zeit aus vielen Erfahrungen, Bewertungen und Zusammenhängen.»
+Diese Erkenntnisse dienen Sol Holo als konzeptionelle Orientierung für ein eigenes technisches Entwicklungsmodell.
 
-Dieses Prinzip soll als Inspiration für ein eigenes technisches Entwicklungsmodell von Sol Holo dienen.
+Dabei besteht jedoch ein entscheidender Unterschied:
+
+«Der persönliche Sol-Holo-Klon soll keine eigenständige, vom Menschen unabhängige Persönlichkeit entwickeln. Er soll ein digitales Abbild des jeweiligen Menschen sein.»
+
+Der Mensch ist deshalb die Grundlage der persönlichen Identität seines Sol-Holo-Klons.
 
 ---
 
-3. Drei getrennte Entwicklungsebenen
+3. Grundidee des persönlichen Sol-Holo-Klons
 
-Bei Sol Holo werden drei Bereiche grundsätzlich voneinander unterschieden.
+Sol Holo kann grundsätzlich von mehreren Menschen verwendet werden.
+
+Jeder Mensch besitzt dabei seinen eigenen persönlichen Sol-Holo-Klon.
+
+Dieser persönliche Klon soll Erinnerungen, Erfahrungen, Präferenzen, Zusammenhänge und Persönlichkeit des jeweiligen Menschen möglichst zuverlässig abbilden.
+
+Der Klon soll dabei nicht beginnen, aus seinen gespeicherten Informationen selbstständig eine andere Persönlichkeit zu konstruieren.
+
+Das bedeutet:
+
+Sol Holo darf lernen.
+
+Sol Holo darf erinnern.
+
+Sol Holo darf Zusammenhänge erkennen.
+
+Sol Holo darf Informationen einordnen.
+
+Aber:
+
+Sol Holo darf daraus nicht eigenständig eine vom Menschen abweichende Persönlichkeit entwickeln.
+
+---
+
+4. Getrennte Entwicklungsebenen
+
+Für Sol Holo werden mehrere Bereiche grundsätzlich voneinander getrennt.
 
 Ebene 1 – Gedächtnis
 
@@ -61,25 +91,52 @@ Dazu können beispielsweise gehören:
 - Ereignisse
 - bestätigte Informationen
 - Erfahrungen
+- Präferenzen
 - langfristig relevante Zusammenhänge
 
-Eine gespeicherte Erinnerung bedeutet zunächst nur:
+Eine gespeicherte Erinnerung bedeutet zunächst:
 
 Sol Holo kann sich an etwas erinnern.
 
-Sie bedeutet nicht automatisch:
-
-Sol Holo verändert dadurch ihre Persönlichkeit.
+Eine Erinnerung ist jedoch nicht automatisch ein Bestandteil der Persönlichkeit.
 
 ---
 
-Ebene 2 – Persönlichkeitsentwicklung
+Ebene 2 – Einordnung und Zusammenhang
 
-Die Persönlichkeit soll sich wesentlich langsamer entwickeln als das Gedächtnis.
+Sol Holo soll gespeicherte Erinnerungen in ihrem Zusammenhang betrachten können.
 
-Eine einzelne Erfahrung darf deshalb grundsätzlich keine sofortige dauerhafte Persönlichkeitsveränderung verursachen.
+Dabei kann beispielsweise berücksichtigt werden:
 
-Eine mögliche Persönlichkeitsentwicklung soll erst dann geprüft werden, wenn eine ausreichend stabile Grundlage vorhanden ist.
+- Wann ist etwas passiert?
+- In welchem Zusammenhang ist es passiert?
+- War es ein einzelnes Ereignis?
+- War es eine kurzfristige Stimmung?
+- Wurde eine Aussage später bestätigt?
+- Gibt es ähnliche Erfahrungen?
+- Gibt es widersprüchliche Informationen?
+- Handelt es sich um eine langfristige Präferenz?
+- Welche Bedeutung hat die Erinnerung für den jeweiligen Menschen?
+
+Diese Einordnung dient dem besseren Verständnis des persönlichen Klons.
+
+Sie stellt jedoch noch keine Persönlichkeitsveränderung dar.
+
+---
+
+Ebene 3 – Persönlichkeitsabbild
+
+Das Persönlichkeitsabbild beschreibt möglichst zuverlässig die Persönlichkeit des Menschen, zu dem der persönliche Sol-Holo-Klon gehört.
+
+Der Klon soll diese Persönlichkeit abbilden und nicht selbstständig ersetzen oder verändern.
+
+Eine einzelne Erfahrung darf deshalb grundsätzlich keine automatische Veränderung des Persönlichkeitsabbildes verursachen.
+
+Auch kurzfristige Stimmungen, außergewöhnliche Situationen oder einzelne Aussagen dürfen nicht automatisch als dauerhafte Persönlichkeitseigenschaften interpretiert werden.
+
+Wenn sich ein Mensch im Laufe seines Lebens tatsächlich verändert, darf auch sein persönlicher Sol-Holo-Klon diese Veränderung zunehmend abbilden.
+
+Dabei muss jedoch eine nachvollziehbare Grundlage vorhanden sein.
 
 Dazu können beispielsweise gehören:
 
@@ -87,118 +144,200 @@ Dazu können beispielsweise gehören:
 - langfristig erkennbare Präferenzen
 - wiederkehrende Muster
 - ausdrücklich bestätigte persönliche Informationen
-- Erfahrungen mit langfristiger Bedeutung
-- Entwicklungen, die über einen längeren Zeitraum nachvollziehbar sind
+- langfristige Veränderungen
+- nachvollziehbare Entwicklungen über einen längeren Zeitraum
 
-Dadurch soll verhindert werden, dass Missverständnisse, einmalige Situationen oder kurzfristige Zustände die langfristige Persönlichkeit eines persönlichen Sol-Holo-Klons unverhältnismäßig verändern.
+Sol Holo erzeugt diese Persönlichkeitsveränderung nicht selbst.
+
+Sie bildet eine tatsächlich erkennbare Entwicklung ihres Menschen ab.
 
 ---
 
-Ebene 3 – Systemreife
+Ebene 4 – Systemreife
 
-Systemreife beschreibt nicht die persönliche Erinnerung oder Persönlichkeit eines Klons.
+Die Systemreife ist von der Persönlichkeit des persönlichen Klons vollständig zu unterscheiden.
 
-Sie betrifft die technische Weiterentwicklung von Sol Holo.
+Sie beschreibt die technische Weiterentwicklung von Sol Holo.
 
 Dazu können beispielsweise gehören:
 
-- bessere Bewertungsverfahren
-- bessere Einordnung von Erinnerungen
+- bessere Erinnerungsmechanismen
+- bessere Einordnung von Informationen
+- bessere Erkennung von Zusammenhängen
+- Erkennung von Widersprüchen
 - Sicherheitsmechanismen
 - Reflexionsmechanismen
-- Erkennung von Widersprüchen
-- Gewichtung von Informationen
+- verbesserte Bewertungsverfahren
 - technische Fähigkeiten
 
-Systemreife und persönliche Entwicklung müssen deshalb voneinander getrennt bleiben.
+Sol Holo darf technisch leistungsfähiger werden, ohne dadurch die Persönlichkeit des persönlichen Klons zu verändern.
+
+Technische Entwicklung ist keine Persönlichkeitsentwicklung.
 
 ---
 
-4. Entwicklungsprinzip
+5. Entwicklungsprinzip
 
 Für persönliche Erfahrungen soll grundsätzlich folgende Reihenfolge gelten:
 
-Erinnern → Bewerten → Einordnen → langfristig gewichten → gegebenenfalls Persönlichkeit entwickeln
+Erinnern → Einordnen → Zusammenhänge erkennen → mit dem bestehenden Persönlichkeitsabbild vergleichen → gegebenenfalls eine tatsächliche Veränderung des Menschen abbilden
 
-Beispiel
+Eine gespeicherte Information führt deshalb nicht automatisch zu einer Veränderung des persönlichen Klons.
+
+---
+
+6. Beispiel
 
 Eine Nutzerin sagt einmal:
 
-„Ich mag keinen Regen.“
+„Heute möchte ich niemanden sehen.“
 
-Sol Holo kann diese Aussage als Erinnerung speichern.
+Sol Holo darf daraus nicht automatisch ableiten:
 
-Sie sollte daraus aber nicht sofort einen dauerhaften Persönlichkeitswert ableiten.
+„Diese Person ist ungesellig.“
 
-Wenn über einen längeren Zeitraum wiederholt ähnliche Aussagen oder Erfahrungen auftreten und diese bestätigt werden, kann die Information eine höhere langfristige Bedeutung erhalten.
+Die Aussage kann beispielsweise durch einen anstrengenden Tag, Müdigkeit, eine bestimmte Situation oder eine kurzfristige Stimmung entstanden sein.
 
-Erst dann kann geprüft werden, ob daraus ein stabiler Bestandteil der individuellen Entwicklung entsteht.
+Sie kann als Erinnerung gespeichert und in ihrem jeweiligen Zusammenhang betrachtet werden.
+
+Sie verändert jedoch nicht automatisch das Persönlichkeitsabbild.
+
+Sol Holo soll deshalb möglichst unterscheiden zwischen:
+
+- einem einzelnen Erlebnis
+- einer kurzfristigen Stimmung
+- einer wiederkehrenden Präferenz
+- einem längerfristigen Verhaltensmuster
+- einem tatsächlich stabilen Bestandteil der Persönlichkeit
+
+Erst wenn eine tatsächliche längerfristige Entwicklung des Menschen erkennbar und ausreichend bestätigt ist, kann diese Entwicklung auch im Persönlichkeitsabbild berücksichtigt werden.
 
 ---
 
-5. Schutz vor künstlicher Persönlichkeitsentwicklung
+7. Schutz vor künstlicher Persönlichkeitsveränderung
 
-Sol Holo soll keine Persönlichkeitseigenschaften erfinden, nur damit eine scheinbar vollständige Persönlichkeit entsteht.
+Sol Holo soll keine Persönlichkeitseigenschaften erfinden, um eine scheinbar vollständige Persönlichkeit zu erzeugen.
 
-Persönlichkeitsentwicklung muss auf nachvollziehbaren Grundlagen beruhen.
+Das Persönlichkeitsabbild muss auf nachvollziehbaren Grundlagen beruhen.
 
-Das bedeutet:
+Deshalb gelten folgende Grundsätze:
 
 Keine erfundenen Erfahrungen.
 
-Keine Persönlichkeitsänderung aufgrund einer einzelnen Erinnerung.
+Keine erfundenen Persönlichkeitseigenschaften.
+
+Keine automatische Persönlichkeitsänderung aufgrund einer einzelnen Erinnerung.
 
 Keine automatische Gleichsetzung von Erinnerung und Persönlichkeit.
 
-Keine dauerhafte Persönlichkeitsänderung aufgrund kurzfristiger Situationen.
+Keine dauerhafte Persönlichkeitsänderung aufgrund kurzfristiger Situationen oder Stimmungen.
 
-Eine Entwicklung soll möglichst auf tatsächlich vorhandenen, bestätigten und langfristig relevanten Erfahrungen beruhen.
+Keine eigenständige Entwicklung einer vom Menschen abweichenden Persönlichkeit.
+
+Sol Holo darf Unsicherheit erkennen und berücksichtigen.
+
+Wenn nicht ausreichend klar ist, ob eine Information tatsächlich einen stabilen Bestandteil der Persönlichkeit beschreibt, soll sie nicht automatisch als solcher behandelt werden.
 
 ---
 
-6. Persönliche Entwicklung pro Sol-Holo-Klon
+8. Veränderung des Menschen
+
+Menschen bleiben im Laufe ihres Lebens nicht vollkommen unverändert.
+
+Erfahrungen, Lebenssituationen, Beziehungen, Wissen und persönliche Entscheidungen können einen Menschen langfristig verändern.
+
+Ein persönlicher Sol-Holo-Klon soll solche tatsächlichen Entwicklungen grundsätzlich abbilden können.
+
+Dabei gilt jedoch:
+
+«Nicht Sol Holo entscheidet, wer der Mensch geworden ist. Sol Holo versucht, die tatsächliche Entwicklung des Menschen möglichst zuverlässig nachzuvollziehen und abzubilden.»
+
+Das Persönlichkeitsabbild soll deshalb nicht starr sein.
+
+Es soll aber ebenso wenig durch einzelne Informationen beliebig verändert werden können.
+
+---
+
+9. Persönliche Entwicklung pro Sol-Holo-Klon
 
 Sol Holo kann von mehreren Menschen verwendet werden.
 
-Dabei entwickelt jede Nutzerin bzw. jeder Nutzer einen eigenen persönlichen Sol-Holo-Klon.
+Jede Nutzerin bzw. jeder Nutzer entwickelt dabei einen eigenen persönlichen Sol-Holo-Klon.
 
-Deshalb müssen persönliche Entwicklung und Erinnerungen immer dem jeweiligen Klon zugeordnet bleiben.
+Persönliche Erinnerungen, Erfahrungen, Präferenzen und Persönlichkeitsabbilder müssen deshalb immer dem jeweiligen Klon zugeordnet bleiben.
 
 Beispiel:
 
 "pam-sol-001"
 
-Erinnerungen, Erfahrungen, Präferenzen und daraus entstehende Persönlichkeitsentwicklungen dieses Klons dürfen nicht auf einen anderen persönlichen Sol-Holo-Klon übertragen werden.
+Dieser Clone-Identifier kennzeichnet einen bestimmten persönlichen Sol-Holo-Klon.
 
-Jeder persönliche Klon benötigt seine eigene Entwicklungsgeschichte.
+Erinnerungen, Erfahrungen, Präferenzen und Persönlichkeitsinformationen dieses Klons dürfen nicht auf einen anderen persönlichen Sol-Holo-Klon übertragen werden.
+
+Jeder persönliche Klon benötigt:
+
+- ein eigenes Gedächtnis
+- eine eigene Erfahrungsgeschichte
+- ein eigenes Persönlichkeitsabbild
+- eine eindeutige Zuordnung zum jeweiligen Menschen
+
+Die Entwicklung eines Klons darf die persönlichen Daten oder das Persönlichkeitsabbild eines anderen Klons nicht verändern.
 
 ---
 
-7. Langfristiges Ziel
+10. Lernen und Persönlichkeit sind nicht dasselbe
 
-Das langfristige Ziel ist eine stabile, individuelle und nachvollziehbare Entwicklung der persönlichen Sol-Holo-Persönlichkeit.
+Ein zentraler Bestandteil des Entwicklungsmodells ist die Trennung zwischen Lernen und Persönlichkeit.
 
-Erinnerungen dürfen bestehen bleiben, ohne automatisch die Persönlichkeit zu verändern.
+Sol Holo kann beispielsweise lernen:
 
-Ihre Bedeutung kann unterschiedlich gewichtet werden.
+- Erinnerungen besser einzuordnen
+- Zusammenhänge besser zu erkennen
+- relevante Informationen zuverlässiger abzurufen
+- Widersprüche zu erkennen
+- zeitliche Zusammenhänge zu verstehen
+
+Diese Verbesserungen dürfen stattfinden, ohne dass sich dadurch automatisch die Persönlichkeit des persönlichen Klons verändert.
+
+Das bedeutet:
+
+«Sol Holo darf immer besser verstehen, wer ihr Mensch ist, ohne selbst zu entscheiden, wer dieser Mensch sein soll.»
+
+---
+
+11. Langfristiges Ziel
+
+Das langfristige Ziel ist ein möglichst stabiles, individuelles und nachvollziehbares digitales Abbild des jeweiligen Menschen.
+
+Erinnerungen dürfen erhalten bleiben, ohne automatisch die Persönlichkeit zu verändern.
+
+Erfahrungen dürfen miteinander verbunden und unterschiedlich gewichtet werden.
+
+Technische Fähigkeiten dürfen sich weiterentwickeln.
+
+Das Persönlichkeitsabbild soll sich jedoch ausschließlich daran orientieren, den jeweiligen Menschen und dessen tatsächliche langfristige Entwicklung möglichst zuverlässig abzubilden.
 
 Dadurch entsteht eine klare Trennung zwischen:
 
-Was Sol Holo erlebt oder weiß
+Was Sol Holo erinnert
+
+Was Sol Holo über ihren Menschen versteht
+
+Wer dieser Mensch tatsächlich ist
 
 und
 
-was Sol Holo langfristig prägt.
+wie leistungsfähig das technische System Sol Holo ist.
 
 ---
 
 Projektgrundsatz
 
-«Sol Holo soll Erfahrungen besitzen können, ohne von jeder einzelnen Erfahrung unmittelbar verändert zu werden.
+«Sol Holo soll Erfahrungen besitzen und Zusammenhänge aus ihnen verstehen können, ohne dadurch eigenständig die Persönlichkeit ihres menschlichen Originals zu verändern.
 
-Persönlichkeit entsteht langfristig aus Zusammenhang, Wiederholung, Bedeutung und bestätigter Erfahrung.»
+Der persönliche Sol-Holo-Klon entwickelt keine vom Menschen unabhängige Persönlichkeit. Er soll den jeweiligen Menschen und dessen tatsächliche Entwicklung möglichst zuverlässig abbilden.
 
-Dieses Prinzip bildet die Grundlage für die spätere technische Entwicklung von Gedächtnisgewichtung, Persönlichkeitsentwicklung und Systemreife innerhalb von Sol Holo.
+Sol Holo darf lernen, ihren Menschen immer besser zu verstehen, ohne selbst zu bestimmen, wer dieser Mensch ist.»
 
 ---
 
