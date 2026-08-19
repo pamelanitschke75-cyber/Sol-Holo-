@@ -1820,4 +1820,589 @@ memoryButton.addEventListener(
   "click",
   async () => {
 
-    drawer.class
+    drawer.classList.remove(
+      "open"
+    );
+
+    await sendMessage(
+      "Sol, was weißt du dauerhaft?"
+    );
+  }
+);
+
+async function sendLiveTranscriptToMemory(
+  transcript
+) {
+
+  const cleanTranscript =
+    String(
+      transcript ||
+      ""
+    ).trim();
+
+  if (!cleanTranscript) {
+    return;
+  }
+
+  memoryStatus.textContent =
+    "🧠 Memory prüft ...";
+
+  try {
+
+    const response =
+      await fetch(
+        `${BACKEND_URL}/live/memory`,
+        {
+
+          method:
+            "POST",
+
+          headers: {
+
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+
+              transcript:
+                cleanTranscript
+            })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+
+      throw new Error(
+        data?.error ||
+        "Memory konnte nicht verarbeitet werden."
+      );
+    }
+
+    if (data.saved) {
+
+      memoryStatus.textContent =
+        `🧠 Gespeichert: ${data.memory}`;
+
+    } else {
+
+      memoryStatus.textContent =
+        "🧠 Keine dauerhafte Erinnerung nötig.";
+    }
+
+  } catch (error) {
+
+    console.error(
+      "Live-Memory Fehler:",
+      error
+    );
+
+    memoryStatus.textContent =
+      "🧠 Memory-Fehler.";
+  }
+}
+
+async function openFilteredMicrophone() {
+
+  if (
+    !navigator.mediaDevices ||
+    !navigator.mediaDevices.getUserMedia
+  ) {
+
+    throw new Error(
+      "Kein Mikrofonzugriff möglich."
+    );
+  }
+
+  micStatus.textContent =
+    "🎙️ Mikrofon wird aktiviert ...";
+
+  const stream =
+    await navigator.mediaDevices
+      .getUserMedia({
+
+        audio: {
+
+          echoCancellation:
+            true,
+
+          noiseSuppression:
+            true,
+
+          autoGainControl:
+            true,
+
+          channelCount:
+            1
+        }
+      });
+
+  micStatus.textContent =
+    "🎙️ Mikrofonfilter aktiv.";
+
+  return stream;
+}
+
+function stopLiveConversation() {
+
+  stopLipSync();
+
+  if (dc) {
+
+    try {
+      dc.close();
+    } catch {}
+
+    dc =
+      null;
+  }
+
+  if (pc) {
+
+    try {
+      pc.close();
+    } catch {}
+
+    pc =
+      null;
+  }
+
+  if (microphoneStream) {
+
+    microphoneStream
+      .getTracks()
+      .forEach(
+        track =>
+          track.stop()
+      );
+
+    microphoneStream =
+      null;
+  }
+
+  realtimeAudio.srcObject =
+    null;
+
+  liveButton.classList.remove(
+    "listening"
+  );
+
+  liveStatus.innerHTML =
+    '<span class="wave">·······</span>&nbsp; Ich bin da. &nbsp;<span class="wave">·······</span>';
+
+  micStatus.textContent =
+    "🎙️ Mikrofon bereit.";
+}
+
+async function startLiveConversation() {
+
+  if (pc) {
+
+    stopLiveConversation();
+
+    return;
+  }
+
+  await ensureLipAudioContext();
+
+  liveStatus.textContent =
+    "Sol verbindet sich ...";
+
+  try {
+
+    const tokenResponse =
+      await fetch(
+        `${BACKEND_URL}/realtime/token`,
+        {
+
+          method:
+            "GET",
+
+          cache:
+            "no-store"
+        }
+      );
+
+    const responseText =
+      await tokenResponse.text();
+
+    let tokenData;
+
+    try {
+
+      tokenData =
+        JSON.parse(
+          responseText
+        );
+
+    } catch {
+
+      throw new Error(
+        "Realtime-Verbindung konnte nicht vorbereitet werden."
+      );
+    }
+
+    if (!tokenResponse.ok) {
+
+      throw new Error(
+        tokenData?.error ||
+        `Realtime-Token Fehler (${tokenResponse.status}).`
+      );
+    }
+
+    const ephemeralKey =
+      String(
+        tokenData?.value ||
+        tokenData?.client_secret?.value ||
+        ""
+      ).trim();
+
+    if (!ephemeralKey) {
+
+      throw new Error(
+        "Kein Realtime-Schlüssel erhalten."
+      );
+    }
+
+    pc =
+      new RTCPeerConnection();
+
+    pc.ontrack =
+      event => {
+
+        const stream =
+          event.streams?.[0];
+
+        if (!stream) {
+          return;
+        }
+
+        realtimeAudio.srcObject =
+          stream;
+
+        realtimeAudio.volume =
+          solVolume;
+
+        realtimeAudio
+          .play()
+          .catch(
+            () => {}
+          );
+
+        startLipSync(
+          stream
+        );
+      };
+
+    microphoneStream =
+      await openFilteredMicrophone();
+
+    const audioTrack =
+      microphoneStream
+        .getAudioTracks()[0];
+
+    if (!audioTrack) {
+
+      throw new Error(
+        "Keine Mikrofonspur gefunden."
+      );
+    }
+
+    pc.addTrack(
+      audioTrack,
+      microphoneStream
+    );
+
+    dc =
+      pc.createDataChannel(
+        "oai-events"
+      );
+
+    dc.addEventListener(
+      "open",
+      () => {
+
+        liveButton.classList.add(
+          "listening"
+        );
+
+        liveStatus.textContent =
+          "🌻 Ich höre dir zu ...";
+      }
+    );
+
+    dc.addEventListener(
+      "message",
+      event => {
+
+        try {
+
+          const realtimeEvent =
+            JSON.parse(
+              event.data
+            );
+
+          if (
+            realtimeEvent.type ===
+            "input_audio_buffer.speech_started"
+          ) {
+
+            liveStatus.textContent =
+              "🎙️ Ich höre dir zu ...";
+          }
+
+          if (
+            realtimeEvent.type ===
+            "input_audio_buffer.speech_stopped"
+          ) {
+
+            liveStatus.textContent =
+              "🌻 Einen Moment ...";
+          }
+
+          if (
+            realtimeEvent.type ===
+            "conversation.item.input_audio_transcription.completed"
+          ) {
+
+            const transcript =
+              String(
+                realtimeEvent.transcript ||
+                ""
+              ).trim();
+
+            if (transcript) {
+
+              sendLiveTranscriptToMemory(
+                transcript
+              );
+            }
+          }
+
+          if (
+            realtimeEvent.type ===
+            "response.output_audio.delta"
+          ) {
+
+            liveStatus.textContent =
+              "🌻 Sol spricht ...";
+          }
+
+          if (
+            realtimeEvent.type ===
+            "response.audio.delta"
+          ) {
+
+            liveStatus.textContent =
+              "🌻 Sol spricht ...";
+          }
+
+          if (
+            realtimeEvent.type ===
+            "response.output_audio.done"
+          ) {
+
+            liveStatus.textContent =
+              "🌻 Ich höre dir zu ...";
+          }
+
+          if (
+            realtimeEvent.type ===
+            "response.done"
+          ) {
+
+            liveStatus.textContent =
+              "🌻 Ich höre dir zu ...";
+          }
+
+          if (
+            realtimeEvent.type ===
+            "error"
+          ) {
+
+            console.error(
+              "Realtime Fehler:",
+              realtimeEvent
+            );
+
+            liveStatus.textContent =
+              "Sol hat gerade ein Verbindungsproblem.";
+          }
+
+        } catch (error) {
+
+          console.error(
+            "Realtime Event Fehler:",
+            error
+          );
+        }
+      }
+    );
+
+    pc.addEventListener(
+      "connectionstatechange",
+      () => {
+
+        if (!pc) {
+          return;
+        }
+
+        if (
+          pc.connectionState ===
+          "connected"
+        ) {
+
+          liveButton.classList.add(
+            "listening"
+          );
+
+          liveStatus.textContent =
+            "🌻 Ich höre dir zu ...";
+        }
+
+        if (
+          pc.connectionState ===
+          "failed"
+        ) {
+
+          stopLiveConversation();
+
+          liveStatus.textContent =
+            "Verbindung zu Sol unterbrochen.";
+        }
+      }
+    );
+
+    const offer =
+      await pc.createOffer();
+
+    await pc.setLocalDescription(
+      offer
+    );
+
+    const sdpResponse =
+      await fetch(
+        "https://api.openai.com/v1/realtime/calls",
+        {
+
+          method:
+            "POST",
+
+          headers: {
+
+            Authorization:
+              `Bearer ${ephemeralKey}`,
+
+            "Content-Type":
+              "application/sdp"
+          },
+
+          body:
+            offer.sdp
+        }
+      );
+
+    const answerSdp =
+      await sdpResponse.text();
+
+    if (!sdpResponse.ok) {
+
+      console.error(
+        "OpenAI SDP Fehlerstatus:",
+        sdpResponse.status
+      );
+
+      console.error(
+        "OpenAI SDP Antwort:",
+        answerSdp
+      );
+
+      throw new Error(
+        `OpenAI Realtime Fehler ${sdpResponse.status}:\n${answerSdp.slice(0,700)}`
+      );
+    }
+
+    await pc.setRemoteDescription({
+
+      type:
+        "answer",
+
+      sdp:
+        answerSdp
+    });
+
+  } catch (error) {
+
+    console.error(
+      "Sol Live Fehler:",
+      error
+    );
+
+    stopLiveConversation();
+
+    liveStatus.textContent =
+      error?.message ||
+      "Live-Verbindung fehlgeschlagen.";
+  }
+}
+
+liveButton.addEventListener(
+  "click",
+  () => {
+
+    if (pc) {
+
+      stopLiveConversation();
+
+    } else {
+
+      startLiveConversation();
+    }
+  }
+);
+
+realtimeAudio.volume =
+  solVolume;
+
+if (
+  "serviceWorker" in navigator
+) {
+
+  window.addEventListener(
+    "load",
+    () => {
+
+      navigator.serviceWorker
+        .register(
+          "/service-worker.js"
+        )
+        .catch(
+          error => {
+
+            console.error(
+              "Service Worker Fehler:",
+              error
+            );
+          }
+        );
+    }
+  );
+}
+
+if (
+  solImage.complete
+) {
+
+  requestAnimationFrame(
+    updateMouthGeometry
+  );
+}
+
+</script>
+
+</body>
+</html>
