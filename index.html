@@ -3,12 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sol Holo – TEST 010</title>
+
+<title>Sol Holo – TEST 011</title>
 
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#05070d">
 
 <style>
+
 * {
   box-sizing: border-box;
 }
@@ -109,15 +111,26 @@ button:disabled {
 #status,
 #chatStatus,
 #liveStatus,
-#memoryStatus {
+#memoryStatus,
+#micStatus {
   text-align: center;
   margin-top: 12px;
+  line-height: 1.5;
+}
+
+#status,
+#chatStatus,
+#liveStatus {
   color: #9cffb1;
-  line-height: 1.4;
 }
 
 #memoryStatus {
   color: #c7d2fe;
+}
+
+#micStatus {
+  color: #ffdca8;
+  font-size: 14px;
 }
 
 #chat {
@@ -163,6 +176,7 @@ button:disabled {
   color: #9da7b3;
   line-height: 1.5;
 }
+
 </style>
 </head>
 
@@ -176,6 +190,7 @@ button:disabled {
 Avatar · Sprache · Langzeitgedächtnis · Live
 </p>
 
+
 <section class="box">
 
 <h2>1. Avatar</h2>
@@ -187,13 +202,16 @@ Avatar · Sprache · Langzeitgedächtnis · Live
 >
 
 <div id="stage">
-  <img
-    id="avatarImage"
-    alt="Sol Holo Avatar"
-  >
+
+<img
+  id="avatarImage"
+  alt="Sol Holo Avatar"
+>
+
 </div>
 
 </section>
+
 
 <section class="box">
 
@@ -215,6 +233,7 @@ Bereit.
 </div>
 
 </section>
+
 
 <section class="box">
 
@@ -239,6 +258,7 @@ Langzeitgedächtnis anzeigen
 
 </section>
 
+
 <section class="box">
 
 <h2>4. Live mit Sol sprechen</h2>
@@ -248,7 +268,9 @@ Langzeitgedächtnis anzeigen
 </div>
 
 <p class="live-hint">
-Starte ein Live-Gespräch und sprich direkt mit Sol.
+Sprich direkt mit Sol.
+Die Mikrofonaufnahme verwendet Rausch-,
+Echo- und Pegelkorrektur.
 </p>
 
 <button
@@ -268,8 +290,12 @@ Live-Gespräch beenden
 Live-Verbindung noch nicht gestartet.
 </div>
 
+<div id="micStatus">
+🎙️ Mikrofonfilter warten.
+</div>
+
 <div id="memoryStatus">
-Live-Memory wartet.
+🧠 Live-Memory wartet.
 </div>
 
 <audio
@@ -281,10 +307,16 @@ Live-Memory wartet.
 
 </main>
 
+
 <script>
 
 const BACKEND_URL =
   "https://sol-holo.onrender.com";
+
+
+/*
+  Elemente
+*/
 
 const imageInput =
   document.getElementById("imageInput");
@@ -325,15 +357,24 @@ const stopLiveButton =
 const liveStatus =
   document.getElementById("liveStatus");
 
+const micStatus =
+  document.getElementById("micStatus");
+
 const memoryStatus =
   document.getElementById("memoryStatus");
 
 const realtimeAudio =
   document.getElementById("realtimeAudio");
 
+
+/*
+  Live State
+*/
+
 let pc = null;
 let dc = null;
 let microphoneStream = null;
+
 
 /*
   Avatar
@@ -361,6 +402,7 @@ imageInput.addEventListener(
   }
 );
 
+
 /*
   Audio
 */
@@ -383,6 +425,7 @@ audioInput.addEventListener(
       "Audio geladen.";
   }
 );
+
 
 /*
   Chat anzeigen
@@ -420,6 +463,7 @@ function addMessage(
   chat.scrollTop =
     chat.scrollHeight;
 }
+
 
 /*
   Text an Sol
@@ -523,17 +567,28 @@ async function sendMessage(
 
   } finally {
 
-    sendButton.disabled = false;
-    memoryButton.disabled = false;
+    sendButton.disabled =
+      false;
+
+    memoryButton.disabled =
+      false;
   }
 }
+
+
+/*
+  Text Buttons
+*/
 
 sendButton.addEventListener(
   "click",
   () => {
+
     sendMessage();
+
   }
 );
+
 
 memoryButton.addEventListener(
   "click",
@@ -542,8 +597,10 @@ memoryButton.addEventListener(
     sendMessage(
       "Sol, was weißt du dauerhaft?"
     );
+
   }
 );
+
 
 messageInput.addEventListener(
   "keydown",
@@ -561,8 +618,9 @@ messageInput.addEventListener(
   }
 );
 
+
 /*
-  Live Memory
+  Live Transcript an Memory
 */
 
 async function sendLiveTranscriptToMemory(
@@ -636,6 +694,7 @@ async function sendLiveTranscriptToMemory(
   }
 }
 
+
 /*
   Live Button
 */
@@ -643,10 +702,11 @@ async function sendLiveTranscriptToMemory(
 function handleLiveButtonClick() {
 
   liveStatus.textContent =
-    "Klick erkannt ✅ – Sol Live startet ...";
+    "Sol Live wird vorbereitet ...";
 
   startLiveConversation();
 }
+
 
 /*
   Live stoppen
@@ -683,11 +743,111 @@ function stopLiveConversation() {
     microphoneStream = null;
   }
 
-  realtimeAudio.srcObject = null;
+  realtimeAudio.srcObject =
+    null;
 
-  startLiveButton.disabled = false;
-  stopLiveButton.disabled = true;
+  startLiveButton.disabled =
+    false;
+
+  stopLiveButton.disabled =
+    true;
+
+  micStatus.textContent =
+    "🎙️ Mikrofonfilter beendet.";
 }
+
+
+/*
+  Mikrofon mit Browser-
+  Geräuschunterdrückung öffnen
+*/
+
+async function openFilteredMicrophone() {
+
+  if (
+    !navigator.mediaDevices ||
+    !navigator.mediaDevices.getUserMedia
+  ) {
+
+    throw new Error(
+      "Der Browser stellt keinen Mikrofonzugriff bereit."
+    );
+  }
+
+  micStatus.textContent =
+    "🎙️ Mikrofonfilter werden aktiviert ...";
+
+  const stream =
+    await navigator.mediaDevices
+      .getUserMedia({
+
+        audio: {
+
+          echoCancellation:
+            true,
+
+          noiseSuppression:
+            true,
+
+          autoGainControl:
+            true,
+
+          channelCount:
+            1
+
+        }
+
+      });
+
+  const audioTrack =
+    stream
+      .getAudioTracks()[0];
+
+  if (!audioTrack) {
+
+    stream
+      .getTracks()
+      .forEach(
+        track => track.stop()
+      );
+
+    throw new Error(
+      "Es wurde keine Mikrofon-Audiospur gefunden."
+    );
+  }
+
+  /*
+    Anzeigen,
+    welche Einstellungen der Browser
+    tatsächlich übernommen hat.
+  */
+
+  try {
+
+    const settings =
+      audioTrack.getSettings();
+
+    const echo =
+      settings.echoCancellation;
+
+    const noise =
+      settings.noiseSuppression;
+
+    const gain =
+      settings.autoGainControl;
+
+    micStatus.textContent =
+      `🎙️ Mikrofon aktiv · Echo: ${echo ?? "?"} · Rauschen: ${noise ?? "?"} · Pegel: ${gain ?? "?"}`;
+
+  } catch {
+
+    micStatus.textContent =
+      "🎙️ Mikrofonfilter aktiv.";
+  }
+
+  return stream;
+}
+
 
 /*
   Live starten
@@ -699,13 +859,14 @@ async function startLiveConversation() {
     return;
   }
 
-  startLiveButton.disabled = true;
+  startLiveButton.disabled =
+    true;
 
   liveStatus.textContent =
     "Sol Live wird vorbereitet ...";
 
   memoryStatus.textContent =
-    "Live-Memory wartet.";
+    "🧠 Live-Memory wartet.";
 
   try {
 
@@ -717,8 +878,11 @@ async function startLiveConversation() {
       await fetch(
         `${BACKEND_URL}/realtime/token`,
         {
-          method: "GET",
-          cache: "no-store"
+          method:
+            "GET",
+
+          cache:
+            "no-store"
         }
       );
 
@@ -730,7 +894,9 @@ async function startLiveConversation() {
     try {
 
       tokenData =
-        JSON.parse(responseText);
+        JSON.parse(
+          responseText
+        );
 
     } catch {
 
@@ -739,7 +905,9 @@ async function startLiveConversation() {
       );
     }
 
-    if (!tokenResponse.ok) {
+    if (
+      !tokenResponse.ok
+    ) {
 
       throw new Error(
         tokenData?.error ||
@@ -761,28 +929,17 @@ async function startLiveConversation() {
       );
     }
 
-    liveStatus.textContent =
-      "Realtime-Schlüssel erhalten. Mikrofon wird geöffnet ...";
-
-    if (
-      !navigator.mediaDevices ||
-      !navigator.mediaDevices.getUserMedia
-    ) {
-
-      throw new Error(
-        "Der Browser stellt keinen Mikrofonzugriff bereit."
-      );
-    }
 
     /*
-      WebRTC
+      Peer Connection
     */
 
     pc =
       new RTCPeerConnection();
 
+
     /*
-      Sol Audio
+      Audio von Sol
     */
 
     pc.ontrack =
@@ -804,47 +961,41 @@ async function startLiveConversation() {
             error => {
 
               console.error(
-                "Audio konnte nicht automatisch gestartet werden:",
+                "Sol-Audio konnte nicht automatisch gestartet werden:",
                 error
               );
+
             }
           );
       };
 
+
     /*
-      Mikrofon
+      Gefiltertes Mikrofon
     */
 
     microphoneStream =
-      await navigator.mediaDevices
-        .getUserMedia({
-          audio: true
-        });
+      await openFilteredMicrophone();
 
     const audioTrack =
       microphoneStream
         .getAudioTracks()[0];
-
-    if (!audioTrack) {
-
-      throw new Error(
-        "Es wurde keine Mikrofon-Audiospur gefunden."
-      );
-    }
 
     pc.addTrack(
       audioTrack,
       microphoneStream
     );
 
+
     /*
-      OpenAI Event Channel
+      Realtime Event Channel
     */
 
     dc =
       pc.createDataChannel(
         "oai-events"
       );
+
 
     dc.addEventListener(
       "open",
@@ -858,9 +1009,10 @@ async function startLiveConversation() {
       }
     );
 
+
     dc.addEventListener(
       "message",
-      event => {
+      (event) => {
 
         try {
 
@@ -874,6 +1026,11 @@ async function startLiveConversation() {
             realtimeEvent
           );
 
+
+          /*
+            Sprache beginnt
+          */
+
           if (
             realtimeEvent.type ===
             "input_audio_buffer.speech_started"
@@ -882,6 +1039,11 @@ async function startLiveConversation() {
             liveStatus.textContent =
               "🎙️ Sol hört dich ...";
           }
+
+
+          /*
+            Sprache endet
+          */
 
           if (
             realtimeEvent.type ===
@@ -892,9 +1054,9 @@ async function startLiveConversation() {
               "🌻 Sol verarbeitet deine Sprache ...";
           }
 
+
           /*
-            Fertige Transkription
-            von Pams gesprochenem Turn
+            Fertiges Transkript
           */
 
           if (
@@ -921,7 +1083,14 @@ async function startLiveConversation() {
             }
           }
 
+
+          /*
+            Sol antwortet
+          */
+
           if (
+            realtimeEvent.type ===
+            "response.output_audio.delta" ||
             realtimeEvent.type ===
             "response.audio.delta"
           ) {
@@ -929,6 +1098,11 @@ async function startLiveConversation() {
             liveStatus.textContent =
               "🌻 Sol spricht ...";
           }
+
+
+          /*
+            Antwort fertig
+          */
 
           if (
             realtimeEvent.type ===
@@ -939,6 +1113,11 @@ async function startLiveConversation() {
               "🌻 Sol hört wieder zu.";
           }
 
+
+          /*
+            API Fehler
+          */
+
           if (
             realtimeEvent.type ===
             "error"
@@ -948,198 +1127,3 @@ async function startLiveConversation() {
               "OpenAI Realtime Fehler:",
               realtimeEvent
             );
-
-            liveStatus.textContent =
-              "OpenAI Realtime meldet einen Fehler.";
-          }
-
-        } catch (error) {
-
-          console.error(
-            "Realtime Event konnte nicht gelesen werden:",
-            error
-          );
-        }
-      }
-    );
-
-    /*
-      WebRTC Status
-    */
-
-    pc.addEventListener(
-      "connectionstatechange",
-      () => {
-
-        if (!pc) {
-          return;
-        }
-
-        console.log(
-          "WebRTC Status:",
-          pc.connectionState
-        );
-
-        if (
-          pc.connectionState ===
-          "connected"
-        ) {
-
-          liveStatus.textContent =
-            "🌻 Live verbunden – sprich mit Sol.";
-
-          stopLiveButton.disabled =
-            false;
-        }
-
-        if (
-          pc.connectionState ===
-          "failed"
-        ) {
-
-          stopLiveConversation();
-
-          liveStatus.textContent =
-            "WebRTC-Verbindung fehlgeschlagen.";
-        }
-      }
-    );
-
-    /*
-      SDP Offer
-    */
-
-    liveStatus.textContent =
-      "Live-Verbindung wird aufgebaut ...";
-
-    const offer =
-      await pc.createOffer();
-
-    await pc.setLocalDescription(
-      offer
-    );
-
-    /*
-      OpenAI Realtime Call
-    */
-
-    const sdpResponse =
-      await fetch(
-        "https://api.openai.com/v1/realtime/calls",
-        {
-          method: "POST",
-
-          headers: {
-            Authorization:
-              `Bearer ${ephemeralKey}`,
-
-            "Content-Type":
-              "application/sdp"
-          },
-
-          body:
-            offer.sdp
-        }
-      );
-
-    const answerSdp =
-      await sdpResponse.text();
-
-    if (!sdpResponse.ok) {
-
-      console.error(
-        "OpenAI SDP Antwort:",
-        answerSdp
-      );
-
-      throw new Error(
-        `OpenAI Live-Verbindung fehlgeschlagen (${sdpResponse.status}).`
-      );
-    }
-
-    /*
-      SDP Antwort übernehmen
-    */
-
-    await pc.setRemoteDescription({
-      type: "answer",
-      sdp: answerSdp
-    });
-
-    liveStatus.textContent =
-      "🌻 Verbindung zu Sol wird fertiggestellt ...";
-
-  } catch (error) {
-
-    console.error(
-      "Sol Holo Live Fehler:",
-      error
-    );
-
-    const errorMessage =
-      error?.message ||
-      "Live-Gespräch konnte nicht gestartet werden.";
-
-    stopLiveConversation();
-
-    liveStatus.textContent =
-      `❌ ${errorMessage}`;
-  }
-}
-
-/*
-  Stop Button
-*/
-
-stopLiveButton.addEventListener(
-  "click",
-  () => {
-
-    stopLiveConversation();
-
-    liveStatus.textContent =
-      "Live-Gespräch beendet.";
-  }
-);
-
-/*
-  Startmeldung
-*/
-
-addMessage(
-  "System",
-  "Sol Holo ist bereit.",
-  "system-message"
-);
-
-/*
-  Service Worker
-*/
-
-if ("serviceWorker" in navigator) {
-
-  window.addEventListener(
-    "load",
-    () => {
-
-      navigator.serviceWorker
-        .register(
-          "/service-worker.js"
-        )
-        .catch(
-          error => {
-
-            console.error(
-              "Service Worker Fehler:",
-              error
-            );
-          }
-        );
-    }
-  );
-}
-
-</script>
-
-</body>
-</html>
