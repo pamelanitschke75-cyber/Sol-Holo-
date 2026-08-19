@@ -932,4 +932,356 @@ async function startLiveConversation() {
     ) {
 
       throw new Error(
-        "Ke
+        "Kein Realtime-Schlüssel erhalten."
+      );
+
+    }
+
+
+    pc =
+      new RTCPeerConnection();
+
+
+    pc.ontrack =
+      (event) => {
+
+        const stream =
+          event.streams?.[0];
+
+        if (!stream) {
+          return;
+        }
+
+        realtimeAudio.srcObject =
+          stream;
+
+        realtimeAudio
+          .play()
+          .catch(
+            () => {}
+          );
+
+      };
+
+
+    microphoneStream =
+      await openFilteredMicrophone();
+
+
+    const audioTrack =
+      microphoneStream
+        .getAudioTracks()[0];
+
+
+    pc.addTrack(
+      audioTrack,
+      microphoneStream
+    );
+
+
+    dc =
+      pc.createDataChannel(
+        "oai-events"
+      );
+
+
+    dc.addEventListener(
+      "open",
+      () => {
+
+        liveButton.classList.add(
+          "listening"
+        );
+
+        liveButton.textContent =
+          "🎙️";
+
+        liveStatus.textContent =
+          "🌻 Ich höre dir zu ...";
+
+      }
+    );
+
+
+    dc.addEventListener(
+      "message",
+      (event) => {
+
+        try {
+
+          const realtimeEvent =
+            JSON.parse(
+              event.data
+            );
+
+
+          if (
+            realtimeEvent.type ===
+            "input_audio_buffer.speech_started"
+          ) {
+
+            liveStatus.textContent =
+              "🎙️ Ich höre dir zu ...";
+
+          }
+
+
+          if (
+            realtimeEvent.type ===
+            "input_audio_buffer.speech_stopped"
+          ) {
+
+            liveStatus.textContent =
+              "🌻 Einen Moment ...";
+
+          }
+
+
+          if (
+            realtimeEvent.type ===
+            "conversation.item.input_audio_transcription.completed"
+          ) {
+
+            const transcript =
+              String(
+                realtimeEvent.transcript ||
+                ""
+              ).trim();
+
+            if (
+              transcript
+            ) {
+
+              sendLiveTranscriptToMemory(
+                transcript
+              );
+
+            }
+
+          }
+
+
+          if (
+            realtimeEvent.type ===
+            "response.output_audio.delta" ||
+            realtimeEvent.type ===
+            "response.audio.delta"
+          ) {
+
+            liveStatus.textContent =
+              "🌻 Sol spricht ...";
+
+          }
+
+
+          if (
+            realtimeEvent.type ===
+            "response.done"
+          ) {
+
+            liveStatus.textContent =
+              "🌻 Ich höre dir zu ...";
+
+          }
+
+
+          if (
+            realtimeEvent.type ===
+            "error"
+          ) {
+
+            console.error(
+              realtimeEvent
+            );
+
+            liveStatus.textContent =
+              "Sol hat gerade ein Verbindungsproblem.";
+
+          }
+
+        } catch (error) {
+
+          console.error(
+            error
+          );
+
+        }
+
+      }
+    );
+
+
+    pc.addEventListener(
+      "connectionstatechange",
+      () => {
+
+        if (!pc) {
+          return;
+        }
+
+        if (
+          pc.connectionState ===
+          "connected"
+        ) {
+
+          liveButton.classList.add(
+            "listening"
+          );
+
+          liveStatus.textContent =
+            "🌻 Ich höre dir zu ...";
+
+        }
+
+
+        if (
+          pc.connectionState ===
+          "failed"
+        ) {
+
+          stopLiveConversation();
+
+          liveStatus.textContent =
+            "Verbindung zu Sol unterbrochen.";
+
+        }
+
+      }
+    );
+
+
+    const offer =
+      await pc.createOffer();
+
+
+    await pc.setLocalDescription(
+      offer
+    );
+
+
+    const sdpResponse =
+      await fetch(
+        "https://api.openai.com/v1/realtime/calls",
+        {
+
+          method:
+            "POST",
+
+          headers: {
+
+            Authorization:
+              `Bearer ${ephemeralKey}`,
+
+            "Content-Type":
+              "application/sdp"
+
+          },
+
+          body:
+            offer.sdp
+
+        }
+      );
+
+
+    const answerSdp =
+      await sdpResponse.text();
+
+
+    if (
+      !sdpResponse.ok
+    ) {
+
+      throw new Error(
+        "Live-Verbindung konnte nicht aufgebaut werden."
+      );
+
+    }
+
+
+    await pc.setRemoteDescription({
+
+      type:
+        "answer",
+
+      sdp:
+        answerSdp
+
+    });
+
+
+  } catch (error) {
+
+    console.error(
+      error
+    );
+
+    stopLiveConversation();
+
+    liveStatus.textContent =
+      error?.message ||
+      "Live-Verbindung fehlgeschlagen.";
+
+  }
+
+}
+
+
+/*
+  Mikrofonknopf
+
+  Ein Tippen startet.
+  Noch ein Tippen beendet.
+*/
+
+liveButton.addEventListener(
+  "click",
+  () => {
+
+    if (pc) {
+
+      stopLiveConversation();
+
+    } else {
+
+      startLiveConversation();
+
+    }
+
+  }
+);
+
+
+/*
+  Service Worker
+*/
+
+if (
+  "serviceWorker"
+  in navigator
+) {
+
+  window.addEventListener(
+    "load",
+    () => {
+
+      navigator.serviceWorker
+        .register(
+          "/service-worker.js"
+        )
+        .catch(
+          error =>
+            console.error(
+              error
+            )
+        );
+
+    }
+  );
+
+}
+
+</script>
+
+</body>
+</html>
