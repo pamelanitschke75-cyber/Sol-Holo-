@@ -1,0 +1,46 @@
+name: Sol Holo Android APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository laden
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Java 21 einrichten
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Node-Abhängigkeiten installieren
+        run: npm install
+
+      - name: Android-Projekt erzeugen
+        run: npx cap add android
+
+      - name: Sol Holo Web-App nach Android synchronisieren
+        run: npx cap sync android
+
+      - name: Gradle ausführbar machen
+        run: chmod +x android/gradlew
+
+      - name: Debug-APK bauen
+        working-directory: android
+        run: ./gradlew assembleDebug
+
+      - name: Sol Holo APK bereitstellen
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sol-Holo-Android
+          path: android/app/build/outputs/apk/debug/app-debug.apk
