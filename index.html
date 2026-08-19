@@ -172,102 +172,113 @@ Avatar · Sprache · Langzeitgedächtnis · Live
 </p>
 
 <section class="box">
-  <h2>1. Avatar</h2>
 
-  <input
-    id="imageInput"
-    type="file"
-    accept="image/*"
-  >
+<h2>1. Avatar</h2>
 
-  <div id="stage">
-    <img
-      id="avatarImage"
-      alt="Sol Holo Avatar"
-    >
-  </div>
+<input
+  id="imageInput"
+  type="file"
+  accept="image/*"
+>
+
+<div id="stage">
+
+<img
+  id="avatarImage"
+  alt="Sol Holo Avatar"
+>
+
+</div>
+
 </section>
 
 <section class="box">
-  <h2>2. Audio</h2>
 
-  <input
-    id="audioInput"
-    type="file"
-    accept="audio/*"
-  >
+<h2>2. Audio</h2>
 
-  <audio
-    id="audioPlayer"
-    controls>
-  </audio>
+<input
+  id="audioInput"
+  type="file"
+  accept="audio/*"
+>
 
-  <div id="status">
-    Bereit.
-  </div>
+<audio
+  id="audioPlayer"
+  controls>
+</audio>
+
+<div id="status">
+Bereit.
+</div>
+
 </section>
 
 <section class="box">
-  <h2>3. Mit Sol schreiben</h2>
 
-  <textarea
-    id="messageInput"
-    placeholder="Schreib Sol etwas ...">
-  </textarea>
+<h2>3. Mit Sol schreiben</h2>
 
-  <button id="sendButton">
-    Nachricht an Sol senden
-  </button>
+<textarea
+  id="messageInput"
+  placeholder="Schreib Sol etwas ...">
+</textarea>
 
-  <button id="memoryButton">
-    Langzeitgedächtnis anzeigen
-  </button>
+<button id="sendButton">
+Nachricht an Sol senden
+</button>
 
-  <div id="chatStatus"></div>
+<button id="memoryButton">
+Langzeitgedächtnis anzeigen
+</button>
 
-  <div id="chat"></div>
+<div id="chatStatus"></div>
+
+<div id="chat"></div>
+
 </section>
 
 <section class="box">
-  <h2>4. Live mit Sol sprechen</h2>
 
-  <div class="live-indicator">
-    🎙️ 🌻
-  </div>
+<h2>4. Live mit Sol sprechen</h2>
 
-  <p class="live-hint">
-    Starte ein Live-Gespräch und sprich direkt mit Sol.
-  </p>
+<div class="live-indicator">
+🎙️ 🌻
+</div>
 
-  <button id="startLiveButton">
-    Live-Gespräch starten
-  </button>
+<p class="live-hint">
+Starte ein Live-Gespräch und sprich direkt mit Sol.
+</p>
 
-  <button
-    id="stopLiveButton"
-    class="secondary-button"
-    disabled>
-    Live-Gespräch beenden
-  </button>
+<button id="startLiveButton">
+Live-Gespräch starten
+</button>
 
-  <div id="liveStatus">
-    Live-Verbindung noch nicht gestartet.
-  </div>
+<button
+  id="stopLiveButton"
+  class="secondary-button"
+  disabled>
+Live-Gespräch beenden
+</button>
 
-  <audio
-    id="realtimeAudio"
-    autoplay>
-  </audio>
+<div id="liveStatus">
+Live-Verbindung noch nicht gestartet.
+</div>
+
+<audio
+  id="realtimeAudio"
+  autoplay>
+</audio>
+
 </section>
 
 </main>
 
 <script>
+
 const BACKEND_URL =
   "https://sol-holo.onrender.com";
 
 /*
-  DOM
+  Elemente
 */
 
 const imageInput =
@@ -313,7 +324,7 @@ const realtimeAudio =
   document.getElementById("realtimeAudio");
 
 /*
-  Realtime State
+  Live-Status
 */
 
 let pc = null;
@@ -321,12 +332,13 @@ let dc = null;
 let microphoneStream = null;
 
 /*
-  Avatar
+  Avatar laden
 */
 
 imageInput.addEventListener(
   "change",
   () => {
+
     const file =
       imageInput.files?.[0];
 
@@ -338,8 +350,7 @@ imageInput.addEventListener(
       URL.createObjectURL(file);
 
     avatarImage.src = url;
-    avatarImage.style.display =
-      "block";
+    avatarImage.style.display = "block";
 
     status.textContent =
       "Avatar geladen.";
@@ -347,12 +358,13 @@ imageInput.addEventListener(
 );
 
 /*
-  Audio-Datei
+  Audio laden
 */
 
 audioInput.addEventListener(
   "change",
   () => {
+
     const file =
       audioInput.files?.[0];
 
@@ -371,7 +383,7 @@ audioInput.addEventListener(
 );
 
 /*
-  Chat
+  Chat-Nachricht anzeigen
 */
 
 function addMessage(
@@ -379,6 +391,7 @@ function addMessage(
   text,
   className
 ) {
+
   const element =
     document.createElement("div");
 
@@ -407,12 +420,13 @@ function addMessage(
 }
 
 /*
-  Textnachricht
+  Textnachricht senden
 */
 
 async function sendMessage(
   forcedMessage = null
 ) {
+
   const message =
     String(
       forcedMessage ??
@@ -440,6 +454,7 @@ async function sendMessage(
     "Sol denkt ...";
 
   try {
+
     const response =
       await fetch(
         `${BACKEND_URL}/sol`,
@@ -460,6 +475,7 @@ async function sendMessage(
       await response.json();
 
     if (!response.ok) {
+
       throw new Error(
         data?.error ||
         "Fehler bei der Anfrage an Sol."
@@ -472,6 +488,7 @@ async function sendMessage(
       ).trim();
 
     if (!answer) {
+
       throw new Error(
         "Sol hat keine Antwort geliefert."
       );
@@ -487,6 +504,7 @@ async function sendMessage(
       "Antwort erhalten.";
 
   } catch (error) {
+
     console.error(error);
 
     addMessage(
@@ -500,17 +518,410 @@ async function sendMessage(
       "Verbindung zu Sol fehlgeschlagen.";
 
   } finally {
+
     sendButton.disabled = false;
     memoryButton.disabled = false;
   }
 }
 
+/*
+  Text-Buttons
+*/
+
 sendButton.addEventListener(
   "click",
   () => {
     sendMessage();
+  }
+);
 
- startLiveButton.addEventListener(
+memoryButton.addEventListener(
+  "click",
+  () => {
+    sendMessage(
+      "Sol, was weißt du dauerhaft?"
+    );
+  }
+);
+
+messageInput.addEventListener(
+  "keydown",
+  (event) => {
+
+    if (
+      event.key === "Enter" &&
+      !event.shiftKey
+    ) {
+
+      event.preventDefault();
+
+      sendMessage();
+    }
+  }
+);
+
+/*
+  Live-Gespräch beenden
+*/
+
+function stopLiveConversation() {
+
+  if (dc) {
+
+    try {
+      dc.close();
+    } catch {}
+
+    dc = null;
+  }
+
+  if (pc) {
+
+    try {
+      pc.close();
+    } catch {}
+
+    pc = null;
+  }
+
+  if (microphoneStream) {
+
+    microphoneStream
+      .getTracks()
+      .forEach(
+        (track) => track.stop()
+      );
+
+    microphoneStream = null;
+  }
+
+  realtimeAudio.srcObject = null;
+
+  startLiveButton.disabled = false;
+  stopLiveButton.disabled = true;
+}
+
+/*
+  Live-Gespräch starten
+*/
+
+async function startLiveConversation() {
+
+  if (pc) {
+    return;
+  }
+
+  startLiveButton.disabled = true;
+
+  liveStatus.textContent =
+    "Sol Live wird vorbereitet ...";
+
+  try {
+
+    /*
+      Kurzlebigen Realtime-Schlüssel
+      vom Render-Backend holen
+    */
+
+    const tokenResponse =
+      await fetch(
+        `${BACKEND_URL}/realtime/token`,
+        {
+          method: "GET",
+          cache: "no-store"
+        }
+      );
+
+    const tokenData =
+      await tokenResponse.json();
+
+    if (!tokenResponse.ok) {
+
+      throw new Error(
+        tokenData?.error ||
+        "Realtime-Schlüssel konnte nicht erstellt werden."
+      );
+    }
+
+    const ephemeralKey =
+      String(
+        tokenData?.value || ""
+      ).trim();
+
+    if (!ephemeralKey) {
+
+      throw new Error(
+        "Kein Realtime-Schlüssel erhalten."
+      );
+    }
+
+    liveStatus.textContent =
+      "Mikrofon wird geöffnet ...";
+
+    /*
+      WebRTC
+    */
+
+    pc =
+      new RTCPeerConnection();
+
+    /*
+      Sols Audio
+    */
+
+    pc.ontrack =
+      (event) => {
+
+        const stream =
+          event.streams?.[0];
+
+        if (!stream) {
+          return;
+        }
+
+        realtimeAudio.srcObject =
+          stream;
+
+        realtimeAudio
+          .play()
+          .catch(() => {});
+      };
+
+    /*
+      Mikrofon
+    */
+
+    microphoneStream =
+      await navigator.mediaDevices
+        .getUserMedia({
+          audio: true
+        });
+
+    const audioTrack =
+      microphoneStream
+        .getAudioTracks()[0];
+
+    if (!audioTrack) {
+
+      throw new Error(
+        "Kein Mikrofon gefunden."
+      );
+    }
+
+    pc.addTrack(
+      audioTrack,
+      microphoneStream
+    );
+
+    /*
+      Realtime Event Channel
+    */
+
+    dc =
+      pc.createDataChannel(
+        "oai-events"
+      );
+
+    dc.addEventListener(
+      "open",
+      () => {
+
+        liveStatus.textContent =
+          "🌻 Sol hört zu – sprich einfach.";
+
+        stopLiveButton.disabled =
+          false;
+      }
+    );
+
+    dc.addEventListener(
+      "message",
+      (event) => {
+
+        try {
+
+          const realtimeEvent =
+            JSON.parse(
+              event.data
+            );
+
+          console.log(
+            "Realtime:",
+            realtimeEvent
+          );
+
+          if (
+            realtimeEvent.type ===
+            "input_audio_buffer.speech_started"
+          ) {
+
+            liveStatus.textContent =
+              "🎙️ Sol hört dich ...";
+          }
+
+          if (
+            realtimeEvent.type ===
+            "input_audio_buffer.speech_stopped"
+          ) {
+
+            liveStatus.textContent =
+              "🌻 Sol antwortet ...";
+          }
+
+          if (
+            realtimeEvent.type ===
+            "response.done"
+          ) {
+
+            liveStatus.textContent =
+              "🌻 Sol hört zu – sprich einfach.";
+          }
+
+          if (
+            realtimeEvent.type ===
+            "error"
+          ) {
+
+            console.error(
+              "Realtime-Fehler:",
+              realtimeEvent
+            );
+
+            liveStatus.textContent =
+              "Realtime-Fehler.";
+          }
+
+        } catch (error) {
+
+          console.error(
+            "Realtime-Nachricht konnte nicht gelesen werden:",
+            error
+          );
+        }
+      }
+    );
+
+    /*
+      Verbindung beobachten
+    */
+
+    pc.addEventListener(
+      "connectionstatechange",
+      () => {
+
+        console.log(
+          "WebRTC:",
+          pc?.connectionState
+        );
+
+        if (
+          pc?.connectionState ===
+          "connected"
+        ) {
+
+          liveStatus.textContent =
+            "🌻 Live verbunden – sprich mit Sol.";
+
+          stopLiveButton.disabled =
+            false;
+        }
+
+        if (
+          pc?.connectionState ===
+            "failed" ||
+          pc?.connectionState ===
+            "closed"
+        ) {
+
+          stopLiveConversation();
+
+          liveStatus.textContent =
+            "Live-Verbindung beendet.";
+        }
+      }
+    );
+
+    /*
+      SDP Offer erstellen
+    */
+
+    const offer =
+      await pc.createOffer();
+
+    await pc.setLocalDescription(
+      offer
+    );
+
+    /*
+      Mit OpenAI Realtime verbinden
+    */
+
+    const sdpResponse =
+      await fetch(
+        "https://api.openai.com/v1/realtime/calls",
+        {
+          method: "POST",
+
+          body:
+            offer.sdp,
+
+          headers: {
+            Authorization:
+              `Bearer ${ephemeralKey}`,
+
+            "Content-Type":
+              "application/sdp"
+          }
+        }
+      );
+
+    const answerSdp =
+      await sdpResponse.text();
+
+    if (!sdpResponse.ok) {
+
+      console.error(
+        "SDP-Fehler:",
+        answerSdp
+      );
+
+      throw new Error(
+        "Live-Verbindung zu Sol konnte nicht aufgebaut werden."
+      );
+    }
+
+    /*
+      Antwort setzen
+    */
+
+    await pc.setRemoteDescription({
+      type: "answer",
+      sdp: answerSdp
+    });
+
+    liveStatus.textContent =
+      "🌻 Verbindung wird hergestellt ...";
+
+  } catch (error) {
+
+    console.error(
+      "Sol-Holo-Live-Fehler:",
+      error
+    );
+
+    stopLiveConversation();
+
+    liveStatus.textContent =
+      error?.message ||
+      "Live-Gespräch konnte nicht gestartet werden.";
+  }
+}
+
+/*
+  Live-Buttons
+*/
+
+startLiveButton.addEventListener(
   "click",
   () => {
     startLiveConversation();
@@ -520,6 +931,7 @@ sendButton.addEventListener(
 stopLiveButton.addEventListener(
   "click",
   () => {
+
     stopLiveConversation();
 
     liveStatus.textContent =
@@ -527,27 +939,43 @@ stopLiveButton.addEventListener(
   }
 );
 
+/*
+  Startmeldung
+*/
+
 addMessage(
   "System",
   "Sol Holo ist bereit.",
   "system-message"
 );
 
+/*
+  Service Worker
+*/
+
 if ("serviceWorker" in navigator) {
+
   window.addEventListener(
     "load",
     () => {
+
       navigator.serviceWorker
-        .register("/service-worker.js")
-        .catch((error) => {
-          console.error(
-            "Service Worker konnte nicht registriert werden:",
-            error
-          );
-        });
+        .register(
+          "/service-worker.js"
+        )
+        .catch(
+          (error) => {
+
+            console.error(
+              "Service Worker konnte nicht registriert werden:",
+              error
+            );
+          }
+        );
     }
   );
 }
+
 </script>
 
 </body>
