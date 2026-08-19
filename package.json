@@ -1,12 +1,19 @@
 {
   "type": "module",
   "scripts": {
-    "start": "node server.mjs"
+    "start": "node server.mjs",
+    "cap:sync": "npx cap sync android",
+    "android:build": "cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/android": "^7.0.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "openai": "^5.0.0",
     "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0"
   }
 }
