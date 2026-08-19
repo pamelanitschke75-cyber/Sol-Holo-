@@ -1401,4 +1401,416 @@ async function startLiveConversation() {
     */
 
     microphoneStream =
-      await openFilteredMicrophone
+      await openFilteredMicrophone();
+
+
+    const audioTrack =
+      microphoneStream
+        .getAudioTracks()[0];
+
+
+    if (!audioTrack) {
+
+      throw new Error(
+        "Keine Mikrofonspur gefunden."
+      );
+
+    }
+
+
+    pc.addTrack(
+      audioTrack,
+      microphoneStream
+    );
+
+
+    /*
+      Realtime Data Channel
+    */
+
+    dc =
+      pc.createDataChannel(
+        "oai-events"
+      );
+
+
+    dc.addEventListener(
+      "open",
+      () => {
+
+        liveButton.classList.add(
+          "listening"
+        );
+
+
+        liveStatus.textContent =
+          "🌻 Ich höre dir zu ...";
+
+      }
+    );
+
+
+    /*
+      Realtime Events
+    */
+
+    dc.addEventListener(
+      "message",
+      (event) => {
+
+        try {
+
+          const realtimeEvent =
+            JSON.parse(
+              event.data
+            );
+
+
+          console.log(
+            "Realtime Event:",
+            realtimeEvent
+          );
+
+
+          if (
+            realtimeEvent.type ===
+            "input_audio_buffer.speech_started"
+          ) {
+
+            liveStatus.textContent =
+              "🎙️ Ich höre dir zu ...";
+
+          }
+
+
+          if (
+            realtimeEvent.type ===
+            "input_audio_buffer.speech_stopped"
+          ) {
+
+            liveStatus.textContent =
+              "🌻 Einen Moment ...";
+
+          }
+
+
+          /*
+            Live-Transkript
+          */
+
+          if (
+            realtimeEvent.type ===
+            "conversation.item.input_audio_transcription.completed"
+          ) {
+
+            const transcript =
+              String(
+                realtimeEvent.transcript ||
+                ""
+              ).trim();
+
+
+            if (
+              transcript
+            ) {
+
+              sendLiveTranscriptToMemory(
+                transcript
+              );
+
+            }
+
+          }
+
+
+          /*
+            Sol spricht
+          */
+
+          if (
+            realtimeEvent.type ===
+              "response.output_audio.delta" ||
+            realtimeEvent.type ===
+              "response.audio.delta"
+          ) {
+
+            liveStatus.textContent =
+              "🌻 Sol spricht ...";
+
+          }
+
+
+          /*
+            Antwort fertig
+          */
+
+          if (
+            realtimeEvent.type ===
+            "response.done"
+          ) {
+
+            liveStatus.textContent =
+              "🌻 Ich höre dir zu ...";
+
+          }
+
+
+          /*
+            Realtime Fehler
+          */
+
+          if (
+            realtimeEvent.type ===
+            "error"
+          ) {
+
+            console.error(
+              "Realtime Fehler:",
+              realtimeEvent
+            );
+
+
+            liveStatus.textContent =
+              "Sol hat gerade ein Verbindungsproblem.";
+
+          }
+
+
+        } catch (error) {
+
+          console.error(
+            "Realtime Event Fehler:",
+            error
+          );
+
+        }
+
+      }
+    );
+
+
+    /*
+      WebRTC Status
+    */
+
+    pc.addEventListener(
+      "connectionstatechange",
+      () => {
+
+        if (!pc) {
+          return;
+        }
+
+
+        console.log(
+          "WebRTC:",
+          pc.connectionState
+        );
+
+
+        if (
+          pc.connectionState ===
+          "connected"
+        ) {
+
+          liveButton.classList.add(
+            "listening"
+          );
+
+
+          liveStatus.textContent =
+            "🌻 Ich höre dir zu ...";
+
+        }
+
+
+        if (
+          pc.connectionState ===
+          "failed"
+        ) {
+
+          stopLiveConversation();
+
+
+          liveStatus.textContent =
+            "Verbindung zu Sol unterbrochen.";
+
+        }
+
+      }
+    );
+
+
+    /*
+      SDP Offer
+    */
+
+    const offer =
+      await pc.createOffer();
+
+
+    await pc.setLocalDescription(
+      offer
+    );
+
+
+    /*
+      OpenAI Realtime
+    */
+
+    const sdpResponse =
+      await fetch(
+        "https://api.openai.com/v1/realtime/calls",
+        {
+
+          method:
+            "POST",
+
+          headers: {
+
+            Authorization:
+              `Bearer ${ephemeralKey}`,
+
+            "Content-Type":
+              "application/sdp"
+
+          },
+
+          body:
+            offer.sdp
+
+        }
+      );
+
+
+    const answerSdp =
+      await sdpResponse.text();
+
+
+    /*
+      Diagnose bleibt erhalten
+    */
+
+    if (
+      !sdpResponse.ok
+    ) {
+
+      console.error(
+        "OpenAI SDP Fehlerstatus:",
+        sdpResponse.status
+      );
+
+
+      console.error(
+        "OpenAI SDP Antwort:",
+        answerSdp
+      );
+
+
+      throw new Error(
+        `OpenAI Realtime Fehler ${sdpResponse.status}:\n${answerSdp.slice(0,700)}`
+      );
+
+    }
+
+
+    /*
+      SDP Antwort setzen
+    */
+
+    await pc.setRemoteDescription({
+
+      type:
+        "answer",
+
+      sdp:
+        answerSdp
+
+    });
+
+
+  } catch (error) {
+
+    console.error(
+      "Sol Live Fehler:",
+      error
+    );
+
+
+    stopLiveConversation();
+
+
+    liveStatus.textContent =
+      error?.message ||
+      "Live-Verbindung fehlgeschlagen.";
+
+  }
+
+}
+
+
+/*
+  Mikrofonknopf
+
+  Einmal tippen:
+  Live starten.
+
+  Noch einmal:
+  Live stoppen.
+*/
+
+liveButton.addEventListener(
+  "click",
+  () => {
+
+    if (pc) {
+
+      stopLiveConversation();
+
+    } else {
+
+      startLiveConversation();
+
+    }
+
+  }
+);
+
+
+/*
+  Service Worker
+*/
+
+if (
+  "serviceWorker"
+  in navigator
+) {
+
+  window.addEventListener(
+    "load",
+    () => {
+
+      navigator.serviceWorker
+        .register(
+          "/service-worker.js"
+        )
+        .catch(
+          error => {
+
+            console.error(
+              "Service Worker Fehler:",
+              error
+            );
+
+          }
+        );
+
+    }
+  );
+
+}
+
+</script>
+
+</body>
+</html>
