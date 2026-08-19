@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sol Holo – TEST 009</title>
+<title>Sol Holo – TEST 010</title>
 
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#05070d">
@@ -108,11 +108,16 @@ button:disabled {
 
 #status,
 #chatStatus,
-#liveStatus {
+#liveStatus,
+#memoryStatus {
   text-align: center;
   margin-top: 12px;
   color: #9cffb1;
   line-height: 1.4;
+}
+
+#memoryStatus {
+  color: #c7d2fe;
 }
 
 #chat {
@@ -263,6 +268,10 @@ Live-Gespräch beenden
 Live-Verbindung noch nicht gestartet.
 </div>
 
+<div id="memoryStatus">
+Live-Memory wartet.
+</div>
+
 <audio
   id="realtimeAudio"
   autoplay>
@@ -316,13 +325,15 @@ const stopLiveButton =
 const liveStatus =
   document.getElementById("liveStatus");
 
+const memoryStatus =
+  document.getElementById("memoryStatus");
+
 const realtimeAudio =
   document.getElementById("realtimeAudio");
 
 let pc = null;
 let dc = null;
 let microphoneStream = null;
-
 
 /*
   Avatar
@@ -350,7 +361,6 @@ imageInput.addEventListener(
   }
 );
 
-
 /*
   Audio
 */
@@ -373,7 +383,6 @@ audioInput.addEventListener(
       "Audio geladen.";
   }
 );
-
 
 /*
   Chat anzeigen
@@ -411,7 +420,6 @@ function addMessage(
   chat.scrollTop =
     chat.scrollHeight;
 }
-
 
 /*
   Text an Sol
@@ -520,14 +528,12 @@ async function sendMessage(
   }
 }
 
-
 sendButton.addEventListener(
   "click",
   () => {
     sendMessage();
   }
 );
-
 
 memoryButton.addEventListener(
   "click",
@@ -538,7 +544,6 @@ memoryButton.addEventListener(
     );
   }
 );
-
 
 messageInput.addEventListener(
   "keydown",
@@ -556,15 +561,83 @@ messageInput.addEventListener(
   }
 );
 
+/*
+  Live Memory
+*/
+
+async function sendLiveTranscriptToMemory(
+  transcript
+) {
+
+  const cleanTranscript =
+    String(
+      transcript || ""
+    ).trim();
+
+  if (!cleanTranscript) {
+    return;
+  }
+
+  memoryStatus.textContent =
+    "🧠 Live-Memory prüft die Aussage ...";
+
+  try {
+
+    const response =
+      await fetch(
+        `${BACKEND_URL}/live/memory`,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+              transcript:
+                cleanTranscript
+            })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+
+      throw new Error(
+        data?.error ||
+        "Live-Memory konnte nicht verarbeitet werden."
+      );
+    }
+
+    if (data.saved) {
+
+      memoryStatus.textContent =
+        `🧠 Dauerhaft gespeichert: ${data.memory}`;
+
+    } else {
+
+      memoryStatus.textContent =
+        "🧠 Nicht als dauerhafte Erinnerung gespeichert.";
+    }
+
+  } catch (error) {
+
+    console.error(
+      "Live-Memory-Fehler:",
+      error
+    );
+
+    memoryStatus.textContent =
+      `❌ ${error?.message || "Live-Memory-Fehler."}`;
+  }
+}
 
 /*
-  Live-Button
-
-  Diese Funktion wird DIREKT
-  über onclick aufgerufen.
-
-  Damit können wir eindeutig sehen,
-  ob der Browser den Klick erkennt.
+  Live Button
 */
 
 function handleLiveButtonClick() {
@@ -574,7 +647,6 @@ function handleLiveButtonClick() {
 
   startLiveConversation();
 }
-
 
 /*
   Live stoppen
@@ -617,7 +689,6 @@ function stopLiveConversation() {
   stopLiveButton.disabled = true;
 }
 
-
 /*
   Live starten
 */
@@ -632,6 +703,9 @@ async function startLiveConversation() {
 
   liveStatus.textContent =
     "Sol Live wird vorbereitet ...";
+
+  memoryStatus.textContent =
+    "Live-Memory wartet.";
 
   try {
 
@@ -690,11 +764,6 @@ async function startLiveConversation() {
     liveStatus.textContent =
       "Realtime-Schlüssel erhalten. Mikrofon wird geöffnet ...";
 
-
-    /*
-      Mikrofon prüfen
-    */
-
     if (
       !navigator.mediaDevices ||
       !navigator.mediaDevices.getUserMedia
@@ -705,7 +774,6 @@ async function startLiveConversation() {
       );
     }
 
-
     /*
       WebRTC
     */
@@ -713,9 +781,8 @@ async function startLiveConversation() {
     pc =
       new RTCPeerConnection();
 
-
     /*
-      Audio von Sol
+      Sol Audio
     */
 
     pc.ontrack =
@@ -735,6 +802,7 @@ async function startLiveConversation() {
           .play()
           .catch(
             error => {
+
               console.error(
                 "Audio konnte nicht automatisch gestartet werden:",
                 error
@@ -743,9 +811,8 @@ async function startLiveConversation() {
           );
       };
 
-
     /*
-      Eigenes Mikrofon
+      Mikrofon
     */
 
     microphoneStream =
@@ -770,7 +837,6 @@ async function startLiveConversation() {
       microphoneStream
     );
 
-
     /*
       OpenAI Event Channel
     */
@@ -779,7 +845,6 @@ async function startLiveConversation() {
       pc.createDataChannel(
         "oai-events"
       );
-
 
     dc.addEventListener(
       "open",
@@ -792,7 +857,6 @@ async function startLiveConversation() {
           false;
       }
     );
-
 
     dc.addEventListener(
       "message",
@@ -826,6 +890,35 @@ async function startLiveConversation() {
 
             liveStatus.textContent =
               "🌻 Sol verarbeitet deine Sprache ...";
+          }
+
+          /*
+            Fertige Transkription
+            von Pams gesprochenem Turn
+          */
+
+          if (
+            realtimeEvent.type ===
+            "conversation.item.input_audio_transcription.completed"
+          ) {
+
+            const transcript =
+              String(
+                realtimeEvent.transcript ||
+                ""
+              ).trim();
+
+            if (transcript) {
+
+              console.log(
+                "Pam Live Transcript:",
+                transcript
+              );
+
+              sendLiveTranscriptToMemory(
+                transcript
+              );
+            }
           }
 
           if (
@@ -870,7 +963,6 @@ async function startLiveConversation() {
       }
     );
 
-
     /*
       WebRTC Status
     */
@@ -913,7 +1005,6 @@ async function startLiveConversation() {
       }
     );
 
-
     /*
       SDP Offer
     */
@@ -927,7 +1018,6 @@ async function startLiveConversation() {
     await pc.setLocalDescription(
       offer
     );
-
 
     /*
       OpenAI Realtime Call
@@ -967,7 +1057,6 @@ async function startLiveConversation() {
       );
     }
 
-
     /*
       SDP Antwort übernehmen
     */
@@ -998,7 +1087,6 @@ async function startLiveConversation() {
   }
 }
 
-
 /*
   Stop Button
 */
@@ -1014,7 +1102,6 @@ stopLiveButton.addEventListener(
   }
 );
 
-
 /*
   Startmeldung
 */
@@ -1024,7 +1111,6 @@ addMessage(
   "Sol Holo ist bereit.",
   "system-message"
 );
-
 
 /*
   Service Worker
