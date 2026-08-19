@@ -12,6 +12,7 @@ const app = express();
   Aktiver Sol-Holo-Klon
 */
 
+
 const CURRENT_CLONE_ID = "pam-sol-001";
 
 /*
