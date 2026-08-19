@@ -9,153 +9,154 @@
 <meta name="theme-color" content="#05070d">
 
 <style>
-*{
-  box-sizing:border-box;
+* {
+  box-sizing: border-box;
 }
 
-html, body{
-  margin:0;
-  min-height:100%;
-  background:#05070d;
-  color:white;
-  font-family:Arial,sans-serif;
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: #05070d;
+  color: white;
+  font-family: Arial, sans-serif;
 }
 
-body{
-  padding:16px;
+body {
+  padding: 16px;
 }
 
-main{
-  max-width:720px;
-  margin:auto;
+main {
+  max-width: 720px;
+  margin: auto;
 }
 
-h1{
-  text-align:center;
-  font-size:34px;
-  margin:10px 0 6px;
+h1 {
+  text-align: center;
+  font-size: 34px;
+  margin: 10px 0 6px;
 }
 
-.subtitle{
-  text-align:center;
-  color:#9da7b3;
-  margin-bottom:20px;
+.subtitle {
+  text-align: center;
+  color: #9da7b3;
+  margin-bottom: 20px;
 }
 
-.box{
-  margin:18px 0;
-  padding:18px;
-  border:1px solid #30363d;
-  border-radius:18px;
-  background:#090d18;
+.box {
+  margin: 18px 0;
+  padding: 18px;
+  border: 1px solid #30363d;
+  border-radius: 18px;
+  background: #090d18;
 }
 
-#stage{
-  min-height:320px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  border-radius:16px;
-  background:#05070d;
-  overflow:hidden;
+#stage {
+  min-height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: #05070d;
+  overflow: hidden;
 }
 
-#avatarImage{
-  max-width:100%;
-  max-height:520px;
-  display:none;
+#avatarImage {
+  max-width: 100%;
+  max-height: 520px;
+  display: none;
 }
 
 input,
 button,
 textarea,
-audio{
-  width:100%;
-  margin-top:12px;
+audio {
+  width: 100%;
+  margin-top: 12px;
 }
 
-textarea{
-  min-height:110px;
-  resize:vertical;
-  padding:14px;
-  border-radius:12px;
-  border:1px solid #30363d;
-  background:#05070d;
-  color:white;
-  font-size:16px;
+textarea {
+  min-height: 110px;
+  resize: vertical;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #30363d;
+  background: #05070d;
+  color: white;
+  font-size: 16px;
 }
 
-button{
-  padding:16px;
-  border:0;
-  border-radius:12px;
-  background:#245cff;
-  color:white;
-  font-weight:bold;
-  font-size:17px;
-  cursor:pointer;
+button {
+  padding: 16px;
+  border: 0;
+  border-radius: 12px;
+  background: #245cff;
+  color: white;
+  font-weight: bold;
+  font-size: 17px;
+  cursor: pointer;
 }
 
-button:disabled{
-  opacity:.5;
-  cursor:default;
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
-.secondary-button{
-  background:#30363d;
+.secondary-button {
+  background: #30363d;
 }
 
 #status,
 #chatStatus,
-#liveStatus{
-  text-align:center;
-  margin-top:12px;
-  color:#9cffb1;
-  line-height:1.4;
+#liveStatus {
+  text-align: center;
+  margin-top: 12px;
+  color: #9cffb1;
+  line-height: 1.4;
 }
 
-#chat{
-  margin-top:15px;
-  max-height:420px;
-  overflow-y:auto;
+#chat {
+  margin-top: 15px;
+  max-height: 420px;
+  overflow-y: auto;
 }
 
-.message{
-  margin:10px 0;
-  padding:12px 14px;
-  border-radius:14px;
-  line-height:1.45;
-  white-space:pre-wrap;
+.message {
+  margin: 10px 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  line-height: 1.45;
+  white-space: pre-wrap;
 }
 
-.message strong{
-  display:block;
-  margin-bottom:5px;
+.message strong {
+  display: block;
+  margin-bottom: 5px;
 }
 
-.user-message{
-  background:#14264f;
+.user-message {
+  background: #14264f;
 }
 
-.sol-message{
-  background:#15271b;
+.sol-message {
+  background: #15271b;
 }
 
-.system-message{
-  background:#2a2020;
-  color:#ffb3b3;
+.system-message {
+  background: #2a2020;
+  color: #ffb3b3;
 }
 
-.live-indicator{
-  text-align:center;
-  font-size:46px;
-  margin:14px 0 4px;
+.live-indicator {
+  text-align: center;
+  font-size: 46px;
+  margin: 14px 0 4px;
 }
 
-.live-hint{
-  text-align:center;
-  color:#9da7b3;
-  line-height:1.5;
+.live-hint {
+  text-align: center;
+  color: #9da7b3;
+  line-height: 1.5;
 }
 </style>
 </head>
@@ -170,125 +171,103 @@ button:disabled{
 Avatar · Sprache · Langzeitgedächtnis · Live
 </p>
 
-
 <section class="box">
+  <h2>1. Avatar</h2>
 
-<h2>1. Avatar</h2>
+  <input
+    id="imageInput"
+    type="file"
+    accept="image/*"
+  >
 
-<input
-  id="imageInput"
-  type="file"
-  accept="image/*"
->
-
-<div id="stage">
-
-<img
-  id="avatarImage"
-  alt="Sol Holo Avatar"
->
-
-</div>
-
+  <div id="stage">
+    <img
+      id="avatarImage"
+      alt="Sol Holo Avatar"
+    >
+  </div>
 </section>
 
-
 <section class="box">
+  <h2>2. Audio</h2>
 
-<h2>2. Audio</h2>
+  <input
+    id="audioInput"
+    type="file"
+    accept="audio/*"
+  >
 
-<input
-  id="audioInput"
-  type="file"
-  accept="audio/*"
->
+  <audio
+    id="audioPlayer"
+    controls>
+  </audio>
 
-<audio
-  id="audioPlayer"
-  controls>
-</audio>
-
-<div id="status">
-Bereit.
-</div>
-
+  <div id="status">
+    Bereit.
+  </div>
 </section>
 
-
 <section class="box">
+  <h2>3. Mit Sol schreiben</h2>
 
-<h2>3. Mit Sol schreiben</h2>
+  <textarea
+    id="messageInput"
+    placeholder="Schreib Sol etwas ...">
+  </textarea>
 
-<textarea
-  id="messageInput"
-  placeholder="Schreib Sol etwas ...">
-</textarea>
+  <button id="sendButton">
+    Nachricht an Sol senden
+  </button>
 
-<button id="sendButton">
-Nachricht an Sol senden
-</button>
+  <button id="memoryButton">
+    Langzeitgedächtnis anzeigen
+  </button>
 
-<button id="memoryButton">
-Langzeitgedächtnis anzeigen
-</button>
+  <div id="chatStatus"></div>
 
-<div id="chatStatus"></div>
-
-<div id="chat"></div>
-
+  <div id="chat"></div>
 </section>
 
-
 <section class="box">
+  <h2>4. Live mit Sol sprechen</h2>
 
-<h2>4. Live mit Sol sprechen</h2>
+  <div class="live-indicator">
+    🎙️ 🌻
+  </div>
 
-<div class="live-indicator">
-🎙️ 🌻
-</div>
+  <p class="live-hint">
+    Starte ein Live-Gespräch und sprich direkt mit Sol.
+  </p>
 
-<p class="live-hint">
-Starte ein Live-Gespräch und sprich direkt mit Sol.
-Das Mikrofon bleibt während des Gesprächs verbunden.
-</p>
+  <button id="startLiveButton">
+    Live-Gespräch starten
+  </button>
 
-<button id="startLiveButton">
-Live-Gespräch starten
-</button>
+  <button
+    id="stopLiveButton"
+    class="secondary-button"
+    disabled>
+    Live-Gespräch beenden
+  </button>
 
-<button
-  id="stopLiveButton"
-  class="secondary-button"
-  disabled>
-Live-Gespräch beenden
-</button>
+  <div id="liveStatus">
+    Live-Verbindung noch nicht gestartet.
+  </div>
 
-<div id="liveStatus">
-Live-Verbindung noch nicht gestartet.
-</div>
-
-<audio
-  id="realtimeAudio"
-  autoplay>
-</audio>
-
+  <audio
+    id="realtimeAudio"
+    autoplay>
+  </audio>
 </section>
 
 </main>
 
-
 <script>
-
-/*
-  Render Backend
-*/
-
 const BACKEND_URL =
   "https://sol-holo.onrender.com";
 
-
 /*
-  Elemente
+  DOM
 */
 
 const imageInput =
@@ -333,24 +312,21 @@ const liveStatus =
 const realtimeAudio =
   document.getElementById("realtimeAudio");
 
-
 /*
-  Realtime-Objekte
+  Realtime State
 */
 
-let realtimePeerConnection = null;
-let realtimeDataChannel = null;
-let realtimeMicrophoneStream = null;
-
+let pc = null;
+let dc = null;
+let microphoneStream = null;
 
 /*
-  Avatar-Bild laden
+  Avatar
 */
 
 imageInput.addEventListener(
   "change",
   () => {
-
     const file =
       imageInput.files?.[0];
 
@@ -362,7 +338,6 @@ imageInput.addEventListener(
       URL.createObjectURL(file);
 
     avatarImage.src = url;
-
     avatarImage.style.display =
       "block";
 
@@ -371,15 +346,13 @@ imageInput.addEventListener(
   }
 );
 
-
 /*
-  Audio laden
+  Audio-Datei
 */
 
 audioInput.addEventListener(
   "change",
   () => {
-
     const file =
       audioInput.files?.[0];
 
@@ -397,9 +370,8 @@ audioInput.addEventListener(
   }
 );
 
-
 /*
-  Nachricht im Chat anzeigen
+  Chat
 */
 
 function addMessage(
@@ -407,7 +379,6 @@ function addMessage(
   text,
   className
 ) {
-
   const element =
     document.createElement("div");
 
@@ -417,4 +388,167 @@ function addMessage(
   const name =
     document.createElement("strong");
 
- 
+  name.textContent =
+    speaker;
+
+  const content =
+    document.createElement("div");
+
+  content.textContent =
+    text;
+
+  element.appendChild(name);
+  element.appendChild(content);
+
+  chat.appendChild(element);
+
+  chat.scrollTop =
+    chat.scrollHeight;
+}
+
+/*
+  Textnachricht
+*/
+
+async function sendMessage(
+  forcedMessage = null
+) {
+  const message =
+    String(
+      forcedMessage ??
+      messageInput.value
+    ).trim();
+
+  if (!message) {
+    return;
+  }
+
+  addMessage(
+    "Pam",
+    message,
+    "user-message"
+  );
+
+  if (!forcedMessage) {
+    messageInput.value = "";
+  }
+
+  sendButton.disabled = true;
+  memoryButton.disabled = true;
+
+  chatStatus.textContent =
+    "Sol denkt ...";
+
+  try {
+    const response =
+      await fetch(
+        `${BACKEND_URL}/sol`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+          body:
+            JSON.stringify({
+              message
+            })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data?.error ||
+        "Fehler bei der Anfrage an Sol."
+      );
+    }
+
+    const answer =
+      String(
+        data?.answer || ""
+      ).trim();
+
+    if (!answer) {
+      throw new Error(
+        "Sol hat keine Antwort geliefert."
+      );
+    }
+
+    addMessage(
+      "Sol",
+      answer,
+      "sol-message"
+    );
+
+    chatStatus.textContent =
+      "Antwort erhalten.";
+
+  } catch (error) {
+    console.error(error);
+
+    addMessage(
+      "System",
+      error?.message ||
+      "Unbekannter Fehler.",
+      "system-message"
+    );
+
+    chatStatus.textContent =
+      "Verbindung zu Sol fehlgeschlagen.";
+
+  } finally {
+    sendButton.disabled = false;
+    memoryButton.disabled = false;
+  }
+}
+
+sendButton.addEventListener(
+  "click",
+  () => {
+    sendMessage();
+
+ startLiveButton.addEventListener(
+  "click",
+  () => {
+    startLiveConversation();
+  }
+);
+
+stopLiveButton.addEventListener(
+  "click",
+  () => {
+    stopLiveConversation();
+
+    liveStatus.textContent =
+      "Live-Gespräch beendet.";
+  }
+);
+
+addMessage(
+  "System",
+  "Sol Holo ist bereit.",
+  "system-message"
+);
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener(
+    "load",
+    () => {
+      navigator.serviceWorker
+        .register("/service-worker.js")
+        .catch((error) => {
+          console.error(
+            "Service Worker konnte nicht registriert werden:",
+            error
+          );
+        });
+    }
+  );
+}
+</script>
+
+</body>
+</html>
