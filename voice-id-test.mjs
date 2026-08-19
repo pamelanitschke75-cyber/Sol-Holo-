@@ -436,4 +436,214 @@ async function identifySpeaker(
 
     OpenAI kann bekannte Sprecher
     anhand kurzer Referenzclips
-    auf
+    auf Sprechersegmente abbilden.
+  */
+
+  const transcript =
+    await openai
+      .audio
+      .transcriptions
+      .create({
+
+        file:
+          fs.createReadStream(
+            testAudioPath
+          ),
+
+        model:
+          "gpt-4o-transcribe-diarize",
+
+        response_format:
+          "diarized_json",
+
+        chunking_strategy:
+          "auto",
+
+        known_speaker_names: [
+          "Pam",
+          "Steffi"
+        ],
+
+        known_speaker_references: [
+          pamReference,
+          steffiReference
+        ]
+
+      });
+
+
+  /*
+    Segmente anzeigen
+  */
+
+  const segments =
+    Array.isArray(
+      transcript?.segments
+    )
+      ? transcript.segments
+      : [];
+
+
+  console.log(
+    ""
+  );
+
+  console.log(
+    "Erkannte Segmente:"
+  );
+
+
+  for (
+    const segment
+    of segments
+  ) {
+
+    console.log(
+      `[${segment.start}–${segment.end}] ${segment.speaker}: ${segment.text}`
+    );
+
+  }
+
+
+  /*
+    Hauptergebnis
+  */
+
+  const result =
+    determineMainSpeaker(
+      segments
+    );
+
+
+  console.log(
+    ""
+  );
+
+  console.log(
+    "VOICE-ID ERGEBNIS:"
+  );
+
+  console.log(
+    JSON.stringify(
+      result,
+      null,
+      2
+    )
+  );
+
+
+  return {
+
+    result,
+
+    transcript:
+      transcript?.text ||
+      "",
+
+    segments
+
+  };
+
+}
+
+
+/*
+  Kommandozeile
+
+  Beispiel:
+
+  node voice-id-test.mjs test-pam.m4a
+
+  oder:
+
+  node voice-id-test.mjs test-steffi.m4a
+*/
+
+const testAudioPath =
+  process.argv[2];
+
+
+if (
+  !testAudioPath
+) {
+
+  console.log(
+    ""
+  );
+
+  console.log(
+    "VOICE-ID TEST 002 ist installiert."
+  );
+
+  console.log(
+    ""
+  );
+
+  console.log(
+    "Zum Testen:"
+  );
+
+  console.log(
+    "node voice-id-test.mjs <test-audio.m4a>"
+  );
+
+  console.log(
+    ""
+  );
+
+  console.log(
+    "Mögliche Ergebnisse:"
+  );
+
+  console.log(
+    "pam"
+  );
+
+  console.log(
+    "steffi"
+  );
+
+  console.log(
+    "unknown"
+  );
+
+} else {
+
+  identifySpeaker(
+    testAudioPath
+  )
+    .then(
+      () => {
+
+        console.log(
+          ""
+        );
+
+        console.log(
+          "VOICE-ID TEST 002 beendet."
+        );
+
+      }
+    )
+    .catch(
+      (error) => {
+
+        console.error(
+          ""
+        );
+
+        console.error(
+          "VOICE-ID TEST 002 FEHLER:"
+        );
+
+        console.error(
+          error
+        );
+
+        process.exitCode =
+          1;
+
+      }
+    );
+
+}
