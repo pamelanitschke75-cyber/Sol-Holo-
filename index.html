@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sol Holo – TEST 008</title>
+<title>Sol Holo – TEST 009</title>
 
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#05070d">
@@ -182,12 +182,10 @@ Avatar · Sprache · Langzeitgedächtnis · Live
 >
 
 <div id="stage">
-
-<img
-  id="avatarImage"
-  alt="Sol Holo Avatar"
->
-
+  <img
+    id="avatarImage"
+    alt="Sol Holo Avatar"
+  >
 </div>
 
 </section>
@@ -248,7 +246,9 @@ Langzeitgedächtnis anzeigen
 Starte ein Live-Gespräch und sprich direkt mit Sol.
 </p>
 
-<button id="startLiveButton">
+<button
+  id="startLiveButton"
+  onclick="handleLiveButtonClick()">
 Live-Gespräch starten
 </button>
 
@@ -276,10 +276,6 @@ Live-Verbindung noch nicht gestartet.
 
 const BACKEND_URL =
   "https://sol-holo.onrender.com";
-
-/*
-  Elemente
-*/
 
 const imageInput =
   document.getElementById("imageInput");
@@ -323,16 +319,13 @@ const liveStatus =
 const realtimeAudio =
   document.getElementById("realtimeAudio");
 
-/*
-  Live-Status
-*/
-
 let pc = null;
 let dc = null;
 let microphoneStream = null;
 
+
 /*
-  Avatar laden
+  Avatar
 */
 
 imageInput.addEventListener(
@@ -346,19 +339,20 @@ imageInput.addEventListener(
       return;
     }
 
-    const url =
+    avatarImage.src =
       URL.createObjectURL(file);
 
-    avatarImage.src = url;
-    avatarImage.style.display = "block";
+    avatarImage.style.display =
+      "block";
 
     status.textContent =
       "Avatar geladen.";
   }
 );
 
+
 /*
-  Audio laden
+  Audio
 */
 
 audioInput.addEventListener(
@@ -372,18 +366,17 @@ audioInput.addEventListener(
       return;
     }
 
-    const url =
+    audioPlayer.src =
       URL.createObjectURL(file);
-
-    audioPlayer.src = url;
 
     status.textContent =
       "Audio geladen.";
   }
 );
 
+
 /*
-  Chat-Nachricht anzeigen
+  Chat anzeigen
 */
 
 function addMessage(
@@ -419,8 +412,9 @@ function addMessage(
     chat.scrollHeight;
 }
 
+
 /*
-  Textnachricht senden
+  Text an Sol
 */
 
 async function sendMessage(
@@ -460,10 +454,12 @@ async function sendMessage(
         `${BACKEND_URL}/sol`,
         {
           method: "POST",
+
           headers: {
             "Content-Type":
               "application/json"
           },
+
           body:
             JSON.stringify({
               message
@@ -524,9 +520,6 @@ async function sendMessage(
   }
 }
 
-/*
-  Text-Buttons
-*/
 
 sendButton.addEventListener(
   "click",
@@ -535,14 +528,17 @@ sendButton.addEventListener(
   }
 );
 
+
 memoryButton.addEventListener(
   "click",
   () => {
+
     sendMessage(
       "Sol, was weißt du dauerhaft?"
     );
   }
 );
+
 
 messageInput.addEventListener(
   "keydown",
@@ -560,8 +556,28 @@ messageInput.addEventListener(
   }
 );
 
+
 /*
-  Live-Gespräch beenden
+  Live-Button
+
+  Diese Funktion wird DIREKT
+  über onclick aufgerufen.
+
+  Damit können wir eindeutig sehen,
+  ob der Browser den Klick erkennt.
+*/
+
+function handleLiveButtonClick() {
+
+  liveStatus.textContent =
+    "Klick erkannt ✅ – Sol Live startet ...";
+
+  startLiveConversation();
+}
+
+
+/*
+  Live stoppen
 */
 
 function stopLiveConversation() {
@@ -589,7 +605,7 @@ function stopLiveConversation() {
     microphoneStream
       .getTracks()
       .forEach(
-        (track) => track.stop()
+        track => track.stop()
       );
 
     microphoneStream = null;
@@ -601,8 +617,9 @@ function stopLiveConversation() {
   stopLiveButton.disabled = true;
 }
 
+
 /*
-  Live-Gespräch starten
+  Live starten
 */
 
 async function startLiveConversation() {
@@ -619,8 +636,7 @@ async function startLiveConversation() {
   try {
 
     /*
-      Kurzlebigen Realtime-Schlüssel
-      vom Render-Backend holen
+      Realtime Token
     */
 
     const tokenResponse =
@@ -632,31 +648,63 @@ async function startLiveConversation() {
         }
       );
 
-    const tokenData =
-      await tokenResponse.json();
+    const responseText =
+      await tokenResponse.text();
+
+    let tokenData;
+
+    try {
+
+      tokenData =
+        JSON.parse(responseText);
+
+    } catch {
+
+      throw new Error(
+        "Das Backend hat beim Realtime-Token keine gültige JSON-Antwort geliefert."
+      );
+    }
 
     if (!tokenResponse.ok) {
 
       throw new Error(
         tokenData?.error ||
-        "Realtime-Schlüssel konnte nicht erstellt werden."
+        `Realtime-Token Fehler (${tokenResponse.status}).`
       );
     }
 
     const ephemeralKey =
       String(
-        tokenData?.value || ""
+        tokenData?.value ||
+        tokenData?.client_secret?.value ||
+        ""
       ).trim();
 
     if (!ephemeralKey) {
 
       throw new Error(
-        "Kein Realtime-Schlüssel erhalten."
+        "Das Backend hat keinen Realtime-Schlüssel geliefert."
       );
     }
 
     liveStatus.textContent =
-      "Mikrofon wird geöffnet ...";
+      "Realtime-Schlüssel erhalten. Mikrofon wird geöffnet ...";
+
+
+    /*
+      Mikrofon prüfen
+    */
+
+    if (
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia
+    ) {
+
+      throw new Error(
+        "Der Browser stellt keinen Mikrofonzugriff bereit."
+      );
+    }
+
 
     /*
       WebRTC
@@ -665,8 +713,9 @@ async function startLiveConversation() {
     pc =
       new RTCPeerConnection();
 
+
     /*
-      Sols Audio
+      Audio von Sol
     */
 
     pc.ontrack =
@@ -684,11 +733,19 @@ async function startLiveConversation() {
 
         realtimeAudio
           .play()
-          .catch(() => {});
+          .catch(
+            error => {
+              console.error(
+                "Audio konnte nicht automatisch gestartet werden:",
+                error
+              );
+            }
+          );
       };
 
+
     /*
-      Mikrofon
+      Eigenes Mikrofon
     */
 
     microphoneStream =
@@ -704,7 +761,7 @@ async function startLiveConversation() {
     if (!audioTrack) {
 
       throw new Error(
-        "Kein Mikrofon gefunden."
+        "Es wurde keine Mikrofon-Audiospur gefunden."
       );
     }
 
@@ -713,8 +770,9 @@ async function startLiveConversation() {
       microphoneStream
     );
 
+
     /*
-      Realtime Event Channel
+      OpenAI Event Channel
     */
 
     dc =
@@ -722,21 +780,23 @@ async function startLiveConversation() {
         "oai-events"
       );
 
+
     dc.addEventListener(
       "open",
       () => {
 
         liveStatus.textContent =
-          "🌻 Sol hört zu – sprich einfach.";
+          "🌻 Sol Live ist verbunden – sprich einfach.";
 
         stopLiveButton.disabled =
           false;
       }
     );
 
+
     dc.addEventListener(
       "message",
-      (event) => {
+      event => {
 
         try {
 
@@ -746,7 +806,7 @@ async function startLiveConversation() {
             );
 
           console.log(
-            "Realtime:",
+            "OpenAI Realtime Event:",
             realtimeEvent
           );
 
@@ -765,7 +825,16 @@ async function startLiveConversation() {
           ) {
 
             liveStatus.textContent =
-              "🌻 Sol antwortet ...";
+              "🌻 Sol verarbeitet deine Sprache ...";
+          }
+
+          if (
+            realtimeEvent.type ===
+            "response.audio.delta"
+          ) {
+
+            liveStatus.textContent =
+              "🌻 Sol spricht ...";
           }
 
           if (
@@ -774,7 +843,7 @@ async function startLiveConversation() {
           ) {
 
             liveStatus.textContent =
-              "🌻 Sol hört zu – sprich einfach.";
+              "🌻 Sol hört wieder zu.";
           }
 
           if (
@@ -783,39 +852,44 @@ async function startLiveConversation() {
           ) {
 
             console.error(
-              "Realtime-Fehler:",
+              "OpenAI Realtime Fehler:",
               realtimeEvent
             );
 
             liveStatus.textContent =
-              "Realtime-Fehler.";
+              "OpenAI Realtime meldet einen Fehler.";
           }
 
         } catch (error) {
 
           console.error(
-            "Realtime-Nachricht konnte nicht gelesen werden:",
+            "Realtime Event konnte nicht gelesen werden:",
             error
           );
         }
       }
     );
 
+
     /*
-      Verbindung beobachten
+      WebRTC Status
     */
 
     pc.addEventListener(
       "connectionstatechange",
       () => {
 
+        if (!pc) {
+          return;
+        }
+
         console.log(
-          "WebRTC:",
-          pc?.connectionState
+          "WebRTC Status:",
+          pc.connectionState
         );
 
         if (
-          pc?.connectionState ===
+          pc.connectionState ===
           "connected"
         ) {
 
@@ -827,23 +901,25 @@ async function startLiveConversation() {
         }
 
         if (
-          pc?.connectionState ===
-            "failed" ||
-          pc?.connectionState ===
-            "closed"
+          pc.connectionState ===
+          "failed"
         ) {
 
           stopLiveConversation();
 
           liveStatus.textContent =
-            "Live-Verbindung beendet.";
+            "WebRTC-Verbindung fehlgeschlagen.";
         }
       }
     );
 
+
     /*
-      SDP Offer erstellen
+      SDP Offer
     */
+
+    liveStatus.textContent =
+      "Live-Verbindung wird aufgebaut ...";
 
     const offer =
       await pc.createOffer();
@@ -852,8 +928,9 @@ async function startLiveConversation() {
       offer
     );
 
+
     /*
-      Mit OpenAI Realtime verbinden
+      OpenAI Realtime Call
     */
 
     const sdpResponse =
@@ -862,16 +939,16 @@ async function startLiveConversation() {
         {
           method: "POST",
 
-          body:
-            offer.sdp,
-
           headers: {
             Authorization:
               `Bearer ${ephemeralKey}`,
 
             "Content-Type":
               "application/sdp"
-          }
+          },
+
+          body:
+            offer.sdp
         }
       );
 
@@ -881,17 +958,18 @@ async function startLiveConversation() {
     if (!sdpResponse.ok) {
 
       console.error(
-        "SDP-Fehler:",
+        "OpenAI SDP Antwort:",
         answerSdp
       );
 
       throw new Error(
-        "Live-Verbindung zu Sol konnte nicht aufgebaut werden."
+        `OpenAI Live-Verbindung fehlgeschlagen (${sdpResponse.status}).`
       );
     }
 
+
     /*
-      Antwort setzen
+      SDP Antwort übernehmen
     */
 
     await pc.setRemoteDescription({
@@ -900,33 +978,30 @@ async function startLiveConversation() {
     });
 
     liveStatus.textContent =
-      "🌻 Verbindung wird hergestellt ...";
+      "🌻 Verbindung zu Sol wird fertiggestellt ...";
 
   } catch (error) {
 
     console.error(
-      "Sol-Holo-Live-Fehler:",
+      "Sol Holo Live Fehler:",
       error
     );
+
+    const errorMessage =
+      error?.message ||
+      "Live-Gespräch konnte nicht gestartet werden.";
 
     stopLiveConversation();
 
     liveStatus.textContent =
-      error?.message ||
-      "Live-Gespräch konnte nicht gestartet werden.";
+      `❌ ${errorMessage}`;
   }
 }
 
-/*
-  Live-Buttons
-*/
 
-startLiveButton.addEventListener(
-  "click",
-  () => {
-    startLiveConversation();
-  }
-);
+/*
+  Stop Button
+*/
 
 stopLiveButton.addEventListener(
   "click",
@@ -939,6 +1014,7 @@ stopLiveButton.addEventListener(
   }
 );
 
+
 /*
   Startmeldung
 */
@@ -948,6 +1024,7 @@ addMessage(
   "Sol Holo ist bereit.",
   "system-message"
 );
+
 
 /*
   Service Worker
@@ -964,10 +1041,10 @@ if ("serviceWorker" in navigator) {
           "/service-worker.js"
         )
         .catch(
-          (error) => {
+          error => {
 
             console.error(
-              "Service Worker konnte nicht registriert werden:",
+              "Service Worker Fehler:",
               error
             );
           }
