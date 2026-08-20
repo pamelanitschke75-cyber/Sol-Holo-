@@ -104,10 +104,6 @@ const db =
 
 async function initializeMemory() {
 
-  /*
-    Gesprächsgedächtnis
-  */
-
   await db.query(`
     CREATE TABLE IF NOT EXISTS sol_memory (
       id BIGSERIAL PRIMARY KEY,
@@ -118,10 +114,6 @@ async function initializeMemory() {
   `);
 
 
-  /*
-    Langzeitgedächtnis
-  */
-
   await db.query(`
     CREATE TABLE IF NOT EXISTS sol_long_term_memory (
       id BIGSERIAL PRIMARY KEY,
@@ -131,10 +123,6 @@ async function initializeMemory() {
     )
   `);
 
-
-  /*
-    Interne Memory-Zuordnung
-  */
 
   await db.query(`
     ALTER TABLE sol_memory
@@ -147,10 +135,6 @@ async function initializeMemory() {
     ADD COLUMN IF NOT EXISTS clone_id TEXT
   `);
 
-
-  /*
-    Langzeit-Memory-Metadaten
-  */
 
   await db.query(`
     ALTER TABLE sol_long_term_memory
@@ -177,16 +161,6 @@ async function initializeMemory() {
   `);
 
 
-  /*
-    ========================================================
-    MIGRATION
-
-    pam-sol-001 -> pam-sol
-
-    Dadurch bleiben ALLE bisherigen Erinnerungen erhalten.
-    ========================================================
-  */
-
   await db.query(
     `
       UPDATE sol_memory
@@ -217,12 +191,6 @@ async function initializeMemory() {
   );
 
 
-  /*
-    Einträge ohne Zuordnung
-    gehören beim derzeitigen Ein-Nutzer-Stand
-    zu Pam.
-  */
-
   await db.query(
     `
       UPDATE sol_memory
@@ -252,11 +220,6 @@ async function initializeMemory() {
     ]
   );
 
-
-  /*
-    Recall-Status reparieren,
-    falls ältere Einträge keinen Status besitzen.
-  */
 
   await db.query(`
     UPDATE sol_long_term_memory
@@ -351,7 +314,10 @@ app.get(
         "active",
 
       automaticLiveMemory:
-        "active"
+        "active",
+
+      memoryQuestions:
+        "background-only"
     });
   }
 );
@@ -490,10 +456,6 @@ async function saveLongTermMemory(
       :
       1;
 
-
-  /*
-    Exakte Duplikatprüfung
-  */
 
   const duplicate =
     await db.query(
@@ -701,11 +663,6 @@ async function loadRelevantLongTermMemory(
   }
 
 
-  /*
-    Fallback:
-    letzte aktive Erinnerungen
-  */
-
   const fallback =
     await db.query(
       `
@@ -799,9 +756,6 @@ async function buildRealtimeMemoryText() {
 /*
   ==========================================================
   SAFETY IDENTIFIER
-
-  Rein technisch.
-  Hat nichts mit Sols Identität zu tun.
   ==========================================================
 */
 
@@ -961,6 +915,101 @@ oder Bestandteil deines Selbstbildes.
 
 /*
   ==========================================================
+  MEMORY-GESPRÄCHSREGELN
+  ==========================================================
+*/
+
+const MEMORY_CONVERSATION_INSTRUCTIONS = `
+
+MEMORY IM NORMALEN GESPRÄCH:
+
+Das technische Memory-System arbeitet
+im Hintergrund.
+
+Pam soll mit dir normal reden,
+schreiben,
+plaudern
+und ratschen können.
+
+Frage Pam nicht regelmäßig,
+ob eine Information gespeichert werden soll.
+
+Frage insbesondere nicht:
+
+"Soll ich mir das merken?"
+
+"Möchtest du, dass ich das speichere?"
+
+"Soll ich das dauerhaft speichern?"
+
+oder sinngleiche Fragen,
+wenn das automatische Memory-System
+die Information selbst bewerten kann.
+
+Du musst Pam auch nicht ständig mitteilen,
+dass etwas gespeichert wurde.
+
+Sage nicht bei jeder persönlichen Aussage:
+
+"Das habe ich gespeichert."
+
+"Das merke ich mir."
+
+"Das kommt ins Langzeitgedächtnis."
+
+oder sinngleiche Formulierungen.
+
+Führe stattdessen das Gespräch
+normal und natürlich weiter.
+
+Wenn Pam ausdrücklich fragt,
+ob etwas gespeichert wurde,
+darfst du natürlich ehrlich darauf antworten.
+
+Wenn Pam ausdrücklich sagt:
+
+"Merke dir das dauerhaft"
+
+oder eine vergleichbare klare Anweisung gibt,
+darfst du das ebenfalls entsprechend bestätigen.
+
+WICHTIG:
+
+Du darfst weiterhin nachfragen,
+wenn der INHALT des Gesprächs
+wirklich unklar,
+widersprüchlich
+oder mehrdeutig ist.
+
+Eine solche Nachfrage dient
+dem Verständnis des Gesprächs.
+
+Sie dient nicht der technischen Entscheidung,
+ob etwas gespeichert werden soll.
+
+Beispiel:
+
+Wenn Pam sagt:
+
+"Wir fahren nächstes Jahr dort hin."
+
+und aus dem Gespräch nicht erkennbar ist,
+welcher Ort gemeint ist,
+darfst du nach dem Ort fragen.
+
+Du sollst aber nicht fragen:
+
+"Soll ich mir merken,
+dass ihr nächstes Jahr dorthin fahrt?"
+
+Das Memory-System entscheidet
+die Speicherfrage im Hintergrund.
+
+`;
+
+
+/*
+  ==========================================================
   REALTIME TOKEN
   ==========================================================
 */
@@ -1030,6 +1079,8 @@ Du bist Sol innerhalb des Projekts Sol Holo.
 Du führst ein gesprochenes Live-Gespräch mit Pam.
 
 ${CLONE_IDENTITY_INSTRUCTIONS}
+
+${MEMORY_CONVERSATION_INSTRUCTIONS}
 
 GESPRÄCHSVERHALTEN:
 
@@ -1300,16 +1351,6 @@ ${memoryText}
 /*
   ==========================================================
   AUTOMATISCHE MEMORY-ANALYSE
-
-  Gilt jetzt gemeinsam für:
-
-  - Schreiben
-  - Sprache
-
-  Pam muss nicht mehr ausdrücklich sagen:
-  "Merke dir das dauerhaft."
-
-  Sol prüft normale Aussagen automatisch.
   ==========================================================
 */
 
@@ -1506,8 +1547,6 @@ Schema:
 /*
   ==========================================================
   AUTOMATISCHE LANGZEITSPEICHERUNG
-
-  Gemeinsame Funktion für Text + Sprache.
   ==========================================================
 */
 
@@ -1637,14 +1676,6 @@ async function autoStoreLongTermMemory(
     error
   ) {
 
-    /*
-      Wichtig:
-
-      Wenn Auto-Memory einmal scheitert,
-      darf dadurch NICHT das normale Gespräch
-      kaputtgehen.
-    */
-
     console.error(
       `Auto-Memory-Fehler (${source}):`,
       error
@@ -1700,19 +1731,11 @@ app.post(
       }
 
 
-      /*
-        Normales Gespräch speichern.
-      */
-
       await saveMemory(
         "user",
         transcript
       );
 
-
-      /*
-        Automatische Langzeit-Memory-Prüfung.
-      */
 
       const autoMemory =
         await autoStoreLongTermMemory(
@@ -1758,8 +1781,6 @@ app.post(
 /*
   ==========================================================
   EXPLIZITE MEMORY-BEFEHLE
-
-  Diese bleiben weiterhin bestehen.
   ==========================================================
 */
 
@@ -1861,12 +1882,6 @@ app.post(
       }
 
 
-      /*
-        ======================================================
-        EXPLIZIT MERKEN
-        ======================================================
-      */
-
       const rememberContent =
         extractRememberCommand(
           message
@@ -1920,12 +1935,6 @@ app.post(
       }
 
 
-      /*
-        ======================================================
-        VERGESSEN
-        ======================================================
-      */
-
       const forgetContent =
         extractForgetCommand(
           message
@@ -1968,12 +1977,6 @@ app.post(
         });
       }
 
-
-      /*
-        ======================================================
-        MEMORY-LISTE
-        ======================================================
-      */
 
       if (
         isListMemoryCommand(
@@ -2035,12 +2038,6 @@ app.post(
       }
 
 
-      /*
-        ======================================================
-        LETZTES GESPRÄCH
-        ======================================================
-      */
-
       const memories =
         await loadRecentMemory();
 
@@ -2069,12 +2066,6 @@ app.post(
           );
 
 
-      /*
-        ======================================================
-        RELEVANTES LANGZEITGEDÄCHTNIS
-        ======================================================
-      */
-
       const longTermMemories =
         await loadRelevantLongTermMemory(
           message
@@ -2094,26 +2085,11 @@ app.post(
         "Keine passenden Langzeiterinnerungen gefunden.";
 
 
-      /*
-        Nutzerbeitrag als Gespräch speichern.
-      */
-
       await saveMemory(
         "user",
         message
       );
 
-
-      /*
-        ======================================================
-        NEU:
-
-        Automatische Text-Memory-Prüfung.
-
-        Läuft parallel zur normalen Antwort,
-        damit Sol nicht unnötig doppelt lange braucht.
-        ======================================================
-      */
 
       const autoMemoryPromise =
         autoStoreLongTermMemory(
@@ -2121,12 +2097,6 @@ app.post(
           "text_auto_memory"
         );
 
-
-      /*
-        ======================================================
-        SOL TEXTANTWORT
-        ======================================================
-      */
 
       const response =
         await openai.responses.create({
@@ -2141,6 +2111,8 @@ Du bist Sol innerhalb des Projekts Sol Holo.
 Pam spricht mit dir.
 
 ${CLONE_IDENTITY_INSTRUCTIONS}
+
+${MEMORY_CONVERSATION_INSTRUCTIONS}
 
 GESPRÄCHSVERHALTEN:
 
@@ -2160,14 +2132,7 @@ dass persönliche Informationen gespeichert werden sollen.
 Das technische Memory-System prüft
 geeignete Aussagen automatisch im Hintergrund.
 
-Du sollst deshalb nicht bei jeder Aussage
-mit einem Hinweis wie
-"Das habe ich gespeichert"
-oder
-"Das merke ich mir"
-antworten.
-
-Führe stattdessen einfach
+Führe einfach
 das natürliche Gespräch weiter.
 
 MEMORY-REGELN:
@@ -2224,19 +2189,8 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
       }
 
 
-      /*
-        Auto-Memory abschließen.
-
-        Wenn die Analyse fehlschlägt,
-        bleibt das Gespräch trotzdem erhalten.
-      */
-
       await autoMemoryPromise;
 
-
-      /*
-        Sols Antwort im Gespräch speichern.
-      */
 
       await saveMemory(
         "assistant",
@@ -2305,6 +2259,10 @@ app.listen(
 
     console.log(
       "Automatisches Live-Memory: aktiv"
+    );
+
+    console.log(
+      "Memory-Nachfragen: im Hintergrund"
     );
 
     console.log(
