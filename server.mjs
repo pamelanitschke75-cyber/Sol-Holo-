@@ -41,7 +41,9 @@ const LEGACY_MEMORY_OWNER_ID =
 
 
 /*
-  Middleware
+  ==========================================================
+  MIDDLEWARE
+  ==========================================================
 */
 
 app.use(cors());
@@ -337,12 +339,18 @@ app.get(
         "Sol Holo",
 
       test:
-        "TEST 012",
+        "TEST 013",
 
       cloneIdentity:
         "personal-clone",
 
       memoryRouting:
+        "active",
+
+      automaticTextMemory:
+        "active",
+
+      automaticLiveMemory:
         "active"
     });
   }
@@ -484,7 +492,7 @@ async function saveLongTermMemory(
 
 
   /*
-    Duplikatprüfung
+    Exakte Duplikatprüfung
   */
 
   const duplicate =
@@ -816,14 +824,6 @@ function getSafetyIdentifier() {
   ==========================================================
   GEMEINSAME CLONE-IDENTITÄTSREGELN
   ==========================================================
-
-  Diese Regeln gelten für:
-
-  - Textchat
-  - Live / Realtime
-
-  Dadurch verhält sich Sol in beiden Modi
-  konsistent.
 */
 
 const CLONE_IDENTITY_INSTRUCTIONS = `
@@ -1259,10 +1259,6 @@ ${memoryText}
       }
 
 
-      /*
-        Echter Schlüssel wird NICHT geloggt.
-      */
-
       console.log(
         ">>> Realtime-Schlüssel erfolgreich erstellt"
       );
@@ -1303,22 +1299,32 @@ ${memoryText}
 
 /*
   ==========================================================
-  AUTOMATISCHE LIVE-MEMORY-PRÜFUNG
+  AUTOMATISCHE MEMORY-ANALYSE
+
+  Gilt jetzt gemeinsam für:
+
+  - Schreiben
+  - Sprache
+
+  Pam muss nicht mehr ausdrücklich sagen:
+  "Merke dir das dauerhaft."
+
+  Sol prüft normale Aussagen automatisch.
   ==========================================================
 */
 
-async function analyzeLiveMemory(
-  transcript
+async function analyzePersonalMemory(
+  text
 ) {
 
-  const cleanTranscript =
+  const cleanText =
     String(
-      transcript || ""
+      text || ""
     ).trim();
 
 
   if (
-    !cleanTranscript
+    !cleanText
   ) {
 
     return {
@@ -1337,47 +1343,86 @@ async function analyzeLiveMemory(
       instructions: `
 
 Du prüfst ausschließlich,
-ob eine einzelne gesprochene Aussage
+ob eine Aussage von Pam
 als dauerhafte persönliche Erinnerung
-für Pams persönlichen digitalen Clone
+für ihren persönlichen digitalen Clone
 gespeichert werden soll.
 
-Arbeite extrem konservativ.
+Die Aussage kann aus einem
+geschriebenen oder gesprochenen Gespräch stammen.
 
-Nicht speichern:
+Pam soll ganz normal reden können,
+ohne ständig ausdrücklich sagen zu müssen,
+dass etwas gespeichert werden soll.
 
+ZIEL:
+
+Langfristig relevante persönliche Informationen
+sollen automatisch erkannt werden.
+
+Gleichzeitig darf das Langzeitgedächtnis
+nicht mit belanglosem Smalltalk gefüllt werden.
+
+NICHT SPEICHERN:
+
+- Begrüßungen
+- Verabschiedungen
+- kurze Reaktionen
+- bloßes Lachen
 - offensichtliche Witze
 - Ironie
 - Sarkasmus
+- rhetorische Aussagen
 - hypothetische Aussagen
 - Fantasie
-- Fragen
+- reine Fragen
 - Vermutungen
 - Spekulationen
 - ungeklärte Aussagen
 - kurzfristige Nebensächlichkeiten
-- Smalltalk
-- bloße Reaktionen
+- Smalltalk ohne langfristige Bedeutung
+- momentane technische Bedienhandlungen
 - Dinge,
-  die nur für diesen Moment gelten
+  die nur für diesen Augenblick gelten
 - offensichtlich falsch verstandene Sprache
-- Inhalte,
-  die wahrscheinlich nur Hintergrundaudio sind
+- wahrscheinliches Hintergrundaudio
 
-Speichern nur,
-wenn die Aussage klar,
-ernsthaft
-und langfristig relevant ist.
+AUTOMATISCH SPEICHERN KANNST DU:
 
-Geeignete Kategorien:
+- persönliche Fakten über Pam
+- Familie
+- Partnerschaft
+- wichtige Personen
+- Haustiere
+- Beziehungen
+- längerfristige Vorlieben
+- längerfristige Abneigungen
+- Gewohnheiten
+- Interessen
+- wichtige Lebensereignisse
+- persönliche Pläne mit längerfristiger Bedeutung
+- wichtige Erfahrungen
+- bestätigte biografische Informationen
+- längerfristige persönliche Wünsche
+- relevante Projektinformationen,
+  wenn sie tatsächlich Teil von Pams
+  persönlichem Sol-Holo-Kontext sind
+
+GEEIGNETE KATEGORIEN:
 
 person
 pet
 relationship
 preference
 habit
+interest
 event
+plan
+experience
 personal_fact
+project
+
+WICHTIGE INTEGRITÄTSREGELN:
 
 Du darfst keine fehlenden Details ergänzen.
 
@@ -1389,12 +1434,25 @@ oder Zusammenhang erfinden.
 Du darfst die Aussage nicht so umformulieren,
 dass zusätzliche Bedeutung entsteht.
 
+Erhalte die tatsächliche Bedeutung
+der Aussage.
+
 Wenn die Aussage mehrdeutig ist:
+nicht speichern.
+
+Wenn sie nur möglicherweise ernst gemeint ist:
 nicht speichern.
 
 Wenn du nicht mindestens
 90 Prozent sicher bist:
 nicht speichern.
+
+Eine einzelne Stimmung
+ist keine dauerhafte Persönlichkeitseigenschaft.
+
+Eine einzelne Aussage
+darf nicht automatisch
+als Persönlichkeitsveränderung interpretiert werden.
 
 Antworte ausschließlich
 als gültiges JSON.
@@ -1411,7 +1469,7 @@ Schema:
 `,
 
       input:
-        cleanTranscript
+        cleanText
     });
 
 
@@ -1440,6 +1498,165 @@ Schema:
     return {
       save:
         false
+    };
+  }
+}
+
+
+/*
+  ==========================================================
+  AUTOMATISCHE LANGZEITSPEICHERUNG
+
+  Gemeinsame Funktion für Text + Sprache.
+  ==========================================================
+*/
+
+async function autoStoreLongTermMemory(
+  text,
+  source
+) {
+
+  const cleanText =
+    String(
+      text || ""
+    ).trim();
+
+
+  if (
+    !cleanText
+  ) {
+
+    return {
+      saved:
+        false,
+
+      memory:
+        null
+    };
+  }
+
+
+  try {
+
+    const analysis =
+      await analyzePersonalMemory(
+        cleanText
+      );
+
+
+    const memoryContent =
+      String(
+        analysis?.content ||
+        ""
+      ).trim();
+
+
+    const confidence =
+      Number(
+        analysis?.confidence
+      );
+
+
+    const shouldSave =
+      analysis?.save ===
+        true
+      &&
+      Number.isFinite(
+        confidence
+      )
+      &&
+      confidence >=
+        0.9
+      &&
+      memoryContent;
+
+
+    if (
+      !shouldSave
+    ) {
+
+      return {
+        saved:
+          false,
+
+        memory:
+          null
+      };
+    }
+
+
+    const memoryType =
+      String(
+        analysis?.memory_type ||
+        "general"
+      ).trim();
+
+
+    const saved =
+      await saveLongTermMemory(
+        memoryContent,
+        {
+
+          source,
+
+          memoryType,
+
+          confidence
+        }
+      );
+
+
+    if (
+      saved
+    ) {
+
+      console.log(
+        `>>> Auto-Memory gespeichert (${source}): ${memoryContent}`
+      );
+
+    } else {
+
+      console.log(
+        `>>> Auto-Memory bereits vorhanden (${source})`
+      );
+    }
+
+
+    return {
+      saved,
+
+      memory:
+        saved
+          ?
+          memoryContent
+          :
+          null
+    };
+
+  } catch (
+    error
+  ) {
+
+    /*
+      Wichtig:
+
+      Wenn Auto-Memory einmal scheitert,
+      darf dadurch NICHT das normale Gespräch
+      kaputtgehen.
+    */
+
+    console.error(
+      `Auto-Memory-Fehler (${source}):`,
+      error
+    );
+
+
+    return {
+      saved:
+        false,
+
+      memory:
+        null
     };
   }
 }
@@ -1494,75 +1711,13 @@ app.post(
 
 
       /*
-        Prüfen,
-        ob Langzeit-Memory nötig ist.
+        Automatische Langzeit-Memory-Prüfung.
       */
 
-      const analysis =
-        await analyzeLiveMemory(
-          transcript
-        );
-
-
-      const shouldSave =
-        analysis?.save ===
-          true
-        &&
-        Number(
-          analysis?.confidence
-        ) >=
-          0.9
-        &&
-        String(
-          analysis?.content || ""
-        ).trim();
-
-
-      if (
-        !shouldSave
-      ) {
-
-        return res.json({
-          ok:
-            true,
-
-          saved:
-            false
-        });
-      }
-
-
-      const memoryContent =
-        String(
-          analysis.content
-        ).trim();
-
-
-      const memoryType =
-        String(
-          analysis.memory_type ||
-          "general"
-        ).trim();
-
-
-      const confidence =
-        Number(
-          analysis.confidence
-        );
-
-
-      const saved =
-        await saveLongTermMemory(
-          memoryContent,
-          {
-
-            source:
-              "live_auto_memory",
-
-            memoryType,
-
-            confidence
-          }
+      const autoMemory =
+        await autoStoreLongTermMemory(
+          transcript,
+          "live_auto_memory"
         );
 
 
@@ -1570,14 +1725,11 @@ app.post(
         ok:
           true,
 
-        saved,
+        saved:
+          autoMemory.saved,
 
         memory:
-          saved
-            ?
-            memoryContent
-            :
-            null
+          autoMemory.memory
       });
 
     } catch (
@@ -1606,6 +1758,8 @@ app.post(
 /*
   ==========================================================
   EXPLIZITE MEMORY-BEFEHLE
+
+  Diese bleiben weiterhin bestehen.
   ==========================================================
 */
 
@@ -1709,7 +1863,7 @@ app.post(
 
       /*
         ======================================================
-        MERKEN
+        EXPLIZIT MERKEN
         ======================================================
       */
 
@@ -1941,13 +2095,31 @@ app.post(
 
 
       /*
-        Nutzerbeitrag speichern.
+        Nutzerbeitrag als Gespräch speichern.
       */
 
       await saveMemory(
         "user",
         message
       );
+
+
+      /*
+        ======================================================
+        NEU:
+
+        Automatische Text-Memory-Prüfung.
+
+        Läuft parallel zur normalen Antwort,
+        damit Sol nicht unnötig doppelt lange braucht.
+        ======================================================
+      */
+
+      const autoMemoryPromise =
+        autoStoreLongTermMemory(
+          message,
+          "text_auto_memory"
+        );
 
 
       /*
@@ -1981,6 +2153,22 @@ Ironie
 und Scherze,
 ohne sie automatisch
 als Tatsachen zu behandeln.
+
+Pam muss nicht ständig ausdrücklich sagen,
+dass persönliche Informationen gespeichert werden sollen.
+
+Das technische Memory-System prüft
+geeignete Aussagen automatisch im Hintergrund.
+
+Du sollst deshalb nicht bei jeder Aussage
+mit einem Hinweis wie
+"Das habe ich gespeichert"
+oder
+"Das merke ich mir"
+antworten.
+
+Führe stattdessen einfach
+das natürliche Gespräch weiter.
 
 MEMORY-REGELN:
 
@@ -2036,6 +2224,20 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
       }
 
 
+      /*
+        Auto-Memory abschließen.
+
+        Wenn die Analyse fehlschlägt,
+        bleibt das Gespräch trotzdem erhalten.
+      */
+
+      await autoMemoryPromise;
+
+
+      /*
+        Sols Antwort im Gespräch speichern.
+      */
+
       await saveMemory(
         "assistant",
         answer
@@ -2090,11 +2292,19 @@ app.listen(
     );
 
     console.log(
-      "TEST 012 – Clone Identity + Memory Migration"
+      "TEST 013 – Automatic Text + Live Memory"
     );
 
     console.log(
       "Clone-Perspektive: aktiv"
+    );
+
+    console.log(
+      "Automatisches Text-Memory: aktiv"
+    );
+
+    console.log(
+      "Automatisches Live-Memory: aktiv"
     );
 
     console.log(
