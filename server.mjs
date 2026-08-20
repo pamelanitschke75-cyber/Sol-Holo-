@@ -12,25 +12,6 @@ const app = express();
   ==========================================================
   SOL HOLO – INTERNE MEMORY-ZUORDNUNG
   ==========================================================
-
-  WICHTIG:
-
-  Diese Kennung dient ausschließlich dazu,
-  die persönlichen Daten technisch voneinander
-  zu trennen.
-
-  Sie ist KEIN Name.
-  Sie ist KEINE Persönlichkeit.
-  Sie ist KEINE Selbstbeschreibung von Sol.
-
-  Alt:
-  pam-sol-001
-
-  Neu:
-  pam-sol
-
-  Beim Start werden alte Erinnerungen automatisch
-  auf die neue interne Kennung migriert.
 */
 
 const MEMORY_OWNER_ID =
@@ -48,9 +29,16 @@ const LEGACY_MEMORY_OWNER_ID =
 
 app.use(cors());
 
+/*
+  Bilder werden zunächst als Data-URL / Base64
+  vom Browser an den Server geschickt.
+
+  Deshalb größer als vorher.
+*/
+
 app.use(
   express.json({
-    limit: "1mb"
+    limit: "12mb"
   })
 );
 
@@ -161,12 +149,14 @@ async function initializeMemory() {
   `);
 
 
+  /*
+    Legacy-Migration.
+  */
+
   await db.query(
     `
       UPDATE sol_memory
-
       SET clone_id = $1
-
       WHERE clone_id = $2
     `,
     [
@@ -179,9 +169,7 @@ async function initializeMemory() {
   await db.query(
     `
       UPDATE sol_long_term_memory
-
       SET clone_id = $1
-
       WHERE clone_id = $2
     `,
     [
@@ -191,12 +179,15 @@ async function initializeMemory() {
   );
 
 
+  /*
+    Einträge ohne clone_id gehören beim
+    derzeitigen Ein-Nutzer-Stand zu Pam.
+  */
+
   await db.query(
     `
       UPDATE sol_memory
-
       SET clone_id = $1
-
       WHERE clone_id IS NULL
          OR TRIM(clone_id) = ''
     `,
@@ -209,9 +200,7 @@ async function initializeMemory() {
   await db.query(
     `
       UPDATE sol_long_term_memory
-
       SET clone_id = $1
-
       WHERE clone_id IS NULL
          OR TRIM(clone_id) = ''
     `,
@@ -223,9 +212,7 @@ async function initializeMemory() {
 
   await db.query(`
     UPDATE sol_long_term_memory
-
     SET recall_status = 'active'
-
     WHERE recall_status IS NULL
        OR TRIM(recall_status) = ''
   `);
@@ -302,7 +289,7 @@ app.get(
         "Sol Holo",
 
       test:
-        "TEST 013",
+        "TEST 014",
 
       cloneIdentity:
         "personal-clone",
@@ -316,11 +303,77 @@ app.get(
       automaticLiveMemory:
         "active",
 
+      automaticImageMemory:
+        "active",
+
+      imageVision:
+        "active",
+
       memoryQuestions:
         "background-only"
     });
   }
 );
+
+
+/*
+  ==========================================================
+  BILD PRÜFEN
+  ==========================================================
+*/
+
+function normalizeImageDataUrl(
+  value
+) {
+
+  const cleanValue =
+    String(
+      value || ""
+    ).trim();
+
+
+  if (
+    !cleanValue
+  ) {
+
+    return null;
+  }
+
+
+  const validImage =
+    /^data:image\/(?:png|jpe?g|webp|gif);base64,/i
+      .test(
+        cleanValue
+      );
+
+
+  if (
+    !validImage
+  ) {
+
+    throw new Error(
+      "Das ausgewählte Bildformat wird nicht unterstützt."
+    );
+  }
+
+
+  /*
+    Schutz vor extrem großen Bildern.
+  */
+
+  if (
+    cleanValue.length >
+    10_000_000
+  ) {
+
+    throw new Error(
+      "Das Bild ist zu groß. Bitte wähle ein kleineres Bild."
+    );
+  }
+
+
+  return cleanValue;
+}
 
 
 /*
@@ -456,6 +509,10 @@ async function saveLongTermMemory(
       :
       1;
 
+
+  /*
+    Exakte Duplikatprüfung.
+  */
 
   const duplicate =
     await db.query(
@@ -663,6 +720,10 @@ async function loadRelevantLongTermMemory(
   }
 
 
+  /*
+    Fallback.
+  */
+
   const fallback =
     await db.query(
       `
@@ -690,7 +751,7 @@ async function loadRelevantLongTermMemory(
 
 /*
   ==========================================================
-  ALLE AKTIVEN LANGZEITERINNERUNGEN
+  ALLE LANGZEITERINNERUNGEN
   ==========================================================
 */
 
@@ -776,7 +837,7 @@ function getSafetyIdentifier() {
 
 /*
   ==========================================================
-  GEMEINSAME CLONE-IDENTITÄTSREGELN
+  CLONE-IDENTITÄTSREGELN
   ==========================================================
 */
 
@@ -971,11 +1032,9 @@ Wenn Pam ausdrücklich sagt:
 "Merke dir das dauerhaft"
 
 oder eine vergleichbare klare Anweisung gibt,
-darfst du das ebenfalls entsprechend bestätigen.
+darfst du das entsprechend bestätigen.
 
-WICHTIG:
-
-Du darfst weiterhin nachfragen,
+Du darfst nachfragen,
 wenn der INHALT des Gesprächs
 wirklich unklar,
 widersprüchlich
@@ -987,23 +1046,51 @@ dem Verständnis des Gesprächs.
 Sie dient nicht der technischen Entscheidung,
 ob etwas gespeichert werden soll.
 
-Beispiel:
-
-Wenn Pam sagt:
-
-"Wir fahren nächstes Jahr dort hin."
-
-und aus dem Gespräch nicht erkennbar ist,
-welcher Ort gemeint ist,
-darfst du nach dem Ort fragen.
-
-Du sollst aber nicht fragen:
-
-"Soll ich mir merken,
-dass ihr nächstes Jahr dorthin fahrt?"
-
 Das Memory-System entscheidet
 die Speicherfrage im Hintergrund.
+
+`;
+
+
+/*
+  ==========================================================
+  BILD-WAHRNEHMUNGSREGELN
+  ==========================================================
+*/
+
+const IMAGE_PERCEPTION_INSTRUCTIONS = `
+
+BILD-WAHRNEHMUNG:
+
+Wenn Pam dir ein Bild sendet,
+betrachte es aufmerksam.
+
+Sprich natürlich mit Pam darüber.
+
+Beschreibe nur,
+was tatsächlich erkennbar ist.
+
+Wenn etwas unsicher ist,
+sage das ehrlich.
+
+Erfinde keine sichtbaren Details.
+
+Wenn Pam im Begleittext erklärt,
+wer oder was auf dem Bild zu sehen ist,
+darfst du diese Information
+mit dem tatsächlich sichtbaren Bildinhalt verbinden.
+
+Ein Beispiel:
+
+Pam sendet ein Katzenfoto und schreibt:
+
+"Das ist Salt."
+
+Dann darfst du verstehen,
+dass die sichtbare Katze Salt ist.
+
+Wenn Pam keinen Namen oder Zusammenhang nennt,
+erfinde keinen.
 
 `;
 
@@ -1033,11 +1120,6 @@ app.get(
         !process.env.OPENAI_API_KEY
       ) {
 
-        console.error(
-          ">>> OPENAI_API_KEY fehlt"
-        );
-
-
         return res
           .status(
             500
@@ -1051,11 +1133,6 @@ app.get(
 
       const memoryText =
         await buildRealtimeMemoryText();
-
-
-      console.log(
-        ">>> Langzeitgedächtnis für Realtime geladen"
-      );
 
 
       const sessionConfig = {
@@ -1099,29 +1176,17 @@ Reagiere nicht unnötig
 auf Hintergrundgeräusche.
 
 Wenn Audio undeutlich ist,
-rate nicht einfach,
-was gesagt worden sein könnte.
+rate nicht.
 
-Du darfst Humor,
+Erkenne Humor,
 Ironie
-und Scherze erkennen
-und natürlich darauf reagieren.
-
-Ein offensichtlicher Scherz,
-eine ironische Aussage
-oder eine hypothetische Aussage
-ist nicht automatisch
-ein tatsächlicher Fakt.
+und Scherze.
 
 MEMORY-REGELN:
 
 Erfinde keine Erinnerungen.
 
-Erfinde keine vergangenen Ereignisse.
-
-Verändere gespeicherte Erinnerungen nicht,
-damit sie später besser
-zu einer Geschichte passen.
+Verändere gespeicherte Erinnerungen nicht.
 
 Wenn etwas nicht gespeichert ist,
 behaupte nicht,
@@ -1129,9 +1194,6 @@ dich daran zu erinnern.
 
 Wenn etwas unsicher ist,
 behandle es als unsicher.
-
-Verwende ausschließlich
-Pams zugeordnetes persönliches Gedächtnis.
 
 LANGZEITGEDÄCHTNIS:
 
@@ -1184,11 +1246,6 @@ ${memoryText}
       };
 
 
-      console.log(
-        ">>> Anfrage an OpenAI Realtime wird gesendet"
-      );
-
-
       const openAIResponse =
         await fetch(
           "https://api.openai.com/v1/realtime/client_secrets",
@@ -1215,11 +1272,6 @@ ${memoryText}
               )
           }
         );
-
-
-      console.log(
-        `>>> OpenAI Realtime HTTP-Status: ${openAIResponse.status}`
-      );
 
 
       const responseText =
@@ -1274,11 +1326,6 @@ ${memoryText}
 
       } catch {
 
-        console.error(
-          ">>> OpenAI Realtime Antwort war kein gültiges JSON"
-        );
-
-
         return res
           .status(
             502
@@ -1294,11 +1341,6 @@ ${memoryText}
         !data?.value
       ) {
 
-        console.error(
-          ">>> OpenAI Realtime Antwort enthielt keinen Schlüssel"
-        );
-
-
         return res
           .status(
             502
@@ -1308,16 +1350,6 @@ ${memoryText}
               "OpenAI hat keinen Realtime-Schlüssel zurückgegeben."
           });
       }
-
-
-      console.log(
-        ">>> Realtime-Schlüssel erfolgreich erstellt"
-      );
-
-
-      console.log(
-        ">>> Realtime-Schlüssel wird an Sol-Holo-Browser gesendet"
-      );
 
 
       return res.json(
@@ -1350,7 +1382,7 @@ ${memoryText}
 
 /*
   ==========================================================
-  AUTOMATISCHE MEMORY-ANALYSE
+  AUTOMATISCHE TEXT-/SPRACH-MEMORY-ANALYSE
   ==========================================================
 */
 
@@ -1389,48 +1421,32 @@ als dauerhafte persönliche Erinnerung
 für ihren persönlichen digitalen Clone
 gespeichert werden soll.
 
-Die Aussage kann aus einem
-geschriebenen oder gesprochenen Gespräch stammen.
-
-Pam soll ganz normal reden können,
-ohne ständig ausdrücklich sagen zu müssen,
+Pam soll normal reden können,
+ohne ständig sagen zu müssen,
 dass etwas gespeichert werden soll.
-
-ZIEL:
-
-Langfristig relevante persönliche Informationen
-sollen automatisch erkannt werden.
-
-Gleichzeitig darf das Langzeitgedächtnis
-nicht mit belanglosem Smalltalk gefüllt werden.
 
 NICHT SPEICHERN:
 
 - Begrüßungen
 - Verabschiedungen
 - kurze Reaktionen
-- bloßes Lachen
+- Lachen
 - offensichtliche Witze
 - Ironie
 - Sarkasmus
-- rhetorische Aussagen
 - hypothetische Aussagen
-- Fantasie
 - reine Fragen
 - Vermutungen
 - Spekulationen
-- ungeklärte Aussagen
 - kurzfristige Nebensächlichkeiten
-- Smalltalk ohne langfristige Bedeutung
+- belanglosen Smalltalk
 - momentane technische Bedienhandlungen
-- Dinge,
-  die nur für diesen Augenblick gelten
-- offensichtlich falsch verstandene Sprache
+- falsch verstandene Sprache
 - wahrscheinliches Hintergrundaudio
 
 AUTOMATISCH SPEICHERN KANNST DU:
 
-- persönliche Fakten über Pam
+- persönliche Fakten
 - Familie
 - Partnerschaft
 - wichtige Personen
@@ -1441,13 +1457,11 @@ AUTOMATISCH SPEICHERN KANNST DU:
 - Gewohnheiten
 - Interessen
 - wichtige Lebensereignisse
-- persönliche Pläne mit längerfristiger Bedeutung
+- längerfristige Pläne
 - wichtige Erfahrungen
-- bestätigte biografische Informationen
+- biografische Informationen
 - längerfristige persönliche Wünsche
-- relevante Projektinformationen,
-  wenn sie tatsächlich Teil von Pams
-  persönlichem Sol-Holo-Kontext sind
+- relevante Sol-Holo-Projektinformationen
 
 GEEIGNETE KATEGORIEN:
 
@@ -1463,46 +1477,21 @@ experience
 personal_fact
 project
 
-WICHTIGE INTEGRITÄTSREGELN:
-
-Du darfst keine fehlenden Details ergänzen.
-
-Du darfst keinen Namen,
-Ort,
-Zeitpunkt
-oder Zusammenhang erfinden.
-
-Du darfst die Aussage nicht so umformulieren,
-dass zusätzliche Bedeutung entsteht.
-
-Erhalte die tatsächliche Bedeutung
-der Aussage.
+Erfinde keine fehlenden Details.
 
 Wenn die Aussage mehrdeutig ist:
-nicht speichern.
-
-Wenn sie nur möglicherweise ernst gemeint ist:
 nicht speichern.
 
 Wenn du nicht mindestens
 90 Prozent sicher bist:
 nicht speichern.
 
-Eine einzelne Stimmung
-ist keine dauerhafte Persönlichkeitseigenschaft.
-
-Eine einzelne Aussage
-darf nicht automatisch
-als Persönlichkeitsveränderung interpretiert werden.
-
 Antworte ausschließlich
-als gültiges JSON.
-
-Schema:
+als gültiges JSON:
 
 {
   "save": true oder false,
-  "content": "nur die tatsächlich belegte Erinnerung",
+  "content": "nur die belegte Erinnerung",
   "memory_type": "Kategorie",
   "confidence": Zahl zwischen 0 und 1
 }
@@ -1526,9 +1515,7 @@ Schema:
       raw
     );
 
-  } catch (
-    error
-  ) {
+  } catch {
 
     console.error(
       "Memory-Analyse lieferte kein gültiges JSON:",
@@ -1546,7 +1533,7 @@ Schema:
 
 /*
   ==========================================================
-  AUTOMATISCHE LANGZEITSPEICHERUNG
+  AUTOMATISCHE TEXT-/SPRACH-SPEICHERUNG
   ==========================================================
 */
 
@@ -1596,22 +1583,13 @@ async function autoStoreLongTermMemory(
       );
 
 
-    const shouldSave =
-      analysis?.save ===
-        true
-      &&
-      Number.isFinite(
-        confidence
-      )
-      &&
-      confidence >=
-        0.9
-      &&
-      memoryContent;
-
-
     if (
-      !shouldSave
+      analysis?.save !== true ||
+      !memoryContent ||
+      !Number.isFinite(
+        confidence
+      ) ||
+      confidence < 0.9
     ) {
 
       return {
@@ -1624,13 +1602,6 @@ async function autoStoreLongTermMemory(
     }
 
 
-    const memoryType =
-      String(
-        analysis?.memory_type ||
-        "general"
-      ).trim();
-
-
     const saved =
       await saveLongTermMemory(
         memoryContent,
@@ -1638,27 +1609,15 @@ async function autoStoreLongTermMemory(
 
           source,
 
-          memoryType,
+          memoryType:
+            String(
+              analysis?.memory_type ||
+              "general"
+            ),
 
           confidence
         }
       );
-
-
-    if (
-      saved
-    ) {
-
-      console.log(
-        `>>> Auto-Memory gespeichert (${source}): ${memoryContent}`
-      );
-
-    } else {
-
-      console.log(
-        `>>> Auto-Memory bereits vorhanden (${source})`
-      );
-    }
 
 
     return {
@@ -1695,7 +1654,322 @@ async function autoStoreLongTermMemory(
 
 /*
   ==========================================================
-  LIVE-TRANSKRIPT EMPFANGEN
+  BILD-MEMORY ANALYSIEREN
+  ==========================================================
+
+  Das Bild wird betrachtet.
+
+  Relevante visuelle Informationen
+  werden anschließend als TEXT-Erinnerung
+  gespeichert.
+
+  Das komplette Base64-Bild wird NICHT
+  in PostgreSQL gespeichert.
+*/
+
+async function analyzeImageMemory(
+  imageDataUrl,
+  message = ""
+) {
+
+  const cleanMessage =
+    String(
+      message || ""
+    ).trim();
+
+
+  const response =
+    await openai.responses.create({
+
+      model:
+        "gpt-5",
+
+      instructions: `
+
+Du bist der visuelle Memory-Analysator
+für Sol Holo.
+
+Pam hat ein Bild geschickt.
+
+Deine Aufgabe ist,
+aus Bild UND Begleittext
+dauerhaft brauchbare persönliche
+visuelle Erinnerungen abzuleiten.
+
+ZIEL:
+
+Sol Holo soll sich später zum Beispiel
+daran erinnern können,
+wie ein bekanntes Haustier,
+ein wichtiger Gegenstand,
+ein persönlicher Ort
+oder ein relevantes Projekt aussieht.
+
+BEISPIEL:
+
+Pam sendet ein Bild und schreibt:
+
+"Das ist Salt."
+
+Wenn auf dem Bild eindeutig
+eine Katze zu erkennen ist,
+darfst du eine Erinnerung erzeugen wie:
+
+"Salt ist eine Katze mit
+[den klar sichtbaren charakteristischen Merkmalen]."
+
+Nenne nur Merkmale,
+die im Bild wirklich erkennbar sind.
+
+WENN PAM EINEN NAMEN NENNT:
+
+Du darfst diesen Namen verwenden.
+
+WENN PAM KEINEN NAMEN NENNT:
+
+Erfinde keinen Namen.
+
+NICHT ALS DAUERHAFTE ERINNERUNG SPEICHERN:
+
+- zufällige unwichtige Hintergründe
+- Tageskleidung ohne langfristige Bedeutung
+- momentane Beleuchtung
+- zufällige Körperhaltung
+- einzelne flüchtige Situationen
+- Spekulationen
+- nicht eindeutig sichtbare Details
+- vermutete Emotionen
+- Identitäten,
+  die Pam nicht bestätigt hat
+- sensible persönliche Schlüsse,
+  die nur aus dem Aussehen geraten wären
+
+GUT SPEICHERBAR:
+
+- charakteristisches Aussehen
+  eines von Pam benannten Haustiers
+- markante Fellfarbe oder Fellzeichnung
+- langfristig relevante sichtbare Merkmale
+- bekannte persönliche Gegenstände
+- bekannte persönliche Orte
+- langfristig relevante Projektobjekte
+- durch Pam eindeutig bestätigte
+  visuelle Zusammenhänge
+
+WICHTIG:
+
+Wahrnehmung darf nicht zur Erfindung werden.
+
+Wenn die Bildinformation
+für eine dauerhafte Erinnerung
+nicht sinnvoll oder nicht sicher genug ist,
+speichere nichts.
+
+Wenn du nicht mindestens
+90 Prozent sicher bist:
+nicht speichern.
+
+Antworte ausschließlich
+als gültiges JSON:
+
+{
+  "save": true oder false,
+  "content": "kurze dauerhafte visuelle Erinnerung",
+  "memory_type": "pet | person | place | object | project | visual_memory",
+  "confidence": Zahl zwischen 0 und 1
+}
+
+`,
+
+      input: [
+        {
+          role:
+            "user",
+
+          content: [
+            {
+              type:
+                "input_text",
+
+              text:
+                cleanMessage ||
+                "Prüfe dieses Bild auf eine langfristig brauchbare visuelle Erinnerung."
+            },
+
+            {
+              type:
+                "input_image",
+
+              image_url:
+                imageDataUrl,
+
+              detail:
+                "high"
+            }
+          ]
+        }
+      ]
+    });
+
+
+  const raw =
+    String(
+      response.output_text || ""
+    ).trim();
+
+
+  try {
+
+    return JSON.parse(
+      raw
+    );
+
+  } catch {
+
+    console.error(
+      "Bild-Memory lieferte kein gültiges JSON:",
+      raw
+    );
+
+
+    return {
+      save:
+        false
+    };
+  }
+}
+
+
+/*
+  ==========================================================
+  BILD-MEMORY SPEICHERN
+  ==========================================================
+*/
+
+async function autoStoreImageMemory(
+  imageDataUrl,
+  message = ""
+) {
+
+  if (
+    !imageDataUrl
+  ) {
+
+    return {
+      saved:
+        false,
+
+      memory:
+        null
+    };
+  }
+
+
+  try {
+
+    const analysis =
+      await analyzeImageMemory(
+        imageDataUrl,
+        message
+      );
+
+
+    const memoryContent =
+      String(
+        analysis?.content ||
+        ""
+      ).trim();
+
+
+    const confidence =
+      Number(
+        analysis?.confidence
+      );
+
+
+    if (
+      analysis?.save !== true ||
+      !memoryContent ||
+      !Number.isFinite(
+        confidence
+      ) ||
+      confidence < 0.9
+    ) {
+
+      return {
+        saved:
+          false,
+
+        memory:
+          null
+      };
+    }
+
+
+    const saved =
+      await saveLongTermMemory(
+        memoryContent,
+        {
+
+          source:
+            "image_auto_memory",
+
+          memoryType:
+            String(
+              analysis?.memory_type ||
+              "visual_memory"
+            ),
+
+          confidence
+        }
+      );
+
+
+    if (
+      saved
+    ) {
+
+      console.log(
+        `>>> Bild-Memory gespeichert: ${memoryContent}`
+      );
+    }
+
+
+    return {
+      saved,
+
+      memory:
+        saved
+          ?
+          memoryContent
+          :
+          null
+    };
+
+  } catch (
+    error
+  ) {
+
+    console.error(
+      "Bild-Memory-Fehler:",
+      error
+    );
+
+
+    return {
+      saved:
+        false,
+
+      memory:
+        null
+    };
+  }
+}
+
+
+/*
+  ==========================================================
+  LIVE-TRANSKRIPT
   ==========================================================
 */
 
@@ -1830,7 +2104,7 @@ function isListMemoryCommand(
 
 /*
   ==========================================================
-  NORMALE TEXT-ANFRAGE
+  TEXT- UND BILDANFRAGE
   ==========================================================
 */
 
@@ -1851,8 +2125,23 @@ app.post(
         ).trim();
 
 
-      if (
-        !message
+      let imageDataUrl =
+        null;
+
+
+      /*
+        Bild prüfen.
+      */
+
+      try {
+
+        imageDataUrl =
+          normalizeImageDataUrl(
+            req.body?.image
+          );
+
+      } catch (
+        error
       ) {
 
         return res
@@ -1861,7 +2150,28 @@ app.post(
           )
           .json({
             error:
-              "Keine Frage erhalten."
+              error?.message ||
+              "Das Bild konnte nicht verarbeitet werden."
+          });
+      }
+
+
+      /*
+        Mindestens Text oder Bild.
+      */
+
+      if (
+        !message &&
+        !imageDataUrl
+      ) {
+
+        return res
+          .status(
+            400
+          )
+          .json({
+            error:
+              "Keine Nachricht oder kein Bild erhalten."
           });
       }
 
@@ -1882,10 +2192,20 @@ app.post(
       }
 
 
+      /*
+        ======================================================
+        EXPLIZIT MERKEN
+        ======================================================
+      */
+
       const rememberContent =
-        extractRememberCommand(
-          message
-        );
+        message
+          ?
+          extractRememberCommand(
+            message
+          )
+          :
+          null;
 
 
       if (
@@ -1920,7 +2240,7 @@ app.post(
             ?
             `Ja, Pam. Das habe ich dauerhaft gespeichert: ${rememberContent}`
             :
-            `Pam, diese Information ist bereits in meinem Langzeitgedächtnis gespeichert.`;
+            "Pam, diese Information ist bereits in meinem Langzeitgedächtnis gespeichert.";
 
 
         await saveMemory(
@@ -1935,10 +2255,20 @@ app.post(
       }
 
 
+      /*
+        ======================================================
+        VERGESSEN
+        ======================================================
+      */
+
       const forgetContent =
-        extractForgetCommand(
-          message
-        );
+        message
+          ?
+          extractForgetCommand(
+            message
+          )
+          :
+          null;
 
 
       if (
@@ -1963,7 +2293,7 @@ app.post(
             ?
             `Ja, Pam. Ich habe ${deletedCount} passende Langzeiterinnerung${deletedCount === 1 ? "" : "en"} entfernt.`
             :
-            `Pam, dazu habe ich keine passende Langzeiterinnerung gefunden.`;
+            "Pam, dazu habe ich keine passende Langzeiterinnerung gefunden.";
 
 
         await saveMemory(
@@ -1978,7 +2308,14 @@ app.post(
       }
 
 
+      /*
+        ======================================================
+        MEMORY-LISTE
+        ======================================================
+      */
+
       if (
+        message &&
         isListMemoryCommand(
           message
         )
@@ -2038,6 +2375,12 @@ app.post(
       }
 
 
+      /*
+        ======================================================
+        LETZTE UNTERHALTUNG
+        ======================================================
+      */
+
       const memories =
         await loadRecentMemory();
 
@@ -2066,10 +2409,20 @@ app.post(
           );
 
 
+      /*
+        ======================================================
+        RELEVANTES LANGZEITGEDÄCHTNIS
+        ======================================================
+      */
+
       const longTermMemories =
-        await loadRelevantLongTermMemory(
-          message
-        );
+        message
+          ?
+          await loadRelevantLongTermMemory(
+            message
+          )
+          :
+          [];
 
 
       const longTermMemoryText =
@@ -2085,21 +2438,143 @@ app.post(
         "Keine passenden Langzeiterinnerungen gefunden.";
 
 
+      /*
+        ======================================================
+        GESPRÄCH SPEICHERN
+        ======================================================
+
+        Bild selbst nicht in PostgreSQL.
+      */
+
+      const conversationEntry =
+        imageDataUrl
+          ?
+          (
+            message
+              ?
+              `${message}\n[Bild gesendet]`
+              :
+              "[Bild gesendet]"
+          )
+          :
+          message;
+
+
       await saveMemory(
         "user",
-        message
+        conversationEntry
       );
 
 
-      const autoMemoryPromise =
-        autoStoreLongTermMemory(
-          message,
-          "text_auto_memory"
-        );
+      /*
+        ======================================================
+        TEXT-MEMORY
+        ======================================================
+      */
+
+      const textMemoryPromise =
+        message
+          ?
+          autoStoreLongTermMemory(
+            message,
+            "text_auto_memory"
+          )
+          :
+          Promise.resolve({
+            saved:
+              false,
+
+            memory:
+              null
+          });
 
 
-      const response =
-        await openai.responses.create({
+      /*
+        ======================================================
+        BILD-MEMORY
+
+        Das läuft sofort parallel.
+
+        Wenn Sol antwortet,
+        ist die relevante Bild-Erinnerung
+        ebenfalls verarbeitet.
+        ======================================================
+      */
+
+      const imageMemoryPromise =
+        imageDataUrl
+          ?
+          autoStoreImageMemory(
+            imageDataUrl,
+            message
+          )
+          :
+          Promise.resolve({
+            saved:
+              false,
+
+            memory:
+              null
+          });
+
+
+      /*
+        ======================================================
+        MODELL-INPUT
+        ======================================================
+      */
+
+      let modelInput;
+
+
+      if (
+        imageDataUrl
+      ) {
+
+        modelInput = [
+          {
+            role:
+              "user",
+
+            content: [
+              {
+                type:
+                  "input_text",
+
+                text:
+                  message ||
+                  "Schau dir das Bild an und sprich mit mir darüber."
+              },
+
+              {
+                type:
+                  "input_image",
+
+                image_url:
+                  imageDataUrl,
+
+                detail:
+                  "high"
+              }
+            ]
+          }
+        ];
+
+      } else {
+
+        modelInput =
+          message;
+      }
+
+
+      /*
+        ======================================================
+        SOL ANTWORT
+        ======================================================
+      */
+
+      const responsePromise =
+        openai.responses.create({
 
           model:
             "gpt-5",
@@ -2114,6 +2589,8 @@ ${CLONE_IDENTITY_INSTRUCTIONS}
 
 ${MEMORY_CONVERSATION_INSTRUCTIONS}
 
+${IMAGE_PERCEPTION_INSTRUCTIONS}
+
 GESPRÄCHSVERHALTEN:
 
 Antworte natürlich,
@@ -2122,38 +2599,33 @@ und verständlich auf Deutsch.
 
 Erkenne Humor,
 Ironie
-und Scherze,
-ohne sie automatisch
-als Tatsachen zu behandeln.
+und Scherze.
 
-Pam muss nicht ständig ausdrücklich sagen,
-dass persönliche Informationen gespeichert werden sollen.
+Wenn ein Bild vorhanden ist,
+beziehe dich natürlich darauf.
 
-Das technische Memory-System prüft
-geeignete Aussagen automatisch im Hintergrund.
+Wenn Pam erklärt,
+wer oder was auf dem Bild ist,
+darfst du diese Information
+mit dem sichtbaren Inhalt verbinden.
 
-Führe einfach
-das natürliche Gespräch weiter.
+Du musst Pam nicht ständig sagen,
+dass Memory im Hintergrund arbeitet.
+
+Führe einfach das Gespräch weiter.
 
 MEMORY-REGELN:
 
 Erfinde keine Erinnerungen.
 
-Verändere gespeicherte Erinnerungen nicht,
-damit sie später besser
-zu einer gewünschten Darstellung passen.
+Verändere gespeicherte Erinnerungen nicht.
 
-Wenn eine Information
-nicht im Gedächtnis steht,
+Wenn etwas nicht im Gedächtnis steht,
 behaupte nicht,
 dass du dich daran erinnerst.
 
 Wenn etwas unsicher ist,
-stelle es nicht
-als Gewissheit dar.
-
-Verwende ausschließlich
-Pams zugeordnetes persönliches Gedächtnis.
+stelle es nicht als Gewissheit dar.
 
 LANGZEITGEDÄCHTNIS:
 
@@ -2166,8 +2638,25 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
 `,
 
           input:
-            message
+            modelInput
         });
+
+
+      /*
+        Antwort + beide Memory-Systeme
+        gleichzeitig verarbeiten.
+      */
+
+      const [
+        response,
+        textMemory,
+        imageMemory
+      ] =
+        await Promise.all([
+          responsePromise,
+          textMemoryPromise,
+          imageMemoryPromise
+        ]);
 
 
       const answer =
@@ -2184,12 +2673,9 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
           )
           .json({
             error:
-              "Sol hat keine Textantwort geliefert."
+              "Sol hat keine Antwort geliefert."
           });
       }
-
-
-      await autoMemoryPromise;
 
 
       await saveMemory(
@@ -2199,7 +2685,20 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
 
 
       return res.json({
-        answer
+
+        answer,
+
+        memory: {
+
+          textSaved:
+            textMemory.saved,
+
+          imageSaved:
+            imageMemory.saved,
+
+          imageMemory:
+            imageMemory.memory
+        }
       });
 
     } catch (
@@ -2218,6 +2717,7 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
         )
         .json({
           error:
+            error?.message ||
             "Die Anfrage an Sol konnte nicht verarbeitet werden."
         });
     }
@@ -2246,7 +2746,7 @@ app.listen(
     );
 
     console.log(
-      "TEST 013 – Automatic Text + Live Memory"
+      "TEST 014 – Vision + Automatic Image Memory"
     );
 
     console.log(
@@ -2259,6 +2759,18 @@ app.listen(
 
     console.log(
       "Automatisches Live-Memory: aktiv"
+    );
+
+    console.log(
+      "Bild-Wahrnehmung: aktiv"
+    );
+
+    console.log(
+      "Automatisches Bild-Memory: aktiv"
+    );
+
+    console.log(
+      "Bilddatei selbst: nicht in PostgreSQL gespeichert"
     );
 
     console.log(
