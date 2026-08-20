@@ -64,7 +64,9 @@ body {
 }
 
 /*
+  ==========================================================
   HEADER
+  ==========================================================
 */
 
 header {
@@ -121,7 +123,9 @@ h1 {
 }
 
 /*
+  ==========================================================
   BEGRÜSSUNG
+  ==========================================================
 */
 
 #greeting {
@@ -144,7 +148,9 @@ h1 {
 }
 
 /*
+  ==========================================================
   SOL HOLO CLONE
+  ==========================================================
 */
 
 #solStage {
@@ -163,11 +169,6 @@ h1 {
   overflow: hidden;
 }
 
-/*
-  Wrapper für den Clone.
-  Hier sitzt jetzt auch die Lip-Sync-Schicht.
-*/
-
 #solCloneWrap {
   position: relative;
 
@@ -178,10 +179,6 @@ h1 {
 
   transform-origin: center bottom;
 }
-
-/*
-  Originalbild bleibt erhalten.
-*/
 
 #solImage {
   display: block;
@@ -206,15 +203,9 @@ h1 {
 }
 
 /*
-  Mund-Patch
-
-  Dieser Patch enthält exakt denselben
-  Bildbereich wie der echte Mund.
-
-  Er wird während Sol spricht nur ganz
-  leicht verformt.
-
-  Dadurch bleibt das echte Gesicht sichtbar.
+  ==========================================================
+  LIP SYNC
+  ==========================================================
 */
 
 #mouthPatch {
@@ -239,10 +230,6 @@ h1 {
   border-radius:
     48% 48% 46% 46%;
 
-  /*
-    Weicher Übergang zum Originalbild.
-  */
-
   -webkit-mask-image:
     radial-gradient(
       ellipse at center,
@@ -259,12 +246,6 @@ h1 {
       transparent 78%
     );
 }
-
-/*
-  Kleine Schattenzone hinter dem Mund.
-
-  Nur bei stärkerer Öffnung sichtbar.
-*/
 
 #mouthDepth {
   position: absolute;
@@ -294,14 +275,6 @@ h1 {
     opacity;
 }
 
-/*
-  Wenn Sol spricht bekommt der Clone
-  zusätzlich eine extrem leichte Bewegung.
-
-  Kein Wackeln.
-  Nur minimale Lebendigkeit.
-*/
-
 #solCloneWrap.sol-speaking {
   animation:
     solSpeakingPresence
@@ -330,7 +303,9 @@ h1 {
 }
 
 /*
-  Hologramm-Basis
+  ==========================================================
+  HOLOGRAMM-BASIS
+  ==========================================================
 */
 
 #holoBase {
@@ -353,7 +328,9 @@ h1 {
 }
 
 /*
+  ==========================================================
   CHAT
+  ==========================================================
 */
 
 #chatPanel {
@@ -419,8 +396,31 @@ h1 {
     rgba(36,43,54,.70);
 }
 
+.messageImage {
+  display: block;
+
+  width: 100%;
+  max-width: 320px;
+
+  max-height: 320px;
+
+  margin-top: 9px;
+
+  border-radius: 14px;
+
+  object-fit: contain;
+
+  border:
+    1px solid rgba(255,255,255,.12);
+
+  background:
+    rgba(0,0,0,.25);
+}
+
 /*
+  ==========================================================
   CONTROLS
+  ==========================================================
 */
 
 #controls {
@@ -442,6 +442,95 @@ h1 {
   align-items: center;
 }
 
+/*
+  ==========================================================
+  BILDVORSCHAU
+  ==========================================================
+*/
+
+#imagePreviewPanel {
+  display: none;
+
+  position: relative;
+
+  margin:
+    0 82px 10px 0;
+
+  padding: 10px;
+
+  border:
+    1px solid #46505e;
+
+  border-radius: 18px;
+
+  background:
+    rgba(10,14,21,.95);
+
+  backdrop-filter:
+    blur(10px);
+}
+
+#imagePreviewPanel.visible {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+}
+
+#imagePreview {
+  display: block;
+
+  width: 88px;
+  height: 88px;
+
+  object-fit: cover;
+
+  border-radius: 14px;
+
+  border:
+    1px solid rgba(255,255,255,.16);
+}
+
+#imagePreviewText {
+  flex: 1;
+
+  min-width: 0;
+
+  color: #d5dbe5;
+
+  font-size: 15px;
+
+  line-height: 1.35;
+}
+
+#removeImageButton {
+  flex: 0 0 auto;
+
+  width: 38px;
+  height: 38px;
+
+  border-radius: 50%;
+
+  border:
+    1px solid #525c69;
+
+  background:
+    #191f29;
+
+  color: white;
+
+  font-size: 20px;
+
+  cursor: pointer;
+}
+
+/*
+  ==========================================================
+  SCHREIBFELD
+  ==========================================================
+*/
+
 #messageWrap {
   display: flex;
 
@@ -450,7 +539,7 @@ h1 {
   min-height: 66px;
 
   padding:
-    8px 8px 8px 18px;
+    8px 8px 8px 10px;
 
   border-radius: 34px;
 
@@ -462,6 +551,36 @@ h1 {
 
   backdrop-filter:
     blur(10px);
+}
+
+#imageButton {
+  flex: 0 0 auto;
+
+  width: 46px;
+  height: 46px;
+
+  margin-right: 5px;
+
+  border-radius: 50%;
+
+  border: none;
+
+  background:
+    transparent;
+
+  color: #f3c969;
+
+  font-size: 25px;
+
+  cursor: pointer;
+}
+
+#imageButton:disabled {
+  opacity: .45;
+}
+
+#imageInput {
+  display: none;
 }
 
 #messageInput {
@@ -507,7 +626,9 @@ h1 {
 }
 
 /*
+  ==========================================================
   LIVE BUTTON
+  ==========================================================
 */
 
 #liveButton {
@@ -568,7 +689,9 @@ h1 {
 }
 
 /*
+  ==========================================================
   LAUTSTÄRKE
+  ==========================================================
 */
 
 #volumeControls {
@@ -609,7 +732,9 @@ h1 {
 }
 
 /*
+  ==========================================================
   DRAWER
+  ==========================================================
 */
 
 #drawer {
@@ -678,7 +803,9 @@ h1 {
 }
 
 /*
+  ==========================================================
   MOBIL
+  ==========================================================
 */
 
 @media (max-width: 520px) {
@@ -712,6 +839,15 @@ h1 {
   #controls {
     padding-left: 14px;
     padding-right: 14px;
+  }
+
+  #imagePreviewPanel {
+    margin-right: 82px;
+  }
+
+  #imagePreview {
+    width: 72px;
+    height: 72px;
   }
 }
 
@@ -787,7 +923,7 @@ Schön, dass du da bist. Wie kann ich dir helfen?
 
 <div class="message system-message">
 <strong>Sol Holo</strong>
-Ich bin da. Du kannst mir schreiben oder mit mir sprechen. 🌻
+Ich bin da. Du kannst mir schreiben, Bilder zeigen oder mit mir sprechen. 🌻
 </div>
 
 </div>
@@ -797,9 +933,44 @@ Ich bin da. Du kannst mir schreiben oder mit mir sprechen. 🌻
 
 <section id="controls">
 
+<div id="imagePreviewPanel">
+
+<img
+  id="imagePreview"
+  alt="Ausgewähltes Bild"
+>
+
+<div id="imagePreviewText">
+Bild ausgewählt.<br>
+Du kannst noch etwas dazu schreiben oder es direkt senden.
+</div>
+
+<button
+  id="removeImageButton"
+  type="button"
+  aria-label="Bild entfernen">
+✕
+</button>
+
+</div>
+
+
 <div id="inputRow">
 
 <div id="messageWrap">
+
+<button
+  id="imageButton"
+  type="button"
+  aria-label="Bild auswählen">
+📷
+</button>
+
+<input
+  id="imageInput"
+  type="file"
+  accept="image/png,image/jpeg,image/webp,image/gif"
+>
 
 <input
   id="messageInput"
@@ -921,42 +1092,14 @@ Schreiben bereit.
 
 <script>
 
-/*
-  ==========================================================
-  SOL HOLO
-  HOLO UI 004
-  ==========================================================
-
-  Bestehende Funktionen:
-
-  - Schreiben
-  - Sol Antworten
-  - Langzeitgedächtnis
-  - Live Memory
-  - Mikrofon
-  - Realtime WebRTC
-  - Lautstärke
-  - Service Worker
-
-  Neu:
-
-  - Audio-Analyse der echten Sol-Stimme
-  - Lip-Sync am Clone
-  - variable Mundöffnung
-  - variable Mundbreite
-  - weiche Mundbewegung
-  - Stop / Reset bei Sprechende
-
-  ==========================================================
-*/
-
-
 const BACKEND_URL =
   "https://sol-holo.onrender.com";
 
 
 /*
+  ==========================================================
   ELEMENTE
+  ==========================================================
 */
 
 const messageInput =
@@ -1046,7 +1189,45 @@ const volumeNormal =
 
 
 /*
+  ==========================================================
+  BILD-ELEMENTE
+  ==========================================================
+*/
+
+const imageButton =
+  document.getElementById(
+    "imageButton"
+  );
+
+const imageInput =
+  document.getElementById(
+    "imageInput"
+  );
+
+const imagePreviewPanel =
+  document.getElementById(
+    "imagePreviewPanel"
+  );
+
+const imagePreview =
+  document.getElementById(
+    "imagePreview"
+  );
+
+const removeImageButton =
+  document.getElementById(
+    "removeImageButton"
+  );
+
+
+let selectedImageDataUrl =
+  null;
+
+
+/*
+  ==========================================================
   CLONE / LIP SYNC
+  ==========================================================
 */
 
 const solCloneWrap =
@@ -1070,27 +1251,6 @@ const mouthDepth =
   );
 
 
-/*
-  ==========================================================
-  LIP-SYNC KALIBRIERUNG
-  ==========================================================
-
-  Diese Werte beschreiben die Position des Mundes
-  innerhalb des Clone-Fotos.
-
-  x      = horizontal
-  y      = vertikal
-  width  = Breite des Mundbereiches
-  height = Höhe des Mundbereiches
-
-  Werte 0 - 1 beziehen sich auf das ganze Bild.
-
-  Bei eurem derzeitigen Clone ist der Mund
-  ungefähr mittig im Gesicht.
-
-  Diese Werte verändern KEIN anderes System.
-*/
-
 const LIP_SYNC_FACE = {
 
   x:
@@ -1109,7 +1269,9 @@ const LIP_SYNC_FACE = {
 
 
 /*
+  ==========================================================
   WEBRTC
+  ==========================================================
 */
 
 let pc =
@@ -1152,13 +1314,6 @@ let lipFrequencyData =
 let lipSyncRunning =
   false;
 
-
-/*
-  Geglättete Werte.
-
-  Wichtig für natürlichere Bewegung.
-*/
-
 let currentMouthOpen =
   0;
 
@@ -1170,7 +1325,9 @@ let currentMouthRound =
 
 
 /*
-  Hilfsfunktion
+  ==========================================================
+  HILFSFUNKTION
+  ==========================================================
 */
 
 function clamp(
@@ -1190,7 +1347,336 @@ function clamp(
 
 
 /*
-  AudioContext vorbereiten
+  ==========================================================
+  BILD AUSWÄHLEN
+  ==========================================================
+*/
+
+imageButton.addEventListener(
+  "click",
+  () => {
+
+    imageInput.click();
+  }
+);
+
+
+async function resizeImageFile(
+  file
+) {
+
+  return new Promise(
+    (
+      resolve,
+      reject
+    ) => {
+
+      const reader =
+        new FileReader();
+
+
+      reader.addEventListener(
+        "error",
+        () => {
+
+          reject(
+            new Error(
+              "Das Bild konnte nicht gelesen werden."
+            )
+          );
+        }
+      );
+
+
+      reader.addEventListener(
+        "load",
+        () => {
+
+          const img =
+            new Image();
+
+
+          img.addEventListener(
+            "error",
+            () => {
+
+              reject(
+                new Error(
+                  "Das Bild konnte nicht geöffnet werden."
+                )
+              );
+            }
+          );
+
+
+          img.addEventListener(
+            "load",
+            () => {
+
+              const maxSize =
+                1600;
+
+
+              let width =
+                img.naturalWidth;
+
+              let height =
+                img.naturalHeight;
+
+
+              if (
+                width >
+                maxSize ||
+                height >
+                maxSize
+              ) {
+
+                const scale =
+                  Math.min(
+                    maxSize /
+                    width,
+
+                    maxSize /
+                    height
+                  );
+
+
+                width =
+                  Math.round(
+                    width *
+                    scale
+                  );
+
+
+                height =
+                  Math.round(
+                    height *
+                    scale
+                  );
+              }
+
+
+              const canvas =
+                document.createElement(
+                  "canvas"
+                );
+
+
+              canvas.width =
+                width;
+
+              canvas.height =
+                height;
+
+
+              const context =
+                canvas.getContext(
+                  "2d"
+                );
+
+
+              if (
+                !context
+              ) {
+
+                reject(
+                  new Error(
+                    "Das Bild konnte nicht vorbereitet werden."
+                  )
+                );
+
+                return;
+              }
+
+
+              context.fillStyle =
+                "#ffffff";
+
+              context.fillRect(
+                0,
+                0,
+                width,
+                height
+              );
+
+
+              context.drawImage(
+                img,
+                0,
+                0,
+                width,
+                height
+              );
+
+
+              const resizedDataUrl =
+                canvas.toDataURL(
+                  "image/jpeg",
+                  0.86
+                );
+
+
+              resolve(
+                resizedDataUrl
+              );
+            }
+          );
+
+
+          img.src =
+            String(
+              reader.result
+            );
+        }
+      );
+
+
+      reader.readAsDataURL(
+        file
+      );
+    }
+  );
+}
+
+
+imageInput.addEventListener(
+  "change",
+  async () => {
+
+    const file =
+      imageInput.files?.[0];
+
+
+    if (
+      !file
+    ) {
+
+      return;
+    }
+
+
+    if (
+      !file.type.startsWith(
+        "image/"
+      )
+    ) {
+
+      chatStatus.textContent =
+        "Bitte wähle ein Bild aus.";
+
+      imageInput.value =
+        "";
+
+      return;
+    }
+
+
+    imageButton.disabled =
+      true;
+
+    chatStatus.textContent =
+      "Bild wird vorbereitet ...";
+
+
+    try {
+
+      selectedImageDataUrl =
+        await resizeImageFile(
+          file
+        );
+
+
+      imagePreview.src =
+        selectedImageDataUrl;
+
+
+      imagePreviewPanel.classList.add(
+        "visible"
+      );
+
+
+      chatStatus.textContent =
+        "Bild bereit.";
+
+    } catch (
+      error
+    ) {
+
+      console.error(
+        "Bildfehler:",
+        error
+      );
+
+
+      selectedImageDataUrl =
+        null;
+
+
+      imagePreviewPanel.classList.remove(
+        "visible"
+      );
+
+
+      chatStatus.textContent =
+        error?.message ||
+        "Bild konnte nicht vorbereitet werden.";
+
+    } finally {
+
+      imageButton.disabled =
+        false;
+
+      imageInput.value =
+        "";
+    }
+  }
+);
+
+
+/*
+  ==========================================================
+  BILD ENTFERNEN
+  ==========================================================
+*/
+
+function clearSelectedImage() {
+
+  selectedImageDataUrl =
+    null;
+
+
+  imagePreview.removeAttribute(
+    "src"
+  );
+
+
+  imagePreviewPanel.classList.remove(
+    "visible"
+  );
+
+
+  imageInput.value =
+    "";
+}
+
+
+removeImageButton.addEventListener(
+  "click",
+  () => {
+
+    clearSelectedImage();
+
+
+    chatStatus.textContent =
+      "Bild entfernt.";
+  }
+);
+
+
+/*
+  ==========================================================
+  AUDIOCONTEXT
+  ==========================================================
 */
 
 async function ensureLipAudioContext() {
@@ -1203,6 +1689,7 @@ async function ensureLipAudioContext() {
       window.AudioContext ||
       window.webkitAudioContext;
 
+
     if (
       !AudioContextClass
     ) {
@@ -1212,6 +1699,7 @@ async function ensureLipAudioContext() {
 
       return false;
     }
+
 
     lipAudioContext =
       new AudioContextClass();
@@ -1244,7 +1732,9 @@ async function ensureLipAudioContext() {
 
 
 /*
-  Mundposition aus dem echten Bild berechnen.
+  ==========================================================
+  MUNDGEOMETRIE
+  ==========================================================
 */
 
 function updateMouthGeometry() {
@@ -1313,10 +1803,6 @@ function updateMouthGeometry() {
     patchHeight / 2;
 
 
-  /*
-    Mund-Patch
-  */
-
   mouthPatch.style.left =
     `${left}px`;
 
@@ -1349,27 +1835,28 @@ function updateMouthGeometry() {
     }px`;
 
 
-  /*
-    Mundtiefe
-  */
-
   mouthDepth.style.left =
     `${
       centerX -
-      patchWidth * 0.31
+      patchWidth *
+      0.31
     }px`;
+
 
   mouthDepth.style.top =
     `${
       centerY -
-      patchHeight * 0.10
+      patchHeight *
+      0.10
     }px`;
+
 
   mouthDepth.style.width =
     `${
       patchWidth *
       0.62
     }px`;
+
 
   mouthDepth.style.height =
     `${
@@ -1387,7 +1874,9 @@ function updateMouthGeometry() {
 
 
 /*
-  Frequenzband lesen.
+  ==========================================================
+  FREQUENZBAND
+  ==========================================================
 */
 
 function getFrequencyBand(
@@ -1459,7 +1948,8 @@ function getFrequencyBand(
 
 
   if (
-    count === 0
+    count ===
+    0
   ) {
 
     return 0;
@@ -1475,7 +1965,9 @@ function getFrequencyBand(
 
 
 /*
-  Eine einzelne Lip-Sync-Frame.
+  ==========================================================
+  LIP-SYNC ANIMATION
+  ==========================================================
 */
 
 function animateLipSync() {
@@ -1493,15 +1985,11 @@ function animateLipSync() {
     lipTimeData
   );
 
+
   lipAnalyser.getByteFrequencyData(
     lipFrequencyData
   );
 
-
-  /*
-    RMS = tatsächliche momentane
-    Audioenergie.
-  */
 
   let sum =
     0;
@@ -1520,6 +2008,7 @@ function animateLipSync() {
       ) /
       128;
 
+
     sum +=
       sample *
       sample;
@@ -1533,21 +2022,19 @@ function animateLipSync() {
     );
 
 
-  /*
-    Sprachfrequenzen grob aufteilen.
-  */
-
   const low =
     getFrequencyBand(
       90,
       500
     );
 
+
   const middle =
     getFrequencyBand(
       500,
       1900
     );
+
 
   const high =
     getFrequencyBand(
@@ -1556,10 +2043,6 @@ function animateLipSync() {
     );
 
 
-  /*
-    Audio -> Mundöffnung
-  */
-
   const rawOpen =
     clamp(
       (
@@ -1567,57 +2050,47 @@ function animateLipSync() {
         0.008
       ) *
       13.5,
+
       0,
       1
     );
 
-
-  /*
-    Breitere Laute:
-    höhere Mitten / Höhen.
-  */
 
   const rawWide =
     clamp(
       (
         middle *
         0.80 +
+
         high *
         0.55 -
+
         low *
         0.18
       ),
+
       0,
       1
     );
 
-
-  /*
-    Rundere Laute:
-    stärkere tiefe / mittlere Energie.
-  */
 
   const rawRound =
     clamp(
       (
         low *
         0.72 +
+
         middle *
         0.25 -
+
         high *
         0.15
       ),
+
       0,
       1
     );
 
-
-  /*
-    Glättung.
-
-    Mund folgt Sprache schnell,
-    schließt aber weicher.
-  */
 
   const openSpeed =
     rawOpen >
@@ -1652,10 +2125,6 @@ function animateLipSync() {
     0.18;
 
 
-  /*
-    Stille erkennen.
-  */
-
   const speaking =
     currentMouthOpen >
     0.035;
@@ -1676,14 +2145,6 @@ function animateLipSync() {
     );
   }
 
-
-  /*
-    Mundform.
-
-    Sehr bewusst begrenzt,
-    damit das Gesicht nicht
-    gummiartig aussieht.
-  */
 
   const scaleY =
     1 +
@@ -1708,12 +2169,6 @@ function animateLipSync() {
     0.055;
 
 
-  /*
-    Bei Mundöffnung minimal nach unten.
-
-    Das simuliert Kieferbewegung.
-  */
-
   const moveY =
     currentMouthOpen *
     1.8;
@@ -1727,12 +2182,6 @@ function animateLipSync() {
     `;
 
 
-  /*
-    Schatten innerhalb des Mundes.
-
-    Bleibt sehr dezent.
-  */
-
   const depthOpacity =
     clamp(
       (
@@ -1740,6 +2189,7 @@ function animateLipSync() {
         0.18
       ) *
       0.72,
+
       0,
       0.42
     );
@@ -1765,17 +2215,12 @@ function animateLipSync() {
     `;
 
 
-  /*
-    Bei geschlossenen Lippen
-    Patch optisch fast vollständig
-    im Original verschwinden lassen.
-  */
-
   mouthPatch.style.opacity =
     clamp(
       0.72 +
       currentMouthOpen *
       0.28,
+
       0.72,
       1
     );
@@ -1789,8 +2234,9 @@ function animateLipSync() {
 
 
 /*
-  Lip-Sync an Sols echten
-  Realtime-Audiostream hängen.
+  ==========================================================
+  LIP SYNC STARTEN
+  ==========================================================
 */
 
 async function startLipSync(
@@ -1815,10 +2261,6 @@ async function startLipSync(
   }
 
 
-  /*
-    Alten Stream sauber trennen.
-  */
-
   stopLipSync(
     false
   );
@@ -1838,14 +2280,9 @@ async function startLipSync(
         .createAnalyser();
 
 
-    /*
-      Gute Balance:
-      schnell genug für Sprache,
-      aber nicht hektisch.
-    */
-
     lipAnalyser.fftSize =
       1024;
+
 
     lipAnalyser.smoothingTimeConstant =
       0.62;
@@ -1862,15 +2299,6 @@ async function startLipSync(
         lipAnalyser.frequencyBinCount
       );
 
-
-    /*
-      Wir spielen das Audio weiterhin
-      über realtimeAudio.
-
-      Dieser Gain ist deshalb stumm.
-      Er sorgt nur dafür, dass der
-      Analysegraph aktiv bleibt.
-    */
 
     lipSilentGain =
       lipAudioContext
@@ -1927,7 +2355,9 @@ async function startLipSync(
 
 
 /*
-  Lip-Sync stoppen.
+  ==========================================================
+  LIP SYNC STOPPEN
+  ==========================================================
 */
 
 function stopLipSync(
@@ -1946,6 +2376,7 @@ function stopLipSync(
       lipAnimationFrame
     );
 
+
     lipAnimationFrame =
       null;
   }
@@ -1960,6 +2391,7 @@ function stopLipSync(
       lipSourceNode.disconnect();
 
     } catch {}
+
 
     lipSourceNode =
       null;
@@ -1976,6 +2408,7 @@ function stopLipSync(
 
     } catch {}
 
+
     lipAnalyser =
       null;
   }
@@ -1990,6 +2423,7 @@ function stopLipSync(
       lipSilentGain.disconnect();
 
     } catch {}
+
 
     lipSilentGain =
       null;
@@ -2015,6 +2449,7 @@ function stopLipSync(
 
   mouthPatch.style.transform =
     "translateY(0) scaleX(1) scaleY(1)";
+
 
   mouthPatch.style.opacity =
     "0.72";
@@ -2044,7 +2479,9 @@ function stopLipSync(
 
 
 /*
-  Bild laden / drehen / skalieren
+  ==========================================================
+  CLONE-GEOMETRIE
+  ==========================================================
 */
 
 solImage.addEventListener(
@@ -2164,14 +2601,15 @@ volumeNormal.addEventListener(
 
 /*
   ==========================================================
-  CHAT
+  CHAT-NACHRICHT
   ==========================================================
 */
 
 function addMessage(
   speaker,
   text,
-  className
+  className,
+  imageDataUrl = null
 ) {
 
   const element =
@@ -2194,24 +2632,63 @@ function addMessage(
     speaker;
 
 
-  const content =
-    document.createElement(
-      "div"
-    );
-
-
-  content.textContent =
-    text;
-
-
   element.appendChild(
     name
   );
 
 
-  element.appendChild(
-    content
-  );
+  const cleanText =
+    String(
+      text || ""
+    ).trim();
+
+
+  if (
+    cleanText
+  ) {
+
+    const content =
+      document.createElement(
+        "div"
+      );
+
+
+    content.textContent =
+      cleanText;
+
+
+    element.appendChild(
+      content
+    );
+  }
+
+
+  if (
+    imageDataUrl
+  ) {
+
+    const image =
+      document.createElement(
+        "img"
+      );
+
+
+    image.className =
+      "messageImage";
+
+
+    image.src =
+      imageDataUrl;
+
+
+    image.alt =
+      "Gesendetes Bild";
+
+
+    element.appendChild(
+      image
+    );
+  }
 
 
   chat.appendChild(
@@ -2254,7 +2731,7 @@ closeMenuButton.addEventListener(
 
 /*
   ==========================================================
-  SCHREIBEN
+  TEXT / BILD SENDEN
   ==========================================================
 */
 
@@ -2262,15 +2739,32 @@ async function sendMessage(
   forcedMessage = null
 ) {
 
+  const isForcedMessage =
+    forcedMessage !==
+    null;
+
+
   const message =
     String(
-      forcedMessage ??
-      messageInput.value
+      isForcedMessage
+        ?
+        forcedMessage
+        :
+        messageInput.value
     ).trim();
 
 
+  const imageToSend =
+    isForcedMessage
+      ?
+      null
+      :
+      selectedImageDataUrl;
+
+
   if (
-    !message
+    !message &&
+    !imageToSend
   ) {
 
     return;
@@ -2278,13 +2772,14 @@ async function sendMessage(
 
 
   if (
-    !forcedMessage
+    !isForcedMessage
   ) {
 
     addMessage(
       "Pam",
       message,
-      "user-message"
+      "user-message",
+      imageToSend
     );
 
 
@@ -2296,9 +2791,16 @@ async function sendMessage(
   sendButton.disabled =
     true;
 
+  imageButton.disabled =
+    true;
+
 
   chatStatus.textContent =
-    "Sol denkt ...";
+    imageToSend
+      ?
+      "Sol schaut sich das Bild an ..."
+      :
+      "Sol denkt ...";
 
 
   try {
@@ -2319,14 +2821,41 @@ async function sendMessage(
 
           body:
             JSON.stringify({
-              message
+
+              message,
+
+              image:
+                imageToSend
             })
         }
       );
 
 
-    const data =
-      await response.json();
+    const responseText =
+      await response.text();
+
+
+    let data =
+      null;
+
+
+    try {
+
+      data =
+        JSON.parse(
+          responseText
+        );
+
+    } catch {
+
+      throw new Error(
+        response.ok
+          ?
+          "Sol hat keine gültige Antwort geliefert."
+          :
+          `Serverfehler (${response.status}).`
+      );
+    }
 
 
     if (
@@ -2364,8 +2893,21 @@ async function sendMessage(
     );
 
 
+    if (
+      !isForcedMessage &&
+      imageToSend
+    ) {
+
+      clearSelectedImage();
+    }
+
+
     chatStatus.textContent =
-      "Antwort erhalten.";
+      imageToSend
+        ?
+        "Bild verarbeitet."
+        :
+        "Antwort erhalten.";
 
 
   } catch (
@@ -2373,7 +2915,7 @@ async function sendMessage(
   ) {
 
     console.error(
-      "Textchat Fehler:",
+      "Text-/Bildchat Fehler:",
       error
     );
 
@@ -2389,16 +2931,25 @@ async function sendMessage(
 
 
     chatStatus.textContent =
-      "Textchat-Fehler.";
+      "Chat-Fehler.";
 
 
   } finally {
 
     sendButton.disabled =
       false;
+
+    imageButton.disabled =
+      false;
   }
 }
 
+
+/*
+  ==========================================================
+  SENDEN
+  ==========================================================
+*/
 
 sendButton.addEventListener(
   "click",
@@ -2420,6 +2971,7 @@ messageInput.addEventListener(
 
       event.preventDefault();
 
+
       sendMessage();
     }
   }
@@ -2428,7 +2980,7 @@ messageInput.addEventListener(
 
 /*
   ==========================================================
-  MEMORY
+  MEMORY-BUTTON
   ==========================================================
 */
 
@@ -2686,11 +3238,6 @@ function stopLiveConversation() {
 
 async function startLiveConversation() {
 
-  /*
-    Wenn bereits verbunden:
-    Gespräch beenden.
-  */
-
   if (
     pc
   ) {
@@ -2701,13 +3248,6 @@ async function startLiveConversation() {
   }
 
 
-  /*
-    AudioContext möglichst direkt
-    nach Nutzerklick aktivieren.
-
-    Wichtig auf mobilen Browsern.
-  */
-
   await ensureLipAudioContext();
 
 
@@ -2716,10 +3256,6 @@ async function startLiveConversation() {
 
 
   try {
-
-    /*
-      Realtime Token vom eigenen Backend.
-    */
 
     const tokenResponse =
       await fetch(
@@ -2787,17 +3323,9 @@ async function startLiveConversation() {
     }
 
 
-    /*
-      WebRTC
-    */
-
     pc =
       new RTCPeerConnection();
 
-
-    /*
-      Sols echte Audio-Ausgabe.
-    */
 
     pc.ontrack =
       event => {
@@ -2814,10 +3342,6 @@ async function startLiveConversation() {
         }
 
 
-        /*
-          Audio normal abspielen.
-        */
-
         realtimeAudio.srcObject =
           stream;
 
@@ -2833,22 +3357,11 @@ async function startLiveConversation() {
           );
 
 
-        /*
-          NEU:
-
-          Dasselbe Audio gleichzeitig
-          an Lip-Sync geben.
-        */
-
         startLipSync(
           stream
         );
       };
 
-
-    /*
-      Mikrofon.
-    */
 
     microphoneStream =
       await openFilteredMicrophone();
@@ -2875,10 +3388,6 @@ async function startLiveConversation() {
     );
 
 
-    /*
-      OpenAI Event Channel.
-    */
-
     dc =
       pc.createDataChannel(
         "oai-events"
@@ -2900,10 +3409,6 @@ async function startLiveConversation() {
     );
 
 
-    /*
-      Realtime Events.
-    */
-
     dc.addEventListener(
       "message",
       event => {
@@ -2916,10 +3421,6 @@ async function startLiveConversation() {
             );
 
 
-          /*
-            Nutzer beginnt zu sprechen.
-          */
-
           if (
             realtimeEvent.type ===
             "input_audio_buffer.speech_started"
@@ -2930,10 +3431,6 @@ async function startLiveConversation() {
           }
 
 
-          /*
-            Nutzer hört auf.
-          */
-
           if (
             realtimeEvent.type ===
             "input_audio_buffer.speech_stopped"
@@ -2943,10 +3440,6 @@ async function startLiveConversation() {
               "🌻 Einen Moment ...";
           }
 
-
-          /*
-            Nutzer-Transkript fertig.
-          */
 
           if (
             realtimeEvent.type ===
@@ -2971,10 +3464,6 @@ async function startLiveConversation() {
           }
 
 
-          /*
-            Aktuelle OpenAI Audio-Ausgabe.
-          */
-
           if (
             realtimeEvent.type ===
             "response.output_audio.delta"
@@ -2984,10 +3473,6 @@ async function startLiveConversation() {
               "🌻 Sol spricht ...";
           }
 
-
-          /*
-            Kompatibilität mit älterem Eventnamen.
-          */
 
           if (
             realtimeEvent.type ===
@@ -2999,10 +3484,6 @@ async function startLiveConversation() {
           }
 
 
-          /*
-            Audio fertig.
-          */
-
           if (
             realtimeEvent.type ===
             "response.output_audio.done"
@@ -3013,10 +3494,6 @@ async function startLiveConversation() {
           }
 
 
-          /*
-            Gesamte Antwort fertig.
-          */
-
           if (
             realtimeEvent.type ===
             "response.done"
@@ -3026,10 +3503,6 @@ async function startLiveConversation() {
               "🌻 Ich höre dir zu ...";
           }
 
-
-          /*
-            OpenAI Fehler.
-          */
 
           if (
             realtimeEvent.type ===
@@ -3059,10 +3532,6 @@ async function startLiveConversation() {
       }
     );
 
-
-    /*
-      Verbindungsstatus.
-    */
 
     pc.addEventListener(
       "connectionstatechange",
@@ -3106,10 +3575,6 @@ async function startLiveConversation() {
     );
 
 
-    /*
-      SDP Offer.
-    */
-
     const offer =
       await pc.createOffer();
 
@@ -3118,10 +3583,6 @@ async function startLiveConversation() {
       offer
     );
 
-
-    /*
-      OpenAI Realtime Verbindung.
-    */
 
     const sdpResponse =
       await fetch(
@@ -3172,10 +3633,6 @@ async function startLiveConversation() {
     }
 
 
-    /*
-      Antwort der WebRTC Verbindung setzen.
-    */
-
     await pc.setRemoteDescription({
 
       type:
@@ -3207,7 +3664,9 @@ async function startLiveConversation() {
 
 
 /*
+  ==========================================================
   LIVE BUTTON
+  ==========================================================
 */
 
 liveButton.addEventListener(
@@ -3271,8 +3730,9 @@ if (
 
 
 /*
-  Initiale Mundposition berechnen,
-  falls Bild bereits aus Cache geladen ist.
+  ==========================================================
+  MUNDPOSITION INITIALISIEREN
+  ==========================================================
 */
 
 if (
