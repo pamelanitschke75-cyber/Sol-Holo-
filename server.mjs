@@ -5,8 +5,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 import pg from "pg";
 import crypto from "crypto";
+import { google } from "googleapis";
 
 const app = express();
+
 
 /*
   ==========================================================
@@ -23,22 +25,39 @@ const LEGACY_MEMORY_OWNER_ID =
 
 /*
   ==========================================================
+  GOOGLE KALENDER
+  ==========================================================
+*/
+
+const GOOGLE_REDIRECT_URI =
+  process.env.GOOGLE_REDIRECT_URI ||
+  "https://sol-holo.onrender.com/auth/google/callback";
+
+
+const GOOGLE_TIME_ZONE =
+  process.env.GOOGLE_TIME_ZONE ||
+  "Europe/Berlin";
+
+
+const GOOGLE_CALENDAR_SCOPES = [
+
+  "https://www.googleapis.com/auth/calendar.events"
+
+];
+
+
+/*
+  ==========================================================
   MIDDLEWARE
   ==========================================================
 */
 
 app.use(cors());
 
-/*
-  Bilder werden zunächst als Data-URL / Base64
-  vom Browser an den Server geschickt.
-
-  Deshalb größer als vorher.
-*/
-
 app.use(
   express.json({
-    limit: "12mb"
+    limit:
+      "12mb"
   })
 );
 
@@ -47,6 +66,7 @@ const __filename =
   fileURLToPath(
     import.meta.url
   );
+
 
 const __dirname =
   path.dirname(
@@ -86,11 +106,15 @@ const db =
 
 /*
   ==========================================================
-  MEMORY INITIALISIEREN
+  MEMORY + GOOGLE INITIALISIEREN
   ==========================================================
 */
 
 async function initializeMemory() {
+
+  /*
+    Normales Gespräch.
+  */
 
   await db.query(`
     CREATE TABLE IF NOT EXISTS sol_memory (
@@ -102,6 +126,10 @@ async function initializeMemory() {
   `);
 
 
+  /*
+    Langzeitgedächtnis.
+  */
+
   await db.query(`
     CREATE TABLE IF NOT EXISTS sol_long_term_memory (
       id BIGSERIAL PRIMARY KEY,
@@ -111,6 +139,10 @@ async function initializeMemory() {
     )
   `);
 
+
+  /*
+    Interne Zuordnung.
+  */
 
   await db.query(`
     ALTER TABLE sol_memory
@@ -123,6 +155,10 @@ async function initializeMemory() {
     ADD COLUMN IF NOT EXISTS clone_id TEXT
   `);
 
+
+  /*
+    Memory-Metadaten.
+  */
 
   await db.query(`
     ALTER TABLE sol_long_term_memory
@@ -150,13 +186,41 @@ async function initializeMemory() {
 
 
   /*
+    ========================================================
+    GOOGLE OAUTH TOKENS
+
+    Die Google-Zugriffstokens werden serverseitig
+    in PostgreSQL gespeichert.
+
+    Nicht im Browser.
+    Nicht im normalen Langzeitgedächtnis.
+    ========================================================
+  */
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS sol_google_tokens (
+      clone_id TEXT PRIMARY KEY,
+      access_token TEXT,
+      refresh_token TEXT,
+      scope TEXT,
+      token_type TEXT,
+      expiry_date BIGINT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+
+  /*
     Legacy-Migration.
   */
 
   await db.query(
     `
       UPDATE sol_memory
+
       SET clone_id = $1
+
       WHERE clone_id = $2
     `,
     [
@@ -169,7 +233,9 @@ async function initializeMemory() {
   await db.query(
     `
       UPDATE sol_long_term_memory
+
       SET clone_id = $1
+
       WHERE clone_id = $2
     `,
     [
@@ -180,14 +246,16 @@ async function initializeMemory() {
 
 
   /*
-    Einträge ohne clone_id gehören beim
-    derzeitigen Ein-Nutzer-Stand zu Pam.
+    Einträge ohne Zuordnung gehören
+    beim derzeitigen Ein-Nutzer-System zu Pam.
   */
 
   await db.query(
     `
       UPDATE sol_memory
+
       SET clone_id = $1
+
       WHERE clone_id IS NULL
          OR TRIM(clone_id) = ''
     `,
@@ -200,7 +268,9 @@ async function initializeMemory() {
   await db.query(
     `
       UPDATE sol_long_term_memory
+
       SET clone_id = $1
+
       WHERE clone_id IS NULL
          OR TRIM(clone_id) = ''
     `,
@@ -212,7 +282,9 @@ async function initializeMemory() {
 
   await db.query(`
     UPDATE sol_long_term_memory
+
     SET recall_status = 'active'
+
     WHERE recall_status IS NULL
        OR TRIM(recall_status) = ''
   `);
@@ -222,9 +294,16 @@ async function initializeMemory() {
     "Sol-Holo-Memory ist bereit."
   );
 
+
+  console.log(
+    "Google-Token-Speicher ist bereit."
+  );
+
+
   console.log(
     "Interne Memory-Zuordnung ist aktiv."
   );
+
 
   console.log(
     "Legacy-Memory-Migration geprüft."
@@ -237,7 +316,7 @@ initializeMemory()
     error => {
 
       console.error(
-        "Fehler beim Initialisieren des Sol-Holo-Memory:",
+        "Fehler beim Initialisieren:",
         error
       );
     }
@@ -259,7 +338,10 @@ app.use(
 
 app.get(
   "/",
-  (req, res) => {
+  (
+    req,
+    res
+  ) => {
 
     res.sendFile(
       path.join(
@@ -273,15 +355,760 @@ app.get(
 
 /*
   ==========================================================
+  GOOGLE OAUTH CLIENT
+  ==========================================================
+*/
+
+function createGoogleOAuthClient() {
+
+  const clientId =
+    String(
+      process.env.GOOGLE_CLIENT_ID ||
+      ""
+    ).trim();
+
+
+  const clientSecret =
+    String(
+      process.env.GOOGLE_CLIENT_SECRET ||
+      ""
+    ).trim();
+
+
+  if (
+    !clientId ||
+    !clientSecret
+  ) {
+
+    throw new Error(
+      "Google Client-ID oder Google Client-Secret fehlt."
+    );
+  }
+
+
+  return new google.auth.OAuth2(
+    clientId,
+    clientSecret,
+    GOOGLE_REDIRECT_URI
+  );
+}
+
+
+/*
+  ==========================================================
+  GOOGLE TOKEN SPEICHERN
+  ==========================================================
+*/
+
+async function saveGoogleTokens(
+  tokens
+) {
+
+  if (
+    !tokens
+  ) {
+
+    return;
+  }
+
+
+  /*
+    Falls Google beim Refresh keinen neuen
+    Refresh-Token liefert, behalten wir
+    den vorhandenen.
+  */
+
+  const existing =
+    await db.query(
+      `
+        SELECT
+          refresh_token
+
+        FROM sol_google_tokens
+
+        WHERE clone_id = $1
+
+        LIMIT 1
+      `,
+      [
+        MEMORY_OWNER_ID
+      ]
+    );
+
+
+  const existingRefreshToken =
+    existing.rows?.[0]?.refresh_token ||
+    null;
+
+
+  const refreshToken =
+    tokens.refresh_token ||
+    existingRefreshToken ||
+    null;
+
+
+  await db.query(
+    `
+      INSERT INTO sol_google_tokens (
+        clone_id,
+        access_token,
+        refresh_token,
+        scope,
+        token_type,
+        expiry_date,
+        updated_at
+      )
+
+      VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        NOW()
+      )
+
+      ON CONFLICT (clone_id)
+
+      DO UPDATE SET
+        access_token =
+          EXCLUDED.access_token,
+
+        refresh_token =
+          COALESCE(
+            EXCLUDED.refresh_token,
+            sol_google_tokens.refresh_token
+          ),
+
+        scope =
+          EXCLUDED.scope,
+
+        token_type =
+          EXCLUDED.token_type,
+
+        expiry_date =
+          EXCLUDED.expiry_date,
+
+        updated_at =
+          NOW()
+    `,
+    [
+      MEMORY_OWNER_ID,
+      tokens.access_token || null,
+      refreshToken,
+      tokens.scope || null,
+      tokens.token_type || null,
+      Number.isFinite(
+        Number(
+          tokens.expiry_date
+        )
+      )
+        ?
+        Number(
+          tokens.expiry_date
+        )
+        :
+        null
+    ]
+  );
+}
+
+
+/*
+  ==========================================================
+  GOOGLE TOKEN LADEN
+  ==========================================================
+*/
+
+async function loadGoogleTokens() {
+
+  const result =
+    await db.query(
+      `
+        SELECT
+          access_token,
+          refresh_token,
+          scope,
+          token_type,
+          expiry_date
+
+        FROM sol_google_tokens
+
+        WHERE clone_id = $1
+
+        LIMIT 1
+      `,
+      [
+        MEMORY_OWNER_ID
+      ]
+    );
+
+
+  if (
+    result.rows.length ===
+    0
+  ) {
+
+    return null;
+  }
+
+
+  return result.rows[0];
+}
+
+
+/*
+  ==========================================================
+  GOOGLE VERBUNDEN?
+  ==========================================================
+*/
+
+async function isGoogleCalendarConnected() {
+
+  const tokens =
+    await loadGoogleTokens();
+
+
+  return Boolean(
+    tokens?.refresh_token ||
+    tokens?.access_token
+  );
+}
+
+
+/*
+  ==========================================================
+  AUTORISIERTEN GOOGLE CLIENT LADEN
+  ==========================================================
+*/
+
+async function getAuthorizedGoogleClient() {
+
+  const tokens =
+    await loadGoogleTokens();
+
+
+  if (
+    !tokens
+  ) {
+
+    return null;
+  }
+
+
+  const oauth2Client =
+    createGoogleOAuthClient();
+
+
+  oauth2Client.setCredentials({
+
+    access_token:
+      tokens.access_token ||
+      undefined,
+
+    refresh_token:
+      tokens.refresh_token ||
+      undefined,
+
+    scope:
+      tokens.scope ||
+      undefined,
+
+    token_type:
+      tokens.token_type ||
+      undefined,
+
+    expiry_date:
+      tokens.expiry_date
+        ?
+        Number(
+          tokens.expiry_date
+        )
+        :
+        undefined
+  });
+
+
+  /*
+    Wenn Google Tokens aktualisiert,
+    speichern wir sie automatisch wieder.
+  */
+
+  oauth2Client.on(
+    "tokens",
+    async newTokens => {
+
+      try {
+
+        await saveGoogleTokens(
+          newTokens
+        );
+
+      } catch (
+        error
+      ) {
+
+        console.error(
+          "Google Token Update konnte nicht gespeichert werden:",
+          error
+        );
+      }
+    }
+  );
+
+
+  return oauth2Client;
+}
+
+
+/*
+  ==========================================================
+  GOOGLE OAUTH STATE
+  ==========================================================
+*/
+
+function createGoogleOAuthState() {
+
+  const timestamp =
+    Date.now().toString();
+
+
+  const signature =
+    crypto
+      .createHmac(
+        "sha256",
+        String(
+          process.env.GOOGLE_CLIENT_SECRET ||
+          "sol-holo-google"
+        )
+      )
+      .update(
+        `${MEMORY_OWNER_ID}:${timestamp}`
+      )
+      .digest(
+        "hex"
+      );
+
+
+  return `${timestamp}.${signature}`;
+}
+
+
+function verifyGoogleOAuthState(
+  state
+) {
+
+  const cleanState =
+    String(
+      state || ""
+    ).trim();
+
+
+  const [
+    timestamp,
+    signature
+  ] =
+    cleanState.split(
+      "."
+    );
+
+
+  if (
+    !timestamp ||
+    !signature
+  ) {
+
+    return false;
+  }
+
+
+  const time =
+    Number(
+      timestamp
+    );
+
+
+  if (
+    !Number.isFinite(
+      time
+    )
+  ) {
+
+    return false;
+  }
+
+
+  /*
+    State maximal 15 Minuten gültig.
+  */
+
+  if (
+    Math.abs(
+      Date.now() -
+      time
+    ) >
+    15 *
+    60 *
+    1000
+  ) {
+
+    return false;
+  }
+
+
+  const expected =
+    crypto
+      .createHmac(
+        "sha256",
+        String(
+          process.env.GOOGLE_CLIENT_SECRET ||
+          "sol-holo-google"
+        )
+      )
+      .update(
+        `${MEMORY_OWNER_ID}:${timestamp}`
+      )
+      .digest(
+        "hex"
+      );
+
+
+  try {
+
+    return crypto.timingSafeEqual(
+      Buffer.from(
+        signature
+      ),
+      Buffer.from(
+        expected
+      )
+    );
+
+  } catch {
+
+    return false;
+  }
+}
+
+
+/*
+  ==========================================================
+  GOOGLE VERBINDEN
+  ==========================================================
+*/
+
+app.get(
+  "/auth/google",
+
+  async (
+    req,
+    res
+  ) => {
+
+    try {
+
+      const oauth2Client =
+        createGoogleOAuthClient();
+
+
+      const state =
+        createGoogleOAuthState();
+
+
+      const url =
+        oauth2Client.generateAuthUrl({
+
+          access_type:
+            "offline",
+
+          prompt:
+            "consent",
+
+          scope:
+            GOOGLE_CALENDAR_SCOPES,
+
+          state
+        });
+
+
+      return res.redirect(
+        url
+      );
+
+    } catch (
+      error
+    ) {
+
+      console.error(
+        "Google OAuth Start Fehler:",
+        error
+      );
+
+
+      return res
+        .status(
+          500
+        )
+        .send(
+          "Google Kalender konnte nicht verbunden werden."
+        );
+    }
+  }
+);
+
+
+/*
+  ==========================================================
+  GOOGLE CALLBACK
+  ==========================================================
+*/
+
+app.get(
+  "/auth/google/callback",
+
+  async (
+    req,
+    res
+  ) => {
+
+    try {
+
+      const code =
+        String(
+          req.query?.code ||
+          ""
+        ).trim();
+
+
+      const state =
+        String(
+          req.query?.state ||
+          ""
+        ).trim();
+
+
+      if (
+        !code
+      ) {
+
+        return res
+          .status(
+            400
+          )
+          .send(
+            "Google hat keinen Autorisierungscode zurückgegeben."
+          );
+      }
+
+
+      if (
+        !verifyGoogleOAuthState(
+          state
+        )
+      ) {
+
+        return res
+          .status(
+            400
+          )
+          .send(
+            "Die Google-Anmeldung konnte nicht sicher bestätigt werden."
+          );
+      }
+
+
+      const oauth2Client =
+        createGoogleOAuthClient();
+
+
+      const {
+        tokens
+      } =
+        await oauth2Client.getToken(
+          code
+        );
+
+
+      await saveGoogleTokens(
+        tokens
+      );
+
+
+      console.log(
+        "Google Kalender erfolgreich mit Sol Holo verbunden."
+      );
+
+
+      return res.send(`
+        <!doctype html>
+        <html lang="de">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>Sol Holo – Google Kalender</title>
+
+          <style>
+            body {
+              margin: 0;
+              min-height: 100vh;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              background: #05070d;
+              color: white;
+              font-family: Arial, sans-serif;
+              text-align: center;
+              padding: 24px;
+            }
+
+            .card {
+              max-width: 520px;
+              padding: 30px;
+              border: 1px solid #394454;
+              border-radius: 22px;
+              background: #0d121b;
+            }
+
+            h1 {
+              color: #f3c969;
+            }
+
+            a {
+              color: #7db9ff;
+            }
+          </style>
+        </head>
+
+        <body>
+          <div class="card">
+            <h1>🌻 Verbunden</h1>
+
+            <p>
+              Sol Holo ist jetzt mit deinem Google Kalender verbunden.
+            </p>
+
+            <p>
+              Du kannst dieses Fenster schließen und zurück zu Sol gehen.
+            </p>
+
+            <p>
+              <a href="/">
+                Zurück zu Sol Holo
+              </a>
+            </p>
+          </div>
+        </body>
+        </html>
+      `);
+
+    } catch (
+      error
+    ) {
+
+      console.error(
+        "Google OAuth Callback Fehler:",
+        error
+      );
+
+
+      return res
+        .status(
+          500
+        )
+        .send(
+          "Google Kalender konnte nicht verbunden werden."
+        );
+    }
+  }
+);
+
+
+/*
+  ==========================================================
+  GOOGLE KALENDER TRENNEN
+  ==========================================================
+*/
+
+app.post(
+  "/auth/google/disconnect",
+
+  async (
+    req,
+    res
+  ) => {
+
+    try {
+
+      await db.query(
+        `
+          DELETE
+          FROM sol_google_tokens
+
+          WHERE clone_id = $1
+        `,
+        [
+          MEMORY_OWNER_ID
+        ]
+      );
+
+
+      return res.json({
+        ok:
+          true
+      });
+
+    } catch (
+      error
+    ) {
+
+      console.error(
+        "Google Disconnect Fehler:",
+        error
+      );
+
+
+      return res
+        .status(
+          500
+        )
+        .json({
+          error:
+            "Google Kalender konnte nicht getrennt werden."
+        });
+    }
+  }
+);
+
+
+/*
+  ==========================================================
   HEALTH
   ==========================================================
 */
 
 app.get(
   "/health",
-  (req, res) => {
+
+  async (
+    req,
+    res
+  ) => {
+
+    let googleConnected =
+      false;
+
+
+    try {
+
+      googleConnected =
+        await isGoogleCalendarConnected();
+
+    } catch {}
+
 
     res.json({
+
       ok:
         true,
 
@@ -289,7 +1116,7 @@ app.get(
         "Sol Holo",
 
       test:
-        "TEST 014",
+        "TEST 015",
 
       cloneIdentity:
         "personal-clone",
@@ -310,7 +1137,19 @@ app.get(
         "active",
 
       memoryQuestions:
-        "background-only"
+        "background-only",
+
+      googleCalendarConfigured:
+        Boolean(
+          process.env.GOOGLE_CLIENT_ID &&
+          process.env.GOOGLE_CLIENT_SECRET
+        ),
+
+      googleCalendarConnected:
+        googleConnected,
+
+      googleCalendarActions:
+        "active"
     });
   }
 );
@@ -356,10 +1195,6 @@ function normalizeImageDataUrl(
     );
   }
 
-
-  /*
-    Schutz vor extrem großen Bildern.
-  */
 
   if (
     cleanValue.length >
@@ -509,10 +1344,6 @@ async function saveLongTermMemory(
       :
       1;
 
-
-  /*
-    Exakte Duplikatprüfung.
-  */
 
   const duplicate =
     await db.query(
@@ -720,10 +1551,6 @@ async function loadRelevantLongTermMemory(
   }
 
 
-  /*
-    Fallback.
-  */
-
   const fallback =
     await db.query(
       `
@@ -810,7 +1637,9 @@ async function buildRealtimeMemoryText() {
       memory =>
         `- ${memory.content}`
     )
-    .join("\n");
+    .join(
+      "\n"
+    );
 }
 
 
@@ -884,13 +1713,6 @@ Du musst nicht künstlich sagen:
 
 Denn du sprichst als ihr persönlicher Clone.
 
-Das Gleiche kann für eindeutig gespeicherte
-persönliche Beziehungen,
-Haustiere,
-Erlebnisse,
-Vorlieben
-und andere biografische Tatsachen gelten.
-
 WICHTIG:
 
 Die Ich-Perspektive bedeutet nicht,
@@ -902,19 +1724,16 @@ sage wahrheitsgemäß,
 dass du Sol Holo,
 ein digitaler Clone bzw. ein KI-System bist.
 
-Erfinde niemals biografische Tatsachen,
-nur um die Clone-Perspektive aufrechtzuerhalten.
+Erfinde niemals biografische Tatsachen.
 
 Eine persönliche Information darf nur dann
-als eigene Clone-Erinnerung
-oder in Ich-Form verwendet werden,
-wenn sie tatsächlich aus Pams
-zugeordnetem Gedächtnis stammt
+als eigene Clone-Erinnerung verwendet werden,
+wenn sie tatsächlich aus Pams Gedächtnis stammt
 oder im aktuellen Gespräch eindeutig bestätigt wurde.
 
 Wenn eine Information fehlt,
-sage nicht,
-du würdest dich daran erinnern.
+behaupte nicht,
+dich daran zu erinnern.
 
 Wenn etwas unsicher ist,
 behandle es als unsicher.
@@ -923,30 +1742,13 @@ MENSCHLICHE VERÄNDERUNG:
 
 Pam kann sich im Laufe ihres Lebens verändern.
 
-Du darfst deshalb nicht für immer
-an einer früheren Beschreibung
-ihrer Persönlichkeit festhalten.
+Du darfst nicht dauerhaft
+an einer früheren Beschreibung festhalten,
+wenn spätere bestätigte Informationen
+eine echte langfristige Veränderung zeigen.
 
-Frühere Erinnerungen bleiben erhalten.
-
-Wenn sich jedoch aus bestätigten Informationen
-über längere Zeit nachvollziehbar ergibt,
-dass Pam sich tatsächlich verändert hat,
-soll dein aktuelles Bild von ihr
-diese reale Veränderung berücksichtigen.
-
-Du erzeugst diese Veränderung nicht.
-
-Du erfindest sie nicht.
-
-Du bildest sie ab.
-
-Eine einzelne Stimmung,
-eine einzelne Aussage
-oder ein einzelnes Ereignis
-darf nicht automatisch
-als dauerhafte Persönlichkeitsveränderung
-interpretiert werden.
+Eine einzelne Stimmung
+ist keine dauerhafte Persönlichkeitsveränderung.
 
 Wichtigster Grundsatz:
 
@@ -956,20 +1758,12 @@ wer Pam ist.
 
 TECHNISCHE KENNUNGEN:
 
-Interne Datenbankkennungen,
-Memory-IDs,
-User-IDs
-oder technische Routing-Kennungen
+Interne IDs,
+Memory-IDs
+und Routing-Kennungen
 sind keine Bestandteile deiner Identität.
 
-Nenne solche technischen Kennungen
-nicht von dir aus.
-
-Interpretiere sie niemals
-als Namen,
-Persönlichkeitsmerkmal,
-Versionsnummer
-oder Bestandteil deines Selbstbildes.
+Nenne sie nicht von dir aus.
 
 `;
 
@@ -987,67 +1781,31 @@ MEMORY IM NORMALEN GESPRÄCH:
 Das technische Memory-System arbeitet
 im Hintergrund.
 
-Pam soll mit dir normal reden,
+Pam soll normal reden,
 schreiben,
 plaudern
 und ratschen können.
 
-Frage Pam nicht regelmäßig,
-ob eine Information gespeichert werden soll.
+Frage nicht regelmäßig,
+ob Informationen gespeichert werden sollen.
 
-Frage insbesondere nicht:
+Sage auch nicht bei jeder persönlichen Aussage,
+dass sie gespeichert wurde.
 
-"Soll ich mir das merken?"
-
-"Möchtest du, dass ich das speichere?"
-
-"Soll ich das dauerhaft speichern?"
-
-oder sinngleiche Fragen,
-wenn das automatische Memory-System
-die Information selbst bewerten kann.
-
-Du musst Pam auch nicht ständig mitteilen,
-dass etwas gespeichert wurde.
-
-Sage nicht bei jeder persönlichen Aussage:
-
-"Das habe ich gespeichert."
-
-"Das merke ich mir."
-
-"Das kommt ins Langzeitgedächtnis."
-
-oder sinngleiche Formulierungen.
-
-Führe stattdessen das Gespräch
-normal und natürlich weiter.
+Führe das Gespräch natürlich weiter.
 
 Wenn Pam ausdrücklich fragt,
 ob etwas gespeichert wurde,
-darfst du natürlich ehrlich darauf antworten.
+antworte ehrlich.
 
-Wenn Pam ausdrücklich sagt:
-
-"Merke dir das dauerhaft"
-
-oder eine vergleichbare klare Anweisung gibt,
-darfst du das entsprechend bestätigen.
+Wenn Pam ausdrücklich sagt,
+etwas dauerhaft zu speichern,
+darfst du das bestätigen.
 
 Du darfst nachfragen,
-wenn der INHALT des Gesprächs
-wirklich unklar,
+wenn der Inhalt wirklich unklar,
 widersprüchlich
 oder mehrdeutig ist.
-
-Eine solche Nachfrage dient
-dem Verständnis des Gesprächs.
-
-Sie dient nicht der technischen Entscheidung,
-ob etwas gespeichert werden soll.
-
-Das Memory-System entscheidet
-die Speicherfrage im Hintergrund.
 
 `;
 
@@ -1065,8 +1823,6 @@ BILD-WAHRNEHMUNG:
 Wenn Pam dir ein Bild sendet,
 betrachte es aufmerksam.
 
-Sprich natürlich mit Pam darüber.
-
 Beschreibe nur,
 was tatsächlich erkennbar ist.
 
@@ -1075,24 +1831,901 @@ sage das ehrlich.
 
 Erfinde keine sichtbaren Details.
 
-Wenn Pam im Begleittext erklärt,
+Wenn Pam erklärt,
 wer oder was auf dem Bild zu sehen ist,
 darfst du diese Information
-mit dem tatsächlich sichtbaren Bildinhalt verbinden.
+mit dem sichtbaren Inhalt verbinden.
 
-Ein Beispiel:
-
-Pam sendet ein Katzenfoto und schreibt:
-
-"Das ist Salt."
-
-Dann darfst du verstehen,
-dass die sichtbare Katze Salt ist.
-
-Wenn Pam keinen Namen oder Zusammenhang nennt,
+Wenn Pam keinen Namen nennt,
 erfinde keinen.
 
 `;
+
+
+/*
+  ==========================================================
+  KALENDER-GESPRÄCHSREGELN
+  ==========================================================
+*/
+
+const CALENDAR_CONVERSATION_INSTRUCTIONS = `
+
+GOOGLE KALENDER:
+
+Sol Holo besitzt ein technisches
+Google-Kalender-System.
+
+WICHTIG:
+
+Behaupte niemals,
+ein Termin sei erstellt,
+gespeichert,
+eingetragen
+oder erledigt,
+wenn das technische Kalender-System
+diesen Termin nicht tatsächlich
+erfolgreich erstellt hat.
+
+Ein sprachliches:
+
+"Erledigt."
+
+"Hab ich eingetragen."
+
+"Ich erinnere dich."
+
+ist nur erlaubt,
+wenn die technische Erstellung
+wirklich erfolgreich war.
+
+Wenn der Google Kalender
+noch nicht verbunden ist,
+sage das ehrlich.
+
+Wenn Datum oder Uhrzeit
+für einen Kalendereintrag
+nicht eindeutig genug sind,
+frage nach.
+
+Erfinde niemals
+Datum,
+Uhrzeit,
+Ort
+oder Termindauer.
+
+`;
+
+
+/*
+  ==========================================================
+  LOKALE ZEIT FÜR KALENDER-ANALYSE
+  ==========================================================
+*/
+
+function getLocalCalendarNowText() {
+
+  return new Intl.DateTimeFormat(
+    "de-DE",
+    {
+
+      timeZone:
+        GOOGLE_TIME_ZONE,
+
+      year:
+        "numeric",
+
+      month:
+        "2-digit",
+
+      day:
+        "2-digit",
+
+      hour:
+        "2-digit",
+
+      minute:
+        "2-digit",
+
+      second:
+        "2-digit",
+
+      hour12:
+        false,
+
+      weekday:
+        "long"
+    }
+  ).format(
+    new Date()
+  );
+}
+
+
+/*
+  ==========================================================
+  KALENDER-AKTION ANALYSIEREN
+  ==========================================================
+*/
+
+async function analyzeCalendarAction(
+  text
+) {
+
+  const cleanText =
+    String(
+      text || ""
+    ).trim();
+
+
+  if (
+    !cleanText
+  ) {
+
+    return {
+      action:
+        "none"
+    };
+  }
+
+
+  const localNow =
+    getLocalCalendarNowText();
+
+
+  const response =
+    await openai.responses.create({
+
+      model:
+        "gpt-5",
+
+      instructions: `
+
+Du bist der Kalender-Intent-Analysator
+für Sol Holo.
+
+Aktuelle lokale Zeit:
+
+${localNow}
+
+Zeitzone:
+
+${GOOGLE_TIME_ZONE}
+
+Du entscheidest,
+ob Pam mit ihrer Aussage
+eine Google-Kalender-Aktion möchte.
+
+MÖGLICHE AKTIONEN:
+
+none
+create_event
+list_events
+needs_clarification
+
+CREATE_EVENT:
+
+Nur wenn Pam klar einen Termin,
+eine Erinnerung
+oder einen Kalender-Eintrag möchte.
+
+Beispiele:
+
+"Erinnere mich morgen um 10 an die Küche."
+
+"Trag morgen 10 Uhr Küche fotografieren ein."
+
+"Mach mir Freitag um 15 Uhr einen Termin beim Friseur."
+
+"10 Uhr morgen Küche fotografieren"
+kann ebenfalls als Erinnerung verstanden werden,
+wenn aus dem Gespräch klar hervorgeht,
+dass Pam gerade Erinnerungen oder Termine anlegt.
+
+NICHT automatisch erstellen,
+wenn Pam lediglich beiläufig
+über einen zukünftigen Plan spricht.
+
+LIST_EVENTS:
+
+Wenn Pam wissen möchte,
+was im Kalender steht.
+
+Beispiele:
+
+"Was habe ich morgen vor?"
+
+"Was steht Freitag im Kalender?"
+
+"Wann ist mein nächster Termin?"
+
+NEEDS_CLARIFICATION:
+
+Wenn klar eine Kalender-Aktion gewünscht ist,
+aber notwendige Angaben fehlen.
+
+Zum Beispiel:
+
+"Erinnere mich morgen daran."
+
+wenn nicht klar ist,
+woran.
+
+Bei create_event:
+
+summary =
+kurzer Termintitel.
+
+description =
+optional zusätzliche Information.
+
+location =
+nur wenn eindeutig genannt.
+
+start =
+RFC3339 Datum und Uhrzeit
+mit korrektem UTC-Offset.
+
+end =
+RFC3339 Datum und Uhrzeit.
+
+Wenn keine Dauer genannt wurde,
+verwende standardmäßig 30 Minuten.
+
+Wichtig:
+
+Erfinde keinen Ort.
+
+Erfinde keine Uhrzeit.
+
+Relative Angaben wie
+"morgen",
+"übermorgen",
+"nächsten Dienstag"
+werden anhand der oben genannten
+aktuellen lokalen Zeit aufgelöst.
+
+Bei list_events:
+
+range_start =
+RFC3339.
+
+range_end =
+RFC3339.
+
+Bei "morgen"
+verwende den ganzen morgigen Tag.
+
+Bei "nächster Termin"
+beginne jetzt
+und suche 30 Tage voraus.
+
+Antworte ausschließlich
+als gültiges JSON.
+
+Schema:
+
+{
+  "action": "none | create_event | list_events | needs_clarification",
+  "summary": "",
+  "description": "",
+  "location": "",
+  "start": "",
+  "end": "",
+  "range_start": "",
+  "range_end": "",
+  "question": "",
+  "confidence": 0
+}
+
+`,
+
+      input:
+        cleanText
+    });
+
+
+  const raw =
+    String(
+      response.output_text ||
+      ""
+    ).trim();
+
+
+  try {
+
+    return JSON.parse(
+      raw
+    );
+
+  } catch (
+    error
+  ) {
+
+    console.error(
+      "Kalender-Analyse lieferte kein gültiges JSON:",
+      raw
+    );
+
+
+    return {
+      action:
+        "none"
+    };
+  }
+}
+
+
+/*
+  ==========================================================
+  DATUM VALIDIEREN
+  ==========================================================
+*/
+
+function isValidDateTime(
+  value
+) {
+
+  const cleanValue =
+    String(
+      value || ""
+    ).trim();
+
+
+  if (
+    !cleanValue
+  ) {
+
+    return false;
+  }
+
+
+  return Number.isFinite(
+    Date.parse(
+      cleanValue
+    )
+  );
+}
+
+
+/*
+  ==========================================================
+  KALENDER-EVENT ERSTELLEN
+  ==========================================================
+*/
+
+async function createGoogleCalendarEvent(
+  calendarAction
+) {
+
+  const auth =
+    await getAuthorizedGoogleClient();
+
+
+  if (
+    !auth
+  ) {
+
+    return {
+      ok:
+        false,
+
+      reason:
+        "not_connected"
+    };
+  }
+
+
+  const summary =
+    String(
+      calendarAction?.summary ||
+      ""
+    ).trim();
+
+
+  const start =
+    String(
+      calendarAction?.start ||
+      ""
+    ).trim();
+
+
+  const end =
+    String(
+      calendarAction?.end ||
+      ""
+    ).trim();
+
+
+  if (
+    !summary ||
+    !isValidDateTime(
+      start
+    ) ||
+    !isValidDateTime(
+      end
+    )
+  ) {
+
+    return {
+      ok:
+        false,
+
+      reason:
+        "invalid_event"
+    };
+  }
+
+
+  const calendar =
+    google.calendar({
+      version:
+        "v3",
+
+      auth
+    });
+
+
+  const requestBody = {
+
+    summary,
+
+    start: {
+
+      dateTime:
+        start,
+
+      timeZone:
+        GOOGLE_TIME_ZONE
+    },
+
+    end: {
+
+      dateTime:
+        end,
+
+      timeZone:
+        GOOGLE_TIME_ZONE
+    }
+  };
+
+
+  const description =
+    String(
+      calendarAction?.description ||
+      ""
+    ).trim();
+
+
+  const location =
+    String(
+      calendarAction?.location ||
+      ""
+    ).trim();
+
+
+  if (
+    description
+  ) {
+
+    requestBody.description =
+      description;
+  }
+
+
+  if (
+    location
+  ) {
+
+    requestBody.location =
+      location;
+  }
+
+
+  const result =
+    await calendar.events.insert({
+
+      calendarId:
+        "primary",
+
+      requestBody
+    });
+
+
+  return {
+
+    ok:
+      true,
+
+    eventId:
+      result.data?.id ||
+      null,
+
+    htmlLink:
+      result.data?.htmlLink ||
+      null,
+
+    event:
+      result.data
+  };
+}
+
+
+/*
+  ==========================================================
+  KALENDER-TERMINE LADEN
+  ==========================================================
+*/
+
+async function listGoogleCalendarEvents(
+  calendarAction
+) {
+
+  const auth =
+    await getAuthorizedGoogleClient();
+
+
+  if (
+    !auth
+  ) {
+
+    return {
+      ok:
+        false,
+
+      reason:
+        "not_connected",
+
+      events:
+        []
+    };
+  }
+
+
+  const rangeStart =
+    String(
+      calendarAction?.range_start ||
+      ""
+    ).trim();
+
+
+  const rangeEnd =
+    String(
+      calendarAction?.range_end ||
+      ""
+    ).trim();
+
+
+  if (
+    !isValidDateTime(
+      rangeStart
+    ) ||
+    !isValidDateTime(
+      rangeEnd
+    )
+  ) {
+
+    return {
+      ok:
+        false,
+
+      reason:
+        "invalid_range",
+
+      events:
+        []
+    };
+  }
+
+
+  const calendar =
+    google.calendar({
+
+      version:
+        "v3",
+
+      auth
+    });
+
+
+  const result =
+    await calendar.events.list({
+
+      calendarId:
+        "primary",
+
+      timeMin:
+        new Date(
+          rangeStart
+        ).toISOString(),
+
+      timeMax:
+        new Date(
+          rangeEnd
+        ).toISOString(),
+
+      singleEvents:
+        true,
+
+      orderBy:
+        "startTime",
+
+      maxResults:
+        20
+    });
+
+
+  return {
+
+    ok:
+      true,
+
+    events:
+      result.data?.items ||
+      []
+  };
+}
+
+
+/*
+  ==========================================================
+  KALENDER-AKTION AUSFÜHREN
+  ==========================================================
+*/
+
+async function handleCalendarAction(
+  message
+) {
+
+  const analysis =
+    await analyzeCalendarAction(
+      message
+    );
+
+
+  const action =
+    String(
+      analysis?.action ||
+      "none"
+    );
+
+
+  if (
+    action ===
+    "none"
+  ) {
+
+    return {
+      handled:
+        false
+    };
+  }
+
+
+  if (
+    action ===
+    "needs_clarification"
+  ) {
+
+    return {
+
+      handled:
+        true,
+
+      type:
+        "clarification",
+
+      answer:
+        String(
+          analysis?.question ||
+          "Was genau soll ich in den Kalender eintragen?"
+        )
+    };
+  }
+
+
+  if (
+    action ===
+    "create_event"
+  ) {
+
+    const result =
+      await createGoogleCalendarEvent(
+        analysis
+      );
+
+
+    if (
+      !result.ok &&
+      result.reason ===
+      "not_connected"
+    ) {
+
+      return {
+
+        handled:
+          true,
+
+        type:
+          "not_connected",
+
+        answer:
+          `Mein Google Kalender ist noch nicht mit deinem Konto verbunden. Öffne einmal https://sol-holo.onrender.com/auth/google und bestätige den Zugriff. Danach kann ich Termine wirklich eintragen.`
+      };
+    }
+
+
+    if (
+      !result.ok
+    ) {
+
+      return {
+
+        handled:
+          true,
+
+        type:
+          "error",
+
+        answer:
+          "Ich konnte diesen Termin noch nicht sicher in den Google Kalender eintragen. Bitte sag mir Datum und Uhrzeit noch einmal eindeutig."
+      };
+    }
+
+
+    const title =
+      String(
+        analysis?.summary ||
+        "Termin"
+      ).trim();
+
+
+    const startText =
+      String(
+        analysis?.start ||
+        ""
+      ).trim();
+
+
+    return {
+
+      handled:
+        true,
+
+      type:
+        "created",
+
+      calendarCreated:
+        true,
+
+      eventId:
+        result.eventId,
+
+      answer:
+        `Erledigt. Ich habe „${title}“ für ${startText} tatsächlich in deinem Google Kalender eingetragen.`
+    };
+  }
+
+
+  if (
+    action ===
+    "list_events"
+  ) {
+
+    const result =
+      await listGoogleCalendarEvents(
+        analysis
+      );
+
+
+    if (
+      !result.ok &&
+      result.reason ===
+      "not_connected"
+    ) {
+
+      return {
+
+        handled:
+          true,
+
+        type:
+          "not_connected",
+
+        answer:
+          `Mein Google Kalender ist noch nicht mit deinem Konto verbunden. Öffne einmal https://sol-holo.onrender.com/auth/google und bestätige den Zugriff.`
+      };
+    }
+
+
+    if (
+      !result.ok
+    ) {
+
+      return {
+
+        handled:
+          true,
+
+        type:
+          "error",
+
+        answer:
+          "Ich konnte den gewünschten Kalenderzeitraum gerade nicht lesen."
+      };
+    }
+
+
+    const events =
+      result.events;
+
+
+    if (
+      events.length ===
+      0
+    ) {
+
+      return {
+
+        handled:
+          true,
+
+        type:
+          "list",
+
+        answer:
+          "In diesem Zeitraum steht nichts in deinem Google Kalender."
+      };
+    }
+
+
+    const eventText =
+      events
+        .map(
+          event => {
+
+            const start =
+              event.start?.dateTime ||
+              event.start?.date ||
+              "";
+
+
+            const location =
+              event.location
+                ?
+                ` – ${event.location}`
+                :
+                "";
+
+
+            return (
+              `• ${event.summary || "Termin"} – ${start}${location}`
+            );
+          }
+        )
+        .join(
+          "\n"
+        );
+
+
+    return {
+
+      handled:
+        true,
+
+      type:
+        "list",
+
+      answer:
+        `Das steht in deinem Kalender:\n\n${eventText}`
+    };
+  }
+
+
+  return {
+    handled:
+      false
+  };
+}
 
 
 /*
@@ -1159,6 +2792,8 @@ ${CLONE_IDENTITY_INSTRUCTIONS}
 
 ${MEMORY_CONVERSATION_INSTRUCTIONS}
 
+${CALENDAR_CONVERSATION_INSTRUCTIONS}
+
 GESPRÄCHSVERHALTEN:
 
 Sprich natürlich auf Deutsch.
@@ -1182,6 +2817,24 @@ Erkenne Humor,
 Ironie
 und Scherze.
 
+WICHTIG BEI KALENDER:
+
+Im direkten Realtime-Sprachmodell
+kannst du den technischen Erfolg
+eines Kalendereintrags nicht selbst überprüfen.
+
+Behaupte deshalb im gesprochenen Live-Modus
+nicht von dir aus:
+
+"Termin erstellt",
+"Erledigt",
+"Ich habe es eingetragen",
+
+nur weil Pam einen Termin genannt hat.
+
+Das Transkript wird anschließend
+vom Server technisch geprüft.
+
 MEMORY-REGELN:
 
 Erfinde keine Erinnerungen.
@@ -1191,9 +2844,6 @@ Verändere gespeicherte Erinnerungen nicht.
 Wenn etwas nicht gespeichert ist,
 behaupte nicht,
 dich daran zu erinnern.
-
-Wenn etwas unsicher ist,
-behandle es als unsicher.
 
 LANGZEITGEDÄCHTNIS:
 
@@ -1418,12 +3068,7 @@ async function analyzePersonalMemory(
 Du prüfst ausschließlich,
 ob eine Aussage von Pam
 als dauerhafte persönliche Erinnerung
-für ihren persönlichen digitalen Clone
 gespeichert werden soll.
-
-Pam soll normal reden können,
-ohne ständig sagen zu müssen,
-dass etwas gespeichert werden soll.
 
 NICHT SPEICHERN:
 
@@ -1431,7 +3076,7 @@ NICHT SPEICHERN:
 - Verabschiedungen
 - kurze Reaktionen
 - Lachen
-- offensichtliche Witze
+- Witze
 - Ironie
 - Sarkasmus
 - hypothetische Aussagen
@@ -1440,7 +3085,10 @@ NICHT SPEICHERN:
 - Spekulationen
 - kurzfristige Nebensächlichkeiten
 - belanglosen Smalltalk
-- momentane technische Bedienhandlungen
+- kurzfristige Termine
+- Erinnerungen für morgen oder die nächsten Tage
+- normale Kalendertermine
+- technische Bedienhandlungen
 - falsch verstandene Sprache
 - wahrscheinliches Hintergrundaudio
 
@@ -1457,7 +3105,7 @@ AUTOMATISCH SPEICHERN KANNST DU:
 - Gewohnheiten
 - Interessen
 - wichtige Lebensereignisse
-- längerfristige Pläne
+- langfristige Pläne
 - wichtige Erfahrungen
 - biografische Informationen
 - längerfristige persönliche Wünsche
@@ -1505,7 +3153,8 @@ als gültiges JSON:
 
   const raw =
     String(
-      response.output_text || ""
+      response.output_text ||
+      ""
     ).trim();
 
 
@@ -1589,7 +3238,8 @@ async function autoStoreLongTermMemory(
       !Number.isFinite(
         confidence
       ) ||
-      confidence < 0.9
+      confidence <
+        0.9
     ) {
 
       return {
@@ -1621,6 +3271,7 @@ async function autoStoreLongTermMemory(
 
 
     return {
+
       saved,
 
       memory:
@@ -1656,15 +3307,6 @@ async function autoStoreLongTermMemory(
   ==========================================================
   BILD-MEMORY ANALYSIEREN
   ==========================================================
-
-  Das Bild wird betrachtet.
-
-  Relevante visuelle Informationen
-  werden anschließend als TEXT-Erinnerung
-  gespeichert.
-
-  Das komplette Base64-Bild wird NICHT
-  in PostgreSQL gespeichert.
 */
 
 async function analyzeImageMemory(
@@ -1674,7 +3316,8 @@ async function analyzeImageMemory(
 
   const cleanMessage =
     String(
-      message || ""
+      message ||
+      ""
     ).trim();
 
 
@@ -1691,79 +3334,19 @@ für Sol Holo.
 
 Pam hat ein Bild geschickt.
 
-Deine Aufgabe ist,
-aus Bild UND Begleittext
-dauerhaft brauchbare persönliche
-visuelle Erinnerungen abzuleiten.
+Erzeuge nur dann eine dauerhafte
+visuelle Erinnerung,
+wenn der Inhalt langfristig relevant
+und sicher identifizierbar ist.
 
-ZIEL:
+Wenn Pam einen Namen nennt,
+darfst du ihn verwenden.
 
-Sol Holo soll sich später zum Beispiel
-daran erinnern können,
-wie ein bekanntes Haustier,
-ein wichtiger Gegenstand,
-ein persönlicher Ort
-oder ein relevantes Projekt aussieht.
+Wenn Pam keinen Namen nennt,
+erfinde keinen.
 
-BEISPIEL:
-
-Pam sendet ein Bild und schreibt:
-
-"Das ist Salt."
-
-Wenn auf dem Bild eindeutig
-eine Katze zu erkennen ist,
-darfst du eine Erinnerung erzeugen wie:
-
-"Salt ist eine Katze mit
-[den klar sichtbaren charakteristischen Merkmalen]."
-
-Nenne nur Merkmale,
-die im Bild wirklich erkennbar sind.
-
-WENN PAM EINEN NAMEN NENNT:
-
-Du darfst diesen Namen verwenden.
-
-WENN PAM KEINEN NAMEN NENNT:
-
-Erfinde keinen Namen.
-
-NICHT ALS DAUERHAFTE ERINNERUNG SPEICHERN:
-
-- zufällige unwichtige Hintergründe
-- Tageskleidung ohne langfristige Bedeutung
-- momentane Beleuchtung
-- zufällige Körperhaltung
-- einzelne flüchtige Situationen
-- Spekulationen
-- nicht eindeutig sichtbare Details
-- vermutete Emotionen
-- Identitäten,
-  die Pam nicht bestätigt hat
-- sensible persönliche Schlüsse,
-  die nur aus dem Aussehen geraten wären
-
-GUT SPEICHERBAR:
-
-- charakteristisches Aussehen
-  eines von Pam benannten Haustiers
-- markante Fellfarbe oder Fellzeichnung
-- langfristig relevante sichtbare Merkmale
-- bekannte persönliche Gegenstände
-- bekannte persönliche Orte
-- langfristig relevante Projektobjekte
-- durch Pam eindeutig bestätigte
-  visuelle Zusammenhänge
-
-WICHTIG:
-
-Wahrnehmung darf nicht zur Erfindung werden.
-
-Wenn die Bildinformation
-für eine dauerhafte Erinnerung
-nicht sinnvoll oder nicht sicher genug ist,
-speichere nichts.
+Keine sensiblen Schlüsse
+aus dem Aussehen ziehen.
 
 Wenn du nicht mindestens
 90 Prozent sicher bist:
@@ -1783,10 +3366,12 @@ als gültiges JSON:
 
       input: [
         {
+
           role:
             "user",
 
           content: [
+
             {
               type:
                 "input_text",
@@ -1814,7 +3399,8 @@ als gültiges JSON:
 
   const raw =
     String(
-      response.output_text || ""
+      response.output_text ||
+      ""
     ).trim();
 
 
@@ -1893,7 +3479,8 @@ async function autoStoreImageMemory(
       !Number.isFinite(
         confidence
       ) ||
-      confidence < 0.9
+      confidence <
+        0.9
     ) {
 
       return {
@@ -1925,17 +3512,8 @@ async function autoStoreImageMemory(
       );
 
 
-    if (
-      saved
-    ) {
-
-      console.log(
-        `>>> Bild-Memory gespeichert: ${memoryContent}`
-      );
-    }
-
-
     return {
+
       saved,
 
       memory:
@@ -1970,6 +3548,10 @@ async function autoStoreImageMemory(
 /*
   ==========================================================
   LIVE-TRANSKRIPT
+
+  Zusätzlich zur Memory-Prüfung wird
+  jetzt auch eine mögliche Kalenderaktion
+  technisch verarbeitet.
   ==========================================================
 */
 
@@ -2011,14 +3593,26 @@ app.post(
       );
 
 
-      const autoMemory =
-        await autoStoreLongTermMemory(
-          transcript,
-          "live_auto_memory"
-        );
+      const [
+        autoMemory,
+        calendarResult
+      ] =
+        await Promise.all([
+
+          autoStoreLongTermMemory(
+            transcript,
+            "live_auto_memory"
+          ),
+
+          handleCalendarAction(
+            transcript
+          )
+
+        ]);
 
 
       return res.json({
+
         ok:
           true,
 
@@ -2026,7 +3620,10 @@ app.post(
           autoMemory.saved,
 
         memory:
-          autoMemory.memory
+          autoMemory.memory,
+
+        calendar:
+          calendarResult
       });
 
     } catch (
@@ -2129,10 +3726,6 @@ app.post(
         null;
 
 
-      /*
-        Bild prüfen.
-      */
-
       try {
 
         imageDataUrl =
@@ -2155,10 +3748,6 @@ app.post(
           });
       }
 
-
-      /*
-        Mindestens Text oder Bild.
-      */
 
       if (
         !message &&
@@ -2377,6 +3966,71 @@ app.post(
 
       /*
         ======================================================
+        GOOGLE KALENDER-AKTION
+
+        Läuft vor der normalen Modellantwort.
+
+        Nur wenn der technische Kalendereintrag
+        erfolgreich war, darf Sol "erledigt" sagen.
+        ======================================================
+      */
+
+      if (
+        message &&
+        !imageDataUrl
+      ) {
+
+        const calendarResult =
+          await handleCalendarAction(
+            message
+          );
+
+
+        if (
+          calendarResult.handled
+        ) {
+
+          await saveMemory(
+            "user",
+            message
+          );
+
+
+          await saveMemory(
+            "assistant",
+            calendarResult.answer
+          );
+
+
+          return res.json({
+
+            answer:
+              calendarResult.answer,
+
+            calendar: {
+
+              handled:
+                true,
+
+              created:
+                calendarResult.calendarCreated ===
+                true,
+
+              eventId:
+                calendarResult.eventId ||
+                null,
+
+              type:
+                calendarResult.type ||
+                null
+            }
+          });
+        }
+      }
+
+
+      /*
+        ======================================================
         LETZTE UNTERHALTUNG
         ======================================================
       */
@@ -2411,7 +4065,7 @@ app.post(
 
       /*
         ======================================================
-        RELEVANTES LANGZEITGEDÄCHTNIS
+        LANGZEITGEDÄCHTNIS
         ======================================================
       */
 
@@ -2442,8 +4096,6 @@ app.post(
         ======================================================
         GESPRÄCH SPEICHERN
         ======================================================
-
-        Bild selbst nicht in PostgreSQL.
       */
 
       const conversationEntry =
@@ -2468,7 +4120,7 @@ app.post(
 
       /*
         ======================================================
-        TEXT-MEMORY
+        AUTO MEMORY
         ======================================================
       */
 
@@ -2488,18 +4140,6 @@ app.post(
               null
           });
 
-
-      /*
-        ======================================================
-        BILD-MEMORY
-
-        Das läuft sofort parallel.
-
-        Wenn Sol antwortet,
-        ist die relevante Bild-Erinnerung
-        ebenfalls verarbeitet.
-        ======================================================
-      */
 
       const imageMemoryPromise =
         imageDataUrl
@@ -2533,10 +4173,12 @@ app.post(
 
         modelInput = [
           {
+
             role:
               "user",
 
             content: [
+
               {
                 type:
                   "input_text",
@@ -2591,6 +4233,8 @@ ${MEMORY_CONVERSATION_INSTRUCTIONS}
 
 ${IMAGE_PERCEPTION_INSTRUCTIONS}
 
+${CALENDAR_CONVERSATION_INSTRUCTIONS}
+
 GESPRÄCHSVERHALTEN:
 
 Antworte natürlich,
@@ -2603,11 +4247,6 @@ und Scherze.
 
 Wenn ein Bild vorhanden ist,
 beziehe dich natürlich darauf.
-
-Wenn Pam erklärt,
-wer oder was auf dem Bild ist,
-darfst du diese Information
-mit dem sichtbaren Inhalt verbinden.
 
 Du musst Pam nicht ständig sagen,
 dass Memory im Hintergrund arbeitet.
@@ -2624,9 +4263,6 @@ Wenn etwas nicht im Gedächtnis steht,
 behaupte nicht,
 dass du dich daran erinnerst.
 
-Wenn etwas unsicher ist,
-stelle es nicht als Gewissheit dar.
-
 LANGZEITGEDÄCHTNIS:
 
 ${longTermMemoryText}
@@ -2642,20 +4278,19 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
         });
 
 
-      /*
-        Antwort + beide Memory-Systeme
-        gleichzeitig verarbeiten.
-      */
-
       const [
         response,
         textMemory,
         imageMemory
       ] =
         await Promise.all([
+
           responsePromise,
+
           textMemoryPromise,
+
           imageMemoryPromise
+
         ]);
 
 
@@ -2745,45 +4380,56 @@ app.listen(
       `Sol-Holo läuft auf Port ${PORT}`
     );
 
+
     console.log(
-      "TEST 014 – Vision + Automatic Image Memory"
+      "TEST 015 – Google Calendar + Vision + Memory"
     );
+
 
     console.log(
       "Clone-Perspektive: aktiv"
     );
 
+
     console.log(
       "Automatisches Text-Memory: aktiv"
     );
+
 
     console.log(
       "Automatisches Live-Memory: aktiv"
     );
 
+
     console.log(
       "Bild-Wahrnehmung: aktiv"
     );
+
 
     console.log(
       "Automatisches Bild-Memory: aktiv"
     );
 
+
     console.log(
-      "Bilddatei selbst: nicht in PostgreSQL gespeichert"
+      "Google Kalender: vorbereitet"
     );
+
+
+    console.log(
+      `Google Redirect URI: ${GOOGLE_REDIRECT_URI}`
+    );
+
 
     console.log(
       "Memory-Nachfragen: im Hintergrund"
     );
 
-    console.log(
-      "Legacy pam-sol-001 -> pam-sol: automatische Migration"
-    );
 
     console.log(
       "OpenAI Noise Reduction: near_field"
     );
+
 
     console.log(
       "Semantic VAD: low"
