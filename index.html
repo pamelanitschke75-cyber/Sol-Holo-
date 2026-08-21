@@ -50,8 +50,8 @@ button{
     linear-gradient(
       180deg,
       #12051f 0%,
-      #08030f 43%,
-      #020106 72%
+      #08030f 44%,
+      #020106 76%
     );
 }
 
@@ -69,20 +69,20 @@ PALMEN / MEER
   left:0;
   right:0;
 
-  height:620px;
+  height:100%;
 
   background-image:
     linear-gradient(
       180deg,
       rgba(3,1,9,.08) 0%,
-      rgba(3,1,9,.05) 35%,
-      rgba(4,1,10,.28) 66%,
-      #020106 100%
+      rgba(3,1,9,.10) 26%,
+      rgba(4,1,10,.30) 58%,
+      rgba(2,1,6,.90) 100%
     ),
     url("/sol-holo-beach.jpg");
 
   background-size:cover;
-  background-position:center top;
+  background-position:center center;
   background-repeat:no-repeat;
 
   pointer-events:none;
@@ -97,9 +97,9 @@ PALMEN / MEER
 
   background:
     radial-gradient(
-      circle at 50% 25%,
-      rgba(137,63,255,.15),
-      transparent 31%
+      circle at 50% 42%,
+      rgba(137,63,255,.16),
+      transparent 34%
     );
 }
 
@@ -114,10 +114,10 @@ header{
   position:relative;
   z-index:20;
 
-  min-height:105px;
+  min-height:100px;
 
   padding:
-    19px 78px 4px;
+    18px 76px 5px;
 
   text-align:center;
 }
@@ -137,7 +137,7 @@ header{
     1px solid rgba(164,86,255,.65);
 
   background:
-    rgba(10,5,18,.76);
+    rgba(10,5,18,.78);
 
   color:#b66cff;
 
@@ -171,7 +171,7 @@ header{
     1px solid rgba(142,69,220,.55);
 
   background:
-    rgba(8,4,15,.78);
+    rgba(8,4,15,.80);
 
   color:#33e6a0;
 
@@ -216,6 +216,368 @@ h1{
 
 /*
 ==========================================================
+SCHREIBEN OBEN
+==========================================================
+*/
+
+#controls{
+  position:relative;
+  z-index:30;
+
+  padding:
+    0 12px 6px;
+}
+
+#inputRow{
+  display:grid;
+
+  grid-template-columns:
+    64px minmax(0,1fr) 64px;
+
+  gap:8px;
+
+  align-items:stretch;
+}
+
+#imageButton{
+  width:64px;
+
+  min-height:108px;
+
+  border-radius:21px;
+
+  border:
+    1px solid rgba(162,82,255,.66);
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(34,19,46,.96),
+      rgba(13,8,20,.98)
+    );
+
+  color:#b568ff;
+
+  font-size:27px;
+
+  cursor:pointer;
+}
+
+#imageButton:disabled{
+  opacity:.45;
+}
+
+#imageInput{
+  display:none;
+}
+
+#messageWrap{
+  position:relative;
+
+  display:flex;
+
+  min-height:108px;
+
+  align-items:flex-start;
+
+  padding:
+    14px 48px 12px 14px;
+
+  border-radius:21px;
+
+  border:
+    1px solid rgba(159,81,255,.62);
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(25,13,40,.95),
+      rgba(8,6,17,.98)
+    );
+}
+
+#messageInput{
+  display:block;
+
+  width:100%;
+
+  min-height:78px;
+  max-height:180px;
+
+  margin:0;
+  padding:0;
+
+  resize:none;
+
+  overflow-y:auto;
+
+  border:none;
+  outline:none;
+
+  background:transparent;
+
+  color:white;
+
+  font-size:17px;
+
+  line-height:1.4;
+}
+
+#messageInput::placeholder{
+  color:#9a8cad;
+}
+
+#sendButton{
+  position:absolute;
+
+  right:8px;
+  bottom:9px;
+
+  width:44px;
+  height:44px;
+
+  border:none;
+
+  border-radius:50%;
+
+  background:
+    rgba(96,28,173,.46);
+
+  color:#c273ff;
+
+  font-size:25px;
+
+  cursor:pointer;
+}
+
+#sendButton:disabled{
+  opacity:.45;
+}
+
+#liveButton{
+  width:64px;
+
+  min-height:108px;
+
+  border-radius:21px;
+
+  border:
+    1px solid rgba(162,82,255,.66);
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(34,19,46,.96),
+      rgba(13,8,20,.98)
+    );
+
+  color:#b568ff;
+
+  font-size:28px;
+
+  cursor:pointer;
+}
+
+#liveButton.listening{
+  border-color:#30dfa2;
+  color:#49e2ae;
+}
+
+
+/*
+==========================================================
+BILDVORSCHAU
+==========================================================
+*/
+
+#imagePreviewPanel{
+  display:none;
+
+  margin:
+    0 72px 10px;
+
+  padding:10px;
+
+  border:
+    1px solid rgba(143,77,225,.52);
+
+  border-radius:18px;
+
+  background:
+    rgba(10,6,18,.94);
+}
+
+#imagePreviewPanel.visible{
+  display:flex;
+
+  align-items:center;
+
+  gap:10px;
+}
+
+#imagePreview{
+  width:70px;
+  height:70px;
+
+  object-fit:cover;
+
+  border-radius:13px;
+}
+
+#imagePreviewText{
+  flex:1;
+
+  min-width:0;
+
+  color:#ddd4e8;
+
+  font-size:13px;
+}
+
+#removeImageButton{
+  width:36px;
+  height:36px;
+
+  flex:0 0 auto;
+
+  border-radius:50%;
+
+  border:
+    1px solid rgba(163,89,255,.55);
+
+  background:#1c1029;
+
+  color:white;
+
+  cursor:pointer;
+}
+
+
+/*
+==========================================================
+ICH BIN DA
+==========================================================
+*/
+
+#liveStatus{
+  min-height:28px;
+
+  margin-top:11px;
+
+  text-align:center;
+
+  color:#bc6cff;
+
+  font-size:16px;
+}
+
+.wave{
+  color:#9851d8;
+
+  letter-spacing:3px;
+}
+
+
+/*
+==========================================================
+CHAT
+==========================================================
+*/
+
+#chatPanel{
+  position:relative;
+  z-index:25;
+
+  margin:
+    4px 13px 12px;
+
+  padding:10px;
+
+  border:
+    1px solid rgba(143,70,225,.48);
+
+  border-radius:21px;
+
+  background:
+    rgba(5,3,12,.79);
+
+  backdrop-filter:
+    blur(12px);
+}
+
+#chat{
+  max-height:250px;
+
+  overflow-y:auto;
+
+  padding:2px;
+}
+
+.message{
+  margin:9px 0;
+
+  padding:
+    12px 14px;
+
+  border-radius:18px;
+
+  border:
+    1px solid rgba(145,74,225,.45);
+
+  font-size:16px;
+
+  line-height:1.46;
+
+  white-space:pre-wrap;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(29,12,51,.91),
+      rgba(7,5,16,.95)
+    );
+}
+
+.message strong{
+  display:block;
+
+  margin-bottom:5px;
+
+  color:#b76cff;
+
+  font-size:17px;
+}
+
+.user-message{
+  margin-left:52px;
+}
+
+.sol-message,
+.system-message{
+  margin-right:52px;
+}
+
+.messageImage{
+  display:block;
+
+  width:100%;
+
+  max-width:320px;
+  max-height:320px;
+
+  margin-top:9px;
+
+  border-radius:14px;
+
+  object-fit:contain;
+
+  border:
+    1px solid rgba(183,106,255,.30);
+}
+
+
+/*
+==========================================================
 HOLO BEREICH
 ==========================================================
 */
@@ -224,7 +586,7 @@ HOLO BEREICH
   position:relative;
   z-index:5;
 
-  height:415px;
+  height:385px;
 
   display:flex;
   justify-content:center;
@@ -238,9 +600,9 @@ HOLO BEREICH
 
   display:inline-block;
 
-  height:74%;
+  height:72%;
 
-  max-width:64%;
+  max-width:61%;
 
   margin-bottom:28px;
 
@@ -282,7 +644,7 @@ HOLO BASIS
 
   bottom:24px;
 
-  width:46%;
+  width:47%;
   height:18px;
 
   border-radius:50%;
@@ -299,7 +661,7 @@ HOLO BASIS
 
 /*
 ==========================================================
-STATUSKARTE
+STATUS
 ==========================================================
 */
 
@@ -308,15 +670,15 @@ STATUSKARTE
 
   z-index:15;
 
-  left:13px;
-  bottom:56px;
+  left:10px;
+  bottom:50px;
 
-  width:122px;
+  width:112px;
 
   padding:
-    11px 12px;
+    9px 10px;
 
-  border-radius:19px;
+  border-radius:18px;
 
   border:
     1px solid rgba(152,75,237,.62);
@@ -325,17 +687,14 @@ STATUSKARTE
     rgba(8,5,16,.78);
 
   backdrop-filter:blur(12px);
-
-  box-shadow:
-    0 0 18px rgba(87,35,145,.12);
 }
 
 .stageCardTitle{
-  margin-bottom:7px;
+  margin-bottom:6px;
 
   color:#b86cff;
 
-  font-size:14px;
+  font-size:13px;
 
   font-weight:700;
 }
@@ -343,7 +702,7 @@ STATUSKARTE
 .stageCardText{
   color:#eee8f5;
 
-  font-size:12px;
+  font-size:11px;
 
   line-height:1.35;
 }
@@ -352,7 +711,7 @@ STATUSKARTE
   height:1px;
 
   margin:
-    9px 0;
+    8px 0;
 
   background:
     rgba(168,90,255,.25);
@@ -361,7 +720,7 @@ STATUSKARTE
 
 /*
 ==========================================================
-LAUTSTÄRKEKARTE
+LAUTSTÄRKE
 ==========================================================
 */
 
@@ -370,15 +729,14 @@ LAUTSTÄRKEKARTE
 
   z-index:15;
 
-  right:13px;
-  bottom:50px;
+  right:10px;
+  bottom:46px;
 
-  width:122px;
+  width:112px;
 
-  padding:
-    10px;
+  padding:8px;
 
-  border-radius:19px;
+  border-radius:18px;
 
   border:
     1px solid rgba(152,75,237,.62);
@@ -392,12 +750,12 @@ LAUTSTÄRKEKARTE
 .stageVolumeButton{
   width:100%;
 
-  margin-top:6px;
+  margin-top:5px;
 
   padding:
-    7px 5px;
+    6px 4px;
 
-  border-radius:14px;
+  border-radius:13px;
 
   border:
     1px solid rgba(102,61,145,.62);
@@ -407,7 +765,7 @@ LAUTSTÄRKEKARTE
 
   color:white;
 
-  font-size:11px;
+  font-size:10px;
 
   cursor:pointer;
 }
@@ -421,9 +779,6 @@ LAUTSTÄRKEKARTE
       #6225a6,
       #36135d
     );
-
-  box-shadow:
-    0 0 12px rgba(146,67,255,.20);
 }
 
 
@@ -524,390 +879,6 @@ LIP SYNC
 
 /*
 ==========================================================
-CHAT
-==========================================================
-*/
-
-#chatPanel{
-  position:relative;
-  z-index:25;
-
-  margin:
-    -4px 16px 12px;
-
-  padding:10px;
-
-  border:
-    1px solid rgba(143,70,225,.48);
-
-  border-radius:21px;
-
-  background:
-    rgba(5,3,12,.79);
-
-  backdrop-filter:
-    blur(12px);
-}
-
-#chat{
-  max-height:310px;
-
-  overflow-y:auto;
-
-  padding:2px;
-}
-
-.message{
-  margin:9px 0;
-
-  padding:
-    12px 14px;
-
-  border-radius:18px;
-
-  border:
-    1px solid rgba(145,74,225,.45);
-
-  font-size:16px;
-
-  line-height:1.46;
-
-  white-space:pre-wrap;
-
-  background:
-    linear-gradient(
-      135deg,
-      rgba(29,12,51,.91),
-      rgba(7,5,16,.95)
-    );
-}
-
-.message strong{
-  display:block;
-
-  margin-bottom:5px;
-
-  color:#b76cff;
-
-  font-size:17px;
-}
-
-.user-message{
-  margin-left:52px;
-}
-
-.sol-message,
-.system-message{
-  margin-right:52px;
-}
-
-.messageImage{
-  display:block;
-
-  width:100%;
-
-  max-width:320px;
-  max-height:320px;
-
-  margin-top:9px;
-
-  border-radius:14px;
-
-  object-fit:contain;
-
-  border:
-    1px solid rgba(183,106,255,.30);
-}
-
-
-/*
-==========================================================
-BEDIENUNG
-==========================================================
-*/
-
-#controls{
-  position:relative;
-  z-index:30;
-
-  padding:
-    0 14px 10px;
-}
-
-#inputRow{
-  display:grid;
-
-  grid-template-columns:
-    66px minmax(0,1fr) 66px;
-
-  gap:8px;
-
-  align-items:stretch;
-}
-
-
-/*
-==========================================================
-KAMERA
-==========================================================
-*/
-
-#imageButton{
-  width:66px;
-
-  min-height:112px;
-
-  border-radius:22px;
-
-  border:
-    1px solid rgba(162,82,255,.66);
-
-  background:
-    linear-gradient(
-      180deg,
-      rgba(34,19,46,.96),
-      rgba(13,8,20,.98)
-    );
-
-  color:#b568ff;
-
-  font-size:27px;
-
-  cursor:pointer;
-}
-
-#imageButton:disabled{
-  opacity:.45;
-}
-
-#imageInput{
-  display:none;
-}
-
-
-/*
-==========================================================
-SCHREIBFELD
-==========================================================
-*/
-
-#messageWrap{
-  position:relative;
-
-  display:flex;
-
-  min-height:112px;
-
-  align-items:flex-start;
-
-  padding:
-    15px 48px 12px 14px;
-
-  border-radius:22px;
-
-  border:
-    1px solid rgba(159,81,255,.62);
-
-  background:
-    linear-gradient(
-      135deg,
-      rgba(25,13,40,.95),
-      rgba(8,6,17,.98)
-    );
-}
-
-#messageInput{
-  display:block;
-
-  width:100%;
-
-  min-height:78px;
-  max-height:180px;
-
-  margin:0;
-  padding:0;
-
-  resize:none;
-
-  overflow-y:auto;
-
-  border:none;
-  outline:none;
-
-  background:transparent;
-
-  color:white;
-
-  font-size:17px;
-
-  line-height:1.4;
-}
-
-#messageInput::placeholder{
-  color:#9a8cad;
-}
-
-#sendButton{
-  position:absolute;
-
-  right:8px;
-  bottom:9px;
-
-  width:44px;
-  height:44px;
-
-  border:none;
-
-  border-radius:50%;
-
-  background:
-    rgba(96,28,173,.46);
-
-  color:#c273ff;
-
-  font-size:25px;
-
-  cursor:pointer;
-}
-
-#sendButton:disabled{
-  opacity:.45;
-}
-
-
-/*
-==========================================================
-MIKRO
-==========================================================
-*/
-
-#liveButton{
-  width:66px;
-
-  min-height:112px;
-
-  border-radius:22px;
-
-  border:
-    1px solid rgba(162,82,255,.66);
-
-  background:
-    linear-gradient(
-      180deg,
-      rgba(34,19,46,.96),
-      rgba(13,8,20,.98)
-    );
-
-  color:#b568ff;
-
-  font-size:28px;
-
-  cursor:pointer;
-}
-
-#liveButton.listening{
-  border-color:#30dfa2;
-
-  color:#49e2ae;
-}
-
-
-/*
-==========================================================
-BILDVORSCHAU
-==========================================================
-*/
-
-#imagePreviewPanel{
-  display:none;
-
-  margin:
-    0 74px 10px;
-
-  padding:10px;
-
-  border:
-    1px solid rgba(143,77,225,.52);
-
-  border-radius:18px;
-
-  background:
-    rgba(10,6,18,.94);
-}
-
-#imagePreviewPanel.visible{
-  display:flex;
-
-  align-items:center;
-
-  gap:10px;
-}
-
-#imagePreview{
-  width:70px;
-  height:70px;
-
-  object-fit:cover;
-
-  border-radius:13px;
-}
-
-#imagePreviewText{
-  flex:1;
-
-  min-width:0;
-
-  color:#ddd4e8;
-
-  font-size:13px;
-}
-
-#removeImageButton{
-  width:36px;
-  height:36px;
-
-  flex:0 0 auto;
-
-  border-radius:50%;
-
-  border:
-    1px solid rgba(163,89,255,.55);
-
-  background:#1c1029;
-
-  color:white;
-
-  cursor:pointer;
-}
-
-
-/*
-==========================================================
-LIVE STATUS
-==========================================================
-*/
-
-#liveStatus{
-  min-height:28px;
-
-  margin-top:12px;
-
-  text-align:center;
-
-  color:#bc6cff;
-
-  font-size:16px;
-}
-
-.wave{
-  color:#9851d8;
-
-  letter-spacing:3px;
-}
-
-
-/*
-==========================================================
 UNTERE NAVIGATION
 ==========================================================
 */
@@ -924,7 +895,7 @@ UNTERE NAVIGATION
   gap:3px;
 
   margin:
-    5px 14px 24px;
+    5px 10px 24px;
 
   padding:
     10px 5px 8px;
@@ -1069,17 +1040,15 @@ HANDY
 @media(max-width:520px){
 
   #beachBackground{
-    height:560px;
-
     background-position:
-      center top;
+      center center;
   }
 
   header{
-    min-height:98px;
+    min-height:96px;
 
     padding:
-      18px 70px 2px;
+      17px 69px 2px;
   }
 
   h1{
@@ -1088,75 +1057,6 @@ HANDY
 
   #subtitle{
     font-size:15px;
-  }
-
-  #solStage{
-    height:385px;
-  }
-
-  #solCloneWrap{
-    height:70%;
-
-    max-width:61%;
-
-    margin-bottom:27px;
-  }
-
-  #holoBase{
-    width:47%;
-  }
-
-  #statusCard{
-    left:10px;
-
-    bottom:49px;
-
-    width:112px;
-
-    padding:
-      9px 10px;
-  }
-
-  #stageVolumeCard{
-    right:10px;
-
-    bottom:45px;
-
-    width:112px;
-
-    padding:8px;
-  }
-
-  .stageCardTitle{
-    font-size:13px;
-  }
-
-  .stageCardText{
-    font-size:11px;
-  }
-
-  .stageVolumeButton{
-    font-size:10px;
-
-    padding:
-      6px 4px;
-  }
-
-  #chatPanel{
-    margin-left:11px;
-    margin-right:11px;
-  }
-
-  #chat{
-    max-height:285px;
-  }
-
-  .message{
-    font-size:15px;
-  }
-
-  .message strong{
-    font-size:16px;
   }
 
   #controls{
@@ -1174,25 +1074,33 @@ HANDY
   #imageButton,
   #liveButton{
     width:62px;
-
-    min-height:108px;
-
-    border-radius:20px;
+    min-height:106px;
   }
 
   #messageWrap{
-    min-height:108px;
-
-    border-radius:20px;
+    min-height:106px;
   }
 
   #messageInput{
     font-size:16px;
   }
 
-  #bottomNav{
-    margin-left:10px;
-    margin-right:10px;
+  #chatPanel{
+    margin-left:11px;
+    margin-right:11px;
+  }
+
+  #chat{
+    max-height:235px;
+  }
+
+  #solStage{
+    height:370px;
+  }
+
+  #solCloneWrap{
+    height:69%;
+    max-width:60%;
   }
 }
 
@@ -1238,8 +1146,113 @@ Online
 </header>
 
 
-<section id="solStage">
+<section id="controls">
 
+<div id="imagePreviewPanel">
+
+<img
+  id="imagePreview"
+  alt="Ausgewähltes Bild"
+>
+
+<div id="imagePreviewText">
+Bild ausgewählt.<br>
+Du kannst noch etwas dazu schreiben oder es direkt senden.
+</div>
+
+<button
+  id="removeImageButton"
+  type="button"
+  aria-label="Bild entfernen">
+✕
+</button>
+
+</div>
+
+
+<div id="inputRow">
+
+<button
+  id="imageButton"
+  type="button"
+  aria-label="Bild auswählen">
+📷
+</button>
+
+<input
+  id="imageInput"
+  type="file"
+  accept="image/png,image/jpeg,image/webp,image/gif"
+>
+
+<div id="messageWrap">
+
+<textarea
+  id="messageInput"
+  rows="3"
+  placeholder="Schreib Sol etwas..."
+  autocomplete="off"></textarea>
+
+<button
+  id="sendButton"
+  type="button"
+  aria-label="Nachricht senden">
+➤
+</button>
+
+</div>
+
+<button
+  id="liveButton"
+  type="button"
+  aria-label="Mit Sol sprechen">
+🎙️
+</button>
+
+</div>
+
+
+<div id="liveStatus">
+
+<span class="wave">
+·······
+</span>
+
+&nbsp;
+
+Ich bin da.
+
+&nbsp;
+
+<span class="wave">
+·······
+</span>
+
+</div>
+
+</section>
+
+
+<section id="chatPanel">
+
+<div id="chat">
+
+<div class="message system-message">
+
+<strong>
+Sol Holo
+</strong>
+
+Ich bin da. Du kannst mir schreiben, Bilder zeigen oder mit mir sprechen. 🌻
+
+</div>
+
+</div>
+
+</section>
+
+
+<section id="solStage">
 
 <div id="statusCard">
 
@@ -1308,120 +1321,6 @@ Lautstärke
   type="button">
 🔊 Normal
 </button>
-
-</div>
-
-</section>
-
-
-<section id="chatPanel">
-
-<div id="chat">
-
-<div class="message system-message">
-
-<strong>
-Sol Holo
-</strong>
-
-Ich bin da. Du kannst mir schreiben, Bilder zeigen oder mit mir sprechen. 🌻
-
-</div>
-
-</div>
-
-</section>
-
-
-<section id="controls">
-
-
-<div id="imagePreviewPanel">
-
-<img
-  id="imagePreview"
-  alt="Ausgewähltes Bild"
->
-
-<div id="imagePreviewText">
-
-Bild ausgewählt.<br>
-Du kannst noch etwas dazu schreiben oder es direkt senden.
-
-</div>
-
-<button
-  id="removeImageButton"
-  type="button"
-  aria-label="Bild entfernen">
-✕
-</button>
-
-</div>
-
-
-<div id="inputRow">
-
-
-<button
-  id="imageButton"
-  type="button"
-  aria-label="Bild auswählen">
-📷
-</button>
-
-
-<input
-  id="imageInput"
-  type="file"
-  accept="image/png,image/jpeg,image/webp,image/gif"
->
-
-
-<div id="messageWrap">
-
-<textarea
-  id="messageInput"
-  rows="3"
-  placeholder="Schreib Sol etwas..."
-  autocomplete="off"></textarea>
-
-
-<button
-  id="sendButton"
-  type="button"
-  aria-label="Nachricht senden">
-➤
-</button>
-
-</div>
-
-
-<button
-  id="liveButton"
-  type="button"
-  aria-label="Mit Sol sprechen">
-🎙️
-</button>
-
-</div>
-
-
-<div id="liveStatus">
-
-<span class="wave">
-·······
-</span>
-
-&nbsp;
-
-Ich bin da.
-
-&nbsp;
-
-<span class="wave">
-·······
-</span>
 
 </div>
 
