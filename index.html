@@ -28,6 +28,10 @@ body{
   overflow-x:hidden;
 }
 
+body.voice-open{
+  overflow:hidden;
+}
+
 button,
 textarea,
 input{
@@ -55,6 +59,7 @@ button{
     );
 }
 
+
 /*
 ==========================================================
 PALMEN / MEER
@@ -64,20 +69,15 @@ PALMEN / MEER
 #beachBackground{
   position:absolute;
   z-index:0;
-
-  top:0;
-  left:0;
-  right:0;
-
-  height:100%;
+  inset:0;
 
   background-image:
     linear-gradient(
       180deg,
       rgba(3,1,9,.08) 0%,
-      rgba(3,1,9,.10) 26%,
-      rgba(4,1,10,.30) 58%,
-      rgba(2,1,6,.90) 100%
+      rgba(3,1,9,.10) 28%,
+      rgba(4,1,10,.25) 58%,
+      rgba(2,1,6,.88) 100%
     ),
     url("/sol-holo-beach.jpg");
 
@@ -208,15 +208,12 @@ h1{
   font-size:16px;
 
   line-height:1.2;
-
-  text-shadow:
-    0 0 14px rgba(126,56,255,.25);
 }
 
 
 /*
 ==========================================================
-SCHREIBEN OBEN
+SCHREIBEN
 ==========================================================
 */
 
@@ -239,9 +236,9 @@ SCHREIBEN OBEN
   align-items:stretch;
 }
 
-#imageButton{
+#imageButton,
+#liveButton{
   width:64px;
-
   min-height:108px;
 
   border-radius:21px;
@@ -261,6 +258,18 @@ SCHREIBEN OBEN
   font-size:27px;
 
   cursor:pointer;
+}
+
+#liveButton{
+  font-size:28px;
+}
+
+#liveButton.listening{
+  border-color:#30dfa2;
+  color:#49e2ae;
+
+  box-shadow:
+    0 0 18px rgba(48,223,162,.24);
 }
 
 #imageButton:disabled{
@@ -319,7 +328,6 @@ SCHREIBEN OBEN
   color:white;
 
   font-size:17px;
-
   line-height:1.4;
 }
 
@@ -352,35 +360,6 @@ SCHREIBEN OBEN
 
 #sendButton:disabled{
   opacity:.45;
-}
-
-#liveButton{
-  width:64px;
-
-  min-height:108px;
-
-  border-radius:21px;
-
-  border:
-    1px solid rgba(162,82,255,.66);
-
-  background:
-    linear-gradient(
-      180deg,
-      rgba(34,19,46,.96),
-      rgba(13,8,20,.98)
-    );
-
-  color:#b568ff;
-
-  font-size:28px;
-
-  cursor:pointer;
-}
-
-#liveButton.listening{
-  border-color:#30dfa2;
-  color:#49e2ae;
 }
 
 
@@ -455,7 +434,7 @@ BILDVORSCHAU
 
 /*
 ==========================================================
-ICH BIN DA
+LIVE STATUS
 ==========================================================
 */
 
@@ -473,7 +452,6 @@ ICH BIN DA
 
 .wave{
   color:#9851d8;
-
   letter-spacing:3px;
 }
 
@@ -525,7 +503,6 @@ CHAT
     1px solid rgba(145,74,225,.45);
 
   font-size:16px;
-
   line-height:1.46;
 
   white-space:pre-wrap;
@@ -578,7 +555,7 @@ CHAT
 
 /*
 ==========================================================
-HOLO BEREICH
+HOLO
 ==========================================================
 */
 
@@ -601,7 +578,6 @@ HOLO BEREICH
   display:inline-block;
 
   height:72%;
-
   max-width:61%;
 
   margin-bottom:28px;
@@ -629,6 +605,29 @@ HOLO BEREICH
     )
     drop-shadow(
       0 0 22px rgba(75,45,255,.40)
+    );
+
+  /*
+    Weiche Kanten, damit das Holo
+    weniger wie ein Rechteck wirkt.
+  */
+
+  -webkit-mask-image:
+    radial-gradient(
+      ellipse 78% 98% at 50% 46%,
+      #000 0%,
+      #000 68%,
+      rgba(0,0,0,.90) 78%,
+      transparent 100%
+    );
+
+  mask-image:
+    radial-gradient(
+      ellipse 78% 98% at 50% 46%,
+      #000 0%,
+      #000 68%,
+      rgba(0,0,0,.90) 78%,
+      transparent 100%
     );
 }
 
@@ -695,7 +694,6 @@ STATUS
   color:#b86cff;
 
   font-size:13px;
-
   font-weight:700;
 }
 
@@ -703,7 +701,6 @@ STATUS
   color:#eee8f5;
 
   font-size:11px;
-
   line-height:1.35;
 }
 
@@ -879,6 +876,260 @@ LIP SYNC
 
 /*
 ==========================================================
+NEU: VOLLBILD-SPRACHMODUS
+==========================================================
+*/
+
+#voiceExitButton{
+  display:none;
+
+  position:absolute;
+
+  z-index:220;
+
+  top:
+    calc(16px + env(safe-area-inset-top));
+
+  left:16px;
+
+  padding:
+    11px 16px;
+
+  border-radius:22px;
+
+  border:
+    1px solid rgba(186,113,255,.75);
+
+  background:
+    rgba(10,5,19,.78);
+
+  color:white;
+
+  font-size:15px;
+
+  cursor:pointer;
+
+  backdrop-filter:
+    blur(12px);
+
+  box-shadow:
+    0 0 18px rgba(145,70,255,.25);
+}
+
+#voiceModeTitle{
+  display:none;
+
+  position:absolute;
+
+  z-index:215;
+
+  top:
+    calc(20px + env(safe-area-inset-top));
+
+  left:50%;
+
+  transform:
+    translateX(-50%);
+
+  width:70%;
+
+  text-align:center;
+}
+
+#voiceModeTitle strong{
+  display:block;
+
+  color:#c47aff;
+
+  font-size:25px;
+
+  text-shadow:
+    0 0 20px rgba(152,70,255,.50);
+}
+
+#voiceModeTitle span{
+  display:block;
+
+  margin-top:4px;
+
+  color:#b675f5;
+
+  font-size:13px;
+}
+
+#voiceStatus{
+  display:none;
+
+  position:absolute;
+
+  z-index:220;
+
+  left:50%;
+  bottom:
+    calc(24px + env(safe-area-inset-bottom));
+
+  transform:
+    translateX(-50%);
+
+  width:90%;
+
+  padding:
+    11px 18px;
+
+  border-radius:24px;
+
+  border:
+    1px solid rgba(165,91,255,.48);
+
+  background:
+    rgba(8,4,15,.68);
+
+  backdrop-filter:
+    blur(12px);
+
+  color:#d5a6ff;
+
+  font-size:16px;
+
+  text-align:center;
+}
+
+
+/*
+==========================================================
+VOICE MODE AKTIV
+==========================================================
+*/
+
+#app.voice-mode{
+  position:fixed;
+
+  z-index:500;
+
+  inset:0;
+
+  width:100vw;
+  max-width:none;
+
+  height:100dvh;
+  min-height:100dvh;
+
+  margin:0;
+
+  background:#020106;
+}
+
+#app.voice-mode #beachBackground{
+  position:fixed;
+
+  z-index:500;
+
+  height:100dvh;
+
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(3,1,9,.12) 0%,
+      rgba(4,1,10,.06) 38%,
+      rgba(5,1,12,.30) 72%,
+      rgba(2,1,6,.72) 100%
+    ),
+    url("/sol-holo-beach.jpg");
+
+  background-size:cover;
+
+  background-position:
+    center center;
+}
+
+#app.voice-mode #backgroundGlow{
+  position:fixed;
+  z-index:501;
+
+  background:
+    radial-gradient(
+      ellipse at 50% 58%,
+      rgba(124,52,255,.28),
+      transparent 42%
+    );
+}
+
+#app.voice-mode header,
+#app.voice-mode #controls,
+#app.voice-mode #chatPanel,
+#app.voice-mode #bottomNav{
+  display:none;
+}
+
+#app.voice-mode #solStage{
+  position:fixed;
+
+  z-index:510;
+
+  inset:0;
+
+  width:100vw;
+  height:100dvh;
+
+  display:flex;
+
+  justify-content:center;
+  align-items:flex-end;
+
+  overflow:hidden;
+}
+
+#app.voice-mode #solCloneWrap{
+  height:min(78dvh,780px);
+
+  max-width:92vw;
+
+  margin-bottom:
+    calc(78px + env(safe-area-inset-bottom));
+}
+
+#app.voice-mode #solImage{
+  max-width:92vw;
+
+  filter:
+    drop-shadow(
+      0 0 10px rgba(165,100,255,.82)
+    )
+    drop-shadow(
+      0 0 36px rgba(92,52,255,.55)
+    );
+}
+
+#app.voice-mode #holoBase{
+  bottom:
+    calc(60px + env(safe-area-inset-bottom));
+
+  width:min(68vw,520px);
+
+  height:23px;
+
+  border-width:2px;
+
+  box-shadow:
+    0 0 10px #a56bff,
+    0 0 32px rgba(127,73,255,.92),
+    0 0 70px rgba(90,40,255,.55);
+}
+
+#app.voice-mode #statusCard,
+#app.voice-mode #stageVolumeCard{
+  display:none;
+}
+
+#app.voice-mode #voiceExitButton,
+#app.voice-mode #voiceModeTitle,
+#app.voice-mode #voiceStatus{
+  display:block;
+}
+
+
+/*
+==========================================================
 UNTERE NAVIGATION
 ==========================================================
 */
@@ -955,7 +1206,7 @@ DRAWER
 #drawer{
   position:fixed;
 
-  z-index:100;
+  z-index:1000;
 
   top:0;
   left:-320px;
@@ -1039,11 +1290,6 @@ HANDY
 
 @media(max-width:520px){
 
-  #beachBackground{
-    background-position:
-      center center;
-  }
-
   header{
     min-height:96px;
 
@@ -1102,6 +1348,23 @@ HANDY
     height:69%;
     max-width:60%;
   }
+
+  #app.voice-mode #solCloneWrap{
+    height:73dvh;
+
+    max-width:94vw;
+
+    margin-bottom:
+      calc(78px + env(safe-area-inset-bottom));
+  }
+
+  #app.voice-mode #solImage{
+    max-width:94vw;
+  }
+
+  #voiceModeTitle strong{
+    font-size:23px;
+  }
 }
 
 </style>
@@ -1112,7 +1375,6 @@ HANDY
 <div id="app">
 
 <div id="beachBackground"></div>
-
 <div id="backgroundGlow"></div>
 
 
@@ -1253,6 +1515,39 @@ Ich bin da. Du kannst mir schreiben, Bilder zeigen oder mit mir sprechen. 🌻
 
 
 <section id="solStage">
+
+
+<!-- NEU: SPRACHMODUS TITEL -->
+
+<div id="voiceModeTitle">
+
+<strong>
+Sol Holo 🌻
+</strong>
+
+<span>
+Me, Myself &amp; I. 💜
+</span>
+
+</div>
+
+
+<!-- NEU: ZURÜCK AUS SPRACHMODUS -->
+
+<button
+  id="voiceExitButton"
+  type="button"
+  aria-label="Sprachmodus beenden">
+✕ Zurück
+</button>
+
+
+<!-- NEU: STATUS IM SPRACHMODUS -->
+
+<div id="voiceStatus">
+Sol verbindet sich ...
+</div>
+
 
 <div id="statusCard">
 
@@ -1465,6 +1760,11 @@ ELEMENTE
 ==========================================================
 */
 
+const app =
+  document.getElementById(
+    "app"
+  );
+
 const messageInput =
   document.getElementById(
     "messageInput"
@@ -1488,6 +1788,16 @@ const liveButton =
 const liveStatus =
   document.getElementById(
     "liveStatus"
+  );
+
+const voiceStatus =
+  document.getElementById(
+    "voiceStatus"
+  );
+
+const voiceExitButton =
+  document.getElementById(
+    "voiceExitButton"
   );
 
 const memoryStatus =
@@ -1684,6 +1994,12 @@ let currentMouthRound =
   0;
 
 
+/*
+==========================================================
+HILFSFUNKTIONEN
+==========================================================
+*/
+
 function clamp(
   value,
   min,
@@ -1696,6 +2012,77 @@ function clamp(
       min,
       value
     )
+  );
+}
+
+
+function setLiveStatus(
+  text
+){
+
+  const cleanText =
+    String(
+      text || ""
+    );
+
+
+  liveStatus.textContent =
+    cleanText;
+
+
+  voiceStatus.textContent =
+    cleanText;
+}
+
+
+/*
+==========================================================
+NEU: VOICE MODE
+==========================================================
+*/
+
+function enterVoiceMode(){
+
+  app.classList.add(
+    "voice-mode"
+  );
+
+
+  document.body.classList.add(
+    "voice-open"
+  );
+
+
+  voiceStatus.textContent =
+    "Sol verbindet sich ...";
+
+
+  requestAnimationFrame(
+    () => {
+
+      updateMouthGeometry();
+    }
+  );
+}
+
+
+function exitVoiceMode(){
+
+  app.classList.remove(
+    "voice-mode"
+  );
+
+
+  document.body.classList.remove(
+    "voice-open"
+  );
+
+
+  requestAnimationFrame(
+    () => {
+
+      updateMouthGeometry();
+    }
   );
 }
 
@@ -1794,6 +2181,7 @@ async function resizeImageFile(
                   Math.round(
                     width * scale
                   );
+
 
                 height =
                   Math.round(
@@ -2278,6 +2666,7 @@ function getFrequencyBand(
   let total =
     0;
 
+
   let count =
     0;
 
@@ -2293,6 +2682,7 @@ function getFrequencyBand(
 
     total +=
       lipFrequencyData[i];
+
 
     count++;
   }
@@ -2316,7 +2706,7 @@ function getFrequencyBand(
 
 /*
 ==========================================================
-LIP SYNC ANIMATION
+LIP-SYNC ANIMATION
 ==========================================================
 */
 
@@ -2409,14 +2799,9 @@ function animateLipSync(){
   const rawWide =
     clamp(
       (
-        middle *
-        0.80 +
-
-        high *
-        0.55 -
-
-        low *
-        0.18
+        middle * 0.80 +
+        high * 0.55 -
+        low * 0.18
       ),
 
       0,
@@ -2427,14 +2812,9 @@ function animateLipSync(){
   const rawRound =
     clamp(
       (
-        low *
-        0.72 +
-
-        middle *
-        0.25 -
-
-        high *
-        0.15
+        low * 0.72 +
+        middle * 0.25 -
+        high * 0.15
       ),
 
       0,
@@ -2728,9 +3108,7 @@ function stopLipSync(
   ){
 
     try{
-
       lipSourceNode.disconnect();
-
     }catch{}
 
 
@@ -2744,9 +3122,7 @@ function stopLipSync(
   ){
 
     try{
-
       lipAnalyser.disconnect();
-
     }catch{}
 
 
@@ -2760,9 +3136,7 @@ function stopLipSync(
   ){
 
     try{
-
       lipSilentGain.disconnect();
-
     }catch{}
 
 
@@ -2774,6 +3148,7 @@ function stopLipSync(
   lipTimeData =
     null;
 
+
   lipFrequencyData =
     null;
 
@@ -2781,8 +3156,10 @@ function stopLipSync(
   currentMouthOpen =
     0;
 
+
   currentMouthWide =
     0;
+
 
   currentMouthRound =
     0;
@@ -3074,7 +3451,7 @@ closeMenuButton.addEventListener(
 
 /*
 ==========================================================
-SEND MESSAGE
+TEXT / BILD SENDEN
 ==========================================================
 */
 
@@ -3157,7 +3534,6 @@ async function sendMessage(
           method:"POST",
 
           headers:{
-
             "Content-Type":
               "application/json"
           },
@@ -3246,11 +3622,7 @@ async function sendMessage(
 
 
     chatStatus.textContent =
-      imageToSend
-        ?
-        "Bild verarbeitet."
-        :
-        "Antwort erhalten.";
+      "Antwort erhalten.";
 
   }catch(
     error
@@ -3286,12 +3658,6 @@ async function sendMessage(
   }
 }
 
-
-/*
-==========================================================
-SENDEN
-==========================================================
-*/
 
 sendButton.addEventListener(
   "click",
@@ -3375,7 +3741,6 @@ async function sendLiveTranscriptToMemory(
           method:"POST",
 
           headers:{
-
             "Content-Type":
               "application/json"
           },
@@ -3498,9 +3863,7 @@ function stopLiveConversation(){
   ){
 
     try{
-
       dc.close();
-
     }catch{}
 
 
@@ -3514,9 +3877,7 @@ function stopLiveConversation(){
   ){
 
     try{
-
       pc.close();
-
     }catch{}
 
 
@@ -3555,6 +3916,10 @@ function stopLiveConversation(){
     '<span class="wave">·······</span>&nbsp; Ich bin da. &nbsp;<span class="wave">·······</span>';
 
 
+  voiceStatus.textContent =
+    "Ich bin da.";
+
+
   micStatus.textContent =
     "🎙️ Mikrofon bereit.";
 }
@@ -3572,8 +3937,6 @@ async function startLiveConversation(){
     pc
   ){
 
-    stopLiveConversation();
-
     return;
   }
 
@@ -3581,8 +3944,9 @@ async function startLiveConversation(){
   await ensureLipAudioContext();
 
 
-  liveStatus.textContent =
-    "Sol verbindet sich ...";
+  setLiveStatus(
+    "Sol verbindet sich ..."
+  );
 
 
   try{
@@ -3730,8 +4094,9 @@ async function startLiveConversation(){
         );
 
 
-        liveStatus.textContent =
-          "🌻 Ich höre dir zu ...";
+        setLiveStatus(
+          "🌻 Ich höre dir zu ..."
+        );
       }
     );
 
@@ -3753,8 +4118,9 @@ async function startLiveConversation(){
             "input_audio_buffer.speech_started"
           ){
 
-            liveStatus.textContent =
-              "🎙️ Ich höre dir zu ...";
+            setLiveStatus(
+              "🎙️ Ich höre dir zu ..."
+            );
           }
 
 
@@ -3763,8 +4129,9 @@ async function startLiveConversation(){
             "input_audio_buffer.speech_stopped"
           ){
 
-            liveStatus.textContent =
-              "🌻 Einen Moment ...";
+            setLiveStatus(
+              "🌻 Einen Moment ..."
+            );
           }
 
 
@@ -3798,8 +4165,9 @@ async function startLiveConversation(){
             "response.audio.delta"
           ){
 
-            liveStatus.textContent =
-              "🌻 Sol spricht ...";
+            setLiveStatus(
+              "🌻 Sol spricht ..."
+            );
           }
 
 
@@ -3810,8 +4178,9 @@ async function startLiveConversation(){
             "response.done"
           ){
 
-            liveStatus.textContent =
-              "🌻 Ich höre dir zu ...";
+            setLiveStatus(
+              "🌻 Ich höre dir zu ..."
+            );
           }
 
 
@@ -3826,8 +4195,9 @@ async function startLiveConversation(){
             );
 
 
-            liveStatus.textContent =
-              "Sol hat gerade ein Verbindungsproblem.";
+            setLiveStatus(
+              "Sol hat gerade ein Verbindungsproblem."
+            );
           }
 
         }catch(
@@ -3865,8 +4235,9 @@ async function startLiveConversation(){
           );
 
 
-          liveStatus.textContent =
-            "🌻 Ich höre dir zu ...";
+          setLiveStatus(
+            "🌻 Ich höre dir zu ..."
+          );
         }
 
 
@@ -3878,8 +4249,9 @@ async function startLiveConversation(){
           stopLiveConversation();
 
 
-          liveStatus.textContent =
-            "Verbindung zu Sol unterbrochen.";
+          setLiveStatus(
+            "Verbindung zu Sol unterbrochen."
+          );
         }
       }
     );
@@ -3963,34 +4335,60 @@ async function startLiveConversation(){
     stopLiveConversation();
 
 
-    liveStatus.textContent =
+    setLiveStatus(
       error?.message ||
-      "Live-Verbindung fehlgeschlagen.";
+      "Live-Verbindung fehlgeschlagen."
+    );
   }
 }
 
 
+/*
+==========================================================
+MIKRO BUTTON
+
+JETZT:
+1. Vollbild öffnen
+2. Realtime starten
+==========================================================
+*/
+
 liveButton.addEventListener(
   "click",
-  () => {
+  async () => {
 
-    if(
-      pc
-    ){
+    enterVoiceMode();
 
-      stopLiveConversation();
 
-    }else{
-
-      startLiveConversation();
-    }
+    await startLiveConversation();
   }
 );
 
 
 /*
 ==========================================================
-STANDARD LAUTSTÄRKE
+ZURÜCK BUTTON
+
+1. Gespräch stoppen
+2. Vollbild schließen
+==========================================================
+*/
+
+voiceExitButton.addEventListener(
+  "click",
+  () => {
+
+    stopLiveConversation();
+
+
+    exitVoiceMode();
+  }
+);
+
+
+/*
+==========================================================
+STANDARD-LAUTSTÄRKE
 ==========================================================
 */
 
