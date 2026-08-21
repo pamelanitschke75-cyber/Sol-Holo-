@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 
 <title>Sol Holo</title>
 
@@ -10,441 +10,444 @@
 <meta name="theme-color" content="#05030b">
 
 <style>
-* {
-  box-sizing: border-box;
+*{
+  box-sizing:border-box;
 }
 
 html,
-body {
-  margin: 0;
-  min-height: 100%;
-  background: #020106;
-  color: white;
-  font-family: Arial, sans-serif;
+body{
+  margin:0;
+  min-height:100%;
+  background:#020106;
+  color:#fff;
+  font-family:Arial,sans-serif;
 }
 
-body {
-  min-height: 100vh;
-  overflow-x: hidden;
+body{
+  min-height:100vh;
+  overflow-x:hidden;
 }
 
 button,
 textarea,
-input {
-  font: inherit;
+input{
+  font:inherit;
 }
 
-button {
-  -webkit-tap-highlight-color: transparent;
+button{
+  -webkit-tap-highlight-color:transparent;
 }
 
-#app {
-  position: relative;
-  width: 100%;
-  max-width: 760px;
-  min-height: 100vh;
-  margin: auto;
-  overflow: hidden;
+#app{
+  position:relative;
+  width:100%;
+  max-width:760px;
+  min-height:100vh;
+  margin:auto;
+  overflow:hidden;
 
   background:
     linear-gradient(
       180deg,
-      #10051c 0%,
-      #07030e 56%,
-      #020106 100%
+      #12051f 0%,
+      #08030f 43%,
+      #020106 72%
     );
 }
 
 /*
-  ==========================================================
-  STRAND / PALMEN
-  Datei im Projekt:
-  sol-holo-beach.jpg
-  ==========================================================
+==========================================================
+PALMEN / MEER
+==========================================================
 */
 
-#beachBackground {
-  position: absolute;
-  z-index: 0;
+#beachBackground{
+  position:absolute;
+  z-index:0;
 
-  top: 0;
-  left: 0;
-  right: 0;
+  top:0;
+  left:0;
+  right:0;
 
-  height: 610px;
+  height:620px;
 
   background-image:
     linear-gradient(
       180deg,
-      rgba(5,1,12,.08) 0%,
-      rgba(5,1,12,.04) 38%,
-      rgba(4,1,10,.38) 71%,
-      rgba(2,1,6,.94) 100%
+      rgba(3,1,9,.08) 0%,
+      rgba(3,1,9,.05) 35%,
+      rgba(4,1,10,.28) 66%,
+      #020106 100%
     ),
     url("/sol-holo-beach.jpg");
 
-  background-position:
-    center center;
+  background-size:cover;
+  background-position:center top;
+  background-repeat:no-repeat;
 
-  background-size:
-    cover;
-
-  background-repeat:
-    no-repeat;
-
-  pointer-events: none;
+  pointer-events:none;
 }
 
-#backgroundGlow {
-  position: absolute;
-  z-index: 1;
-  inset: 0;
+#backgroundGlow{
+  position:absolute;
+  z-index:1;
+  inset:0;
 
-  pointer-events: none;
+  pointer-events:none;
 
   background:
     radial-gradient(
-      circle at 50% 30%,
-      rgba(137,63,255,.18),
-      transparent 28%
+      circle at 50% 25%,
+      rgba(137,63,255,.15),
+      transparent 31%
     );
 }
 
+
 /*
-  ==========================================================
-  HEADER
-  ==========================================================
+==========================================================
+HEADER
+==========================================================
 */
 
-header {
-  position: relative;
-  z-index: 20;
+header{
+  position:relative;
+  z-index:20;
 
-  height: 106px;
+  min-height:105px;
 
   padding:
-    22px 84px 0;
+    19px 78px 4px;
 
-  text-align: center;
+  text-align:center;
 }
 
-#menuButton {
-  position: absolute;
+#menuButton{
+  position:absolute;
 
-  left: 18px;
-  top: 22px;
+  left:14px;
+  top:20px;
 
-  width: 50px;
-  height: 50px;
+  width:48px;
+  height:48px;
 
-  border-radius: 50%;
+  border-radius:50%;
 
   border:
-    1px solid rgba(154,77,255,.75);
+    1px solid rgba(164,86,255,.65);
 
   background:
-    rgba(11,4,22,.72);
+    rgba(10,5,18,.76);
 
-  color: #b765ff;
+  color:#b66cff;
 
-  font-size: 26px;
+  font-size:25px;
 
-  cursor: pointer;
+  cursor:pointer;
+
+  backdrop-filter:blur(10px);
 
   box-shadow:
-    0 0 18px rgba(130,52,255,.24);
+    0 0 18px rgba(134,54,255,.18);
 }
 
-h1 {
-  margin: 0;
+#onlineState{
+  position:absolute;
 
-  color: #b96aff;
+  right:10px;
+  top:26px;
 
-  font-size: 38px;
-  font-weight: 700;
+  display:flex;
+  align-items:center;
 
-  text-shadow:
-    0 0 12px rgba(172,83,255,.46);
-}
-
-#subtitle {
-  margin-top: 4px;
-
-  color: #b66cff;
-
-  font-size: 17px;
-}
-
-#onlineState {
-  position: absolute;
-
-  right: 14px;
-  top: 24px;
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 7px;
+  gap:6px;
 
   padding:
-    10px 12px;
+    8px 10px;
 
-  border-radius: 23px;
+  border-radius:20px;
 
   border:
-    1px solid rgba(136,63,220,.60);
+    1px solid rgba(142,69,220,.55);
 
   background:
-    rgba(8,4,16,.76);
+    rgba(8,4,15,.78);
 
-  color: #30e8a0;
+  color:#33e6a0;
 
-  font-size: 13px;
+  font-size:12px;
+
+  backdrop-filter:blur(10px);
 }
 
-#onlineDot {
-  color: #17df96;
+#onlineDot{
+  color:#20e09a;
 }
+
+h1{
+  margin:0;
+
+  color:#bd72ff;
+
+  font-size:34px;
+
+  font-weight:700;
+
+  line-height:1.05;
+
+  text-shadow:
+    0 0 10px rgba(170,77,255,.40),
+    0 0 28px rgba(117,48,255,.20);
+}
+
+#subtitle{
+  margin-top:7px;
+
+  color:#b875ff;
+
+  font-size:16px;
+
+  line-height:1.2;
+
+  text-shadow:
+    0 0 14px rgba(126,56,255,.25);
+}
+
 
 /*
-  ==========================================================
-  ALTE BEGRÜSSUNG AUSBLENDEN
-  ==========================================================
+==========================================================
+HOLO BEREICH
+==========================================================
 */
 
-#greeting {
-  display: none;
+#solStage{
+  position:relative;
+  z-index:5;
+
+  height:415px;
+
+  display:flex;
+  justify-content:center;
+  align-items:flex-end;
+
+  overflow:hidden;
 }
 
-/*
-  ==========================================================
-  HOLO BEREICH
-  ==========================================================
-*/
+#solCloneWrap{
+  position:relative;
 
-#solStage {
-  position: relative;
-  z-index: 5;
+  display:inline-block;
 
-  height: 405px;
+  height:74%;
 
-  display: flex;
+  max-width:64%;
 
-  align-items: flex-end;
-  justify-content: center;
+  margin-bottom:28px;
 
-  overflow: hidden;
+  transform-origin:center bottom;
 }
 
-#solCloneWrap {
-  position: relative;
+#solImage{
+  display:block;
 
-  display: inline-block;
+  height:100%;
+  width:auto;
 
-  height: 84%;
+  max-width:100%;
 
-  max-width: 66%;
+  object-fit:contain;
+  object-position:center bottom;
 
-  transform-origin:
-    center bottom;
-}
-
-#solImage {
-  display: block;
-
-  height: 100%;
-  width: auto;
-
-  max-width: 100%;
-
-  object-fit: contain;
-
-  object-position:
-    center bottom;
+  user-select:none;
+  pointer-events:none;
 
   filter:
     drop-shadow(
-      0 0 8px rgba(140,88,255,.82)
+      0 0 7px rgba(134,91,255,.72)
     )
     drop-shadow(
-      0 0 26px rgba(91,50,255,.48)
+      0 0 22px rgba(75,45,255,.40)
     );
-
-  user-select: none;
-
-  pointer-events: none;
 }
 
+
 /*
-  ==========================================================
-  STATUS LINKS
-  ==========================================================
+==========================================================
+HOLO BASIS
+==========================================================
 */
 
-#statusPanel {
-  position: absolute;
+#holoBase{
+  position:absolute;
 
-  z-index: 15;
+  bottom:24px;
 
-  left: 18px;
-  top: 265px;
+  width:46%;
+  height:18px;
 
-  width: 142px;
-
-  padding: 15px 14px;
+  border-radius:50%;
 
   border:
-    1px solid rgba(156,73,255,.64);
-
-  border-radius: 21px;
-
-  background:
-    rgba(12,6,24,.82);
-
-  backdrop-filter:
-    blur(10px);
+    2px solid rgba(161,94,255,.95);
 
   box-shadow:
-    0 0 20px rgba(100,42,180,.16);
+    0 0 7px #a56bff,
+    0 0 22px rgba(127,73,255,.85),
+    0 0 42px rgba(90,40,255,.40);
 }
 
-.statusHeading {
-  margin-bottom: 10px;
-
-  color: #b668ff;
-
-  font-size: 16px;
-  font-weight: bold;
-}
-
-.statusLine {
-  display: flex;
-
-  align-items: center;
-
-  gap: 7px;
-
-  color: #f2eef6;
-
-  font-size: 13px;
-}
-
-.statusDivider {
-  height: 1px;
-
-  margin: 14px 0;
-
-  background:
-    rgba(160,90,255,.23);
-}
 
 /*
-  ==========================================================
-  LAUTSTÄRKE RECHTS
-  ==========================================================
+==========================================================
+STATUSKARTE
+==========================================================
 */
 
-#volumePanel {
-  position: absolute;
+#statusCard{
+  position:absolute;
 
-  z-index: 15;
+  z-index:15;
 
-  right: 14px;
-  top: 270px;
+  left:13px;
+  bottom:56px;
 
-  width: 142px;
-
-  padding: 13px;
-
-  border:
-    1px solid rgba(156,73,255,.64);
-
-  border-radius: 21px;
-
-  background:
-    rgba(12,6,24,.84);
-
-  backdrop-filter:
-    blur(10px);
-}
-
-#volumeTitle {
-  margin-bottom: 10px;
-
-  color: #b668ff;
-
-  font-size: 16px;
-  font-weight: bold;
-}
-
-#volumeControls {
-  display: flex;
-
-  flex-direction: column;
-
-  gap: 7px;
-}
-
-.volumeButton {
-  width: 100%;
+  width:122px;
 
   padding:
-    9px 7px;
+    11px 12px;
+
+  border-radius:19px;
 
   border:
-    1px solid rgba(100,61,145,.55);
-
-  border-radius: 18px;
+    1px solid rgba(152,75,237,.62);
 
   background:
-    rgba(13,8,24,.92);
+    rgba(8,5,16,.78);
 
-  color: white;
+  backdrop-filter:blur(12px);
 
-  font-size: 13px;
-
-  cursor: pointer;
+  box-shadow:
+    0 0 18px rgba(87,35,145,.12);
 }
 
-.volumeButton.active {
-  border-color:
-    #a65fff;
+.stageCardTitle{
+  margin-bottom:7px;
+
+  color:#b86cff;
+
+  font-size:14px;
+
+  font-weight:700;
+}
+
+.stageCardText{
+  color:#eee8f5;
+
+  font-size:12px;
+
+  line-height:1.35;
+}
+
+.stageDivider{
+  height:1px;
+
+  margin:
+    9px 0;
+
+  background:
+    rgba(168,90,255,.25);
+}
+
+
+/*
+==========================================================
+LAUTSTÄRKEKARTE
+==========================================================
+*/
+
+#stageVolumeCard{
+  position:absolute;
+
+  z-index:15;
+
+  right:13px;
+  bottom:50px;
+
+  width:122px;
+
+  padding:
+    10px;
+
+  border-radius:19px;
+
+  border:
+    1px solid rgba(152,75,237,.62);
+
+  background:
+    rgba(8,5,16,.80);
+
+  backdrop-filter:blur(12px);
+}
+
+.stageVolumeButton{
+  width:100%;
+
+  margin-top:6px;
+
+  padding:
+    7px 5px;
+
+  border-radius:14px;
+
+  border:
+    1px solid rgba(102,61,145,.62);
+
+  background:
+    rgba(29,20,39,.92);
+
+  color:white;
+
+  font-size:11px;
+
+  cursor:pointer;
+}
+
+.stageVolumeButton.active{
+  border-color:#a861ff;
 
   background:
     linear-gradient(
       135deg,
-      #6530a7,
-      #3d176e
+      #6225a6,
+      #36135d
     );
 
   box-shadow:
-    0 0 14px rgba(149,72,255,.28);
+    0 0 12px rgba(146,67,255,.20);
 }
 
+
 /*
-  ==========================================================
-  LIP SYNC
-  ==========================================================
+==========================================================
+LIP SYNC
+==========================================================
 */
 
-#mouthPatch {
-  position: absolute;
+#mouthPatch{
+  position:absolute;
 
-  display: none;
+  display:none;
 
-  z-index: 8;
+  z-index:8;
 
-  pointer-events: none;
+  pointer-events:none;
 
-  background-repeat: no-repeat;
+  background-repeat:no-repeat;
 
-  transform-origin:
-    50% 42%;
+  transform-origin:50% 42%;
 
   will-change:
     transform,
-    filter,
     opacity;
 
   border-radius:
@@ -467,16 +470,16 @@ h1 {
     );
 }
 
-#mouthDepth {
-  position: absolute;
+#mouthDepth{
+  position:absolute;
 
-  display: none;
+  display:none;
 
-  z-index: 7;
+  z-index:7;
 
-  pointer-events: none;
+  pointer-events:none;
 
-  border-radius: 50%;
+  border-radius:50%;
 
   background:
     radial-gradient(
@@ -486,681 +489,710 @@ h1 {
       transparent 75%
     );
 
-  transform-origin: center;
+  opacity:0;
 
-  opacity: 0;
-
-  will-change:
-    transform,
-    opacity;
+  transform-origin:center;
 }
 
-#solCloneWrap.sol-speaking {
+#solCloneWrap.sol-speaking{
   animation:
     solSpeakingPresence
     1.9s ease-in-out infinite;
 }
 
-@keyframes solSpeakingPresence {
+@keyframes solSpeakingPresence{
 
-  0% {
+  0%{
     transform:
       translateY(0)
       scale(1);
   }
 
-  50% {
+  50%{
     transform:
       translateY(-1px)
       scale(1.0015);
   }
 
-  100% {
+  100%{
     transform:
       translateY(0)
       scale(1);
   }
 }
 
-/*
-  ==========================================================
-  HOLO BASIS
-  ==========================================================
-*/
-
-#holoBase {
-  position: absolute;
-
-  bottom: 7px;
-
-  width: 49%;
-  height: 21px;
-
-  border-radius: 50%;
-
-  border:
-    2px solid rgba(163,98,255,.96);
-
-  box-shadow:
-    0 0 8px #a367ff,
-    0 0 26px rgba(131,73,255,.92),
-    0 0 56px rgba(91,43,255,.44);
-}
 
 /*
-  ==========================================================
-  CHAT
-  ==========================================================
+==========================================================
+CHAT
+==========================================================
 */
 
-#chatPanel {
-  position: relative;
-  z-index: 25;
+#chatPanel{
+  position:relative;
+  z-index:25;
 
   margin:
-    8px 14px 10px;
+    -4px 16px 12px;
 
-  padding: 8px;
-
-  border: none;
-
-  background:
-    transparent;
-}
-
-#chat {
-  max-height: 310px;
-
-  overflow-y: auto;
-
-  padding: 2px;
-}
-
-.message {
-  margin: 10px 0;
-
-  padding:
-    12px 14px;
-
-  border-radius: 19px;
-
-  line-height: 1.43;
-
-  white-space:
-    pre-wrap;
-
-  font-size: 16px;
+  padding:10px;
 
   border:
-    1px solid rgba(151,76,237,.55);
+    1px solid rgba(143,70,225,.48);
+
+  border-radius:21px;
 
   background:
-    rgba(9,6,18,.89);
-
-  backdrop-filter:
-    blur(10px);
-}
-
-.message strong {
-  display: block;
-
-  margin-bottom: 5px;
-
-  color: #b86fff;
-}
-
-.user-message {
-  margin-left: 31%;
-}
-
-.sol-message,
-.system-message {
-  margin-right: 24%;
-}
-
-.system-message {
-  color: #eeeaf4;
-}
-
-.messageImage {
-  display: block;
-
-  width: 100%;
-
-  max-width: 320px;
-  max-height: 320px;
-
-  margin-top: 9px;
-
-  border-radius: 14px;
-
-  object-fit: contain;
-
-  border:
-    1px solid rgba(183,106,255,.30);
-}
-
-/*
-  ==========================================================
-  CONTROLS
-  ==========================================================
-*/
-
-#controls {
-  position: relative;
-  z-index: 30;
-
-  padding:
-    0 12px 12px;
-}
-
-#inputRow {
-  display: grid;
-
-  grid-template-columns:
-    74px minmax(0, 1fr) 74px;
-
-  gap: 8px;
-
-  align-items: stretch;
-}
-
-/*
-  ==========================================================
-  KAMERA
-  ==========================================================
-*/
-
-#imageButton {
-  width: 74px;
-
-  min-height: 94px;
-
-  border-radius: 20px;
-
-  border:
-    1px solid rgba(158,79,255,.72);
-
-  background:
-    rgba(13,7,25,.94);
-
-  color: #a95fff;
-
-  font-size: 29px;
-
-  cursor: pointer;
-}
-
-#imageButton:disabled {
-  opacity: .45;
-}
-
-#imageInput {
-  display: none;
-}
-
-/*
-  ==========================================================
-  BILDVORSCHAU
-  ==========================================================
-*/
-
-#imagePreviewPanel {
-  display: none;
-
-  margin:
-    0 82px 10px;
-
-  padding: 10px;
-
-  border:
-    1px solid rgba(143,77,225,.52);
-
-  border-radius: 18px;
-
-  background:
-    rgba(10,6,18,.93);
-}
-
-#imagePreviewPanel.visible {
-  display: flex;
-
-  align-items: center;
-
-  gap: 12px;
-}
-
-#imagePreview {
-  width: 76px;
-  height: 76px;
-
-  object-fit: cover;
-
-  border-radius: 14px;
-}
-
-#imagePreviewText {
-  flex: 1;
-
-  color: #d9d1e5;
-
-  font-size: 14px;
-}
-
-#removeImageButton {
-  width: 38px;
-  height: 38px;
-
-  border-radius: 50%;
-
-  border:
-    1px solid rgba(163,89,255,.55);
-
-  background:
-    rgba(28,16,41,.95);
-
-  color: white;
-
-  font-size: 20px;
-}
-
-/*
-  ==========================================================
-  SCHREIBFELD
-  ==========================================================
-*/
-
-#messageWrap {
-  position: relative;
-
-  min-height: 94px;
-
-  padding:
-    12px 51px 10px 14px;
-
-  border-radius: 20px;
-
-  border:
-    1px solid rgba(160,82,255,.64);
-
-  background:
-    rgba(10,6,20,.94);
-}
-
-#messageInput {
-  width: 100%;
-
-  min-height: 68px;
-  max-height: 150px;
-
-  resize: none;
-
-  overflow-y: auto;
-
-  border: none;
-  outline: none;
-
-  background:
-    transparent;
-
-  color: white;
-
-  font-size: 17px;
-
-  line-height: 1.4;
-}
-
-#messageInput::placeholder {
-  color: #8f849f;
-}
-
-#sendButton {
-  position: absolute;
-
-  right: 8px;
-  bottom: 8px;
-
-  width: 43px;
-  height: 43px;
-
-  border-radius: 50%;
-
-  border: none;
-
-  background:
-    rgba(94,29,164,.40);
-
-  color: #b564ff;
-
-  font-size: 25px;
-
-  cursor: pointer;
-}
-
-/*
-  ==========================================================
-  MIKROFON
-  ==========================================================
-*/
-
-#liveButton {
-  width: 74px;
-
-  min-height: 94px;
-
-  border-radius: 20px;
-
-  border:
-    1px solid rgba(158,79,255,.72);
-
-  background:
-    rgba(13,7,25,.94);
-
-  color: #a95fff;
-
-  font-size: 30px;
-
-  cursor: pointer;
-}
-
-#liveButton.listening {
-  color: #37e3a3;
-
-  border-color: #37e3a3;
-}
-
-#liveStatus {
-  margin-top: 25px;
-
-  min-height: 32px;
-
-  text-align: center;
-
-  color: #b86bff;
-
-  font-size: 17px;
-}
-
-.wave {
-  letter-spacing: 4px;
-
-  color: #9e52dc;
-}
-
-/*
-  ==========================================================
-  BOTTOM NAVIGATION
-  ==========================================================
-*/
-
-#bottomNav {
-  position: relative;
-
-  z-index: 30;
-
-  display: grid;
-
-  grid-template-columns:
-    repeat(5, 1fr);
-
-  margin:
-    8px 10px 18px;
-
-  padding:
-    12px 5px 10px;
-
-  border:
-    1px solid rgba(129,65,200,.38);
-
-  border-radius: 22px;
-
-  background:
-    rgba(8,5,15,.92);
+    rgba(5,3,12,.79);
 
   backdrop-filter:
     blur(12px);
 }
 
-.navItem {
-  text-align: center;
+#chat{
+  max-height:310px;
 
-  color: #827892;
+  overflow-y:auto;
 
-  font-size: 11px;
+  padding:2px;
 }
 
-.navIcon {
-  display: block;
-
-  margin-bottom: 4px;
-
-  font-size: 22px;
-}
-
-.navItem.active {
-  color: #b663ff;
-}
-
-/*
-  ==========================================================
-  DRAWER
-  ==========================================================
-*/
-
-#drawer {
-  position: fixed;
-
-  z-index: 100;
-
-  top: 0;
-  left: -320px;
-
-  width: 300px;
-  height: 100vh;
+.message{
+  margin:9px 0;
 
   padding:
-    32px 22px;
+    12px 14px;
+
+  border-radius:18px;
+
+  border:
+    1px solid rgba(145,74,225,.45);
+
+  font-size:16px;
+
+  line-height:1.46;
+
+  white-space:pre-wrap;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(29,12,51,.91),
+      rgba(7,5,16,.95)
+    );
+}
+
+.message strong{
+  display:block;
+
+  margin-bottom:5px;
+
+  color:#b76cff;
+
+  font-size:17px;
+}
+
+.user-message{
+  margin-left:52px;
+}
+
+.sol-message,
+.system-message{
+  margin-right:52px;
+}
+
+.messageImage{
+  display:block;
+
+  width:100%;
+
+  max-width:320px;
+  max-height:320px;
+
+  margin-top:9px;
+
+  border-radius:14px;
+
+  object-fit:contain;
+
+  border:
+    1px solid rgba(183,106,255,.30);
+}
+
+
+/*
+==========================================================
+BEDIENUNG
+==========================================================
+*/
+
+#controls{
+  position:relative;
+  z-index:30;
+
+  padding:
+    0 14px 10px;
+}
+
+#inputRow{
+  display:grid;
+
+  grid-template-columns:
+    66px minmax(0,1fr) 66px;
+
+  gap:8px;
+
+  align-items:stretch;
+}
+
+
+/*
+==========================================================
+KAMERA
+==========================================================
+*/
+
+#imageButton{
+  width:66px;
+
+  min-height:112px;
+
+  border-radius:22px;
+
+  border:
+    1px solid rgba(162,82,255,.66);
 
   background:
     linear-gradient(
       180deg,
-      #11051c,
-      #07030d
+      rgba(34,19,46,.96),
+      rgba(13,8,20,.98)
+    );
+
+  color:#b568ff;
+
+  font-size:27px;
+
+  cursor:pointer;
+}
+
+#imageButton:disabled{
+  opacity:.45;
+}
+
+#imageInput{
+  display:none;
+}
+
+
+/*
+==========================================================
+SCHREIBFELD
+==========================================================
+*/
+
+#messageWrap{
+  position:relative;
+
+  display:flex;
+
+  min-height:112px;
+
+  align-items:flex-start;
+
+  padding:
+    15px 48px 12px 14px;
+
+  border-radius:22px;
+
+  border:
+    1px solid rgba(159,81,255,.62);
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(25,13,40,.95),
+      rgba(8,6,17,.98)
+    );
+}
+
+#messageInput{
+  display:block;
+
+  width:100%;
+
+  min-height:78px;
+  max-height:180px;
+
+  margin:0;
+  padding:0;
+
+  resize:none;
+
+  overflow-y:auto;
+
+  border:none;
+  outline:none;
+
+  background:transparent;
+
+  color:white;
+
+  font-size:17px;
+
+  line-height:1.4;
+}
+
+#messageInput::placeholder{
+  color:#9a8cad;
+}
+
+#sendButton{
+  position:absolute;
+
+  right:8px;
+  bottom:9px;
+
+  width:44px;
+  height:44px;
+
+  border:none;
+
+  border-radius:50%;
+
+  background:
+    rgba(96,28,173,.46);
+
+  color:#c273ff;
+
+  font-size:25px;
+
+  cursor:pointer;
+}
+
+#sendButton:disabled{
+  opacity:.45;
+}
+
+
+/*
+==========================================================
+MIKRO
+==========================================================
+*/
+
+#liveButton{
+  width:66px;
+
+  min-height:112px;
+
+  border-radius:22px;
+
+  border:
+    1px solid rgba(162,82,255,.66);
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(34,19,46,.96),
+      rgba(13,8,20,.98)
+    );
+
+  color:#b568ff;
+
+  font-size:28px;
+
+  cursor:pointer;
+}
+
+#liveButton.listening{
+  border-color:#30dfa2;
+
+  color:#49e2ae;
+}
+
+
+/*
+==========================================================
+BILDVORSCHAU
+==========================================================
+*/
+
+#imagePreviewPanel{
+  display:none;
+
+  margin:
+    0 74px 10px;
+
+  padding:10px;
+
+  border:
+    1px solid rgba(143,77,225,.52);
+
+  border-radius:18px;
+
+  background:
+    rgba(10,6,18,.94);
+}
+
+#imagePreviewPanel.visible{
+  display:flex;
+
+  align-items:center;
+
+  gap:10px;
+}
+
+#imagePreview{
+  width:70px;
+  height:70px;
+
+  object-fit:cover;
+
+  border-radius:13px;
+}
+
+#imagePreviewText{
+  flex:1;
+
+  min-width:0;
+
+  color:#ddd4e8;
+
+  font-size:13px;
+}
+
+#removeImageButton{
+  width:36px;
+  height:36px;
+
+  flex:0 0 auto;
+
+  border-radius:50%;
+
+  border:
+    1px solid rgba(163,89,255,.55);
+
+  background:#1c1029;
+
+  color:white;
+
+  cursor:pointer;
+}
+
+
+/*
+==========================================================
+LIVE STATUS
+==========================================================
+*/
+
+#liveStatus{
+  min-height:28px;
+
+  margin-top:12px;
+
+  text-align:center;
+
+  color:#bc6cff;
+
+  font-size:16px;
+}
+
+.wave{
+  color:#9851d8;
+
+  letter-spacing:3px;
+}
+
+
+/*
+==========================================================
+UNTERE NAVIGATION
+==========================================================
+*/
+
+#bottomNav{
+  position:relative;
+  z-index:30;
+
+  display:grid;
+
+  grid-template-columns:
+    repeat(5,1fr);
+
+  gap:3px;
+
+  margin:
+    5px 14px 24px;
+
+  padding:
+    10px 5px 8px;
+
+  border-radius:21px;
+
+  border:
+    1px solid rgba(135,64,210,.42);
+
+  background:
+    rgba(7,4,13,.91);
+
+  backdrop-filter:blur(12px);
+}
+
+.navItem{
+  display:flex;
+
+  flex-direction:column;
+
+  align-items:center;
+
+  justify-content:center;
+
+  gap:5px;
+
+  min-width:0;
+
+  border:none;
+
+  background:transparent;
+
+  color:#aaa1b9;
+
+  cursor:pointer;
+}
+
+.navIcon{
+  font-size:22px;
+}
+
+.navLabel{
+  font-size:11px;
+}
+
+.navItem.active{
+  color:#bc6cff;
+}
+
+
+/*
+==========================================================
+DRAWER
+==========================================================
+*/
+
+#drawer{
+  position:fixed;
+
+  z-index:100;
+
+  top:0;
+  left:-320px;
+
+  width:300px;
+  height:100vh;
+
+  padding:
+    30px 20px;
+
+  overflow-y:auto;
+
+  background:
+    linear-gradient(
+      180deg,
+      #11051d,
+      #06030b
     );
 
   border-right:
     1px solid rgba(153,73,240,.40);
 
-  transition:
-    left .25s ease;
-
   box-shadow:
     12px 0 40px rgba(0,0,0,.55);
 
-  overflow-y: auto;
+  transition:
+    left .25s ease;
 }
 
-#drawer.open {
-  left: 0;
+#drawer.open{
+  left:0;
 }
 
-#drawer h2 {
-  color: #bd72ff;
+#drawer h2{
+  color:#bd72ff;
 }
 
-.drawerButton {
-  width: 100%;
+.drawerButton{
+  width:100%;
 
-  margin-top: 14px;
+  margin-top:13px;
 
-  padding: 16px;
+  padding:15px;
 
   border:
     1px solid rgba(136,73,205,.55);
 
-  border-radius: 14px;
+  border-radius:14px;
 
   background:
-    rgba(29,15,45,.88);
+    rgba(29,15,45,.90);
 
-  color: white;
+  color:white;
 
-  font-size: 17px;
+  font-size:16px;
 
-  text-align: left;
+  text-align:left;
 
-  cursor: pointer;
+  cursor:pointer;
 }
 
 #memoryStatus,
 #chatStatus,
 #micStatus,
-#lipSyncStatus {
-  margin-top: 15px;
+#lipSyncStatus{
+  margin-top:14px;
 
-  color: #bfb5cc;
+  color:#bfb5cc;
 
-  line-height: 1.45;
+  font-size:13px;
 
-  font-size: 14px;
+  line-height:1.4;
 }
 
+
 /*
-  ==========================================================
-  HANDY
-  ==========================================================
+==========================================================
+HANDY
+==========================================================
 */
 
-@media (max-width: 520px) {
+@media(max-width:520px){
 
-  #beachBackground {
-    height: 535px;
+  #beachBackground{
+    height:560px;
+
+    background-position:
+      center top;
   }
 
-  header {
-    height: 92px;
+  header{
+    min-height:98px;
 
     padding:
-      17px 74px 0;
+      18px 70px 2px;
   }
 
-  h1 {
-    font-size: 30px;
+  h1{
+    font-size:31px;
   }
 
-  #subtitle {
-    font-size: 14px;
+  #subtitle{
+    font-size:15px;
   }
 
-  #menuButton {
-    left: 10px;
-    top: 16px;
-
-    width: 44px;
-    height: 44px;
-
-    font-size: 23px;
+  #solStage{
+    height:385px;
   }
 
-  #onlineState {
-    right: 8px;
-    top: 19px;
+  #solCloneWrap{
+    height:70%;
+
+    max-width:61%;
+
+    margin-bottom:27px;
+  }
+
+  #holoBase{
+    width:47%;
+  }
+
+  #statusCard{
+    left:10px;
+
+    bottom:49px;
+
+    width:112px;
 
     padding:
-      8px 9px;
-
-    font-size: 11px;
+      9px 10px;
   }
 
-  #solStage {
-    height: 330px;
+  #stageVolumeCard{
+    right:10px;
+
+    bottom:45px;
+
+    width:112px;
+
+    padding:8px;
   }
 
-  #solCloneWrap {
-    height: 82%;
-    max-width: 59%;
+  .stageCardTitle{
+    font-size:13px;
   }
 
-  #holoBase {
-    width: 46%;
+  .stageCardText{
+    font-size:11px;
   }
 
-  #statusPanel {
-    left: 11px;
-    top: 230px;
-
-    width: 126px;
+  .stageVolumeButton{
+    font-size:10px;
 
     padding:
-      12px 11px;
+      6px 4px;
   }
 
-  #volumePanel {
-    right: 9px;
-    top: 232px;
-
-    width: 125px;
-
-    padding: 11px;
+  #chatPanel{
+    margin-left:11px;
+    margin-right:11px;
   }
 
-  .statusHeading,
-  #volumeTitle {
-    font-size: 14px;
+  #chat{
+    max-height:285px;
   }
 
-  .statusLine,
-  .volumeButton {
-    font-size: 11px;
+  .message{
+    font-size:15px;
   }
 
-  #chatPanel {
-    margin:
-      4px 8px 8px;
+  .message strong{
+    font-size:16px;
   }
 
-  #chat {
-    max-height: 285px;
+  #controls{
+    padding-left:10px;
+    padding-right:10px;
   }
 
-  .message {
-    font-size: 15px;
-  }
-
-  #controls {
-    padding:
-      0 8px 8px;
-  }
-
-  #inputRow {
+  #inputRow{
     grid-template-columns:
-      66px minmax(0,1fr) 66px;
+      62px minmax(0,1fr) 62px;
 
-    gap: 6px;
+    gap:7px;
   }
 
   #imageButton,
-  #liveButton {
-    width: 66px;
+  #liveButton{
+    width:62px;
 
-    min-height: 92px;
+    min-height:108px;
 
-    font-size: 26px;
+    border-radius:20px;
   }
 
-  #messageWrap {
-    min-height: 92px;
+  #messageWrap{
+    min-height:108px;
+
+    border-radius:20px;
   }
 
-  #messageInput {
-    min-height: 66px;
-
-    font-size: 16px;
+  #messageInput{
+    font-size:16px;
   }
 
-  #imagePreviewPanel {
-    margin-left: 72px;
-    margin-right: 72px;
+  #bottomNav{
+    margin-left:10px;
+    margin-right:10px;
   }
 }
 
@@ -1172,7 +1204,9 @@ h1 {
 <div id="app">
 
 <div id="beachBackground"></div>
+
 <div id="backgroundGlow"></div>
+
 
 <header>
 
@@ -1192,79 +1226,43 @@ Me, Myself &amp; I. 💜
 </div>
 
 <div id="onlineState">
-<span id="onlineDot">●</span>
+
+<span id="onlineDot">
+●
+</span>
+
 Online
+
 </div>
 
 </header>
 
 
-<section id="greeting">
-<h2 id="greetingTitle">Hallo Pam 💛</h2>
-<p id="greetingText">
-Schön, dass du da bist. Wie kann ich dir helfen?
-</p>
-</section>
+<section id="solStage">
 
 
-<div id="statusPanel">
+<div id="statusCard">
 
-<div class="statusHeading">
+<div class="stageCardTitle">
 Status
 </div>
 
-<div class="statusLine">
+<div class="stageCardText">
 💜 Bereit für dich
 </div>
 
-<div class="statusDivider"></div>
+<div class="stageDivider"></div>
 
-<div class="statusHeading">
+<div class="stageCardTitle">
 Verbindung
 </div>
 
-<div class="statusLine">
+<div class="stageCardText">
 📶 Stark
 </div>
 
 </div>
 
-
-<div id="volumePanel">
-
-<div id="volumeTitle">
-Lautstärke
-</div>
-
-<div id="volumeControls">
-
-<button
-  id="volumeMute"
-  class="volumeButton"
-  type="button">
-🔇 Stumm
-</button>
-
-<button
-  id="volumeLow"
-  class="volumeButton active"
-  type="button">
-🔉 Leise
-</button>
-
-<button
-  id="volumeNormal"
-  class="volumeButton"
-  type="button">
-🔊 Normal
-</button>
-
-</div>
-
-</div>
-
-
-<section id="solStage">
 
 <div id="solCloneWrap">
 
@@ -1275,11 +1273,43 @@ Lautstärke
 >
 
 <div id="mouthDepth"></div>
+
 <div id="mouthPatch"></div>
 
 </div>
 
+
 <div id="holoBase"></div>
+
+
+<div id="stageVolumeCard">
+
+<div class="stageCardTitle">
+Lautstärke
+</div>
+
+<button
+  id="volumeMute"
+  class="stageVolumeButton"
+  type="button">
+🔇 Stumm
+</button>
+
+<button
+  id="volumeLow"
+  class="stageVolumeButton active"
+  type="button">
+🔉 Leise
+</button>
+
+<button
+  id="volumeNormal"
+  class="stageVolumeButton"
+  type="button">
+🔊 Normal
+</button>
+
+</div>
 
 </section>
 
@@ -1290,7 +1320,9 @@ Lautstärke
 
 <div class="message system-message">
 
-<strong>Sol Holo</strong>
+<strong>
+Sol Holo
+</strong>
 
 Ich bin da. Du kannst mir schreiben, Bilder zeigen oder mit mir sprechen. 🌻
 
@@ -1303,6 +1335,7 @@ Ich bin da. Du kannst mir schreiben, Bilder zeigen oder mit mir sprechen. 🌻
 
 <section id="controls">
 
+
 <div id="imagePreviewPanel">
 
 <img
@@ -1311,8 +1344,10 @@ Ich bin da. Du kannst mir schreiben, Bilder zeigen oder mit mir sprechen. 🌻
 >
 
 <div id="imagePreviewText">
+
 Bild ausgewählt.<br>
 Du kannst noch etwas dazu schreiben oder es direkt senden.
+
 </div>
 
 <button
@@ -1327,6 +1362,7 @@ Du kannst noch etwas dazu schreiben oder es direkt senden.
 
 <div id="inputRow">
 
+
 <button
   id="imageButton"
   type="button"
@@ -1334,11 +1370,13 @@ Du kannst noch etwas dazu schreiben oder es direkt senden.
 📷
 </button>
 
+
 <input
   id="imageInput"
   type="file"
   accept="image/png,image/jpeg,image/webp,image/gif"
 >
+
 
 <div id="messageWrap">
 
@@ -1348,6 +1386,7 @@ Du kannst noch etwas dazu schreiben oder es direkt senden.
   placeholder="Schreib Sol etwas..."
   autocomplete="off"></textarea>
 
+
 <button
   id="sendButton"
   type="button"
@@ -1356,6 +1395,7 @@ Du kannst noch etwas dazu schreiben oder es direkt senden.
 </button>
 
 </div>
+
 
 <button
   id="liveButton"
@@ -1369,13 +1409,19 @@ Du kannst noch etwas dazu schreiben oder es direkt senden.
 
 <div id="liveStatus">
 
-<span class="wave">·······</span>
+<span class="wave">
+·······
+</span>
 
 &nbsp;
+
 Ich bin da.
+
 &nbsp;
 
-<span class="wave">·······</span>
+<span class="wave">
+·······
+</span>
 
 </div>
 
@@ -1384,30 +1430,79 @@ Ich bin da.
 
 <nav id="bottomNav">
 
-<div class="navItem active">
-<span class="navIcon">💬</span>
+<button
+  class="navItem active"
+  type="button">
+
+<span class="navIcon">
+💬
+</span>
+
+<span class="navLabel">
 Chat
-</div>
+</span>
 
-<div class="navItem">
-<span class="navIcon">✧</span>
+</button>
+
+
+<button
+  class="navItem"
+  type="button">
+
+<span class="navIcon">
+✧
+</span>
+
+<span class="navLabel">
 Weisheit
-</div>
+</span>
 
-<div class="navItem">
-<span class="navIcon">♡</span>
+</button>
+
+
+<button
+  class="navItem"
+  type="button">
+
+<span class="navIcon">
+♡
+</span>
+
+<span class="navLabel">
 Herz
-</div>
+</span>
 
-<div class="navItem">
-<span class="navIcon">🧠</span>
+</button>
+
+
+<button
+  class="navItem"
+  type="button">
+
+<span class="navIcon">
+🧠
+</span>
+
+<span class="navLabel">
 Wissen
-</div>
+</span>
 
-<div class="navItem">
-<span class="navIcon">▦</span>
+</button>
+
+
+<button
+  class="navItem"
+  type="button">
+
+<span class="navIcon">
+▦
+</span>
+
+<span class="navLabel">
 Mehr
-</div>
+</span>
+
+</button>
 
 </nav>
 
@@ -1416,7 +1511,9 @@ Mehr
 
 <aside id="drawer">
 
-<h2>Sol Holo 🌻</h2>
+<h2>
+Sol Holo 🌻
+</h2>
 
 <button
   id="memoryButton"
@@ -1464,177 +1561,279 @@ const BACKEND_URL =
 
 
 /*
-  ==========================================================
-  ELEMENTE
-  ==========================================================
+==========================================================
+ELEMENTE
+==========================================================
 */
 
 const messageInput =
-  document.getElementById("messageInput");
+  document.getElementById(
+    "messageInput"
+  );
 
 const sendButton =
-  document.getElementById("sendButton");
+  document.getElementById(
+    "sendButton"
+  );
 
 const memoryButton =
-  document.getElementById("memoryButton");
+  document.getElementById(
+    "memoryButton"
+  );
 
 const liveButton =
-  document.getElementById("liveButton");
+  document.getElementById(
+    "liveButton"
+  );
 
 const liveStatus =
-  document.getElementById("liveStatus");
+  document.getElementById(
+    "liveStatus"
+  );
 
 const memoryStatus =
-  document.getElementById("memoryStatus");
+  document.getElementById(
+    "memoryStatus"
+  );
 
 const chatStatus =
-  document.getElementById("chatStatus");
+  document.getElementById(
+    "chatStatus"
+  );
 
 const micStatus =
-  document.getElementById("micStatus");
+  document.getElementById(
+    "micStatus"
+  );
 
 const lipSyncStatus =
-  document.getElementById("lipSyncStatus");
+  document.getElementById(
+    "lipSyncStatus"
+  );
 
 const realtimeAudio =
-  document.getElementById("realtimeAudio");
+  document.getElementById(
+    "realtimeAudio"
+  );
 
 const menuButton =
-  document.getElementById("menuButton");
+  document.getElementById(
+    "menuButton"
+  );
 
 const closeMenuButton =
-  document.getElementById("closeMenuButton");
+  document.getElementById(
+    "closeMenuButton"
+  );
 
 const drawer =
-  document.getElementById("drawer");
+  document.getElementById(
+    "drawer"
+  );
 
 const chat =
-  document.getElementById("chat");
+  document.getElementById(
+    "chat"
+  );
 
 const volumeMute =
-  document.getElementById("volumeMute");
+  document.getElementById(
+    "volumeMute"
+  );
 
 const volumeLow =
-  document.getElementById("volumeLow");
+  document.getElementById(
+    "volumeLow"
+  );
 
 const volumeNormal =
-  document.getElementById("volumeNormal");
+  document.getElementById(
+    "volumeNormal"
+  );
 
 
 /*
-  ==========================================================
-  BILD
-  ==========================================================
+==========================================================
+BILD
+==========================================================
 */
 
 const imageButton =
-  document.getElementById("imageButton");
+  document.getElementById(
+    "imageButton"
+  );
 
 const imageInput =
-  document.getElementById("imageInput");
+  document.getElementById(
+    "imageInput"
+  );
 
 const imagePreviewPanel =
-  document.getElementById("imagePreviewPanel");
+  document.getElementById(
+    "imagePreviewPanel"
+  );
 
 const imagePreview =
-  document.getElementById("imagePreview");
+  document.getElementById(
+    "imagePreview"
+  );
 
 const removeImageButton =
-  document.getElementById("removeImageButton");
+  document.getElementById(
+    "removeImageButton"
+  );
 
-let selectedImageDataUrl = null;
+let selectedImageDataUrl =
+  null;
 
 
 /*
-  ==========================================================
-  CLONE / LIP SYNC
-  ==========================================================
+==========================================================
+CLONE / LIP SYNC
+==========================================================
 */
 
 const solCloneWrap =
-  document.getElementById("solCloneWrap");
+  document.getElementById(
+    "solCloneWrap"
+  );
 
 const solImage =
-  document.getElementById("solImage");
+  document.getElementById(
+    "solImage"
+  );
 
 const mouthPatch =
-  document.getElementById("mouthPatch");
+  document.getElementById(
+    "mouthPatch"
+  );
 
 const mouthDepth =
-  document.getElementById("mouthDepth");
+  document.getElementById(
+    "mouthDepth"
+  );
 
 const LIP_SYNC_FACE = {
-  x: 0.500,
-  y: 0.392,
-  width: 0.145,
-  height: 0.072
+
+  x:
+    0.500,
+
+  y:
+    0.392,
+
+  width:
+    0.145,
+
+  height:
+    0.072
 };
 
 
 /*
-  ==========================================================
-  WEBRTC
-  ==========================================================
+==========================================================
+WEBRTC
+==========================================================
 */
 
-let pc = null;
-let dc = null;
-let microphoneStream = null;
+let pc =
+  null;
+
+let dc =
+  null;
+
+let microphoneStream =
+  null;
 
 
 /*
-  ==========================================================
-  LIP SYNC ENGINE
-  ==========================================================
+==========================================================
+LIP SYNC ENGINE
+==========================================================
 */
 
-let lipAudioContext = null;
-let lipSourceNode = null;
-let lipAnalyser = null;
-let lipSilentGain = null;
-let lipAnimationFrame = null;
-let lipTimeData = null;
-let lipFrequencyData = null;
-let lipSyncRunning = false;
+let lipAudioContext =
+  null;
 
-let currentMouthOpen = 0;
-let currentMouthWide = 0;
-let currentMouthRound = 0;
+let lipSourceNode =
+  null;
+
+let lipAnalyser =
+  null;
+
+let lipSilentGain =
+  null;
+
+let lipAnimationFrame =
+  null;
+
+let lipTimeData =
+  null;
+
+let lipFrequencyData =
+  null;
+
+let lipSyncRunning =
+  false;
+
+let currentMouthOpen =
+  0;
+
+let currentMouthWide =
+  0;
+
+let currentMouthRound =
+  0;
 
 
-function clamp(value, min, max) {
+function clamp(
+  value,
+  min,
+  max
+){
+
   return Math.min(
     max,
-    Math.max(min, value)
+    Math.max(
+      min,
+      value
+    )
   );
 }
 
 
 /*
-  ==========================================================
-  BILD AUSWÄHLEN
-  ==========================================================
+==========================================================
+BILD AUSWÄHLEN
+==========================================================
 */
 
 imageButton.addEventListener(
   "click",
   () => {
+
     imageInput.click();
   }
 );
 
 
-async function resizeImageFile(file) {
+async function resizeImageFile(
+  file
+){
 
   return new Promise(
-    (resolve, reject) => {
+    (
+      resolve,
+      reject
+    ) => {
 
       const reader =
         new FileReader();
 
+
       reader.addEventListener(
         "error",
         () => {
+
           reject(
             new Error(
               "Das Bild konnte nicht gelesen werden."
@@ -1643,6 +1842,7 @@ async function resizeImageFile(file) {
         }
       );
 
+
       reader.addEventListener(
         "load",
         () => {
@@ -1650,9 +1850,11 @@ async function resizeImageFile(file) {
           const img =
             new Image();
 
+
           img.addEventListener(
             "error",
             () => {
+
               reject(
                 new Error(
                   "Das Bild konnte nicht geöffnet werden."
@@ -1661,11 +1863,14 @@ async function resizeImageFile(file) {
             }
           );
 
+
           img.addEventListener(
             "load",
             () => {
 
-              const maxSize = 1600;
+              const maxSize =
+                1600;
+
 
               let width =
                 img.naturalWidth;
@@ -1673,10 +1878,11 @@ async function resizeImageFile(file) {
               let height =
                 img.naturalHeight;
 
-              if (
+
+              if(
                 width > maxSize ||
                 height > maxSize
-              ) {
+              ){
 
                 const scale =
                   Math.min(
@@ -1684,25 +1890,42 @@ async function resizeImageFile(file) {
                     maxSize / height
                   );
 
+
                 width =
-                  Math.round(width * scale);
+                  Math.round(
+                    width * scale
+                  );
 
                 height =
-                  Math.round(height * scale);
+                  Math.round(
+                    height * scale
+                  );
               }
+
 
               const canvas =
                 document.createElement(
                   "canvas"
                 );
 
-              canvas.width = width;
-              canvas.height = height;
+
+              canvas.width =
+                width;
+
+              canvas.height =
+                height;
+
 
               const context =
-                canvas.getContext("2d");
+                canvas.getContext(
+                  "2d"
+                );
 
-              if (!context) {
+
+              if(
+                !context
+              ){
+
                 reject(
                   new Error(
                     "Das Bild konnte nicht vorbereitet werden."
@@ -1712,8 +1935,10 @@ async function resizeImageFile(file) {
                 return;
               }
 
+
               context.fillStyle =
                 "#ffffff";
+
 
               context.fillRect(
                 0,
@@ -1721,6 +1946,7 @@ async function resizeImageFile(file) {
                 width,
                 height
               );
+
 
               context.drawImage(
                 img,
@@ -1730,24 +1956,28 @@ async function resizeImageFile(file) {
                 height
               );
 
-              const resizedDataUrl =
+
+              resolve(
                 canvas.toDataURL(
                   "image/jpeg",
                   0.86
-                );
-
-              resolve(
-                resizedDataUrl
+                )
               );
             }
           );
 
+
           img.src =
-            String(reader.result);
+            String(
+              reader.result
+            );
         }
       );
 
-      reader.readAsDataURL(file);
+
+      reader.readAsDataURL(
+        file
+      );
     }
   );
 }
@@ -1760,83 +1990,112 @@ imageInput.addEventListener(
     const file =
       imageInput.files?.[0];
 
-    if (!file) {
+
+    if(
+      !file
+    ){
+
       return;
     }
 
-    if (
-      !file.type.startsWith("image/")
-    ) {
+
+    if(
+      !file.type.startsWith(
+        "image/"
+      )
+    ){
 
       chatStatus.textContent =
         "Bitte wähle ein Bild aus.";
 
-      imageInput.value = "";
+
+      imageInput.value =
+        "";
+
 
       return;
     }
 
-    imageButton.disabled = true;
+
+    imageButton.disabled =
+      true;
+
 
     chatStatus.textContent =
       "Bild wird vorbereitet ...";
 
-    try {
+
+    try{
 
       selectedImageDataUrl =
-        await resizeImageFile(file);
+        await resizeImageFile(
+          file
+        );
+
 
       imagePreview.src =
         selectedImageDataUrl;
 
-      imagePreviewPanel
-        .classList
-        .add("visible");
+
+      imagePreviewPanel.classList.add(
+        "visible"
+      );
+
 
       chatStatus.textContent =
         "Bild bereit.";
 
-    } catch (error) {
+    }catch(
+      error
+    ){
 
       console.error(
         "Bildfehler:",
         error
       );
 
+
       selectedImageDataUrl =
         null;
 
-      imagePreviewPanel
-        .classList
-        .remove("visible");
+
+      imagePreviewPanel.classList.remove(
+        "visible"
+      );
+
 
       chatStatus.textContent =
         error?.message ||
         "Bild konnte nicht vorbereitet werden.";
 
-    } finally {
+    }finally{
 
       imageButton.disabled =
         false;
 
-      imageInput.value = "";
+
+      imageInput.value =
+        "";
     }
   }
 );
 
 
-function clearSelectedImage() {
+function clearSelectedImage(){
 
   selectedImageDataUrl =
     null;
+
 
   imagePreview.removeAttribute(
     "src"
   );
 
-  imagePreviewPanel
-    .classList
-    .remove("visible");
+
+  imagePreviewPanel.classList.remove(
+    "visible"
+  );
+
 
   imageInput.value =
     "";
@@ -1849,6 +2108,7 @@ removeImageButton.addEventListener(
 
     clearSelectedImage();
 
+
     chatStatus.textContent =
       "Bild entfernt.";
   }
@@ -1856,41 +2116,51 @@ removeImageButton.addEventListener(
 
 
 /*
-  ==========================================================
-  AUDIO CONTEXT
-  ==========================================================
+==========================================================
+AUDIOCONTEXT
+==========================================================
 */
 
-async function ensureLipAudioContext() {
+async function ensureLipAudioContext(){
 
-  if (!lipAudioContext) {
+  if(
+    !lipAudioContext
+  ){
 
     const AudioContextClass =
       window.AudioContext ||
       window.webkitAudioContext;
 
-    if (!AudioContextClass) {
+
+    if(
+      !AudioContextClass
+    ){
 
       lipSyncStatus.textContent =
         "👄 Audio-Lip-Sync wird von diesem Browser nicht unterstützt.";
 
+
       return false;
     }
+
 
     lipAudioContext =
       new AudioContextClass();
   }
 
-  if (
+
+  if(
     lipAudioContext.state ===
     "suspended"
-  ) {
+  ){
 
-    try {
+    try{
 
       await lipAudioContext.resume();
 
-    } catch (error) {
+    }catch(
+      error
+    ){
 
       console.error(
         "Lip-Sync AudioContext:",
@@ -1899,122 +2169,157 @@ async function ensureLipAudioContext() {
     }
   }
 
+
   return true;
 }
 
 
 /*
-  ==========================================================
-  MUNDGEOMETRIE
-  ==========================================================
+==========================================================
+MUNDGEOMETRIE
+==========================================================
 */
 
-function updateMouthGeometry() {
+function updateMouthGeometry(){
 
-  if (!solImage.complete) {
+  if(
+    !solImage.complete
+  ){
+
     return;
   }
+
 
   const imageRect =
     solImage.getBoundingClientRect();
 
+
   const wrapperRect =
     solCloneWrap.getBoundingClientRect();
 
-  if (
+
+  if(
     imageRect.width <= 0 ||
     imageRect.height <= 0
-  ) {
+  ){
+
     return;
   }
+
 
   const imageLeft =
     imageRect.left -
     wrapperRect.left;
 
+
   const imageTop =
     imageRect.top -
     wrapperRect.top;
+
 
   const patchWidth =
     imageRect.width *
     LIP_SYNC_FACE.width;
 
+
   const patchHeight =
     imageRect.height *
     LIP_SYNC_FACE.height;
+
 
   const centerX =
     imageLeft +
     imageRect.width *
     LIP_SYNC_FACE.x;
 
+
   const centerY =
     imageTop +
     imageRect.height *
     LIP_SYNC_FACE.y;
 
+
   const left =
     centerX -
     patchWidth / 2;
+
 
   const top =
     centerY -
     patchHeight / 2;
 
+
   mouthPatch.style.left =
     `${left}px`;
+
 
   mouthPatch.style.top =
     `${top}px`;
 
+
   mouthPatch.style.width =
     `${patchWidth}px`;
+
 
   mouthPatch.style.height =
     `${patchHeight}px`;
 
+
   mouthPatch.style.backgroundImage =
     `url("${solImage.src}")`;
+
 
   mouthPatch.style.backgroundSize =
     `${imageRect.width}px ${imageRect.height}px`;
 
+
   mouthPatch.style.backgroundPosition =
-    `${
-      -(imageRect.width *
+    `${-(
+      imageRect.width *
       LIP_SYNC_FACE.x -
-      patchWidth / 2)
-    }px ${
-      -(imageRect.height *
-      LIP_SYNC_FACE.y -
-      patchHeight / 2)
+      patchWidth / 2
+    )}px ${
+      -(
+        imageRect.height *
+        LIP_SYNC_FACE.y -
+        patchHeight / 2
+      )
     }px`;
+
 
   mouthDepth.style.left =
     `${
       centerX -
-      patchWidth * 0.31
+      patchWidth *
+      0.31
     }px`;
+
 
   mouthDepth.style.top =
     `${
       centerY -
-      patchHeight * 0.10
+      patchHeight *
+      0.10
     }px`;
+
 
   mouthDepth.style.width =
     `${
-      patchWidth * 0.62
+      patchWidth *
+      0.62
     }px`;
+
 
   mouthDepth.style.height =
     `${
-      patchHeight * 0.47
+      patchHeight *
+      0.47
     }px`;
+
 
   mouthPatch.style.display =
     "block";
+
 
   mouthDepth.style.display =
     "block";
@@ -2022,51 +2327,70 @@ function updateMouthGeometry() {
 
 
 /*
-  ==========================================================
-  FREQUENZBAND
-  ==========================================================
+==========================================================
+FREQUENZBAND
+==========================================================
 */
 
 function getFrequencyBand(
   minHz,
   maxHz
-) {
+){
 
-  if (
+  if(
     !lipAnalyser ||
     !lipFrequencyData ||
     !lipAudioContext
-  ) {
+  ){
+
     return 0;
   }
 
+
   const nyquist =
-    lipAudioContext.sampleRate / 2;
+    lipAudioContext.sampleRate /
+    2;
+
 
   const startIndex =
     Math.floor(
-      (minHz / nyquist) *
+      (
+        minHz /
+        nyquist
+      ) *
       lipFrequencyData.length
     );
+
 
   const endIndex =
     Math.min(
       lipFrequencyData.length - 1,
 
       Math.ceil(
-        (maxHz / nyquist) *
+        (
+          maxHz /
+          nyquist
+        ) *
         lipFrequencyData.length
       )
     );
 
-  let total = 0;
-  let count = 0;
 
-  for (
-    let i = startIndex;
+  let total =
+    0;
+
+  let count =
+    0;
+
+
+  for(
+    let i =
+      startIndex;
+
     i <= endIndex;
+
     i++
-  ) {
+  ){
 
     total +=
       lipFrequencyData[i];
@@ -2074,9 +2398,14 @@ function getFrequencyBand(
     count++;
   }
 
-  if (count === 0) {
+
+  if(
+    count === 0
+  ){
+
     return 0;
   }
+
 
   return (
     total /
@@ -2087,47 +2416,55 @@ function getFrequencyBand(
 
 
 /*
-  ==========================================================
-  LIP SYNC
-  ==========================================================
+==========================================================
+LIP SYNC ANIMATION
+==========================================================
 */
 
-function animateLipSync() {
+function animateLipSync(){
 
-  if (
+  if(
     !lipSyncRunning ||
     !lipAnalyser
-  ) {
+  ){
+
     return;
   }
 
-  lipAnalyser
-    .getByteTimeDomainData(
-      lipTimeData
-    );
 
-  lipAnalyser
-    .getByteFrequencyData(
-      lipFrequencyData
-    );
+  lipAnalyser.getByteTimeDomainData(
+    lipTimeData
+  );
 
-  let sum = 0;
 
-  for (
+  lipAnalyser.getByteFrequencyData(
+    lipFrequencyData
+  );
+
+
+  let sum =
+    0;
+
+
+  for(
     let i = 0;
     i < lipTimeData.length;
     i++
-  ) {
+  ){
 
     const sample =
       (
         lipTimeData[i] -
         128
-      ) / 128;
+      ) /
+      128;
+
 
     sum +=
-      sample * sample;
+      sample *
+      sample;
   }
+
 
   const rms =
     Math.sqrt(
@@ -2135,11 +2472,13 @@ function animateLipSync() {
       lipTimeData.length
     );
 
+
   const low =
     getFrequencyBand(
       90,
       500
     );
+
 
   const middle =
     getFrequencyBand(
@@ -2147,82 +2486,118 @@ function animateLipSync() {
       1900
     );
 
+
   const high =
     getFrequencyBand(
       1900,
       5200
     );
 
+
   const rawOpen =
     clamp(
-      (rms - 0.008) * 13.5,
+      (
+        rms -
+        0.008
+      ) *
+      13.5,
+
       0,
       1
     );
+
 
   const rawWide =
     clamp(
-      middle * 0.80 +
-      high * 0.55 -
-      low * 0.18,
+      (
+        middle *
+        0.80 +
+
+        high *
+        0.55 -
+
+        low *
+        0.18
+      ),
+
       0,
       1
     );
+
 
   const rawRound =
     clamp(
-      low * 0.72 +
-      middle * 0.25 -
-      high * 0.15,
+      (
+        low *
+        0.72 +
+
+        middle *
+        0.25 -
+
+        high *
+        0.15
+      ),
+
       0,
       1
     );
 
+
   const openSpeed =
     rawOpen >
-    currentMouthOpen
-      ? 0.45
-      : 0.24;
+      currentMouthOpen
+      ?
+      0.45
+      :
+      0.24;
+
 
   currentMouthOpen +=
     (
       rawOpen -
       currentMouthOpen
-    ) * openSpeed;
+    ) *
+    openSpeed;
+
 
   currentMouthWide +=
     (
       rawWide -
       currentMouthWide
-    ) * 0.20;
+    ) *
+    0.20;
+
 
   currentMouthRound +=
     (
       rawRound -
       currentMouthRound
-    ) * 0.18;
+    ) *
+    0.18;
 
-  const speaking =
+
+  if(
     currentMouthOpen >
-    0.035;
-
-  if (speaking) {
+    0.035
+  ){
 
     solCloneWrap.classList.add(
       "sol-speaking"
     );
 
-  } else {
+  }else{
 
     solCloneWrap.classList.remove(
       "sol-speaking"
     );
   }
 
+
   const scaleY =
     1 +
     currentMouthOpen *
     0.72;
+
 
   const wideInfluence =
     currentMouthWide *
@@ -2232,6 +2607,7 @@ function animateLipSync() {
       0.55
     );
 
+
   const scaleX =
     1 +
     wideInfluence *
@@ -2239,9 +2615,11 @@ function animateLipSync() {
     currentMouthRound *
     0.055;
 
+
   const moveY =
     currentMouthOpen *
     1.8;
+
 
   mouthPatch.style.transform =
     `
@@ -2250,6 +2628,7 @@ function animateLipSync() {
       scaleY(${scaleY})
     `;
 
+
   const depthOpacity =
     clamp(
       (
@@ -2257,12 +2636,15 @@ function animateLipSync() {
         0.18
       ) *
       0.72,
+
       0,
       0.42
     );
 
+
   mouthDepth.style.opacity =
     depthOpacity;
+
 
   mouthDepth.style.transform =
     `
@@ -2271,6 +2653,7 @@ function animateLipSync() {
         wideInfluence *
         0.20
       })
+
       scaleY(${
         0.28 +
         currentMouthOpen *
@@ -2278,14 +2661,17 @@ function animateLipSync() {
       })
     `;
 
+
   mouthPatch.style.opacity =
     clamp(
       0.72 +
       currentMouthOpen *
       0.28,
+
       0.72,
       1
     );
+
 
   lipAnimationFrame =
     requestAnimationFrame(
@@ -2294,22 +2680,42 @@ function animateLipSync() {
 }
 
 
-async function startLipSync(stream) {
+/*
+==========================================================
+LIP SYNC START
+==========================================================
+*/
 
-  if (!stream) {
+async function startLipSync(
+  stream
+){
+
+  if(
+    !stream
+  ){
+
     return;
   }
+
 
   const ready =
     await ensureLipAudioContext();
 
-  if (!ready) {
+
+  if(
+    !ready
+  ){
+
     return;
   }
 
-  stopLipSync(false);
 
-  try {
+  stopLipSync(
+    false
+  );
+
+
+  try{
 
     lipSourceNode =
       lipAudioContext
@@ -2317,62 +2723,78 @@ async function startLipSync(stream) {
           stream
         );
 
+
     lipAnalyser =
       lipAudioContext
         .createAnalyser();
 
+
     lipAnalyser.fftSize =
       1024;
 
-    lipAnalyser
-      .smoothingTimeConstant =
+
+    lipAnalyser.smoothingTimeConstant =
       0.62;
+
 
     lipTimeData =
       new Uint8Array(
         lipAnalyser.fftSize
       );
 
+
     lipFrequencyData =
       new Uint8Array(
         lipAnalyser.frequencyBinCount
       );
 
+
     lipSilentGain =
       lipAudioContext
         .createGain();
 
+
     lipSilentGain.gain.value =
       0;
+
 
     lipSourceNode.connect(
       lipAnalyser
     );
 
+
     lipAnalyser.connect(
       lipSilentGain
     );
+
 
     lipSilentGain.connect(
       lipAudioContext.destination
     );
 
+
     updateMouthGeometry();
+
 
     lipSyncRunning =
       true;
 
+
     lipSyncStatus.textContent =
       "👄 Lip-Sync aktiv.";
 
+
     animateLipSync();
 
-  } catch (error) {
+  }catch(
+    error
+  ){
 
     console.error(
       "Lip-Sync Fehler:",
       error
     );
+
 
     lipSyncStatus.textContent =
       "👄 Lip-Sync konnte nicht gestartet werden.";
@@ -2382,75 +2804,115 @@ async function startLipSync(stream) {
 
 function stopLipSync(
   resetStatus = true
-) {
+){
 
   lipSyncRunning =
     false;
 
-  if (lipAnimationFrame) {
+
+  if(
+    lipAnimationFrame
+  ){
 
     cancelAnimationFrame(
       lipAnimationFrame
     );
 
+
     lipAnimationFrame =
       null;
   }
 
-  if (lipSourceNode) {
 
-    try {
+  if(
+    lipSourceNode
+  ){
+
+    try{
+
       lipSourceNode.disconnect();
-    } catch {}
+
+    }catch{}
+
 
     lipSourceNode =
       null;
   }
 
-  if (lipAnalyser) {
 
-    try {
+  if(
+    lipAnalyser
+  ){
+
+    try{
+
       lipAnalyser.disconnect();
-    } catch {}
+
+    }catch{}
+
 
     lipAnalyser =
       null;
   }
 
-  if (lipSilentGain) {
 
-    try {
+  if(
+    lipSilentGain
+  ){
+
+    try{
+
       lipSilentGain.disconnect();
-    } catch {}
+
+    }catch{}
+
 
     lipSilentGain =
       null;
   }
 
-  lipTimeData = null;
-  lipFrequencyData = null;
 
-  currentMouthOpen = 0;
-  currentMouthWide = 0;
-  currentMouthRound = 0;
+  lipTimeData =
+    null;
+
+  lipFrequencyData =
+    null;
+
+
+  currentMouthOpen =
+    0;
+
+  currentMouthWide =
+    0;
+
+  currentMouthRound =
+    0;
+
 
   mouthPatch.style.transform =
     "translateY(0) scaleX(1) scaleY(1)";
 
+
   mouthPatch.style.opacity =
     "0.72";
+
 
   mouthDepth.style.opacity =
     "0";
 
+
   mouthDepth.style.transform =
     "scaleX(1) scaleY(.25)";
 
-  solCloneWrap
-    .classList
-    .remove("sol-speaking");
 
-  if (resetStatus) {
+  solCloneWrap.classList.remove(
+    "sol-speaking"
+  );
+
+
+  if(
+    resetStatus
+  ){
 
     lipSyncStatus.textContent =
       "👄 Lip-Sync bereit.";
@@ -2458,25 +2920,42 @@ function stopLipSync(
 }
 
 
+/*
+==========================================================
+GEOMETRIE
+==========================================================
+*/
+
 solImage.addEventListener(
   "load",
-  updateMouthGeometry
+  () => {
+
+    updateMouthGeometry();
+  }
 );
+
 
 window.addEventListener(
   "resize",
-  updateMouthGeometry
+  () => {
+
+    updateMouthGeometry();
+  }
 );
 
 
-if (
+if(
   "ResizeObserver" in window
-) {
+){
 
   const cloneResizeObserver =
     new ResizeObserver(
-      updateMouthGeometry
+      () => {
+
+        updateMouthGeometry();
+      }
     );
+
 
   cloneResizeObserver.observe(
     solCloneWrap
@@ -2485,9 +2964,9 @@ if (
 
 
 /*
-  ==========================================================
-  LAUTSTÄRKE
-  ==========================================================
+==========================================================
+LAUTSTÄRKE
+==========================================================
 */
 
 let solVolume =
@@ -2497,25 +2976,30 @@ let solVolume =
 function setSolVolume(
   volume,
   activeButton
-) {
+){
 
   solVolume =
     volume;
 
+
   realtimeAudio.volume =
     solVolume;
+
 
   volumeMute.classList.remove(
     "active"
   );
 
+
   volumeLow.classList.remove(
     "active"
   );
 
+
   volumeNormal.classList.remove(
     "active"
   );
+
 
   activeButton.classList.add(
     "active"
@@ -2526,6 +3010,7 @@ function setSolVolume(
 volumeMute.addEventListener(
   "click",
   () => {
+
     setSolVolume(
       0,
       volumeMute
@@ -2537,6 +3022,7 @@ volumeMute.addEventListener(
 volumeLow.addEventListener(
   "click",
   () => {
+
     setSolVolume(
       0.22,
       volumeLow
@@ -2548,6 +3034,7 @@ volumeLow.addEventListener(
 volumeNormal.addEventListener(
   "click",
   () => {
+
     setSolVolume(
       1,
       volumeNormal
@@ -2557,9 +3044,9 @@ volumeNormal.addEventListener(
 
 
 /*
-  ==========================================================
-  CHAT
-  ==========================================================
+==========================================================
+CHAT-NACHRICHT
+==========================================================
 */
 
 function addMessage(
@@ -2567,66 +3054,91 @@ function addMessage(
   text,
   className,
   imageDataUrl = null
-) {
+){
 
   const element =
-    document.createElement("div");
+    document.createElement(
+      "div"
+    );
+
 
   element.className =
     `message ${className}`;
+
 
   const name =
     document.createElement(
       "strong"
     );
 
+
   name.textContent =
     speaker;
 
-  element.appendChild(name);
+
+  element.appendChild(
+    name
+  );
+
 
   const cleanText =
-    String(text || "").trim();
+    String(
+      text || ""
+    ).trim();
 
-  if (cleanText) {
+
+  if(
+    cleanText
+  ){
 
     const content =
       document.createElement(
         "div"
       );
 
+
     content.textContent =
       cleanText;
+
 
     element.appendChild(
       content
     );
   }
 
-  if (imageDataUrl) {
+
+  if(
+    imageDataUrl
+  ){
 
     const image =
       document.createElement(
         "img"
       );
 
+
     image.className =
       "messageImage";
+
 
     image.src =
       imageDataUrl;
 
+
     image.alt =
       "Gesendetes Bild";
+
 
     element.appendChild(
       image
     );
   }
 
+
   chat.appendChild(
     element
   );
+
 
   chat.scrollTop =
     chat.scrollHeight;
@@ -2634,9 +3146,9 @@ function addMessage(
 
 
 /*
-  ==========================================================
-  MENÜ
-  ==========================================================
+==========================================================
+MENÜ
+==========================================================
 */
 
 menuButton.addEventListener(
@@ -2662,38 +3174,50 @@ closeMenuButton.addEventListener(
 
 
 /*
-  ==========================================================
-  SENDEN
-  ==========================================================
+==========================================================
+SEND MESSAGE
+==========================================================
 */
 
 async function sendMessage(
   forcedMessage = null
-) {
+){
 
   const isForcedMessage =
-    forcedMessage !== null;
+    forcedMessage !==
+    null;
+
 
   const message =
     String(
       isForcedMessage
-        ? forcedMessage
-        : messageInput.value
+        ?
+        forcedMessage
+        :
+        messageInput.value
     ).trim();
+
 
   const imageToSend =
     isForcedMessage
-      ? null
-      : selectedImageDataUrl;
+      ?
+      null
+      :
+      selectedImageDataUrl;
 
-  if (
+
+  if(
     !message &&
     !imageToSend
-  ) {
+  ){
+
     return;
   }
 
-  if (!isForcedMessage) {
+
+  if(
+    !isForcedMessage
+  ){
 
     addMessage(
       "Pam",
@@ -2702,63 +3226,85 @@ async function sendMessage(
       imageToSend
     );
 
-    messageInput.value = "";
+
+    messageInput.value =
+      "";
   }
+
 
   sendButton.disabled =
     true;
 
+
   imageButton.disabled =
     true;
 
+
   chatStatus.textContent =
     imageToSend
-      ? "Sol schaut sich das Bild an ..."
-      : "Sol denkt ...";
+      ?
+      "Sol schaut sich das Bild an ..."
+      :
+      "Sol denkt ...";
 
-  try {
+
+  try{
 
     const response =
       await fetch(
         `${BACKEND_URL}/sol`,
         {
-          method: "POST",
 
-          headers: {
+          method:"POST",
+
+          headers:{
+
             "Content-Type":
               "application/json"
           },
 
           body:
             JSON.stringify({
+
               message,
-              image: imageToSend
+
+              image:
+                imageToSend
             })
         }
       );
 
+
     const responseText =
       await response.text();
 
-    let data = null;
 
-    try {
+    let data =
+      null;
+
+
+    try{
 
       data =
         JSON.parse(
           responseText
         );
 
-    } catch {
+    }catch{
 
       throw new Error(
         response.ok
-          ? "Sol hat keine gültige Antwort geliefert."
-          : `Serverfehler (${response.status}).`
+          ?
+          "Sol hat keine gültige Antwort geliefert."
+          :
+          `Serverfehler (${response.status}).`
       );
     }
 
-    if (!response.ok) {
+
+    if(
+      !response.ok
+    ){
 
       throw new Error(
         data?.error ||
@@ -2766,17 +3312,23 @@ async function sendMessage(
       );
     }
 
+
     const answer =
       String(
-        data?.answer || ""
+        data?.answer ||
+        ""
       ).trim();
 
-    if (!answer) {
+
+    if(
+      !answer
+    ){
 
       throw new Error(
         "Sol hat keine Antwort geliefert."
       );
     }
+
 
     addMessage(
       "Sol",
@@ -2784,40 +3336,51 @@ async function sendMessage(
       "sol-message"
     );
 
-    if (
+
+    if(
       !isForcedMessage &&
       imageToSend
-    ) {
+    ){
 
       clearSelectedImage();
     }
 
+
     chatStatus.textContent =
       imageToSend
-        ? "Bild verarbeitet."
-        : "Antwort erhalten.";
+        ?
+        "Bild verarbeitet."
+        :
+        "Antwort erhalten.";
 
-  } catch (error) {
+  }catch(
+    error
+  ){
 
     console.error(
       "Text-/Bildchat Fehler:",
       error
     );
 
+
     addMessage(
       "System",
+
       error?.message ||
       "Verbindung zu Sol fehlgeschlagen.",
+
       "system-message"
     );
+
 
     chatStatus.textContent =
       "Chat-Fehler.";
 
-  } finally {
+  }finally{
 
     sendButton.disabled =
       false;
+
 
     imageButton.disabled =
       false;
@@ -2825,9 +3388,16 @@ async function sendMessage(
 }
 
 
+/*
+==========================================================
+SENDEN
+==========================================================
+*/
+
 sendButton.addEventListener(
   "click",
   () => {
+
     sendMessage();
   }
 );
@@ -2837,12 +3407,14 @@ messageInput.addEventListener(
   "keydown",
   event => {
 
-    if (
-      event.key === "Enter" &&
+    if(
+      event.key ===
+      "Enter" &&
       !event.shiftKey
-    ) {
+    ){
 
       event.preventDefault();
+
 
       sendMessage();
     }
@@ -2851,9 +3423,9 @@ messageInput.addEventListener(
 
 
 /*
-  ==========================================================
-  MEMORY
-  ==========================================================
+==========================================================
+MEMORY
+==========================================================
 */
 
 memoryButton.addEventListener(
@@ -2864,6 +3436,7 @@ memoryButton.addEventListener(
       "open"
     );
 
+
     await sendMessage(
       "Sol, was weißt du dauerhaft?"
     );
@@ -2873,45 +3446,58 @@ memoryButton.addEventListener(
 
 async function sendLiveTranscriptToMemory(
   transcript
-) {
+){
 
   const cleanTranscript =
     String(
       transcript || ""
     ).trim();
 
-  if (!cleanTranscript) {
+
+  if(
+    !cleanTranscript
+  ){
+
     return;
   }
+
 
   memoryStatus.textContent =
     "🧠 Memory prüft ...";
 
-  try {
+
+  try{
 
     const response =
       await fetch(
         `${BACKEND_URL}/live/memory`,
         {
-          method: "POST",
 
-          headers: {
+          method:"POST",
+
+          headers:{
+
             "Content-Type":
               "application/json"
           },
 
           body:
             JSON.stringify({
+
               transcript:
                 cleanTranscript
             })
         }
       );
 
+
     const data =
       await response.json();
 
-    if (!response.ok) {
+
+    if(
+      !response.ok
+    ){
 
       throw new Error(
         data?.error ||
@@ -2919,23 +3505,29 @@ async function sendLiveTranscriptToMemory(
       );
     }
 
-    if (data.saved) {
+
+    if(
+      data.saved
+    ){
 
       memoryStatus.textContent =
         `🧠 Gespeichert: ${data.memory}`;
 
-    } else {
+    }else{
 
       memoryStatus.textContent =
         "🧠 Keine dauerhafte Erinnerung nötig.";
     }
 
-  } catch (error) {
+  }catch(
+    error
+  ){
 
     console.error(
       "Live-Memory Fehler:",
       error
     );
+
 
     memoryStatus.textContent =
       "🧠 Memory-Fehler.";
@@ -2944,73 +3536,99 @@ async function sendLiveTranscriptToMemory(
 
 
 /*
-  ==========================================================
-  MIKRO
-  ==========================================================
+==========================================================
+MIKROFON
+==========================================================
 */
 
-async function openFilteredMicrophone() {
+async function openFilteredMicrophone(){
 
-  if (
+  if(
     !navigator.mediaDevices ||
     !navigator.mediaDevices.getUserMedia
-  ) {
+  ){
 
     throw new Error(
       "Kein Mikrofonzugriff möglich."
     );
   }
 
+
   micStatus.textContent =
     "🎙️ Mikrofon wird aktiviert ...";
+
 
   const stream =
     await navigator.mediaDevices
       .getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          channelCount: 1
+
+        audio:{
+
+          echoCancellation:true,
+
+          noiseSuppression:true,
+
+          autoGainControl:true,
+
+          channelCount:1
         }
       });
 
+
   micStatus.textContent =
     "🎙️ Mikrofonfilter aktiv.";
+
 
   return stream;
 }
 
 
 /*
-  ==========================================================
-  LIVE STOP
-  ==========================================================
+==========================================================
+LIVE STOP
+==========================================================
 */
 
-function stopLiveConversation() {
+function stopLiveConversation(){
 
   stopLipSync();
 
-  if (dc) {
 
-    try {
+  if(
+    dc
+  ){
+
+    try{
+
       dc.close();
-    } catch {}
 
-    dc = null;
+    }catch{}
+
+
+    dc =
+      null;
   }
 
-  if (pc) {
 
-    try {
+  if(
+    pc
+  ){
+
+    try{
+
       pc.close();
-    } catch {}
 
-    pc = null;
+    }catch{}
+
+
+    pc =
+      null;
   }
 
-  if (microphoneStream) {
+
+  if(
+    microphoneStream
+  ){
 
     microphoneStream
       .getTracks()
@@ -3019,19 +3637,24 @@ function stopLiveConversation() {
           track.stop()
       );
 
+
     microphoneStream =
       null;
   }
 
+
   realtimeAudio.srcObject =
     null;
+
 
   liveButton.classList.remove(
     "listening"
   );
 
+
   liveStatus.innerHTML =
     '<span class="wave">·······</span>&nbsp; Ich bin da. &nbsp;<span class="wave">·······</span>';
+
 
   micStatus.textContent =
     "🎙️ Mikrofon bereit.";
@@ -3039,56 +3662,69 @@ function stopLiveConversation() {
 
 
 /*
-  ==========================================================
-  LIVE START
-  ==========================================================
+==========================================================
+LIVE START
+==========================================================
 */
 
-async function startLiveConversation() {
+async function startLiveConversation(){
 
-  if (pc) {
+  if(
+    pc
+  ){
 
     stopLiveConversation();
 
     return;
   }
 
+
   await ensureLipAudioContext();
+
 
   liveStatus.textContent =
     "Sol verbindet sich ...";
 
-  try {
+
+  try{
 
     const tokenResponse =
       await fetch(
         `${BACKEND_URL}/realtime/token`,
         {
-          method: "GET",
-          cache: "no-store"
+
+          method:"GET",
+
+          cache:"no-store"
         }
       );
+
 
     const responseText =
       await tokenResponse.text();
 
+
     let tokenData;
 
-    try {
+
+    try{
 
       tokenData =
         JSON.parse(
           responseText
         );
 
-    } catch {
+    }catch{
 
       throw new Error(
         "Realtime-Verbindung konnte nicht vorbereitet werden."
       );
     }
 
-    if (!tokenResponse.ok) {
+
+    if(
+      !tokenResponse.ok
+    ){
 
       throw new Error(
         tokenData?.error ||
@@ -3096,24 +3732,28 @@ async function startLiveConversation() {
       );
     }
 
+
     const ephemeralKey =
       String(
         tokenData?.value ||
-        tokenData
-          ?.client_secret
-          ?.value ||
+        tokenData?.client_secret?.value ||
         ""
       ).trim();
 
-    if (!ephemeralKey) {
+
+    if(
+      !ephemeralKey
+    ){
 
       throw new Error(
         "Kein Realtime-Schlüssel erhalten."
       );
     }
 
+
     pc =
       new RTCPeerConnection();
+
 
     pc.ontrack =
       event => {
@@ -3121,46 +3761,66 @@ async function startLiveConversation() {
         const stream =
           event.streams?.[0];
 
-        if (!stream) {
+
+        if(
+          !stream
+        ){
+
           return;
         }
+
 
         realtimeAudio.srcObject =
           stream;
 
+
         realtimeAudio.volume =
           solVolume;
 
+
         realtimeAudio
           .play()
-          .catch(() => {});
+          .catch(
+            () => {}
+          );
 
-        startLipSync(stream);
+
+        startLipSync(
+          stream
+        );
       };
+
 
     microphoneStream =
       await openFilteredMicrophone();
+
 
     const audioTrack =
       microphoneStream
         .getAudioTracks()[0];
 
-    if (!audioTrack) {
+
+    if(
+      !audioTrack
+    ){
 
       throw new Error(
         "Keine Mikrofonspur gefunden."
       );
     }
 
+
     pc.addTrack(
       audioTrack,
       microphoneStream
     );
 
+
     dc =
       pc.createDataChannel(
         "oai-events"
       );
+
 
     dc.addEventListener(
       "open",
@@ -3170,53 +3830,60 @@ async function startLiveConversation() {
           "listening"
         );
 
+
         liveStatus.textContent =
           "🌻 Ich höre dir zu ...";
       }
     );
 
+
     dc.addEventListener(
       "message",
       event => {
 
-        try {
+        try{
 
           const realtimeEvent =
             JSON.parse(
               event.data
             );
 
-          if (
+
+          if(
             realtimeEvent.type ===
             "input_audio_buffer.speech_started"
-          ) {
+          ){
 
             liveStatus.textContent =
               "🎙️ Ich höre dir zu ...";
           }
 
-          if (
+
+          if(
             realtimeEvent.type ===
             "input_audio_buffer.speech_stopped"
-          ) {
+          ){
 
             liveStatus.textContent =
               "🌻 Einen Moment ...";
           }
 
-          if (
+
+          if(
             realtimeEvent.type ===
             "conversation.item.input_audio_transcription.completed"
-          ) {
+          ){
 
             const transcript =
               String(
-                realtimeEvent
-                  .transcript ||
+                realtimeEvent.transcript ||
                 ""
               ).trim();
 
-            if (transcript) {
+
+            if(
+              transcript
+            ){
 
               sendLiveTranscriptToMemory(
                 transcript
@@ -3224,43 +3891,49 @@ async function startLiveConversation() {
             }
           }
 
-          if (
+
+          if(
             realtimeEvent.type ===
             "response.output_audio.delta" ||
             realtimeEvent.type ===
             "response.audio.delta"
-          ) {
+          ){
 
             liveStatus.textContent =
               "🌻 Sol spricht ...";
           }
 
-          if (
+
+          if(
             realtimeEvent.type ===
             "response.output_audio.done" ||
             realtimeEvent.type ===
             "response.done"
-          ) {
+          ){
 
             liveStatus.textContent =
               "🌻 Ich höre dir zu ...";
           }
 
-          if (
+
+          if(
             realtimeEvent.type ===
             "error"
-          ) {
+          ){
 
             console.error(
               "Realtime Fehler:",
               realtimeEvent
             );
 
+
             liveStatus.textContent =
               "Sol hat gerade ein Verbindungsproblem.";
           }
 
-        } catch (error) {
+        }catch(
+          error
+        ){
 
           console.error(
             "Realtime Event Fehler:",
@@ -3270,33 +3943,41 @@ async function startLiveConversation() {
       }
     );
 
+
     pc.addEventListener(
       "connectionstatechange",
       () => {
 
-        if (!pc) {
+        if(
+          !pc
+        ){
+
           return;
         }
 
-        if (
+
+        if(
           pc.connectionState ===
           "connected"
-        ) {
+        ){
 
           liveButton.classList.add(
             "listening"
           );
 
+
           liveStatus.textContent =
             "🌻 Ich höre dir zu ...";
         }
 
-        if (
+
+        if(
           pc.connectionState ===
           "failed"
-        ) {
+        ){
 
           stopLiveConversation();
+
 
           liveStatus.textContent =
             "Verbindung zu Sol unterbrochen.";
@@ -3304,20 +3985,25 @@ async function startLiveConversation() {
       }
     );
 
+
     const offer =
       await pc.createOffer();
+
 
     await pc.setLocalDescription(
       offer
     );
 
+
     const sdpResponse =
       await fetch(
         "https://api.openai.com/v1/realtime/calls",
         {
-          method: "POST",
 
-          headers: {
+          method:"POST",
+
+          headers:{
+
             Authorization:
               `Bearer ${ephemeralKey}`,
 
@@ -3330,39 +4016,53 @@ async function startLiveConversation() {
         }
       );
 
+
     const answerSdp =
       await sdpResponse.text();
 
-    if (!sdpResponse.ok) {
+
+    if(
+      !sdpResponse.ok
+    ){
 
       console.error(
         "OpenAI SDP Fehlerstatus:",
         sdpResponse.status
       );
 
+
       console.error(
         "OpenAI SDP Antwort:",
         answerSdp
       );
+
 
       throw new Error(
         `OpenAI Realtime Fehler ${sdpResponse.status}:\n${answerSdp.slice(0,700)}`
       );
     }
 
+
     await pc.setRemoteDescription({
-      type: "answer",
-      sdp: answerSdp
+
+      type:"answer",
+
+      sdp:
+        answerSdp
     });
 
-  } catch (error) {
+  }catch(
+    error
+  ){
 
     console.error(
       "Sol Live Fehler:",
       error
     );
 
+
     stopLiveConversation();
+
 
     liveStatus.textContent =
       error?.message ||
@@ -3375,11 +4075,13 @@ liveButton.addEventListener(
   "click",
   () => {
 
-    if (pc) {
+    if(
+      pc
+    ){
 
       stopLiveConversation();
 
-    } else {
+    }else{
 
       startLiveConversation();
     }
@@ -3387,19 +4089,25 @@ liveButton.addEventListener(
 );
 
 
+/*
+==========================================================
+STANDARD LAUTSTÄRKE
+==========================================================
+*/
+
 realtimeAudio.volume =
   solVolume;
 
 
 /*
-  ==========================================================
-  SERVICE WORKER
-  ==========================================================
+==========================================================
+SERVICE WORKER
+==========================================================
 */
 
-if (
+if(
   "serviceWorker" in navigator
-) {
+){
 
   window.addEventListener(
     "load",
@@ -3423,7 +4131,15 @@ if (
 }
 
 
-if (solImage.complete) {
+/*
+==========================================================
+MUND INITIALISIEREN
+==========================================================
+*/
+
+if(
+  solImage.complete
+){
 
   requestAnimationFrame(
     updateMouthGeometry
