@@ -40,25 +40,26 @@ button {
 
 #app {
   position: relative;
-  min-height: 100vh;
+  width: 100%;
   max-width: 760px;
+  min-height: 100vh;
   margin: auto;
   overflow: hidden;
 
   background:
     linear-gradient(
       180deg,
-      #11051e 0%,
-      #08030f 46%,
-      #020106 72%
+      #10051c 0%,
+      #07030e 56%,
+      #020106 100%
     );
 }
 
 /*
   ==========================================================
-  STRAND / PALMEN HINTERGRUND
-  Datei später:
-  /sol-holo-beach.jpg
+  STRAND / PALMEN
+  Datei im Projekt:
+  sol-holo-beach.jpg
   ==========================================================
 */
 
@@ -70,20 +71,20 @@ button {
   left: 0;
   right: 0;
 
-  height: min(64vh, 690px);
+  height: 610px;
 
   background-image:
     linear-gradient(
       180deg,
-      rgba(4,1,10,.08) 0%,
-      rgba(4,1,10,.10) 42%,
-      rgba(3,1,8,.68) 80%,
-      #020106 100%
+      rgba(5,1,12,.08) 0%,
+      rgba(5,1,12,.04) 38%,
+      rgba(4,1,10,.38) 71%,
+      rgba(2,1,6,.94) 100%
     ),
     url("/sol-holo-beach.jpg");
 
   background-position:
-    center top;
+    center center;
 
   background-size:
     cover;
@@ -103,14 +104,9 @@ button {
 
   background:
     radial-gradient(
-      circle at 50% 27%,
+      circle at 50% 30%,
       rgba(137,63,255,.18),
       transparent 28%
-    ),
-    radial-gradient(
-      circle at 52% 43%,
-      rgba(85,44,255,.14),
-      transparent 32%
     );
 }
 
@@ -124,10 +120,10 @@ header {
   position: relative;
   z-index: 20;
 
-  padding:
-    24px 92px 5px;
+  height: 106px;
 
-  min-height: 115px;
+  padding:
+    22px 84px 0;
 
   text-align: center;
 }
@@ -138,94 +134,82 @@ header {
   left: 18px;
   top: 22px;
 
-  width: 54px;
-  height: 54px;
+  width: 50px;
+  height: 50px;
 
   border-radius: 50%;
 
   border:
-    1px solid rgba(157,72,255,.65);
+    1px solid rgba(154,77,255,.75);
 
   background:
-    rgba(11,5,22,.70);
+    rgba(11,4,22,.72);
 
-  color: #bd76ff;
+  color: #b765ff;
 
-  font-size: 28px;
+  font-size: 26px;
 
   cursor: pointer;
 
   box-shadow:
-    0 0 18px rgba(132,50,255,.20);
-
-  backdrop-filter:
-    blur(8px);
-}
-
-#onlineState {
-  position: absolute;
-
-  right: 18px;
-  top: 27px;
-
-  display: flex;
-  align-items: center;
-
-  gap: 7px;
-
-  padding:
-    11px 14px;
-
-  border-radius: 24px;
-
-  border:
-    1px solid rgba(132,62,220,.52);
-
-  background:
-    rgba(9,5,17,.72);
-
-  color: #30e9a1;
-
-  font-size: 14px;
-
-  backdrop-filter:
-    blur(8px);
-}
-
-#onlineDot {
-  color: #22e19b;
+    0 0 18px rgba(130,52,255,.24);
 }
 
 h1 {
   margin: 0;
 
-  color: #bd72ff;
+  color: #b96aff;
 
-  font-size: 39px;
-
+  font-size: 38px;
   font-weight: 700;
 
-  letter-spacing: -.5px;
-
   text-shadow:
-    0 0 10px rgba(169,78,255,.40),
-    0 0 30px rgba(122,54,255,.22);
+    0 0 12px rgba(172,83,255,.46);
 }
 
 #subtitle {
-  margin-top: 7px;
+  margin-top: 4px;
 
-  color: #b875ff;
+  color: #b66cff;
 
-  font-size: 18px;
+  font-size: 17px;
+}
 
-  text-shadow:
-    0 0 14px rgba(126,56,255,.30);
+#onlineState {
+  position: absolute;
+
+  right: 14px;
+  top: 24px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 7px;
+
+  padding:
+    10px 12px;
+
+  border-radius: 23px;
+
+  border:
+    1px solid rgba(136,63,220,.60);
+
+  background:
+    rgba(8,4,16,.76);
+
+  color: #30e8a0;
+
+  font-size: 13px;
+}
+
+#onlineDot {
+  color: #17df96;
 }
 
 /*
   ==========================================================
-  BEGRÜSSUNG
+  ALTE BEGRÜSSUNG AUSBLENDEN
   ==========================================================
 */
 
@@ -235,18 +219,15 @@ h1 {
 
 /*
   ==========================================================
-  SOL HOLO CLONE
+  HOLO BEREICH
   ==========================================================
 */
 
 #solStage {
   position: relative;
-  z-index: 4;
+  z-index: 5;
 
-  height: min(43vh, 475px);
-  min-height: 330px;
-
-  margin-top: 0;
+  height: 405px;
 
   display: flex;
 
@@ -261,9 +242,9 @@ h1 {
 
   display: inline-block;
 
-  height: 91%;
+  height: 84%;
 
-  max-width: 82%;
+  max-width: 66%;
 
   transform-origin:
     center bottom;
@@ -284,15 +265,161 @@ h1 {
 
   filter:
     drop-shadow(
-      0 0 8px rgba(139,89,255,.68)
+      0 0 8px rgba(140,88,255,.82)
     )
     drop-shadow(
-      0 0 25px rgba(83,55,255,.44)
+      0 0 26px rgba(91,50,255,.48)
     );
 
   user-select: none;
 
   pointer-events: none;
+}
+
+/*
+  ==========================================================
+  STATUS LINKS
+  ==========================================================
+*/
+
+#statusPanel {
+  position: absolute;
+
+  z-index: 15;
+
+  left: 18px;
+  top: 265px;
+
+  width: 142px;
+
+  padding: 15px 14px;
+
+  border:
+    1px solid rgba(156,73,255,.64);
+
+  border-radius: 21px;
+
+  background:
+    rgba(12,6,24,.82);
+
+  backdrop-filter:
+    blur(10px);
+
+  box-shadow:
+    0 0 20px rgba(100,42,180,.16);
+}
+
+.statusHeading {
+  margin-bottom: 10px;
+
+  color: #b668ff;
+
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.statusLine {
+  display: flex;
+
+  align-items: center;
+
+  gap: 7px;
+
+  color: #f2eef6;
+
+  font-size: 13px;
+}
+
+.statusDivider {
+  height: 1px;
+
+  margin: 14px 0;
+
+  background:
+    rgba(160,90,255,.23);
+}
+
+/*
+  ==========================================================
+  LAUTSTÄRKE RECHTS
+  ==========================================================
+*/
+
+#volumePanel {
+  position: absolute;
+
+  z-index: 15;
+
+  right: 14px;
+  top: 270px;
+
+  width: 142px;
+
+  padding: 13px;
+
+  border:
+    1px solid rgba(156,73,255,.64);
+
+  border-radius: 21px;
+
+  background:
+    rgba(12,6,24,.84);
+
+  backdrop-filter:
+    blur(10px);
+}
+
+#volumeTitle {
+  margin-bottom: 10px;
+
+  color: #b668ff;
+
+  font-size: 16px;
+  font-weight: bold;
+}
+
+#volumeControls {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 7px;
+}
+
+.volumeButton {
+  width: 100%;
+
+  padding:
+    9px 7px;
+
+  border:
+    1px solid rgba(100,61,145,.55);
+
+  border-radius: 18px;
+
+  background:
+    rgba(13,8,24,.92);
+
+  color: white;
+
+  font-size: 13px;
+
+  cursor: pointer;
+}
+
+.volumeButton.active {
+  border-color:
+    #a65fff;
+
+  background:
+    linear-gradient(
+      135deg,
+      #6530a7,
+      #3d176e
+    );
+
+  box-shadow:
+    0 0 14px rgba(149,72,255,.28);
 }
 
 /*
@@ -310,8 +437,7 @@ h1 {
 
   pointer-events: none;
 
-  background-repeat:
-    no-repeat;
+  background-repeat: no-repeat;
 
   transform-origin:
     50% 42%;
@@ -360,8 +486,7 @@ h1 {
       transparent 75%
     );
 
-  transform-origin:
-    center;
+  transform-origin: center;
 
   opacity: 0;
 
@@ -399,27 +524,27 @@ h1 {
 
 /*
   ==========================================================
-  HOLOGRAMM-BASIS
+  HOLO BASIS
   ==========================================================
 */
 
 #holoBase {
   position: absolute;
 
-  bottom: 8px;
+  bottom: 7px;
 
-  width: 55%;
-  height: 24px;
+  width: 49%;
+  height: 21px;
 
   border-radius: 50%;
 
   border:
-    2px solid rgba(154,93,255,.95);
+    2px solid rgba(163,98,255,.96);
 
   box-shadow:
     0 0 8px #a367ff,
-    0 0 25px rgba(128,72,255,.85),
-    0 0 55px rgba(95,40,255,.42);
+    0 0 26px rgba(131,73,255,.92),
+    0 0 56px rgba(91,43,255,.44);
 }
 
 /*
@@ -433,34 +558,22 @@ h1 {
   z-index: 25;
 
   margin:
-    4px 18px 14px;
+    8px 14px 10px;
 
-  padding: 12px;
+  padding: 8px;
 
-  border:
-    1px solid rgba(142,70,230,.48);
-
-  border-radius: 22px;
+  border: none;
 
   background:
-    rgba(6,4,13,.76);
-
-  backdrop-filter:
-    blur(13px);
-
-  box-shadow:
-    0 0 25px rgba(70,25,125,.10);
+    transparent;
 }
 
 #chat {
-  max-height: 280px;
+  max-height: 310px;
 
   overflow-y: auto;
 
   padding: 2px;
-
-  scrollbar-width:
-    thin;
 }
 
 .message {
@@ -471,18 +584,21 @@ h1 {
 
   border-radius: 19px;
 
-  line-height: 1.46;
+  line-height: 1.43;
 
   white-space:
     pre-wrap;
 
-  font-size: 17px;
+  font-size: 16px;
 
   border:
-    1px solid rgba(142,73,225,.42);
+    1px solid rgba(151,76,237,.55);
 
-  box-shadow:
-    0 0 15px rgba(98,37,180,.08);
+  background:
+    rgba(9,6,18,.89);
+
+  backdrop-filter:
+    blur(10px);
 }
 
 .message strong {
@@ -494,38 +610,16 @@ h1 {
 }
 
 .user-message {
-  margin-left: 34px;
-
-  background:
-    linear-gradient(
-      135deg,
-      rgba(28,12,53,.94),
-      rgba(8,7,21,.96)
-    );
+  margin-left: 31%;
 }
 
-.sol-message {
-  margin-right: 34px;
-
-  background:
-    linear-gradient(
-      135deg,
-      rgba(30,12,53,.92),
-      rgba(8,7,19,.96)
-    );
+.sol-message,
+.system-message {
+  margin-right: 24%;
 }
 
 .system-message {
-  margin-right: 28px;
-
-  color: #e8e5ee;
-
-  background:
-    linear-gradient(
-      135deg,
-      rgba(30,13,53,.86),
-      rgba(8,7,20,.92)
-    );
+  color: #eeeaf4;
 }
 
 .messageImage {
@@ -544,9 +638,6 @@ h1 {
 
   border:
     1px solid rgba(183,106,255,.30);
-
-  background:
-    rgba(0,0,0,.25);
 }
 
 /*
@@ -560,18 +651,52 @@ h1 {
   z-index: 30;
 
   padding:
-    0 14px 28px;
+    0 12px 12px;
 }
 
 #inputRow {
   display: grid;
 
   grid-template-columns:
-    70px minmax(0, 1fr) 70px;
+    74px minmax(0, 1fr) 74px;
 
-  gap: 9px;
+  gap: 8px;
 
   align-items: stretch;
+}
+
+/*
+  ==========================================================
+  KAMERA
+  ==========================================================
+*/
+
+#imageButton {
+  width: 74px;
+
+  min-height: 94px;
+
+  border-radius: 20px;
+
+  border:
+    1px solid rgba(158,79,255,.72);
+
+  background:
+    rgba(13,7,25,.94);
+
+  color: #a95fff;
+
+  font-size: 29px;
+
+  cursor: pointer;
+}
+
+#imageButton:disabled {
+  opacity: .45;
+}
+
+#imageInput {
+  display: none;
 }
 
 /*
@@ -583,10 +708,8 @@ h1 {
 #imagePreviewPanel {
   display: none;
 
-  position: relative;
-
   margin:
-    0 80px 10px;
+    0 82px 10px;
 
   padding: 10px;
 
@@ -597,9 +720,6 @@ h1 {
 
   background:
     rgba(10,6,18,.93);
-
-  backdrop-filter:
-    blur(10px);
 }
 
 #imagePreviewPanel.visible {
@@ -611,34 +731,23 @@ h1 {
 }
 
 #imagePreview {
-  display: block;
-
-  width: 88px;
-  height: 88px;
+  width: 76px;
+  height: 76px;
 
   object-fit: cover;
 
   border-radius: 14px;
-
-  border:
-    1px solid rgba(255,255,255,.16);
 }
 
 #imagePreviewText {
   flex: 1;
 
-  min-width: 0;
-
   color: #d9d1e5;
 
-  font-size: 15px;
-
-  line-height: 1.35;
+  font-size: 14px;
 }
 
 #removeImageButton {
-  flex: 0 0 auto;
-
   width: 38px;
   height: 38px;
 
@@ -653,266 +762,183 @@ h1 {
   color: white;
 
   font-size: 20px;
-
-  cursor: pointer;
 }
 
 /*
   ==========================================================
-  KAMERA
-  ==========================================================
-*/
-
-#imageButton {
-  width: 70px;
-
-  min-height: 104px;
-
-  border-radius: 22px;
-
-  border:
-    1px solid rgba(161,83,255,.68);
-
-  background:
-    linear-gradient(
-      180deg,
-      rgba(28,13,45,.95),
-      rgba(9,7,17,.97)
-    );
-
-  color: #a55fff;
-
-  font-size: 30px;
-
-  cursor: pointer;
-
-  box-shadow:
-    0 0 16px rgba(103,43,188,.12);
-}
-
-#imageButton:disabled {
-  opacity: .45;
-}
-
-#imageInput {
-  display: none;
-}
-
-/*
-  ==========================================================
-  GROSSES SCHREIBFELD
+  SCHREIBFELD
   ==========================================================
 */
 
 #messageWrap {
   position: relative;
 
-  display: flex;
-
-  align-items: flex-end;
-
-  min-height: 104px;
+  min-height: 94px;
 
   padding:
-    10px 54px 10px 13px;
+    12px 51px 10px 14px;
 
-  border-radius: 22px;
+  border-radius: 20px;
 
   border:
-    1px solid rgba(160,82,255,.62);
+    1px solid rgba(160,82,255,.64);
 
   background:
-    linear-gradient(
-      135deg,
-      rgba(27,14,45,.94),
-      rgba(8,7,18,.96)
-    );
-
-  backdrop-filter:
-    blur(12px);
-
-  box-shadow:
-    inset 0 0 20px rgba(116,54,180,.05);
+    rgba(10,6,20,.94);
 }
 
 #messageInput {
   width: 100%;
 
-  min-height: 82px;
-  max-height: 170px;
+  min-height: 68px;
+  max-height: 150px;
 
   resize: none;
 
   overflow-y: auto;
 
   border: none;
-
   outline: none;
-
-  padding:
-    4px 0;
 
   background:
     transparent;
 
   color: white;
 
-  font-size: 18px;
+  font-size: 17px;
 
   line-height: 1.4;
 }
 
 #messageInput::placeholder {
-  color: #9589ab;
+  color: #8f849f;
 }
 
 #sendButton {
   position: absolute;
 
-  right: 9px;
-  bottom: 9px;
+  right: 8px;
+  bottom: 8px;
 
-  width: 42px;
-  height: 42px;
+  width: 43px;
+  height: 43px;
 
   border-radius: 50%;
 
   border: none;
 
   background:
-    rgba(118,54,205,.24);
+    rgba(94,29,164,.40);
 
-  color: #b66cff;
+  color: #b564ff;
 
-  font-size: 24px;
+  font-size: 25px;
 
   cursor: pointer;
 }
 
-#sendButton:disabled {
-  opacity: .45;
-}
-
 /*
   ==========================================================
-  LIVE BUTTON
+  MIKROFON
   ==========================================================
 */
 
 #liveButton {
-  width: 70px;
+  width: 74px;
 
-  min-height: 104px;
+  min-height: 94px;
 
-  border-radius: 22px;
+  border-radius: 20px;
 
   border:
-    1px solid rgba(161,83,255,.68);
+    1px solid rgba(158,79,255,.72);
 
   background:
-    linear-gradient(
-      180deg,
-      rgba(34,13,57,.96),
-      rgba(9,7,17,.97)
-    );
+    rgba(13,7,25,.94);
 
-  color: #aa61ff;
+  color: #a95fff;
 
-  font-size: 31px;
+  font-size: 30px;
 
   cursor: pointer;
-
-  box-shadow:
-    0 0 16px rgba(103,43,188,.12);
 }
 
 #liveButton.listening {
-  border-color:
-    #32dda0;
+  color: #37e3a3;
 
-  color:
-    #48e4ac;
-
-  box-shadow:
-    0 0 15px rgba(50,221,160,.28),
-    0 0 34px rgba(50,221,160,.13);
+  border-color: #37e3a3;
 }
 
 #liveStatus {
-  margin-top: 14px;
+  margin-top: 25px;
 
-  min-height: 28px;
+  min-height: 32px;
 
   text-align: center;
 
-  color: #bd72ff;
+  color: #b86bff;
 
   font-size: 17px;
-
-  white-space: pre-wrap;
 }
 
 .wave {
-  letter-spacing: 3px;
+  letter-spacing: 4px;
 
-  color: #994cff;
-
-  opacity: .8;
+  color: #9e52dc;
 }
 
 /*
   ==========================================================
-  LAUTSTÄRKE
+  BOTTOM NAVIGATION
   ==========================================================
 */
 
-#volumeControls {
-  display: flex;
+#bottomNav {
+  position: relative;
 
-  justify-content: center;
+  z-index: 30;
 
-  gap: 8px;
+  display: grid;
 
-  margin-top: 12px;
+  grid-template-columns:
+    repeat(5, 1fr);
 
-  flex-wrap: wrap;
-}
+  margin:
+    8px 10px 18px;
 
-.volumeButton {
   padding:
-    10px 14px;
+    12px 5px 10px;
 
   border:
-    1px solid rgba(116,69,169,.62);
+    1px solid rgba(129,65,200,.38);
 
-  border-radius: 14px;
+  border-radius: 22px;
 
   background:
-    rgba(17,11,28,.92);
+    rgba(8,5,15,.92);
 
-  color: white;
-
-  font-size: 15px;
-
-  cursor: pointer;
+  backdrop-filter:
+    blur(12px);
 }
 
-.volumeButton.active {
-  border-color:
-    #a45fff;
+.navItem {
+  text-align: center;
 
-  background:
-    linear-gradient(
-      135deg,
-      #56268d,
-      #301551
-    );
+  color: #827892;
 
-  color:
-    white;
+  font-size: 11px;
+}
 
-  box-shadow:
-    0 0 14px rgba(146,67,255,.20);
+.navIcon {
+  display: block;
+
+  margin-bottom: 4px;
+
+  font-size: 22px;
+}
+
+.navItem.active {
+  color: #b663ff;
 }
 
 /*
@@ -1001,121 +1027,140 @@ h1 {
 
 /*
   ==========================================================
-  MOBIL
+  HANDY
   ==========================================================
 */
 
 @media (max-width: 520px) {
 
-  header {
-    padding:
-      22px 76px 4px;
+  #beachBackground {
+    height: 535px;
+  }
 
-    min-height: 105px;
+  header {
+    height: 92px;
+
+    padding:
+      17px 74px 0;
   }
 
   h1 {
-    font-size: 33px;
+    font-size: 30px;
   }
 
   #subtitle {
-    font-size: 16px;
+    font-size: 14px;
   }
 
   #menuButton {
-    left: 12px;
+    left: 10px;
+    top: 16px;
 
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
 
-    font-size: 25px;
+    font-size: 23px;
   }
 
   #onlineState {
-    right: 10px;
-    top: 28px;
+    right: 8px;
+    top: 19px;
 
     padding:
-      9px 10px;
+      8px 9px;
 
-    font-size: 12px;
+    font-size: 11px;
   }
 
   #solStage {
-    height: 39vh;
-    min-height: 300px;
+    height: 330px;
   }
 
   #solCloneWrap {
-    height: 88%;
-    max-width: 80%;
+    height: 82%;
+    max-width: 59%;
   }
 
   #holoBase {
-    width: 59%;
+    width: 46%;
+  }
+
+  #statusPanel {
+    left: 11px;
+    top: 230px;
+
+    width: 126px;
+
+    padding:
+      12px 11px;
+  }
+
+  #volumePanel {
+    right: 9px;
+    top: 232px;
+
+    width: 125px;
+
+    padding: 11px;
+  }
+
+  .statusHeading,
+  #volumeTitle {
+    font-size: 14px;
+  }
+
+  .statusLine,
+  .volumeButton {
+    font-size: 11px;
   }
 
   #chatPanel {
-    margin-left: 12px;
-    margin-right: 12px;
+    margin:
+      4px 8px 8px;
   }
 
   #chat {
-    max-height: 250px;
+    max-height: 285px;
+  }
+
+  .message {
+    font-size: 15px;
   }
 
   #controls {
-    padding-left: 10px;
-    padding-right: 10px;
+    padding:
+      0 8px 8px;
   }
 
   #inputRow {
     grid-template-columns:
-      62px minmax(0, 1fr) 62px;
+      66px minmax(0,1fr) 66px;
 
-    gap: 7px;
+    gap: 6px;
   }
 
   #imageButton,
   #liveButton {
-    width: 62px;
+    width: 66px;
 
-    min-height: 106px;
+    min-height: 92px;
 
-    font-size: 27px;
-
-    border-radius: 20px;
+    font-size: 26px;
   }
 
   #messageWrap {
-    min-height: 106px;
-
-    border-radius: 20px;
-
-    padding-right: 48px;
+    min-height: 92px;
   }
 
   #messageInput {
-    min-height: 83px;
+    min-height: 66px;
 
-    font-size: 17px;
+    font-size: 16px;
   }
 
   #imagePreviewPanel {
-    margin-left: 70px;
-    margin-right: 70px;
-  }
-
-  #imagePreview {
-    width: 70px;
-    height: 70px;
-  }
-
-  .volumeButton {
-    font-size: 14px;
-
-    padding:
-      9px 11px;
+    margin-left: 72px;
+    margin-right: 72px;
   }
 }
 
@@ -1127,9 +1172,7 @@ h1 {
 <div id="app">
 
 <div id="beachBackground"></div>
-
 <div id="backgroundGlow"></div>
-
 
 <header>
 
@@ -1140,41 +1183,85 @@ h1 {
 ☰
 </button>
 
-
 <h1>
 Sol Holo 🌻
 </h1>
-
 
 <div id="subtitle">
 Me, Myself &amp; I. 💜
 </div>
 
-
 <div id="onlineState">
-
-<span id="onlineDot">
-●
-</span>
-
+<span id="onlineDot">●</span>
 Online
-
 </div>
 
 </header>
 
 
 <section id="greeting">
-
-<h2 id="greetingTitle">
-Hallo Pam 💛
-</h2>
-
+<h2 id="greetingTitle">Hallo Pam 💛</h2>
 <p id="greetingText">
 Schön, dass du da bist. Wie kann ich dir helfen?
 </p>
-
 </section>
+
+
+<div id="statusPanel">
+
+<div class="statusHeading">
+Status
+</div>
+
+<div class="statusLine">
+💜 Bereit für dich
+</div>
+
+<div class="statusDivider"></div>
+
+<div class="statusHeading">
+Verbindung
+</div>
+
+<div class="statusLine">
+📶 Stark
+</div>
+
+</div>
+
+
+<div id="volumePanel">
+
+<div id="volumeTitle">
+Lautstärke
+</div>
+
+<div id="volumeControls">
+
+<button
+  id="volumeMute"
+  class="volumeButton"
+  type="button">
+🔇 Stumm
+</button>
+
+<button
+  id="volumeLow"
+  class="volumeButton active"
+  type="button">
+🔉 Leise
+</button>
+
+<button
+  id="volumeNormal"
+  class="volumeButton"
+  type="button">
+🔊 Normal
+</button>
+
+</div>
+
+</div>
 
 
 <section id="solStage">
@@ -1188,11 +1275,9 @@ Schön, dass du da bist. Wie kann ich dir helfen?
 >
 
 <div id="mouthDepth"></div>
-
 <div id="mouthPatch"></div>
 
 </div>
-
 
 <div id="holoBase"></div>
 
@@ -1205,9 +1290,7 @@ Schön, dass du da bist. Wie kann ich dir helfen?
 
 <div class="message system-message">
 
-<strong>
-Sol Holo
-</strong>
+<strong>Sol Holo</strong>
 
 Ich bin da. Du kannst mir schreiben, Bilder zeigen oder mit mir sprechen. 🌻
 
@@ -1220,7 +1303,6 @@ Ich bin da. Du kannst mir schreiben, Bilder zeigen oder mit mir sprechen. 🌻
 
 <section id="controls">
 
-
 <div id="imagePreviewPanel">
 
 <img
@@ -1229,10 +1311,8 @@ Ich bin da. Du kannst mir schreiben, Bilder zeigen oder mit mir sprechen. 🌻
 >
 
 <div id="imagePreviewText">
-
 Bild ausgewählt.<br>
 Du kannst noch etwas dazu schreiben oder es direkt senden.
-
 </div>
 
 <button
@@ -1247,7 +1327,6 @@ Du kannst noch etwas dazu schreiben oder es direkt senden.
 
 <div id="inputRow">
 
-
 <button
   id="imageButton"
   type="button"
@@ -1255,13 +1334,11 @@ Du kannst noch etwas dazu schreiben oder es direkt senden.
 📷
 </button>
 
-
 <input
   id="imageInput"
   type="file"
   accept="image/png,image/jpeg,image/webp,image/gif"
 >
-
 
 <div id="messageWrap">
 
@@ -1270,7 +1347,6 @@ Du kannst noch etwas dazu schreiben oder es direkt senden.
   rows="3"
   placeholder="Schreib Sol etwas..."
   autocomplete="off"></textarea>
-
 
 <button
   id="sendButton"
@@ -1281,7 +1357,6 @@ Du kannst noch etwas dazu schreiben oder es direkt senden.
 
 </div>
 
-
 <button
   id="liveButton"
   type="button"
@@ -1289,65 +1364,59 @@ Du kannst noch etwas dazu schreiben oder es direkt senden.
 🎙️
 </button>
 
-
 </div>
 
 
 <div id="liveStatus">
 
-<span class="wave">
-·······
-</span>
+<span class="wave">·······</span>
 
 &nbsp;
 Ich bin da.
 &nbsp;
 
-<span class="wave">
-·······
-</span>
-
-</div>
-
-
-<div id="volumeControls">
-
-<button
-  id="volumeMute"
-  class="volumeButton"
-  type="button">
-🔇 Stumm
-</button>
-
-
-<button
-  id="volumeLow"
-  class="volumeButton active"
-  type="button">
-🔉 Leise
-</button>
-
-
-<button
-  id="volumeNormal"
-  class="volumeButton"
-  type="button">
-🔊 Normal
-</button>
+<span class="wave">·······</span>
 
 </div>
 
 </section>
+
+
+<nav id="bottomNav">
+
+<div class="navItem active">
+<span class="navIcon">💬</span>
+Chat
+</div>
+
+<div class="navItem">
+<span class="navIcon">✧</span>
+Weisheit
+</div>
+
+<div class="navItem">
+<span class="navIcon">♡</span>
+Herz
+</div>
+
+<div class="navItem">
+<span class="navIcon">🧠</span>
+Wissen
+</div>
+
+<div class="navItem">
+<span class="navIcon">▦</span>
+Mehr
+</div>
+
+</nav>
 
 </div>
 
 
 <aside id="drawer">
 
-<h2>
-Sol Holo 🌻
-</h2>
-
+<h2>Sol Holo 🌻</h2>
 
 <button
   id="memoryButton"
@@ -1356,7 +1425,6 @@ Sol Holo 🌻
 🧠 Langzeitgedächtnis anzeigen
 </button>
 
-
 <button
   id="closeMenuButton"
   class="drawerButton"
@@ -1364,21 +1432,17 @@ Sol Holo 🌻
 ← Zurück zu Sol
 </button>
 
-
 <div id="chatStatus">
 Schreiben bereit.
 </div>
-
 
 <div id="micStatus">
 🎙️ Mikrofon bereit.
 </div>
 
-
 <div id="memoryStatus">
 🧠 Memory bereit.
 </div>
-
 
 <div id="lipSyncStatus">
 👄 Lip-Sync bereit.
@@ -1406,125 +1470,79 @@ const BACKEND_URL =
 */
 
 const messageInput =
-  document.getElementById(
-    "messageInput"
-  );
+  document.getElementById("messageInput");
 
 const sendButton =
-  document.getElementById(
-    "sendButton"
-  );
+  document.getElementById("sendButton");
 
 const memoryButton =
-  document.getElementById(
-    "memoryButton"
-  );
+  document.getElementById("memoryButton");
 
 const liveButton =
-  document.getElementById(
-    "liveButton"
-  );
+  document.getElementById("liveButton");
 
 const liveStatus =
-  document.getElementById(
-    "liveStatus"
-  );
+  document.getElementById("liveStatus");
 
 const memoryStatus =
-  document.getElementById(
-    "memoryStatus"
-  );
+  document.getElementById("memoryStatus");
 
 const chatStatus =
-  document.getElementById(
-    "chatStatus"
-  );
+  document.getElementById("chatStatus");
 
 const micStatus =
-  document.getElementById(
-    "micStatus"
-  );
+  document.getElementById("micStatus");
 
 const lipSyncStatus =
-  document.getElementById(
-    "lipSyncStatus"
-  );
+  document.getElementById("lipSyncStatus");
 
 const realtimeAudio =
-  document.getElementById(
-    "realtimeAudio"
-  );
+  document.getElementById("realtimeAudio");
 
 const menuButton =
-  document.getElementById(
-    "menuButton"
-  );
+  document.getElementById("menuButton");
 
 const closeMenuButton =
-  document.getElementById(
-    "closeMenuButton"
-  );
+  document.getElementById("closeMenuButton");
 
 const drawer =
-  document.getElementById(
-    "drawer"
-  );
+  document.getElementById("drawer");
 
 const chat =
-  document.getElementById(
-    "chat"
-  );
+  document.getElementById("chat");
 
 const volumeMute =
-  document.getElementById(
-    "volumeMute"
-  );
+  document.getElementById("volumeMute");
 
 const volumeLow =
-  document.getElementById(
-    "volumeLow"
-  );
+  document.getElementById("volumeLow");
 
 const volumeNormal =
-  document.getElementById(
-    "volumeNormal"
-  );
+  document.getElementById("volumeNormal");
 
 
 /*
   ==========================================================
-  BILD-ELEMENTE
+  BILD
   ==========================================================
 */
 
 const imageButton =
-  document.getElementById(
-    "imageButton"
-  );
+  document.getElementById("imageButton");
 
 const imageInput =
-  document.getElementById(
-    "imageInput"
-  );
+  document.getElementById("imageInput");
 
 const imagePreviewPanel =
-  document.getElementById(
-    "imagePreviewPanel"
-  );
+  document.getElementById("imagePreviewPanel");
 
 const imagePreview =
-  document.getElementById(
-    "imagePreview"
-  );
+  document.getElementById("imagePreview");
 
 const removeImageButton =
-  document.getElementById(
-    "removeImageButton"
-  );
+  document.getElementById("removeImageButton");
 
-
-let selectedImageDataUrl =
-  null;
+let selectedImageDataUrl = null;
 
 
 /*
@@ -1534,40 +1552,22 @@ let selectedImageDataUrl =
 */
 
 const solCloneWrap =
-  document.getElementById(
-    "solCloneWrap"
-  );
+  document.getElementById("solCloneWrap");
 
 const solImage =
-  document.getElementById(
-    "solImage"
-  );
+  document.getElementById("solImage");
 
 const mouthPatch =
-  document.getElementById(
-    "mouthPatch"
-  );
+  document.getElementById("mouthPatch");
 
 const mouthDepth =
-  document.getElementById(
-    "mouthDepth"
-  );
-
+  document.getElementById("mouthDepth");
 
 const LIP_SYNC_FACE = {
-
-  x:
-    0.500,
-
-  y:
-    0.392,
-
-  width:
-    0.145,
-
-  height:
-    0.072
-
+  x: 0.500,
+  y: 0.392,
+  width: 0.145,
+  height: 0.072
 };
 
 
@@ -1577,14 +1577,9 @@ const LIP_SYNC_FACE = {
   ==========================================================
 */
 
-let pc =
-  null;
-
-let dc =
-  null;
-
-let microphoneStream =
-  null;
+let pc = null;
+let dc = null;
+let microphoneStream = null;
 
 
 /*
@@ -1593,58 +1588,24 @@ let microphoneStream =
   ==========================================================
 */
 
-let lipAudioContext =
-  null;
+let lipAudioContext = null;
+let lipSourceNode = null;
+let lipAnalyser = null;
+let lipSilentGain = null;
+let lipAnimationFrame = null;
+let lipTimeData = null;
+let lipFrequencyData = null;
+let lipSyncRunning = false;
 
-let lipSourceNode =
-  null;
-
-let lipAnalyser =
-  null;
-
-let lipSilentGain =
-  null;
-
-let lipAnimationFrame =
-  null;
-
-let lipTimeData =
-  null;
-
-let lipFrequencyData =
-  null;
-
-let lipSyncRunning =
-  false;
-
-let currentMouthOpen =
-  0;
-
-let currentMouthWide =
-  0;
-
-let currentMouthRound =
-  0;
+let currentMouthOpen = 0;
+let currentMouthWide = 0;
+let currentMouthRound = 0;
 
 
-/*
-  ==========================================================
-  HILFSFUNKTION
-  ==========================================================
-*/
-
-function clamp(
-  value,
-  min,
-  max
-) {
-
+function clamp(value, min, max) {
   return Math.min(
     max,
-    Math.max(
-      min,
-      value
-    )
+    Math.max(min, value)
   );
 }
 
@@ -1658,30 +1619,22 @@ function clamp(
 imageButton.addEventListener(
   "click",
   () => {
-
     imageInput.click();
   }
 );
 
 
-async function resizeImageFile(
-  file
-) {
+async function resizeImageFile(file) {
 
   return new Promise(
-    (
-      resolve,
-      reject
-    ) => {
+    (resolve, reject) => {
 
       const reader =
         new FileReader();
 
-
       reader.addEventListener(
         "error",
         () => {
-
           reject(
             new Error(
               "Das Bild konnte nicht gelesen werden."
@@ -1690,7 +1643,6 @@ async function resizeImageFile(
         }
       );
 
-
       reader.addEventListener(
         "load",
         () => {
@@ -1698,11 +1650,9 @@ async function resizeImageFile(
           const img =
             new Image();
 
-
           img.addEventListener(
             "error",
             () => {
-
               reject(
                 new Error(
                   "Das Bild konnte nicht geöffnet werden."
@@ -1711,14 +1661,11 @@ async function resizeImageFile(
             }
           );
 
-
           img.addEventListener(
             "load",
             () => {
 
-              const maxSize =
-                1600;
-
+              const maxSize = 1600;
 
               let width =
                 img.naturalWidth;
@@ -1726,62 +1673,36 @@ async function resizeImageFile(
               let height =
                 img.naturalHeight;
 
-
               if (
-                width >
-                maxSize ||
-                height >
-                maxSize
+                width > maxSize ||
+                height > maxSize
               ) {
 
                 const scale =
                   Math.min(
-                    maxSize /
-                    width,
-
-                    maxSize /
-                    height
+                    maxSize / width,
+                    maxSize / height
                   );
-
 
                 width =
-                  Math.round(
-                    width *
-                    scale
-                  );
-
+                  Math.round(width * scale);
 
                 height =
-                  Math.round(
-                    height *
-                    scale
-                  );
+                  Math.round(height * scale);
               }
-
 
               const canvas =
                 document.createElement(
                   "canvas"
                 );
 
-
-              canvas.width =
-                width;
-
-              canvas.height =
-                height;
-
+              canvas.width = width;
+              canvas.height = height;
 
               const context =
-                canvas.getContext(
-                  "2d"
-                );
+                canvas.getContext("2d");
 
-
-              if (
-                !context
-              ) {
-
+              if (!context) {
                 reject(
                   new Error(
                     "Das Bild konnte nicht vorbereitet werden."
@@ -1791,10 +1712,8 @@ async function resizeImageFile(
                 return;
               }
 
-
               context.fillStyle =
                 "#ffffff";
-
 
               context.fillRect(
                 0,
@@ -1802,7 +1721,6 @@ async function resizeImageFile(
                 width,
                 height
               );
-
 
               context.drawImage(
                 img,
@@ -1812,13 +1730,11 @@ async function resizeImageFile(
                 height
               );
 
-
               const resizedDataUrl =
                 canvas.toDataURL(
                   "image/jpeg",
                   0.86
                 );
-
 
               resolve(
                 resizedDataUrl
@@ -1826,18 +1742,12 @@ async function resizeImageFile(
             }
           );
 
-
           img.src =
-            String(
-              reader.result
-            );
+            String(reader.result);
         }
       );
 
-
-      reader.readAsDataURL(
-        file
-      );
+      reader.readAsDataURL(file);
     }
   );
 }
@@ -1850,79 +1760,55 @@ imageInput.addEventListener(
     const file =
       imageInput.files?.[0];
 
-
-    if (
-      !file
-    ) {
-
+    if (!file) {
       return;
     }
 
-
     if (
-      !file.type.startsWith(
-        "image/"
-      )
+      !file.type.startsWith("image/")
     ) {
 
       chatStatus.textContent =
         "Bitte wähle ein Bild aus.";
 
-
-      imageInput.value =
-        "";
-
+      imageInput.value = "";
 
       return;
     }
 
-
-    imageButton.disabled =
-      true;
-
+    imageButton.disabled = true;
 
     chatStatus.textContent =
       "Bild wird vorbereitet ...";
 
-
     try {
 
       selectedImageDataUrl =
-        await resizeImageFile(
-          file
-        );
-
+        await resizeImageFile(file);
 
       imagePreview.src =
         selectedImageDataUrl;
 
-
-      imagePreviewPanel.classList.add(
-        "visible"
-      );
-
+      imagePreviewPanel
+        .classList
+        .add("visible");
 
       chatStatus.textContent =
         "Bild bereit.";
 
-    } catch (
-      error
-    ) {
+    } catch (error) {
 
       console.error(
         "Bildfehler:",
         error
       );
 
-
       selectedImageDataUrl =
         null;
 
-
-      imagePreviewPanel.classList.remove(
-        "visible"
-      );
-
+      imagePreviewPanel
+        .classList
+        .remove("visible");
 
       chatStatus.textContent =
         error?.message ||
@@ -1933,35 +1819,24 @@ imageInput.addEventListener(
       imageButton.disabled =
         false;
 
-
-      imageInput.value =
-        "";
+      imageInput.value = "";
     }
   }
 );
 
-
-/*
-  ==========================================================
-  BILD ENTFERNEN
-  ==========================================================
-*/
 
 function clearSelectedImage() {
 
   selectedImageDataUrl =
     null;
 
-
   imagePreview.removeAttribute(
     "src"
   );
 
-
-  imagePreviewPanel.classList.remove(
-    "visible"
-  );
-
+  imagePreviewPanel
+    .classList
+    .remove("visible");
 
   imageInput.value =
     "";
@@ -1974,7 +1849,6 @@ removeImageButton.addEventListener(
 
     clearSelectedImage();
 
-
     chatStatus.textContent =
       "Bild entfernt.";
   }
@@ -1983,37 +1857,29 @@ removeImageButton.addEventListener(
 
 /*
   ==========================================================
-  AUDIOCONTEXT
+  AUDIO CONTEXT
   ==========================================================
 */
 
 async function ensureLipAudioContext() {
 
-  if (
-    !lipAudioContext
-  ) {
+  if (!lipAudioContext) {
 
     const AudioContextClass =
       window.AudioContext ||
       window.webkitAudioContext;
 
-
-    if (
-      !AudioContextClass
-    ) {
+    if (!AudioContextClass) {
 
       lipSyncStatus.textContent =
         "👄 Audio-Lip-Sync wird von diesem Browser nicht unterstützt.";
 
-
       return false;
     }
-
 
     lipAudioContext =
       new AudioContextClass();
   }
-
 
   if (
     lipAudioContext.state ===
@@ -2024,9 +1890,7 @@ async function ensureLipAudioContext() {
 
       await lipAudioContext.resume();
 
-    } catch (
-      error
-    ) {
+    } catch (error) {
 
       console.error(
         "Lip-Sync AudioContext:",
@@ -2034,7 +1898,6 @@ async function ensureLipAudioContext() {
       );
     }
   }
-
 
   return true;
 }
@@ -2048,148 +1911,110 @@ async function ensureLipAudioContext() {
 
 function updateMouthGeometry() {
 
-  if (
-    !solImage.complete
-  ) {
-
+  if (!solImage.complete) {
     return;
   }
-
 
   const imageRect =
     solImage.getBoundingClientRect();
 
-
   const wrapperRect =
     solCloneWrap.getBoundingClientRect();
-
 
   if (
     imageRect.width <= 0 ||
     imageRect.height <= 0
   ) {
-
     return;
   }
-
 
   const imageLeft =
     imageRect.left -
     wrapperRect.left;
 
-
   const imageTop =
     imageRect.top -
     wrapperRect.top;
-
 
   const patchWidth =
     imageRect.width *
     LIP_SYNC_FACE.width;
 
-
   const patchHeight =
     imageRect.height *
     LIP_SYNC_FACE.height;
 
-
   const centerX =
     imageLeft +
-    (
-      imageRect.width *
-      LIP_SYNC_FACE.x
-    );
-
+    imageRect.width *
+    LIP_SYNC_FACE.x;
 
   const centerY =
     imageTop +
-    (
-      imageRect.height *
-      LIP_SYNC_FACE.y
-    );
-
+    imageRect.height *
+    LIP_SYNC_FACE.y;
 
   const left =
     centerX -
     patchWidth / 2;
 
-
   const top =
     centerY -
     patchHeight / 2;
 
-
   mouthPatch.style.left =
     `${left}px`;
-
 
   mouthPatch.style.top =
     `${top}px`;
 
-
   mouthPatch.style.width =
     `${patchWidth}px`;
-
 
   mouthPatch.style.height =
     `${patchHeight}px`;
 
-
   mouthPatch.style.backgroundImage =
     `url("${solImage.src}")`;
-
 
   mouthPatch.style.backgroundSize =
     `${imageRect.width}px ${imageRect.height}px`;
 
-
   mouthPatch.style.backgroundPosition =
-    `${-(
-      imageRect.width *
+    `${
+      -(imageRect.width *
       LIP_SYNC_FACE.x -
-      patchWidth / 2
-    )}px ${
-      -(
-        imageRect.height *
-        LIP_SYNC_FACE.y -
-        patchHeight / 2
-      )
+      patchWidth / 2)
+    }px ${
+      -(imageRect.height *
+      LIP_SYNC_FACE.y -
+      patchHeight / 2)
     }px`;
-
 
   mouthDepth.style.left =
     `${
       centerX -
-      patchWidth *
-      0.31
+      patchWidth * 0.31
     }px`;
-
 
   mouthDepth.style.top =
     `${
       centerY -
-      patchHeight *
-      0.10
+      patchHeight * 0.10
     }px`;
-
 
   mouthDepth.style.width =
     `${
-      patchWidth *
-      0.62
+      patchWidth * 0.62
     }px`;
-
 
   mouthDepth.style.height =
     `${
-      patchHeight *
-      0.47
+      patchHeight * 0.47
     }px`;
-
 
   mouthPatch.style.display =
     "block";
-
 
   mouthDepth.style.display =
     "block";
@@ -2212,74 +2037,46 @@ function getFrequencyBand(
     !lipFrequencyData ||
     !lipAudioContext
   ) {
-
     return 0;
   }
 
-
   const nyquist =
-    lipAudioContext.sampleRate /
-    2;
-
+    lipAudioContext.sampleRate / 2;
 
   const startIndex =
     Math.floor(
-      (
-        minHz /
-        nyquist
-      ) *
+      (minHz / nyquist) *
       lipFrequencyData.length
     );
-
 
   const endIndex =
     Math.min(
       lipFrequencyData.length - 1,
 
       Math.ceil(
-        (
-          maxHz /
-          nyquist
-        ) *
+        (maxHz / nyquist) *
         lipFrequencyData.length
       )
     );
 
-
-  let total =
-    0;
-
-
-  let count =
-    0;
-
+  let total = 0;
+  let count = 0;
 
   for (
-    let i =
-      startIndex;
-
-    i <=
-      endIndex;
-
+    let i = startIndex;
+    i <= endIndex;
     i++
   ) {
 
     total +=
       lipFrequencyData[i];
 
-
     count++;
   }
 
-
-  if (
-    count ===
-    0
-  ) {
-
+  if (count === 0) {
     return 0;
   }
-
 
   return (
     total /
@@ -2291,7 +2088,7 @@ function getFrequencyBand(
 
 /*
   ==========================================================
-  LIP-SYNC ANIMATION
+  LIP SYNC
   ==========================================================
 */
 
@@ -2301,24 +2098,20 @@ function animateLipSync() {
     !lipSyncRunning ||
     !lipAnalyser
   ) {
-
     return;
   }
 
+  lipAnalyser
+    .getByteTimeDomainData(
+      lipTimeData
+    );
 
-  lipAnalyser.getByteTimeDomainData(
-    lipTimeData
-  );
+  lipAnalyser
+    .getByteFrequencyData(
+      lipFrequencyData
+    );
 
-
-  lipAnalyser.getByteFrequencyData(
-    lipFrequencyData
-  );
-
-
-  let sum =
-    0;
-
+  let sum = 0;
 
   for (
     let i = 0;
@@ -2330,15 +2123,11 @@ function animateLipSync() {
       (
         lipTimeData[i] -
         128
-      ) /
-      128;
-
+      ) / 128;
 
     sum +=
-      sample *
-      sample;
+      sample * sample;
   }
-
 
   const rms =
     Math.sqrt(
@@ -2346,13 +2135,11 @@ function animateLipSync() {
       lipTimeData.length
     );
 
-
   const low =
     getFrequencyBand(
       90,
       500
     );
-
 
   const middle =
     getFrequencyBand(
@@ -2360,104 +2147,66 @@ function animateLipSync() {
       1900
     );
 
-
   const high =
     getFrequencyBand(
       1900,
       5200
     );
 
-
   const rawOpen =
     clamp(
-      (
-        rms -
-        0.008
-      ) *
-      13.5,
-
+      (rms - 0.008) * 13.5,
       0,
       1
     );
-
 
   const rawWide =
     clamp(
-      (
-        middle *
-        0.80 +
-
-        high *
-        0.55 -
-
-        low *
-        0.18
-      ),
-
+      middle * 0.80 +
+      high * 0.55 -
+      low * 0.18,
       0,
       1
     );
-
 
   const rawRound =
     clamp(
-      (
-        low *
-        0.72 +
-
-        middle *
-        0.25 -
-
-        high *
-        0.15
-      ),
-
+      low * 0.72 +
+      middle * 0.25 -
+      high * 0.15,
       0,
       1
     );
 
-
   const openSpeed =
     rawOpen >
-      currentMouthOpen
-      ?
-      0.45
-      :
-      0.24;
-
+    currentMouthOpen
+      ? 0.45
+      : 0.24;
 
   currentMouthOpen +=
     (
       rawOpen -
       currentMouthOpen
-    ) *
-    openSpeed;
-
+    ) * openSpeed;
 
   currentMouthWide +=
     (
       rawWide -
       currentMouthWide
-    ) *
-    0.20;
-
+    ) * 0.20;
 
   currentMouthRound +=
     (
       rawRound -
       currentMouthRound
-    ) *
-    0.18;
-
+    ) * 0.18;
 
   const speaking =
     currentMouthOpen >
     0.035;
 
-
-  if (
-    speaking
-  ) {
+  if (speaking) {
 
     solCloneWrap.classList.add(
       "sol-speaking"
@@ -2470,12 +2219,10 @@ function animateLipSync() {
     );
   }
 
-
   const scaleY =
     1 +
     currentMouthOpen *
     0.72;
-
 
   const wideInfluence =
     currentMouthWide *
@@ -2485,7 +2232,6 @@ function animateLipSync() {
       0.55
     );
 
-
   const scaleX =
     1 +
     wideInfluence *
@@ -2493,11 +2239,9 @@ function animateLipSync() {
     currentMouthRound *
     0.055;
 
-
   const moveY =
     currentMouthOpen *
     1.8;
-
 
   mouthPatch.style.transform =
     `
@@ -2506,7 +2250,6 @@ function animateLipSync() {
       scaleY(${scaleY})
     `;
 
-
   const depthOpacity =
     clamp(
       (
@@ -2514,15 +2257,12 @@ function animateLipSync() {
         0.18
       ) *
       0.72,
-
       0,
       0.42
     );
 
-
   mouthDepth.style.opacity =
     depthOpacity;
-
 
   mouthDepth.style.transform =
     `
@@ -2531,7 +2271,6 @@ function animateLipSync() {
         wideInfluence *
         0.20
       })
-
       scaleY(${
         0.28 +
         currentMouthOpen *
@@ -2539,17 +2278,14 @@ function animateLipSync() {
       })
     `;
 
-
   mouthPatch.style.opacity =
     clamp(
       0.72 +
       currentMouthOpen *
       0.28,
-
       0.72,
       1
     );
-
 
   lipAnimationFrame =
     requestAnimationFrame(
@@ -2558,40 +2294,20 @@ function animateLipSync() {
 }
 
 
-/*
-  ==========================================================
-  LIP SYNC STARTEN
-  ==========================================================
-*/
+async function startLipSync(stream) {
 
-async function startLipSync(
-  stream
-) {
-
-  if (
-    !stream
-  ) {
-
+  if (!stream) {
     return;
   }
-
 
   const ready =
     await ensureLipAudioContext();
 
-
-  if (
-    !ready
-  ) {
-
+  if (!ready) {
     return;
   }
 
-
-  stopLipSync(
-    false
-  );
-
+  stopLipSync(false);
 
   try {
 
@@ -2601,90 +2317,68 @@ async function startLipSync(
           stream
         );
 
-
     lipAnalyser =
       lipAudioContext
         .createAnalyser();
 
-
     lipAnalyser.fftSize =
       1024;
 
-
-    lipAnalyser.smoothingTimeConstant =
+    lipAnalyser
+      .smoothingTimeConstant =
       0.62;
-
 
     lipTimeData =
       new Uint8Array(
         lipAnalyser.fftSize
       );
 
-
     lipFrequencyData =
       new Uint8Array(
         lipAnalyser.frequencyBinCount
       );
 
-
     lipSilentGain =
       lipAudioContext
         .createGain();
 
-
     lipSilentGain.gain.value =
       0;
-
 
     lipSourceNode.connect(
       lipAnalyser
     );
 
-
     lipAnalyser.connect(
       lipSilentGain
     );
-
 
     lipSilentGain.connect(
       lipAudioContext.destination
     );
 
-
     updateMouthGeometry();
-
 
     lipSyncRunning =
       true;
 
-
     lipSyncStatus.textContent =
       "👄 Lip-Sync aktiv.";
 
-
     animateLipSync();
 
-  } catch (
-    error
-  ) {
+  } catch (error) {
 
     console.error(
       "Lip-Sync Fehler:",
       error
     );
 
-
     lipSyncStatus.textContent =
       "👄 Lip-Sync konnte nicht gestartet werden.";
   }
 }
 
-
-/*
-  ==========================================================
-  LIP SYNC STOPPEN
-  ==========================================================
-*/
 
 function stopLipSync(
   resetStatus = true
@@ -2693,113 +2387,70 @@ function stopLipSync(
   lipSyncRunning =
     false;
 
-
-  if (
-    lipAnimationFrame
-  ) {
+  if (lipAnimationFrame) {
 
     cancelAnimationFrame(
       lipAnimationFrame
     );
 
-
     lipAnimationFrame =
       null;
   }
 
-
-  if (
-    lipSourceNode
-  ) {
+  if (lipSourceNode) {
 
     try {
-
       lipSourceNode.disconnect();
-
     } catch {}
-
 
     lipSourceNode =
       null;
   }
 
-
-  if (
-    lipAnalyser
-  ) {
+  if (lipAnalyser) {
 
     try {
-
       lipAnalyser.disconnect();
-
     } catch {}
-
 
     lipAnalyser =
       null;
   }
 
-
-  if (
-    lipSilentGain
-  ) {
+  if (lipSilentGain) {
 
     try {
-
       lipSilentGain.disconnect();
-
     } catch {}
-
 
     lipSilentGain =
       null;
   }
 
+  lipTimeData = null;
+  lipFrequencyData = null;
 
-  lipTimeData =
-    null;
-
-
-  lipFrequencyData =
-    null;
-
-
-  currentMouthOpen =
-    0;
-
-
-  currentMouthWide =
-    0;
-
-
-  currentMouthRound =
-    0;
-
+  currentMouthOpen = 0;
+  currentMouthWide = 0;
+  currentMouthRound = 0;
 
   mouthPatch.style.transform =
     "translateY(0) scaleX(1) scaleY(1)";
 
-
   mouthPatch.style.opacity =
     "0.72";
-
 
   mouthDepth.style.opacity =
     "0";
 
-
   mouthDepth.style.transform =
     "scaleX(1) scaleY(.25)";
 
+  solCloneWrap
+    .classList
+    .remove("sol-speaking");
 
-  solCloneWrap.classList.remove(
-    "sol-speaking"
-  );
-
-
-  if (
-    resetStatus
-  ) {
+  if (resetStatus) {
 
     lipSyncStatus.textContent =
       "👄 Lip-Sync bereit.";
@@ -2807,27 +2458,14 @@ function stopLipSync(
 }
 
 
-/*
-  ==========================================================
-  CLONE-GEOMETRIE
-  ==========================================================
-*/
-
 solImage.addEventListener(
   "load",
-  () => {
-
-    updateMouthGeometry();
-  }
+  updateMouthGeometry
 );
-
 
 window.addEventListener(
   "resize",
-  () => {
-
-    updateMouthGeometry();
-  }
+  updateMouthGeometry
 );
 
 
@@ -2837,12 +2475,8 @@ if (
 
   const cloneResizeObserver =
     new ResizeObserver(
-      () => {
-
-        updateMouthGeometry();
-      }
+      updateMouthGeometry
     );
-
 
   cloneResizeObserver.observe(
     solCloneWrap
@@ -2868,25 +2502,20 @@ function setSolVolume(
   solVolume =
     volume;
 
-
   realtimeAudio.volume =
     solVolume;
-
 
   volumeMute.classList.remove(
     "active"
   );
 
-
   volumeLow.classList.remove(
     "active"
   );
 
-
   volumeNormal.classList.remove(
     "active"
   );
-
 
   activeButton.classList.add(
     "active"
@@ -2897,7 +2526,6 @@ function setSolVolume(
 volumeMute.addEventListener(
   "click",
   () => {
-
     setSolVolume(
       0,
       volumeMute
@@ -2909,7 +2537,6 @@ volumeMute.addEventListener(
 volumeLow.addEventListener(
   "click",
   () => {
-
     setSolVolume(
       0.22,
       volumeLow
@@ -2921,7 +2548,6 @@ volumeLow.addEventListener(
 volumeNormal.addEventListener(
   "click",
   () => {
-
     setSolVolume(
       1,
       volumeNormal
@@ -2932,7 +2558,7 @@ volumeNormal.addEventListener(
 
 /*
   ==========================================================
-  CHAT-NACHRICHT
+  CHAT
   ==========================================================
 */
 
@@ -2944,88 +2570,63 @@ function addMessage(
 ) {
 
   const element =
-    document.createElement(
-      "div"
-    );
-
+    document.createElement("div");
 
   element.className =
     `message ${className}`;
-
 
   const name =
     document.createElement(
       "strong"
     );
 
-
   name.textContent =
     speaker;
 
-
-  element.appendChild(
-    name
-  );
-
+  element.appendChild(name);
 
   const cleanText =
-    String(
-      text || ""
-    ).trim();
+    String(text || "").trim();
 
-
-  if (
-    cleanText
-  ) {
+  if (cleanText) {
 
     const content =
       document.createElement(
         "div"
       );
 
-
     content.textContent =
       cleanText;
-
 
     element.appendChild(
       content
     );
   }
 
-
-  if (
-    imageDataUrl
-  ) {
+  if (imageDataUrl) {
 
     const image =
       document.createElement(
         "img"
       );
 
-
     image.className =
       "messageImage";
-
 
     image.src =
       imageDataUrl;
 
-
     image.alt =
       "Gesendetes Bild";
-
 
     element.appendChild(
       image
     );
   }
 
-
   chat.appendChild(
     element
   );
-
 
   chat.scrollTop =
     chat.scrollHeight;
@@ -3062,7 +2663,7 @@ closeMenuButton.addEventListener(
 
 /*
   ==========================================================
-  TEXT / BILD SENDEN
+  SENDEN
   ==========================================================
 */
 
@@ -3071,40 +2672,28 @@ async function sendMessage(
 ) {
 
   const isForcedMessage =
-    forcedMessage !==
-    null;
-
+    forcedMessage !== null;
 
   const message =
     String(
       isForcedMessage
-        ?
-        forcedMessage
-        :
-        messageInput.value
+        ? forcedMessage
+        : messageInput.value
     ).trim();
-
 
   const imageToSend =
     isForcedMessage
-      ?
-      null
-      :
-      selectedImageDataUrl;
-
+      ? null
+      : selectedImageDataUrl;
 
   if (
     !message &&
     !imageToSend
   ) {
-
     return;
   }
 
-
-  if (
-    !isForcedMessage
-  ) {
+  if (!isForcedMessage) {
 
     addMessage(
       "Pam",
@@ -3113,27 +2702,19 @@ async function sendMessage(
       imageToSend
     );
 
-
-    messageInput.value =
-      "";
+    messageInput.value = "";
   }
-
 
   sendButton.disabled =
     true;
 
-
   imageButton.disabled =
     true;
 
-
   chatStatus.textContent =
     imageToSend
-      ?
-      "Sol schaut sich das Bild an ..."
-      :
-      "Sol denkt ...";
-
+      ? "Sol schaut sich das Bild an ..."
+      : "Sol denkt ...";
 
   try {
 
@@ -3141,35 +2722,25 @@ async function sendMessage(
       await fetch(
         `${BACKEND_URL}/sol`,
         {
-
-          method:
-            "POST",
+          method: "POST",
 
           headers: {
-
             "Content-Type":
               "application/json"
           },
 
           body:
             JSON.stringify({
-
               message,
-
-              image:
-                imageToSend
+              image: imageToSend
             })
         }
       );
 
-
     const responseText =
       await response.text();
 
-
-    let data =
-      null;
-
+    let data = null;
 
     try {
 
@@ -3182,17 +2753,12 @@ async function sendMessage(
 
       throw new Error(
         response.ok
-          ?
-          "Sol hat keine gültige Antwort geliefert."
-          :
-          `Serverfehler (${response.status}).`
+          ? "Sol hat keine gültige Antwort geliefert."
+          : `Serverfehler (${response.status}).`
       );
     }
 
-
-    if (
-      !response.ok
-    ) {
+    if (!response.ok) {
 
       throw new Error(
         data?.error ||
@@ -3200,30 +2766,23 @@ async function sendMessage(
       );
     }
 
-
     const answer =
       String(
-        data?.answer ||
-        ""
+        data?.answer || ""
       ).trim();
 
-
-    if (
-      !answer
-    ) {
+    if (!answer) {
 
       throw new Error(
         "Sol hat keine Antwort geliefert."
       );
     }
 
-
     addMessage(
       "Sol",
       answer,
       "sol-message"
     );
-
 
     if (
       !isForcedMessage &&
@@ -3233,33 +2792,24 @@ async function sendMessage(
       clearSelectedImage();
     }
 
-
     chatStatus.textContent =
       imageToSend
-        ?
-        "Bild verarbeitet."
-        :
-        "Antwort erhalten.";
+        ? "Bild verarbeitet."
+        : "Antwort erhalten.";
 
-  } catch (
-    error
-  ) {
+  } catch (error) {
 
     console.error(
       "Text-/Bildchat Fehler:",
       error
     );
 
-
     addMessage(
       "System",
-
       error?.message ||
       "Verbindung zu Sol fehlgeschlagen.",
-
       "system-message"
     );
-
 
     chatStatus.textContent =
       "Chat-Fehler.";
@@ -3269,25 +2819,15 @@ async function sendMessage(
     sendButton.disabled =
       false;
 
-
     imageButton.disabled =
       false;
   }
 }
 
 
-/*
-  ==========================================================
-  SENDEN
-  ENTER = SENDEN
-  SHIFT + ENTER = NEUE ZEILE
-  ==========================================================
-*/
-
 sendButton.addEventListener(
   "click",
   () => {
-
     sendMessage();
   }
 );
@@ -3298,13 +2838,11 @@ messageInput.addEventListener(
   event => {
 
     if (
-      event.key ===
-      "Enter" &&
+      event.key === "Enter" &&
       !event.shiftKey
     ) {
 
       event.preventDefault();
-
 
       sendMessage();
     }
@@ -3314,7 +2852,7 @@ messageInput.addEventListener(
 
 /*
   ==========================================================
-  MEMORY-BUTTON
+  MEMORY
   ==========================================================
 */
 
@@ -3326,7 +2864,6 @@ memoryButton.addEventListener(
       "open"
     );
 
-
     await sendMessage(
       "Sol, was weißt du dauerhaft?"
     );
@@ -3334,34 +2871,21 @@ memoryButton.addEventListener(
 );
 
 
-/*
-  ==========================================================
-  LIVE MEMORY
-  ==========================================================
-*/
-
 async function sendLiveTranscriptToMemory(
   transcript
 ) {
 
   const cleanTranscript =
     String(
-      transcript ||
-      ""
+      transcript || ""
     ).trim();
 
-
-  if (
-    !cleanTranscript
-  ) {
-
+  if (!cleanTranscript) {
     return;
   }
 
-
   memoryStatus.textContent =
     "🧠 Memory prüft ...";
-
 
   try {
 
@@ -3369,33 +2893,25 @@ async function sendLiveTranscriptToMemory(
       await fetch(
         `${BACKEND_URL}/live/memory`,
         {
-
-          method:
-            "POST",
+          method: "POST",
 
           headers: {
-
             "Content-Type":
               "application/json"
           },
 
           body:
             JSON.stringify({
-
               transcript:
                 cleanTranscript
             })
         }
       );
 
-
     const data =
       await response.json();
 
-
-    if (
-      !response.ok
-    ) {
+    if (!response.ok) {
 
       throw new Error(
         data?.error ||
@@ -3403,10 +2919,7 @@ async function sendLiveTranscriptToMemory(
       );
     }
 
-
-    if (
-      data.saved
-    ) {
+    if (data.saved) {
 
       memoryStatus.textContent =
         `🧠 Gespeichert: ${data.memory}`;
@@ -3417,15 +2930,12 @@ async function sendLiveTranscriptToMemory(
         "🧠 Keine dauerhafte Erinnerung nötig.";
     }
 
-  } catch (
-    error
-  ) {
+  } catch (error) {
 
     console.error(
       "Live-Memory Fehler:",
       error
     );
-
 
     memoryStatus.textContent =
       "🧠 Memory-Fehler.";
@@ -3435,7 +2945,7 @@ async function sendLiveTranscriptToMemory(
 
 /*
   ==========================================================
-  MIKROFON
+  MIKRO
   ==========================================================
 */
 
@@ -3451,35 +2961,22 @@ async function openFilteredMicrophone() {
     );
   }
 
-
   micStatus.textContent =
     "🎙️ Mikrofon wird aktiviert ...";
-
 
   const stream =
     await navigator.mediaDevices
       .getUserMedia({
-
         audio: {
-
-          echoCancellation:
-            true,
-
-          noiseSuppression:
-            true,
-
-          autoGainControl:
-            true,
-
-          channelCount:
-            1
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1
         }
       });
 
-
   micStatus.textContent =
     "🎙️ Mikrofonfilter aktiv.";
-
 
   return stream;
 }
@@ -3487,7 +2984,7 @@ async function openFilteredMicrophone() {
 
 /*
   ==========================================================
-  LIVE STOPPEN
+  LIVE STOP
   ==========================================================
 */
 
@@ -3495,42 +2992,25 @@ function stopLiveConversation() {
 
   stopLipSync();
 
-
-  if (
-    dc
-  ) {
+  if (dc) {
 
     try {
-
       dc.close();
-
     } catch {}
 
-
-    dc =
-      null;
+    dc = null;
   }
 
-
-  if (
-    pc
-  ) {
+  if (pc) {
 
     try {
-
       pc.close();
-
     } catch {}
 
-
-    pc =
-      null;
+    pc = null;
   }
 
-
-  if (
-    microphoneStream
-  ) {
+  if (microphoneStream) {
 
     microphoneStream
       .getTracks()
@@ -3539,24 +3019,19 @@ function stopLiveConversation() {
           track.stop()
       );
 
-
     microphoneStream =
       null;
   }
 
-
   realtimeAudio.srcObject =
     null;
-
 
   liveButton.classList.remove(
     "listening"
   );
 
-
   liveStatus.innerHTML =
     '<span class="wave">·······</span>&nbsp; Ich bin da. &nbsp;<span class="wave">·······</span>';
-
 
   micStatus.textContent =
     "🎙️ Mikrofon bereit.";
@@ -3565,29 +3040,23 @@ function stopLiveConversation() {
 
 /*
   ==========================================================
-  LIVE STARTEN
+  LIVE START
   ==========================================================
 */
 
 async function startLiveConversation() {
 
-  if (
-    pc
-  ) {
+  if (pc) {
 
     stopLiveConversation();
-
 
     return;
   }
 
-
   await ensureLipAudioContext();
-
 
   liveStatus.textContent =
     "Sol verbindet sich ...";
-
 
   try {
 
@@ -3595,22 +3064,15 @@ async function startLiveConversation() {
       await fetch(
         `${BACKEND_URL}/realtime/token`,
         {
-
-          method:
-            "GET",
-
-          cache:
-            "no-store"
+          method: "GET",
+          cache: "no-store"
         }
       );
-
 
     const responseText =
       await tokenResponse.text();
 
-
     let tokenData;
-
 
     try {
 
@@ -3626,10 +3088,7 @@ async function startLiveConversation() {
       );
     }
 
-
-    if (
-      !tokenResponse.ok
-    ) {
+    if (!tokenResponse.ok) {
 
       throw new Error(
         tokenData?.error ||
@@ -3637,28 +3096,24 @@ async function startLiveConversation() {
       );
     }
 
-
     const ephemeralKey =
       String(
         tokenData?.value ||
-        tokenData?.client_secret?.value ||
+        tokenData
+          ?.client_secret
+          ?.value ||
         ""
       ).trim();
 
-
-    if (
-      !ephemeralKey
-    ) {
+    if (!ephemeralKey) {
 
       throw new Error(
         "Kein Realtime-Schlüssel erhalten."
       );
     }
 
-
     pc =
       new RTCPeerConnection();
-
 
     pc.ontrack =
       event => {
@@ -3666,66 +3121,46 @@ async function startLiveConversation() {
         const stream =
           event.streams?.[0];
 
-
-        if (
-          !stream
-        ) {
-
+        if (!stream) {
           return;
         }
-
 
         realtimeAudio.srcObject =
           stream;
 
-
         realtimeAudio.volume =
           solVolume;
 
-
         realtimeAudio
           .play()
-          .catch(
-            () => {}
-          );
+          .catch(() => {});
 
-
-        startLipSync(
-          stream
-        );
+        startLipSync(stream);
       };
-
 
     microphoneStream =
       await openFilteredMicrophone();
-
 
     const audioTrack =
       microphoneStream
         .getAudioTracks()[0];
 
-
-    if (
-      !audioTrack
-    ) {
+    if (!audioTrack) {
 
       throw new Error(
         "Keine Mikrofonspur gefunden."
       );
     }
 
-
     pc.addTrack(
       audioTrack,
       microphoneStream
     );
 
-
     dc =
       pc.createDataChannel(
         "oai-events"
       );
-
 
     dc.addEventListener(
       "open",
@@ -3735,12 +3170,10 @@ async function startLiveConversation() {
           "listening"
         );
 
-
         liveStatus.textContent =
           "🌻 Ich höre dir zu ...";
       }
     );
-
 
     dc.addEventListener(
       "message",
@@ -3753,7 +3186,6 @@ async function startLiveConversation() {
               event.data
             );
 
-
           if (
             realtimeEvent.type ===
             "input_audio_buffer.speech_started"
@@ -3762,7 +3194,6 @@ async function startLiveConversation() {
             liveStatus.textContent =
               "🎙️ Ich höre dir zu ...";
           }
-
 
           if (
             realtimeEvent.type ===
@@ -3773,7 +3204,6 @@ async function startLiveConversation() {
               "🌻 Einen Moment ...";
           }
 
-
           if (
             realtimeEvent.type ===
             "conversation.item.input_audio_transcription.completed"
@@ -3781,14 +3211,12 @@ async function startLiveConversation() {
 
             const transcript =
               String(
-                realtimeEvent.transcript ||
+                realtimeEvent
+                  .transcript ||
                 ""
               ).trim();
 
-
-            if (
-              transcript
-            ) {
+            if (transcript) {
 
               sendLiveTranscriptToMemory(
                 transcript
@@ -3796,18 +3224,9 @@ async function startLiveConversation() {
             }
           }
 
-
           if (
             realtimeEvent.type ===
-            "response.output_audio.delta"
-          ) {
-
-            liveStatus.textContent =
-              "🌻 Sol spricht ...";
-          }
-
-
-          if (
+            "response.output_audio.delta" ||
             realtimeEvent.type ===
             "response.audio.delta"
           ) {
@@ -3816,18 +3235,9 @@ async function startLiveConversation() {
               "🌻 Sol spricht ...";
           }
 
-
           if (
             realtimeEvent.type ===
-            "response.output_audio.done"
-          ) {
-
-            liveStatus.textContent =
-              "🌻 Ich höre dir zu ...";
-          }
-
-
-          if (
+            "response.output_audio.done" ||
             realtimeEvent.type ===
             "response.done"
           ) {
@@ -3835,7 +3245,6 @@ async function startLiveConversation() {
             liveStatus.textContent =
               "🌻 Ich höre dir zu ...";
           }
-
 
           if (
             realtimeEvent.type ===
@@ -3847,14 +3256,11 @@ async function startLiveConversation() {
               realtimeEvent
             );
 
-
             liveStatus.textContent =
               "Sol hat gerade ein Verbindungsproblem.";
           }
 
-        } catch (
-          error
-        ) {
+        } catch (error) {
 
           console.error(
             "Realtime Event Fehler:",
@@ -3864,18 +3270,13 @@ async function startLiveConversation() {
       }
     );
 
-
     pc.addEventListener(
       "connectionstatechange",
       () => {
 
-        if (
-          !pc
-        ) {
-
+        if (!pc) {
           return;
         }
-
 
         if (
           pc.connectionState ===
@@ -3886,11 +3287,9 @@ async function startLiveConversation() {
             "listening"
           );
 
-
           liveStatus.textContent =
             "🌻 Ich höre dir zu ...";
         }
-
 
         if (
           pc.connectionState ===
@@ -3899,33 +3298,26 @@ async function startLiveConversation() {
 
           stopLiveConversation();
 
-
           liveStatus.textContent =
             "Verbindung zu Sol unterbrochen.";
         }
       }
     );
 
-
     const offer =
       await pc.createOffer();
-
 
     await pc.setLocalDescription(
       offer
     );
 
-
     const sdpResponse =
       await fetch(
         "https://api.openai.com/v1/realtime/calls",
         {
-
-          method:
-            "POST",
+          method: "POST",
 
           headers: {
-
             Authorization:
               `Bearer ${ephemeralKey}`,
 
@@ -3938,54 +3330,39 @@ async function startLiveConversation() {
         }
       );
 
-
     const answerSdp =
       await sdpResponse.text();
 
-
-    if (
-      !sdpResponse.ok
-    ) {
+    if (!sdpResponse.ok) {
 
       console.error(
         "OpenAI SDP Fehlerstatus:",
         sdpResponse.status
       );
 
-
       console.error(
         "OpenAI SDP Antwort:",
         answerSdp
       );
-
 
       throw new Error(
         `OpenAI Realtime Fehler ${sdpResponse.status}:\n${answerSdp.slice(0,700)}`
       );
     }
 
-
     await pc.setRemoteDescription({
-
-      type:
-        "answer",
-
-      sdp:
-        answerSdp
+      type: "answer",
+      sdp: answerSdp
     });
 
-  } catch (
-    error
-  ) {
+  } catch (error) {
 
     console.error(
       "Sol Live Fehler:",
       error
     );
 
-
     stopLiveConversation();
-
 
     liveStatus.textContent =
       error?.message ||
@@ -3994,19 +3371,11 @@ async function startLiveConversation() {
 }
 
 
-/*
-  ==========================================================
-  LIVE BUTTON
-  ==========================================================
-*/
-
 liveButton.addEventListener(
   "click",
   () => {
 
-    if (
-      pc
-    ) {
+    if (pc) {
 
       stopLiveConversation();
 
@@ -4017,12 +3386,6 @@ liveButton.addEventListener(
   }
 );
 
-
-/*
-  ==========================================================
-  STANDARD-LAUTSTÄRKE
-  ==========================================================
-*/
 
 realtimeAudio.volume =
   solVolume;
@@ -4060,15 +3423,7 @@ if (
 }
 
 
-/*
-  ==========================================================
-  MUNDPOSITION INITIALISIEREN
-  ==========================================================
-*/
-
-if (
-  solImage.complete
-) {
+if (solImage.complete) {
 
   requestAnimationFrame(
     updateMouthGeometry
