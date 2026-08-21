@@ -1,20 +1,114 @@
-{
-  "type": "module",
-  "scripts": {
-    "start": "node server.mjs",
-    "cap:sync": "npx cap sync android",
-    "android:build": "cd android && ./gradlew assembleDebug"
-  },
-  "dependencies": {
-    "@capacitor/core": "^7.0.0",
-    "@capacitor/android": "^7.0.0",
-    "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "googleapis": "^175.0.0",
-    "openai": "^5.0.0",
-    "pg": "^8.22.0"
-  },
-  "devDependencies": {
-    "@capacitor/cli": "^7.0.0"
-  }
-}
+name: Sol Holo Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/android-build.yml"
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository laden
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Java 21 einrichten
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Node-Abhängigkeiten installieren
+        run: npm install
+
+      - name: Android-Projekt erzeugen
+        run: npx cap add android
+
+      - name: Audio-Berechtigungen setzen
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          manifest = Path(
+              "android/app/src/main/AndroidManifest.xml"
+          )
+
+          text = manifest.read_text(
+              encoding="utf-8"
+          )
+
+          permissions = [
+              '<uses-permission android:name="android.permission.RECORD_AUDIO" />',
+              '<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />'
+          ]
+
+          marker = (
+              '<manifest '
+              'xmlns:android="http://schemas.android.com/apk/res/android">'
+          )
+
+          if marker not in text:
+              raise SystemExit(
+                  "Manifest-Tag nicht gefunden."
+              )
+
+          additions = []
+
+          for permission in permissions:
+              if permission not in text:
+                  additions.append(
+                      "    " + permission
+                  )
+
+          if additions:
+              text = text.replace(
+                  marker,
+                  marker
+                  + "\n"
+                  + "\n".join(additions),
+                  1
+              )
+
+          manifest.write_text(
+              text,
+              encoding="utf-8"
+          )
+
+          print(
+              "Audio-Berechtigungen gesetzt:"
+          )
+
+          for permission in permissions:
+              print(permission)
+          PY
+
+      - name: Manifest prüfen
+        run: |
+          echo "===== AndroidManifest.xml ====="
+          cat android/app/src/main/AndroidManifest.xml
+          echo "==============================="
+
+      - name: Sol Holo Web-App nach Android synchronisieren
+        run: npx cap sync android
+
+      - name: Gradle ausführbar machen
+        run: chmod +x android/gradlew
+
+      - name: Debug-APK bauen
+        working-directory: android
+        run: ./gradlew assembleDebug
+
+      - name: Sol Holo APK bereitstellen
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sol-Holo-Android
+          path: android/app/build/outputs/apk/debug/app-debug.apk
