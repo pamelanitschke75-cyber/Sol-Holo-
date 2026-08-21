@@ -59,10 +59,9 @@ button{
     );
 }
 
-
 /*
 ==========================================================
-PALMEN / MEER
+HINTERGRUND
 ==========================================================
 */
 
@@ -102,7 +101,6 @@ PALMEN / MEER
       transparent 34%
     );
 }
-
 
 /*
 ==========================================================
@@ -190,9 +188,7 @@ h1{
   color:#bd72ff;
 
   font-size:34px;
-
   font-weight:700;
-
   line-height:1.05;
 
   text-shadow:
@@ -206,10 +202,8 @@ h1{
   color:#b875ff;
 
   font-size:16px;
-
   line-height:1.2;
 }
-
 
 /*
 ==========================================================
@@ -345,7 +339,6 @@ SCHREIBEN
   height:44px;
 
   border:none;
-
   border-radius:50%;
 
   background:
@@ -361,7 +354,6 @@ SCHREIBEN
 #sendButton:disabled{
   opacity:.45;
 }
-
 
 /*
 ==========================================================
@@ -388,9 +380,7 @@ BILDVORSCHAU
 
 #imagePreviewPanel.visible{
   display:flex;
-
   align-items:center;
-
   gap:10px;
 }
 
@@ -399,17 +389,14 @@ BILDVORSCHAU
   height:70px;
 
   object-fit:cover;
-
   border-radius:13px;
 }
 
 #imagePreviewText{
   flex:1;
-
   min-width:0;
 
   color:#ddd4e8;
-
   font-size:13px;
 }
 
@@ -425,12 +412,10 @@ BILDVORSCHAU
     1px solid rgba(163,89,255,.55);
 
   background:#1c1029;
-
   color:white;
 
   cursor:pointer;
 }
-
 
 /*
 ==========================================================
@@ -454,7 +439,6 @@ LIVE STATUS
   color:#9851d8;
   letter-spacing:3px;
 }
-
 
 /*
 ==========================================================
@@ -552,7 +536,6 @@ CHAT
     1px solid rgba(183,106,255,.30);
 }
 
-
 /*
 ==========================================================
 HOLO
@@ -626,13 +609,6 @@ HOLO
     );
 }
 
-
-/*
-==========================================================
-HOLO BASIS
-==========================================================
-*/
-
 #holoBase{
   position:absolute;
 
@@ -651,7 +627,6 @@ HOLO BASIS
     0 0 22px rgba(127,73,255,.85),
     0 0 42px rgba(90,40,255,.40);
 }
-
 
 /*
 ==========================================================
@@ -708,7 +683,6 @@ STATUS
   background:
     rgba(168,90,255,.25);
 }
-
 
 /*
 ==========================================================
@@ -772,7 +746,6 @@ LAUTSTÄRKE
       #36135d
     );
 }
-
 
 /*
 ==========================================================
@@ -867,7 +840,6 @@ LIP SYNC
       scale(1);
   }
 }
-
 
 /*
 ==========================================================
@@ -989,13 +961,6 @@ VOLLBILD-SPRACHMODUS
   text-align:center;
 }
 
-
-/*
-==========================================================
-VOICE MODE AKTIV
-==========================================================
-*/
-
 #app.voice-mode{
   position:fixed;
 
@@ -1032,9 +997,7 @@ VOICE MODE AKTIV
     url("./sol-holo-beach.jpg");
 
   background-size:cover;
-
-  background-position:
-    center center;
+  background-position:center center;
 }
 
 #app.voice-mode #backgroundGlow{
@@ -1075,12 +1038,12 @@ VOICE MODE AKTIV
 }
 
 #app.voice-mode #solCloneWrap{
-  height:min(73dvh,760px);
+  height:min(70dvh,730px);
 
   max-width:92vw;
 
   margin-bottom:
-    calc(88px + env(safe-area-inset-bottom));
+    calc(96px + env(safe-area-inset-bottom));
 }
 
 #app.voice-mode #solImage{
@@ -1097,9 +1060,9 @@ VOICE MODE AKTIV
 
 #app.voice-mode #holoBase{
   bottom:
-    calc(70px + env(safe-area-inset-bottom));
+    calc(78px + env(safe-area-inset-bottom));
 
-  width:min(66vw,500px);
+  width:min(64vw,480px);
 
   height:22px;
 
@@ -1122,10 +1085,9 @@ VOICE MODE AKTIV
   display:block;
 }
 
-
 /*
 ==========================================================
-UNTERE NAVIGATION
+NAVIGATION
 ==========================================================
 */
 
@@ -1163,7 +1125,6 @@ UNTERE NAVIGATION
   flex-direction:column;
 
   align-items:center;
-
   justify-content:center;
 
   gap:5px;
@@ -1171,7 +1132,6 @@ UNTERE NAVIGATION
   min-width:0;
 
   border:none;
-
   background:transparent;
 
   color:#aaa1b9;
@@ -1190,7 +1150,6 @@ UNTERE NAVIGATION
 .navItem.active{
   color:#bc6cff;
 }
-
 
 /*
 ==========================================================
@@ -1276,10 +1235,9 @@ DRAWER
   line-height:1.4;
 }
 
-
 /*
 ==========================================================
-HANDY
+MOBIL
 ==========================================================
 */
 
@@ -1345,12 +1303,12 @@ HANDY
   }
 
   #app.voice-mode #solCloneWrap{
-    height:70dvh;
+    height:67dvh;
 
     max-width:94vw;
 
     margin-bottom:
-      calc(88px + env(safe-area-inset-bottom));
+      calc(96px + env(safe-area-inset-bottom));
   }
 
   #app.voice-mode #solImage{
@@ -1371,7 +1329,6 @@ HANDY
 
 <div id="beachBackground"></div>
 <div id="backgroundGlow"></div>
-
 
 <header>
 
@@ -1511,7 +1468,6 @@ Ich bin da. Du kannst mir schreiben, Bilder zeigen oder mit mir sprechen. 🌻
 
 <section id="solStage">
 
-
 <div id="voiceModeTitle">
 
 <strong>
@@ -1626,6 +1582,7 @@ Chat
 
 </button>
 
+
 <button
   class="navItem"
   type="button">
@@ -1639,6 +1596,7 @@ Weisheit
 </span>
 
 </button>
+
 
 <button
   class="navItem"
@@ -1654,6 +1612,7 @@ Herz
 
 </button>
 
+
 <button
   class="navItem"
   type="button">
@@ -1667,6 +1626,7 @@ Wissen
 </span>
 
 </button>
+
 
 <button
   class="navItem"
@@ -1745,166 +1705,96 @@ ELEMENTE
 */
 
 const app =
-  document.getElementById(
-    "app"
-  );
+  document.getElementById("app");
 
 const messageInput =
-  document.getElementById(
-    "messageInput"
-  );
+  document.getElementById("messageInput");
 
 const sendButton =
-  document.getElementById(
-    "sendButton"
-  );
+  document.getElementById("sendButton");
 
 const memoryButton =
-  document.getElementById(
-    "memoryButton"
-  );
+  document.getElementById("memoryButton");
 
 const liveButton =
-  document.getElementById(
-    "liveButton"
-  );
+  document.getElementById("liveButton");
 
 const liveStatus =
-  document.getElementById(
-    "liveStatus"
-  );
+  document.getElementById("liveStatus");
 
 const voiceStatus =
-  document.getElementById(
-    "voiceStatus"
-  );
+  document.getElementById("voiceStatus");
 
 const voiceExitButton =
-  document.getElementById(
-    "voiceExitButton"
-  );
+  document.getElementById("voiceExitButton");
 
 const memoryStatus =
-  document.getElementById(
-    "memoryStatus"
-  );
+  document.getElementById("memoryStatus");
 
 const chatStatus =
-  document.getElementById(
-    "chatStatus"
-  );
+  document.getElementById("chatStatus");
 
 const micStatus =
-  document.getElementById(
-    "micStatus"
-  );
+  document.getElementById("micStatus");
 
 const lipSyncStatus =
-  document.getElementById(
-    "lipSyncStatus"
-  );
+  document.getElementById("lipSyncStatus");
 
 const realtimeAudio =
-  document.getElementById(
-    "realtimeAudio"
-  );
+  document.getElementById("realtimeAudio");
 
 const menuButton =
-  document.getElementById(
-    "menuButton"
-  );
+  document.getElementById("menuButton");
 
 const closeMenuButton =
-  document.getElementById(
-    "closeMenuButton"
-  );
+  document.getElementById("closeMenuButton");
 
 const drawer =
-  document.getElementById(
-    "drawer"
-  );
+  document.getElementById("drawer");
 
 const chat =
-  document.getElementById(
-    "chat"
-  );
+  document.getElementById("chat");
 
 const volumeMute =
-  document.getElementById(
-    "volumeMute"
-  );
+  document.getElementById("volumeMute");
 
 const volumeLow =
-  document.getElementById(
-    "volumeLow"
-  );
+  document.getElementById("volumeLow");
 
 const volumeNormal =
-  document.getElementById(
-    "volumeNormal"
-  );
-
-
-/*
-==========================================================
-BILD
-==========================================================
-*/
+  document.getElementById("volumeNormal");
 
 const imageButton =
-  document.getElementById(
-    "imageButton"
-  );
+  document.getElementById("imageButton");
 
 const imageInput =
-  document.getElementById(
-    "imageInput"
-  );
+  document.getElementById("imageInput");
 
 const imagePreviewPanel =
-  document.getElementById(
-    "imagePreviewPanel"
-  );
+  document.getElementById("imagePreviewPanel");
 
 const imagePreview =
-  document.getElementById(
-    "imagePreview"
-  );
+  document.getElementById("imagePreview");
 
 const removeImageButton =
-  document.getElementById(
-    "removeImageButton"
-  );
+  document.getElementById("removeImageButton");
+
+const solCloneWrap =
+  document.getElementById("solCloneWrap");
+
+const solImage =
+  document.getElementById("solImage");
+
+const mouthPatch =
+  document.getElementById("mouthPatch");
+
+const mouthDepth =
+  document.getElementById("mouthDepth");
+
 
 let selectedImageDataUrl =
   null;
 
-
-/*
-==========================================================
-CLONE / LIP SYNC
-==========================================================
-*/
-
-const solCloneWrap =
-  document.getElementById(
-    "solCloneWrap"
-  );
-
-const solImage =
-  document.getElementById(
-    "solImage"
-  );
-
-const mouthPatch =
-  document.getElementById(
-    "mouthPatch"
-  );
-
-const mouthDepth =
-  document.getElementById(
-    "mouthDepth"
-  );
 
 const LIP_SYNC_FACE = {
   x:0.500,
@@ -1927,7 +1817,7 @@ let microphoneStream = null;
 
 /*
 ==========================================================
-LIP SYNC
+LIP SYNC ENGINE
 ==========================================================
 */
 
@@ -2009,10 +1899,7 @@ function enterVoiceMode(){
 
 
   requestAnimationFrame(
-    () => {
-
-      updateMouthGeometry();
-    }
+    updateMouthGeometry
   );
 }
 
@@ -2030,10 +1917,7 @@ function exitVoiceMode(){
 
 
   requestAnimationFrame(
-    () => {
-
-      updateMouthGeometry();
-    }
+    updateMouthGeometry
   );
 }
 
@@ -3138,19 +3022,13 @@ GEOMETRIE
 
 solImage.addEventListener(
   "load",
-  () => {
-
-    updateMouthGeometry();
-  }
+  updateMouthGeometry
 );
 
 
 window.addEventListener(
   "resize",
-  () => {
-
-    updateMouthGeometry();
-  }
+  updateMouthGeometry
 );
 
 
@@ -3160,10 +3038,7 @@ if(
 
   const cloneResizeObserver =
     new ResizeObserver(
-      () => {
-
-        updateMouthGeometry();
-      }
+      updateMouthGeometry
     );
 
 
@@ -3607,8 +3482,7 @@ messageInput.addEventListener(
   event => {
 
     if(
-      event.key ===
-      "Enter" &&
+      event.key === "Enter" &&
       !event.shiftKey
     ){
 
@@ -4277,7 +4151,7 @@ async function startLiveConversation(){
 
 /*
 ==========================================================
-MIKRO → GROSSER HOLO-MODUS
+MIKRO → VOLLBILD
 ==========================================================
 */
 
