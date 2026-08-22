@@ -34,6 +34,19 @@ const db = new Pool({
 const CURRENT_CLONE_ID = "pam-sol-001";
 
 /*
+  Persönliche Stimme
+
+  Solange noch keine eigene Voice-ID vorhanden ist,
+  bleibt marin als Fallback aktiv.
+*/
+
+const SOL_HOLO_VOICE =
+  String(
+    process.env.SOL_HOLO_VOICE_ID ||
+    "marin"
+  ).trim();
+
+/*
   Memory-Tabellen anlegen
 */
 
@@ -56,14 +69,6 @@ async function initializeMemory() {
     )
   `);
 
-  /*
-    NEU:
-    Sol-Holo-Vollzeitgedächtnis
-
-    Hier wird jede Nachricht automatisch
-    dauerhaft gespeichert.
-  */
-
   await db.query(`
     CREATE TABLE IF NOT EXISTS sol_fulltime_memory (
       id BIGSERIAL PRIMARY KEY,
@@ -76,6 +81,12 @@ async function initializeMemory() {
 
   console.log("Sol-Holo-Memory ist bereit.");
   console.log("Sol-Holo-Vollzeitgedächtnis ist bereit.");
+
+  console.log(
+    process.env.SOL_HOLO_VOICE_ID
+      ? "Persönliche Sol-Holo-Stimme aktiv."
+      : "Noch keine persönliche Voice-ID – marin bleibt aktiv."
+  );
 }
 
 initializeMemory().catch((error) => {
@@ -96,6 +107,967 @@ app.get("/", (req, res) => {
     path.join(__dirname, "index.html")
   );
 });
+
+/*
+  ==========================================================
+  VOICE SETUP – SICHERHEIT
+  ==========================================================
+*/
+
+function checkVoiceSetupSecret(
+  req,
+  res,
+  next
+) {
+  const expectedSecret =
+    String(
+      process.env.VOICE_SETUP_SECRET ||
+      ""
+    ).trim();
+
+  if (!expectedSecret) {
+    return res.status(503).json({
+      error:
+        "VOICE_SETUP_SECRET ist in Render noch nicht eingerichtet."
+    });
+  }
+
+  const suppliedSecret =
+    String(
+      req.headers["x-voice-setup-secret"] ||
+      ""
+    ).trim();
+
+  if (
+    suppliedSecret !==
+    expectedSecret
+  ) {
+    return res.status(401).json({
+      error:
+        "Voice-Setup nicht autorisiert."
+    });
+  }
+
+  next();
+}
+
+/*
+  Audio-MIME-Typ bestimmen
+*/
+
+function normalizeAudioMimeType(
+  filename,
+  suppliedType
+) {
+  const lowerName =
+    String(
+      filename ||
+      ""
+    ).toLowerCase();
+
+  const type =
+    String(
+      suppliedType ||
+      ""
+    ).toLowerCase();
+
+  if (
+    lowerName.endsWith(".m4a") ||
+    lowerName.endsWith(".mp4")
+  ) {
+    return "audio/mp4";
+  }
+
+  if (
+    lowerName.endsWith(".wav")
+  ) {
+    return "audio/wav";
+  }
+
+  if (
+    lowerName.endsWith(".mp3")
+  ) {
+    return "audio/mpeg";
+  }
+
+  if (
+    lowerName.endsWith(".ogg")
+  ) {
+    return "audio/ogg";
+  }
+
+  if (
+    lowerName.endsWith(".aac")
+  ) {
+    return "audio/aac";
+  }
+
+  if (
+    lowerName.endsWith(".flac")
+  ) {
+    return "audio/flac";
+  }
+
+  if (
+    lowerName.endsWith(".webm")
+  ) {
+    return "audio/webm";
+  }
+
+  if (
+    type.startsWith("audio/")
+  ) {
+    return type;
+  }
+
+  return "audio/mp4";
+}
+
+/*
+  ==========================================================
+  VOICE-SETUP-SEITE
+  ==========================================================
+*/
+
+app.get(
+  "/voice-setup",
+  (req, res) => {
+    res.type("html");
+
+    res.send(`
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1"
+>
+<title>Sol Holo – Eigene Stimme</title>
+
+<style>
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  padding:24px 16px;
+  background:#05030b;
+  color:white;
+  font-family:Arial,sans-serif;
+}
+
+main{
+  width:100%;
+  max-width:650px;
+  margin:auto;
+}
+
+h1{
+  color:#bd72ff;
+}
+
+.box{
+  margin-top:20px;
+  padding:18px;
+  border:1px solid #7139a7;
+  border-radius:18px;
+  background:#100719;
+}
+
+label{
+  display:block;
+  margin-top:16px;
+  margin-bottom:7px;
+  color:#d3a6ff;
+}
+
+input,
+button{
+  width:100%;
+  padding:13px;
+  border-radius:12px;
+  border:1px solid #7941aa;
+  background:#160b20;
+  color:white;
+  font-size:16px;
+}
+
+button{
+  margin-top:18px;
+  background:#61249c;
+  cursor:pointer;
+}
+
+button:disabled{
+  opacity:.5;
+}
+
+.status{
+  margin-top:16px;
+  white-space:pre-wrap;
+  line-height:1.45;
+  color:#ddd;
+}
+
+.success{
+  color:#45e5a2;
+}
+
+.warning{
+  color:#ffc86a;
+}
+</style>
+</head>
+
+<body>
+
+<main>
+
+<h1>
+🌻 Sol Holo – Eigene Stimme
+</h1>
+
+<p>
+Hier werden zuerst die Einwilligungsaufnahme
+und danach die eigentliche Stimmprobe an OpenAI gesendet.
+</p>
+
+<div class="box">
+
+<h2>
+🔐 Voice Setup
+</h2>
+
+<label for="secret">
+Voice-Setup-Passwort
+</label>
+
+<input
+  id="secret"
+  type="password"
+  autocomplete="off"
+  placeholder="VOICE_SETUP_SECRET"
+>
+
+<hr style="
+  margin:24px 0;
+  border:none;
+  border-top:1px solid #49225f;
+">
+
+<h2>
+1. Voice Consent
+</h2>
+
+<label for="consentName">
+Name
+</label>
+
+<input
+  id="consentName"
+  value="Pam Sol Holo Consent"
+>
+
+<label for="language">
+Sprache
+</label>
+
+<input
+  id="language"
+  value="de-DE"
+>
+
+<label for="consentFile">
+Consent-Aufnahme
+</label>
+
+<input
+  id="consentFile"
+  type="file"
+  accept="audio/*"
+>
+
+<button
+  id="consentButton"
+  type="button">
+Consent hochladen
+</button>
+
+<div
+  id="consentStatus"
+  class="status">
+Noch keine Consent-ID vorhanden.
+</div>
+
+<hr style="
+  margin:24px 0;
+  border:none;
+  border-top:1px solid #49225f;
+">
+
+<h2>
+2. Persönliche Stimme
+</h2>
+
+<label for="voiceName">
+Name der Stimme
+</label>
+
+<input
+  id="voiceName"
+  value="Pam Sol Holo"
+>
+
+<label for="consentId">
+Consent-ID
+</label>
+
+<input
+  id="consentId"
+  placeholder="cons_..."
+>
+
+<label for="voiceFile">
+Stimmprobe
+</label>
+
+<input
+  id="voiceFile"
+  type="file"
+  accept="audio/*"
+>
+
+<button
+  id="voiceButton"
+  type="button">
+Eigene Stimme erstellen
+</button>
+
+<div
+  id="voiceStatus"
+  class="status">
+Noch keine Voice-ID vorhanden.
+</div>
+
+</div>
+
+</main>
+
+<script>
+
+const secretInput =
+  document.getElementById(
+    "secret"
+  );
+
+const consentName =
+  document.getElementById(
+    "consentName"
+  );
+
+const language =
+  document.getElementById(
+    "language"
+  );
+
+const consentFile =
+  document.getElementById(
+    "consentFile"
+  );
+
+const consentButton =
+  document.getElementById(
+    "consentButton"
+  );
+
+const consentStatus =
+  document.getElementById(
+    "consentStatus"
+  );
+
+const voiceName =
+  document.getElementById(
+    "voiceName"
+  );
+
+const consentId =
+  document.getElementById(
+    "consentId"
+  );
+
+const voiceFile =
+  document.getElementById(
+    "voiceFile"
+  );
+
+const voiceButton =
+  document.getElementById(
+    "voiceButton"
+  );
+
+const voiceStatus =
+  document.getElementById(
+    "voiceStatus"
+  );
+
+consentButton.addEventListener(
+  "click",
+  async () => {
+    const file =
+      consentFile.files?.[0];
+
+    const secret =
+      secretInput.value.trim();
+
+    if (!secret) {
+      consentStatus.textContent =
+        "Bitte zuerst dein Voice-Setup-Passwort eingeben.";
+
+      return;
+    }
+
+    if (!file) {
+      consentStatus.textContent =
+        "Bitte die Consent-Aufnahme auswählen.";
+
+      return;
+    }
+
+    consentButton.disabled =
+      true;
+
+    consentStatus.textContent =
+      "Consent wird hochgeladen ...";
+
+    try {
+      const params =
+        new URLSearchParams({
+          name:
+            consentName.value.trim() ||
+            "Pam Sol Holo Consent",
+
+          language:
+            language.value.trim() ||
+            "de-DE",
+
+          filename:
+            file.name,
+
+          mime:
+            file.type ||
+            "audio/mp4"
+        });
+
+      const response =
+        await fetch(
+          "/voice/setup/consent?" +
+          params.toString(),
+          {
+            method:"POST",
+
+            headers:{
+              "Content-Type":
+                file.type ||
+                "application/octet-stream",
+
+              "X-Voice-Setup-Secret":
+                secret
+            },
+
+            body:file
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+          "Consent konnte nicht erstellt werden."
+        );
+      }
+
+      consentId.value =
+        data.id;
+
+      consentStatus.className =
+        "status success";
+
+      consentStatus.textContent =
+        "✅ Consent erstellt.\\n\\nConsent-ID:\\n" +
+        data.id;
+
+    } catch(error) {
+      consentStatus.className =
+        "status warning";
+
+      consentStatus.textContent =
+        "Fehler: " +
+        (
+          error?.message ||
+          "Unbekannter Fehler."
+        );
+
+    } finally {
+      consentButton.disabled =
+        false;
+    }
+  }
+);
+
+voiceButton.addEventListener(
+  "click",
+  async () => {
+    const file =
+      voiceFile.files?.[0];
+
+    const secret =
+      secretInput.value.trim();
+
+    const currentConsentId =
+      consentId.value.trim();
+
+    if (!secret) {
+      voiceStatus.textContent =
+        "Bitte zuerst dein Voice-Setup-Passwort eingeben.";
+
+      return;
+    }
+
+    if (!currentConsentId) {
+      voiceStatus.textContent =
+        "Consent-ID fehlt.";
+
+      return;
+    }
+
+    if (!file) {
+      voiceStatus.textContent =
+        "Bitte die Stimmprobe auswählen.";
+
+      return;
+    }
+
+    voiceButton.disabled =
+      true;
+
+    voiceStatus.textContent =
+      "Deine Sol-Holo-Stimme wird erstellt ...";
+
+    try {
+      const params =
+        new URLSearchParams({
+          name:
+            voiceName.value.trim() ||
+            "Pam Sol Holo",
+
+          consent:
+            currentConsentId,
+
+          filename:
+            file.name,
+
+          mime:
+            file.type ||
+            "audio/mp4"
+        });
+
+      const response =
+        await fetch(
+          "/voice/setup/create?" +
+          params.toString(),
+          {
+            method:"POST",
+
+            headers:{
+              "Content-Type":
+                file.type ||
+                "application/octet-stream",
+
+              "X-Voice-Setup-Secret":
+                secret
+            },
+
+            body:file
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+          "Stimme konnte nicht erstellt werden."
+        );
+      }
+
+      voiceStatus.className =
+        "status success";
+
+      voiceStatus.textContent =
+        "✅ Eigene Stimme erstellt!\\n\\nVOICE-ID:\\n" +
+        data.id +
+        "\\n\\nDiese ID kommt anschließend als SOL_HOLO_VOICE_ID nach Render.";
+
+    } catch(error) {
+      voiceStatus.className =
+        "status warning";
+
+      voiceStatus.textContent =
+        "Fehler: " +
+        (
+          error?.message ||
+          "Unbekannter Fehler."
+        );
+
+    } finally {
+      voiceButton.disabled =
+        false;
+    }
+  }
+);
+
+</script>
+
+</body>
+</html>
+    `);
+  }
+);
+
+/*
+  ==========================================================
+  VOICE CONSENT AN OPENAI SENDEN
+  ==========================================================
+*/
+
+app.post(
+  "/voice/setup/consent",
+
+  checkVoiceSetupSecret,
+
+  express.raw({
+    type: () => true,
+    limit: "10mb"
+  }),
+
+  async (req, res) => {
+    try {
+      if (
+        !process.env.OPENAI_API_KEY
+      ) {
+        return res.status(500).json({
+          error:
+            "OPENAI_API_KEY fehlt."
+        });
+      }
+
+      if (
+        !Buffer.isBuffer(req.body) ||
+        req.body.length === 0
+      ) {
+        return res.status(400).json({
+          error:
+            "Keine Consent-Aufnahme erhalten."
+        });
+      }
+
+      const name =
+        String(
+          req.query.name ||
+          "Pam Sol Holo Consent"
+        ).trim();
+
+      const language =
+        String(
+          req.query.language ||
+          "de-DE"
+        ).trim();
+
+      const filename =
+        String(
+          req.query.filename ||
+          "consent.m4a"
+        ).trim();
+
+      const mimeType =
+        normalizeAudioMimeType(
+          filename,
+          req.query.mime
+        );
+
+      const form =
+        new FormData();
+
+      form.append(
+        "name",
+        name
+      );
+
+      form.append(
+        "language",
+        language
+      );
+
+      form.append(
+        "recording",
+        new Blob(
+          [req.body],
+          {
+            type:mimeType
+          }
+        ),
+        filename
+      );
+
+      const response =
+        await fetch(
+          "https://api.openai.com/v1/audio/voice_consents",
+          {
+            method:"POST",
+
+            headers:{
+              Authorization:
+                `Bearer ${process.env.OPENAI_API_KEY}`
+            },
+
+            body:form
+          }
+        );
+
+      const responseText =
+        await response.text();
+
+      let data;
+
+      try {
+        data =
+          JSON.parse(
+            responseText
+          );
+      } catch {
+        data = {
+          error:
+            responseText
+        };
+      }
+
+      if (!response.ok) {
+        console.error(
+          "Voice Consent API Fehler:",
+          data
+        );
+
+        return res
+          .status(response.status)
+          .json({
+            error:
+              data?.error?.message ||
+              data?.error ||
+              "Voice Consent konnte nicht erstellt werden."
+          });
+      }
+
+      console.log(
+        "✅ Voice Consent erstellt:",
+        data.id
+      );
+
+      return res.json({
+        id:
+          data.id,
+
+        name:
+          data.name,
+
+        language:
+          data.language
+      });
+
+    } catch(error) {
+      console.error(
+        "Voice Consent Fehler:",
+        error
+      );
+
+      return res.status(500).json({
+        error:
+          "Voice Consent konnte nicht verarbeitet werden."
+      });
+    }
+  }
+);
+
+/*
+  ==========================================================
+  EIGENE STIMME AN OPENAI SENDEN
+  ==========================================================
+*/
+
+app.post(
+  "/voice/setup/create",
+
+  checkVoiceSetupSecret,
+
+  express.raw({
+    type: () => true,
+    limit: "10mb"
+  }),
+
+  async (req, res) => {
+    try {
+      if (
+        !process.env.OPENAI_API_KEY
+      ) {
+        return res.status(500).json({
+          error:
+            "OPENAI_API_KEY fehlt."
+        });
+      }
+
+      if (
+        !Buffer.isBuffer(req.body) ||
+        req.body.length === 0
+      ) {
+        return res.status(400).json({
+          error:
+            "Keine Stimmprobe erhalten."
+        });
+      }
+
+      const name =
+        String(
+          req.query.name ||
+          "Pam Sol Holo"
+        ).trim();
+
+      const consent =
+        String(
+          req.query.consent ||
+          ""
+        ).trim();
+
+      if (!consent) {
+        return res.status(400).json({
+          error:
+            "Consent-ID fehlt."
+        });
+      }
+
+      const filename =
+        String(
+          req.query.filename ||
+          "pam-sol.m4a"
+        ).trim();
+
+      const mimeType =
+        normalizeAudioMimeType(
+          filename,
+          req.query.mime
+        );
+
+      const form =
+        new FormData();
+
+      form.append(
+        "name",
+        name
+      );
+
+      form.append(
+        "consent",
+        consent
+      );
+
+      form.append(
+        "audio_sample",
+        new Blob(
+          [req.body],
+          {
+            type:mimeType
+          }
+        ),
+        filename
+      );
+
+      const response =
+        await fetch(
+          "https://api.openai.com/v1/audio/voices",
+          {
+            method:"POST",
+
+            headers:{
+              Authorization:
+                `Bearer ${process.env.OPENAI_API_KEY}`
+            },
+
+            body:form
+          }
+        );
+
+      const responseText =
+        await response.text();
+
+      let data;
+
+      try {
+        data =
+          JSON.parse(
+            responseText
+          );
+      } catch {
+        data = {
+          error:
+            responseText
+        };
+      }
+
+      if (!response.ok) {
+        console.error(
+          "Voice API Fehler:",
+          data
+        );
+
+        return res
+          .status(response.status)
+          .json({
+            error:
+              data?.error?.message ||
+              data?.error ||
+              "Eigene Stimme konnte nicht erstellt werden."
+          });
+      }
+
+      console.log(
+        "✅ Pam Sol Holo Voice erstellt:",
+        data.id
+      );
+
+      return res.json({
+        id:
+          data.id,
+
+        name:
+          data.name
+      });
+
+    } catch(error) {
+      console.error(
+        "Voice-Erstellung Fehler:",
+        error
+      );
+
+      return res.status(500).json({
+        error:
+          "Die persönliche Stimme konnte nicht verarbeitet werden."
+      });
+    }
+  }
+);
 
 /*
   ==========================================================
@@ -129,7 +1101,8 @@ app.post("/realtime/token", async (req, res) => {
 
         audio: {
           output: {
-            voice: "marin"
+            voice:
+              SOL_HOLO_VOICE
           }
         }
       }
@@ -193,10 +1166,6 @@ app.post("/realtime/token", async (req, res) => {
   ==========================================================
 */
 
-/*
-  Letzte Gesprächserinnerungen laden
-*/
-
 async function loadRecentMemory() {
   const result = await db.query(`
     SELECT role, content
@@ -207,10 +1176,6 @@ async function loadRecentMemory() {
 
   return result.rows.reverse();
 }
-
-/*
-  Gesprächserinnerung speichern
-*/
 
 async function saveMemory(role, content) {
   await db.query(
@@ -226,14 +1191,6 @@ async function saveMemory(role, content) {
   ==========================================================
   VOLLZEITGEDÄCHTNIS
   ==========================================================
-*/
-
-/*
-  Jede Nachricht automatisch dauerhaft speichern.
-
-  Kein Befehl wie
-  "Sol, merke dir dauerhaft ..."
-  notwendig.
 */
 
 async function saveFulltimeMemory(
@@ -267,16 +1224,6 @@ async function saveFulltimeMemory(
   );
 }
 
-/*
-  Letzte Einträge des Vollzeitgedächtnisses laden.
-
-  Die vollständige Historie bleibt in PostgreSQL
-  gespeichert.
-
-  Für eine einzelne KI-Anfrage werden momentan
-  die letzten 50 Einträge als Kontext verwendet.
-*/
-
 async function loadFulltimeMemory(
   limit = 50
 ) {
@@ -306,10 +1253,6 @@ async function loadFulltimeMemory(
   ==========================================================
   LANGZEITGEDÄCHTNIS
   ==========================================================
-*/
-
-/*
-  Langzeiterinnerung speichern
 */
 
 async function saveLongTermMemory(content) {
@@ -345,10 +1288,6 @@ async function saveLongTermMemory(content) {
   return true;
 }
 
-/*
-  Langzeiterinnerung vergessen
-*/
-
 async function forgetLongTermMemory(searchText) {
   const cleanSearchText =
     String(searchText || "").trim();
@@ -369,10 +1308,6 @@ async function forgetLongTermMemory(searchText) {
   return result.rowCount;
 }
 
-/*
-  Relevante Langzeiterinnerungen laden
-*/
-
 async function loadRelevantLongTermMemory(message) {
   const cleanMessage =
     String(message || "").trim();
@@ -380,12 +1315,6 @@ async function loadRelevantLongTermMemory(message) {
   if (!cleanMessage) {
     return [];
   }
-
-  /*
-    Zuerst versuchen wir eine Volltextsuche.
-    Falls nichts gefunden wird, werden einige aktuelle
-    Langzeiterinnerungen als Fallback geladen.
-  */
 
   try {
     const result = await db.query(
@@ -424,10 +1353,6 @@ async function loadRelevantLongTermMemory(message) {
   return fallback.rows;
 }
 
-/*
-  Alle Langzeiterinnerungen laden
-*/
-
 async function loadAllLongTermMemory() {
   const result = await db.query(`
     SELECT id, content, created_at
@@ -442,13 +1367,6 @@ async function loadAllLongTermMemory() {
   ==========================================================
   EXPLIZITE MEMORY-BEFEHLE
   ==========================================================
-*/
-
-/*
-  Diese bestehenden Funktionen bleiben erhalten.
-
-  Dadurch löschen wir NICHTS aus dem bisherigen
-  Langzeitgedächtnis-System.
 */
 
 function extractRememberCommand(message) {
@@ -481,70 +1399,37 @@ function isListMemoryCommand(message) {
 
 app.post("/sol", async (req, res) => {
   try {
-
-    /*
-      Originalnachricht.
-
-      Diese Version wird für das Vollzeitgedächtnis
-      verwendet.
-    */
-
     const originalMessage =
       String(
         req.body?.message || ""
       );
-
-    /*
-      Für die normale Verarbeitung bleibt
-      die bisherige trim()-Version bestehen.
-    */
 
     const message =
       originalMessage.trim();
 
     if (!message) {
       return res.status(400).json({
-        error: "Keine Frage erhalten."
+        error:
+          "Keine Frage erhalten."
       });
     }
 
     if (message.length > 4000) {
       return res.status(400).json({
-        error: "Die Eingabe ist zu lang."
+        error:
+          "Die Eingabe ist zu lang."
       });
     }
-
-    /*
-      ========================================================
-      VOLLZEITGEDÄCHTNIS
-
-      Pam's Nachricht SOFORT automatisch speichern.
-
-      Kein Speicherbefehl.
-      Keine Nachfrage.
-      Keine Bewertung nach wichtig/unwichtig.
-      ========================================================
-    */
 
     await saveFulltimeMemory(
       "user",
       originalMessage
     );
 
-    /*
-      ========================================================
-      ALTER BEFEHL:
-      "Sol, merke dir dauerhaft: ..."
-      ========================================================
-
-      Bleibt aus Sicherheitsgründen erhalten.
-
-      Das Vollzeitgedächtnis hat die komplette Nachricht
-      bereits zusätzlich automatisch gespeichert.
-    */
-
     const rememberContent =
-      extractRememberCommand(message);
+      extractRememberCommand(
+        message
+      );
 
     if (rememberContent) {
       await saveMemory(
@@ -566,11 +1451,6 @@ app.post("/sol", async (req, res) => {
         answer
       );
 
-      /*
-        Sols Antwort zusätzlich automatisch
-        im Vollzeitgedächtnis speichern.
-      */
-
       await saveFulltimeMemory(
         "assistant",
         answer
@@ -581,15 +1461,10 @@ app.post("/sol", async (req, res) => {
       });
     }
 
-    /*
-      ========================================================
-      ALTER BEFEHL:
-      "Sol, vergiss dauerhaft: ..."
-      ========================================================
-    */
-
     const forgetContent =
-      extractForgetCommand(message);
+      extractForgetCommand(
+        message
+      );
 
     if (forgetContent) {
       await saveMemory(
@@ -622,15 +1497,10 @@ app.post("/sol", async (req, res) => {
       });
     }
 
-    /*
-      ========================================================
-      ALTER BEFEHL:
-      "Sol, was weißt du dauerhaft?"
-      ========================================================
-    */
-
     if (
-      isListMemoryCommand(message)
+      isListMemoryCommand(
+        message
+      )
     ) {
       await saveMemory(
         "user",
@@ -675,12 +1545,6 @@ app.post("/sol", async (req, res) => {
       });
     }
 
-    /*
-      ========================================================
-      Frühere Unterhaltung laden
-      ========================================================
-    */
-
     const memories =
       await loadRecentMemory();
 
@@ -696,12 +1560,6 @@ app.post("/sol", async (req, res) => {
         })
         .join("\n");
 
-    /*
-      ========================================================
-      Relevante Langzeiterinnerungen laden
-      ========================================================
-    */
-
     const longTermMemories =
       await loadRelevantLongTermMemory(
         message
@@ -715,12 +1573,6 @@ app.post("/sol", async (req, res) => {
         )
         .join("\n") ||
       "Keine passenden Langzeiterinnerungen gefunden.";
-
-    /*
-      ========================================================
-      Vollzeitgedächtnis laden
-      ========================================================
-    */
 
     const fulltimeMemories =
       await loadFulltimeMemory(
@@ -739,21 +1591,10 @@ app.post("/sol", async (req, res) => {
         })
         .join("\n");
 
-    /*
-      Aktuelle Nachricht zusätzlich weiterhin
-      im bisherigen Gesprächsgedächtnis speichern.
-    */
-
     await saveMemory(
       "user",
       message
     );
-
-    /*
-      ========================================================
-      SOL ANTWORTEN LASSEN
-      ========================================================
-    */
 
     const response =
       await openai.responses.create({
@@ -867,23 +1708,10 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
       });
     }
 
-    /*
-      Sols Antwort weiterhin im bisherigen
-      Gesprächsgedächtnis speichern.
-    */
-
     await saveMemory(
       "assistant",
       answer
     );
-
-    /*
-      ========================================================
-      VOLLZEITGEDÄCHTNIS
-
-      Auch Sols Antwort automatisch dauerhaft speichern.
-      ========================================================
-    */
 
     await saveFulltimeMemory(
       "assistant",
