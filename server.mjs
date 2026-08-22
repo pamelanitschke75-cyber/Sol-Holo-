@@ -16,7 +16,6 @@ const app = express();
 */
 
 const MEMORY_OWNER_ID = "pam-sol";
-
 const LEGACY_MEMORY_OWNER_ID = "pam-sol-001";
 
 /*
@@ -557,8 +556,13 @@ app.get(
         <html lang="de">
           <head>
             <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width,initial-scale=1">
-            <title>Sol Holo – Google Kalender</title>
+            <meta
+              name="viewport"
+              content="width=device-width,initial-scale=1"
+            >
+            <title>
+              Sol Holo – Google Kalender
+            </title>
           </head>
 
           <body
@@ -826,7 +830,7 @@ app.post(
 
                   model:
                     process.env.OPENAI_REALTIME_MODEL ||
-                    "gpt-realtime",
+                    "gpt-realtime-2.1",
 
                   instructions:
                     "Du bist Sol, die KI-Stimme innerhalb von Sol Holo. Antworte natürlich, freundlich und auf Deutsch, sofern die Nutzerin nicht ausdrücklich eine andere Sprache verwendet.",
