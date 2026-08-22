@@ -3674,6 +3674,12 @@ async function sendLiveTranscriptToMemory(
 }
 
 
+/*
+==========================================================
+ERWEITERTER MIKROFONFILTER
+==========================================================
+*/
+
 async function openFilteredMicrophone(){
 
   if(
@@ -3688,28 +3694,253 @@ async function openFilteredMicrophone(){
 
 
   micStatus.textContent =
-    "🎙️ Mikrofon wird aktiviert ...";
+    "🎙️ Mikrofonfilter werden aktiviert ...";
 
 
-  const stream =
-    await navigator.mediaDevices
-      .getUserMedia({
-
-        audio:{
-
-          echoCancellation:true,
-
-          noiseSuppression:true,
-
-          autoGainControl:true,
-
-          channelCount:1
-        }
-      });
+  const supported =
+    navigator.mediaDevices
+      .getSupportedConstraints
+      ?
+      navigator.mediaDevices
+        .getSupportedConstraints()
+      :
+      {};
 
 
-  micStatus.textContent =
-    "🎙️ Mikrofonfilter aktiv.";
+  const audioConstraints =
+    {};
+
+
+  /*
+    Echo-Unterdrückung
+  */
+
+  if(
+    supported.echoCancellation !== false
+  ){
+
+    audioConstraints.echoCancellation = {
+      ideal:true
+    };
+  }
+
+
+  /*
+    Hintergrundgeräusche reduzieren
+  */
+
+  if(
+    supported.noiseSuppression !== false
+  ){
+
+    audioConstraints.noiseSuppression = {
+      ideal:true
+    };
+  }
+
+
+  /*
+    Sprachlautstärke automatisch ausgleichen
+  */
+
+  if(
+    supported.autoGainControl !== false
+  ){
+
+    audioConstraints.autoGainControl = {
+      ideal:true
+    };
+  }
+
+
+  /*
+    Mono-Sprachspur bevorzugen
+  */
+
+  if(
+    supported.channelCount !== false
+  ){
+
+    audioConstraints.channelCount = {
+      ideal:1
+    };
+  }
+
+
+  /*
+    48 kHz bevorzugen
+  */
+
+  if(
+    supported.sampleRate
+  ){
+
+    audioConstraints.sampleRate = {
+      ideal:48000
+    };
+  }
+
+
+  /*
+    Zusätzliche Sprachisolierung,
+    falls der Browser sie unterstützt
+  */
+
+  if(
+    supported.voiceIsolation
+  ){
+
+    audioConstraints.voiceIsolation = {
+      ideal:true
+    };
+  }
+
+
+  let stream;
+
+
+  try{
+
+    stream =
+      await navigator.mediaDevices
+        .getUserMedia({
+
+          audio:
+            audioConstraints
+        });
+
+
+  }catch(
+    filterError
+  ){
+
+    /*
+      Sicherheits-Fallback:
+      Falls die erweiterten Filter Probleme machen,
+      wird die bisherige stabile Konfiguration verwendet.
+    */
+
+    console.warn(
+      "Erweiterter Mikrofonfilter nicht vollständig verfügbar. Fallback wird verwendet:",
+      filterError
+    );
+
+
+    micStatus.textContent =
+      "🎙️ Standard-Sprachfilter werden aktiviert ...";
+
+
+    stream =
+      await navigator.mediaDevices
+        .getUserMedia({
+
+          audio:{
+
+            echoCancellation:true,
+
+            noiseSuppression:true,
+
+            autoGainControl:true,
+
+            channelCount:1
+          }
+        });
+  }
+
+
+  const audioTrack =
+    stream
+      .getAudioTracks()[0];
+
+
+  if(
+    !audioTrack
+  ){
+
+    stream
+      .getTracks()
+      .forEach(
+        track =>
+          track.stop()
+      );
+
+
+    throw new Error(
+      "Keine Mikrofonspur gefunden."
+    );
+  }
+
+
+  const settings =
+    audioTrack.getSettings
+      ?
+      audioTrack.getSettings()
+      :
+      {};
+
+
+  console.log(
+    "Sol Holo Mikrofon-Einstellungen:",
+    settings
+  );
+
+
+  const activeFilters =
+    [];
+
+
+  if(
+    settings.echoCancellation
+  ){
+
+    activeFilters.push(
+      "Echo"
+    );
+  }
+
+
+  if(
+    settings.noiseSuppression
+  ){
+
+    activeFilters.push(
+      "Rauschfilter"
+    );
+  }
+
+
+  if(
+    settings.autoGainControl
+  ){
+
+    activeFilters.push(
+      "Sprachpegel"
+    );
+  }
+
+
+  if(
+    settings.voiceIsolation
+  ){
+
+    activeFilters.push(
+      "Sprachisolierung"
+    );
+  }
+
+
+  if(
+    activeFilters.length > 0
+  ){
+
+    micStatus.textContent =
+      `🎙️ Filter aktiv: ${activeFilters.join(", ")}.`;
+
+  }else{
+
+    micStatus.textContent =
+      "🎙️ Mikrofon aktiv.";
+  }
 
 
   return stream;
