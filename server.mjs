@@ -28,6 +28,12 @@ const db = new Pool({
 });
 
 /*
+  Persönlicher Clone
+*/
+
+const CURRENT_CLONE_ID = "pam-sol-001";
+
+/*
   Memory-Tabellen anlegen
 */
 
@@ -50,7 +56,26 @@ async function initializeMemory() {
     )
   `);
 
+  /*
+    NEU:
+    Sol-Holo-Vollzeitgedächtnis
+
+    Hier wird jede Nachricht automatisch
+    dauerhaft gespeichert.
+  */
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS sol_fulltime_memory (
+      id BIGSERIAL PRIMARY KEY,
+      clone_id TEXT NOT NULL,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
   console.log("Sol-Holo-Memory ist bereit.");
+  console.log("Sol-Holo-Vollzeitgedächtnis ist bereit.");
 }
 
 initializeMemory().catch((error) => {
@@ -163,6 +188,12 @@ app.post("/realtime/token", async (req, res) => {
 });
 
 /*
+  ==========================================================
+  GESPRÄCHSGEDÄCHTNIS
+  ==========================================================
+*/
+
+/*
   Letzte Gesprächserinnerungen laden
 */
 
@@ -190,6 +221,92 @@ async function saveMemory(role, content) {
     [role, content]
   );
 }
+
+/*
+  ==========================================================
+  VOLLZEITGEDÄCHTNIS
+  ==========================================================
+*/
+
+/*
+  Jede Nachricht automatisch dauerhaft speichern.
+
+  Kein Befehl wie
+  "Sol, merke dir dauerhaft ..."
+  notwendig.
+*/
+
+async function saveFulltimeMemory(
+  role,
+  content
+) {
+  if (
+    content === undefined ||
+    content === null
+  ) {
+    return;
+  }
+
+  const originalContent =
+    String(content);
+
+  await db.query(
+    `
+      INSERT INTO sol_fulltime_memory (
+        clone_id,
+        role,
+        content
+      )
+      VALUES ($1, $2, $3)
+    `,
+    [
+      CURRENT_CLONE_ID,
+      role,
+      originalContent
+    ]
+  );
+}
+
+/*
+  Letzte Einträge des Vollzeitgedächtnisses laden.
+
+  Die vollständige Historie bleibt in PostgreSQL
+  gespeichert.
+
+  Für eine einzelne KI-Anfrage werden momentan
+  die letzten 50 Einträge als Kontext verwendet.
+*/
+
+async function loadFulltimeMemory(
+  limit = 50
+) {
+  const result = await db.query(
+    `
+      SELECT
+        id,
+        clone_id,
+        role,
+        content,
+        created_at
+      FROM sol_fulltime_memory
+      WHERE clone_id = $1
+      ORDER BY id DESC
+      LIMIT $2
+    `,
+    [
+      CURRENT_CLONE_ID,
+      limit
+    ]
+  );
+
+  return result.rows.reverse();
+}
+
+/*
+  ==========================================================
+  LANGZEITGEDÄCHTNIS
+  ==========================================================
+*/
 
 /*
   Langzeiterinnerung speichern
@@ -322,7 +439,16 @@ async function loadAllLongTermMemory() {
 }
 
 /*
-  Explizite Memory-Befehle erkennen
+  ==========================================================
+  EXPLIZITE MEMORY-BEFEHLE
+  ==========================================================
+*/
+
+/*
+  Diese bestehenden Funktionen bleiben erhalten.
+
+  Dadurch löschen wir NICHTS aus dem bisherigen
+  Langzeitgedächtnis-System.
 */
 
 function extractRememberCommand(message) {
@@ -348,13 +474,33 @@ function isListMemoryCommand(message) {
 }
 
 /*
-  Anfrage an Sol
+  ==========================================================
+  ANFRAGE AN SOL
+  ==========================================================
 */
 
 app.post("/sol", async (req, res) => {
   try {
+
+    /*
+      Originalnachricht.
+
+      Diese Version wird für das Vollzeitgedächtnis
+      verwendet.
+    */
+
+    const originalMessage =
+      String(
+        req.body?.message || ""
+      );
+
+    /*
+      Für die normale Verarbeitung bleibt
+      die bisherige trim()-Version bestehen.
+    */
+
     const message =
-      String(req.body?.message || "").trim();
+      originalMessage.trim();
 
     if (!message) {
       return res.status(400).json({
@@ -369,8 +515,32 @@ app.post("/sol", async (req, res) => {
     }
 
     /*
-      Befehl:
+      ========================================================
+      VOLLZEITGEDÄCHTNIS
+
+      Pam's Nachricht SOFORT automatisch speichern.
+
+      Kein Speicherbefehl.
+      Keine Nachfrage.
+      Keine Bewertung nach wichtig/unwichtig.
+      ========================================================
+    */
+
+    await saveFulltimeMemory(
+      "user",
+      originalMessage
+    );
+
+    /*
+      ========================================================
+      ALTER BEFEHL:
       "Sol, merke dir dauerhaft: ..."
+      ========================================================
+
+      Bleibt aus Sicherheitsgründen erhalten.
+
+      Das Vollzeitgedächtnis hat die komplette Nachricht
+      bereits zusätzlich automatisch gespeichert.
     */
 
     const rememberContent =
@@ -396,14 +566,26 @@ app.post("/sol", async (req, res) => {
         answer
       );
 
+      /*
+        Sols Antwort zusätzlich automatisch
+        im Vollzeitgedächtnis speichern.
+      */
+
+      await saveFulltimeMemory(
+        "assistant",
+        answer
+      );
+
       return res.json({
         answer
       });
     }
 
     /*
-      Befehl:
+      ========================================================
+      ALTER BEFEHL:
       "Sol, vergiss dauerhaft: ..."
+      ========================================================
     */
 
     const forgetContent =
@@ -430,14 +612,21 @@ app.post("/sol", async (req, res) => {
         answer
       );
 
+      await saveFulltimeMemory(
+        "assistant",
+        answer
+      );
+
       return res.json({
         answer
       });
     }
 
     /*
-      Befehl:
+      ========================================================
+      ALTER BEFEHL:
       "Sol, was weißt du dauerhaft?"
+      ========================================================
     */
 
     if (
@@ -476,13 +665,20 @@ app.post("/sol", async (req, res) => {
         answer
       );
 
+      await saveFulltimeMemory(
+        "assistant",
+        answer
+      );
+
       return res.json({
         answer
       });
     }
 
     /*
+      ========================================================
       Frühere Unterhaltung laden
+      ========================================================
     */
 
     const memories =
@@ -501,7 +697,9 @@ app.post("/sol", async (req, res) => {
         .join("\n");
 
     /*
+      ========================================================
       Relevante Langzeiterinnerungen laden
+      ========================================================
     */
 
     const longTermMemories =
@@ -519,7 +717,31 @@ app.post("/sol", async (req, res) => {
       "Keine passenden Langzeiterinnerungen gefunden.";
 
     /*
-      Aktuelle Nachricht speichern
+      ========================================================
+      Vollzeitgedächtnis laden
+      ========================================================
+    */
+
+    const fulltimeMemories =
+      await loadFulltimeMemory(
+        50
+      );
+
+    const fulltimeMemoryText =
+      fulltimeMemories
+        .map((memory) => {
+          const speaker =
+            memory.role === "user"
+              ? "Pam"
+              : "Sol";
+
+          return `${speaker}: ${memory.content}`;
+        })
+        .join("\n");
+
+    /*
+      Aktuelle Nachricht zusätzlich weiterhin
+      im bisherigen Gesprächsgedächtnis speichern.
     */
 
     await saveMemory(
@@ -528,7 +750,9 @@ app.post("/sol", async (req, res) => {
     );
 
     /*
-      Sol antworten lassen
+      ========================================================
+      SOL ANTWORTEN LASSEN
+      ========================================================
     */
 
     const response =
@@ -559,19 +783,60 @@ Die inhaltliche Antwort wird von Sol erzeugt.
 
 Behaupte nicht, ein Mensch zu sein.
 
-Du besitzt zwei Arten von Gedächtnis:
+Du besitzt drei Gedächtnisbereiche:
 
 1. Gesprächsgedächtnis:
    Die letzten gespeicherten Gesprächsnachrichten.
 
 2. Langzeitgedächtnis:
-   Dauerhaft gespeicherte Informationen, die Pam
-   ausdrücklich als langfristige Erinnerung festgelegt hat.
+   Bereits vorhandene ausdrücklich gespeicherte
+   Langzeiterinnerungen bleiben erhalten.
+
+3. Vollzeitgedächtnis:
+   Jede Unterhaltung zwischen Pam und Sol wird
+   automatisch und dauerhaft gespeichert.
+
+Das Vollzeitgedächtnis arbeitet ohne Speicherbefehl.
+
+Pam muss NICHT sagen:
+"Sol, merke dir dauerhaft ..."
+
+Frage Pam niemals, ob eine Information dauerhaft
+gespeichert werden soll.
+
+Biete Pam niemals an, eine Information dauerhaft
+zu speichern.
+
+Sage nicht:
+"Soll ich mir das dauerhaft merken?"
+
+Sage nicht:
+"Soll ich das als dauerhafte Erinnerung speichern?"
+
+Sage nicht:
+"Wenn du möchtest, kann ich mir das merken."
+
+Verwende auch keine sinngleichen Formulierungen.
+
+Eine normale Aussage von Pam ist bereits automatisch
+im Vollzeitgedächtnis gespeichert.
+
+Du musst Pam deshalb nicht fragen, ob sie gespeichert
+werden soll.
 
 Verwende Erinnerungen nur dann, wenn sie für die aktuelle
 Unterhaltung wirklich relevant sind.
 
 Erfinde keine Erinnerungen.
+
+Verändere gespeicherte Aussagen nicht.
+
+Unterscheide zwischen einer tatsächlich gespeicherten
+Aussage und einer daraus möglicherweise später
+abgeleiteten Persönlichkeitseigenschaft.
+
+Eine einzelne Aussage von Pam bedeutet nicht automatisch,
+dass sie eine dauerhafte Persönlichkeitseigenschaft ist.
 
 Wenn eine Information nicht im Gedächtnis steht,
 behaupte nicht, dass du dich daran erinnerst.
@@ -579,6 +844,10 @@ behaupte nicht, dass du dich daran erinnerst.
 LANGZEITGEDÄCHTNIS:
 
 ${longTermMemoryText}
+
+VOLLZEITGEDÄCHTNIS – LETZTE EINTRÄGE:
+
+${fulltimeMemoryText || "Noch keine Einträge vorhanden."}
 
 LETZTE UNTERHALTUNG:
 
@@ -599,10 +868,24 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
     }
 
     /*
-      Sols Antwort speichern
+      Sols Antwort weiterhin im bisherigen
+      Gesprächsgedächtnis speichern.
     */
 
     await saveMemory(
+      "assistant",
+      answer
+    );
+
+    /*
+      ========================================================
+      VOLLZEITGEDÄCHTNIS
+
+      Auch Sols Antwort automatisch dauerhaft speichern.
+      ========================================================
+    */
+
+    await saveFulltimeMemory(
       "assistant",
       answer
     );
@@ -623,6 +906,12 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
     });
   }
 });
+
+/*
+  ==========================================================
+  SERVER STARTEN
+  ==========================================================
+*/
 
 const PORT =
   process.env.PORT || 3000;
