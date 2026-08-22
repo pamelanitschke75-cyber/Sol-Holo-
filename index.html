@@ -607,11 +607,6 @@ HOLO
       0 0 22px rgba(75,45,255,.40)
     );
 
-  /*
-    Weiche Kanten, damit das Holo
-    weniger wie ein Rechteck wirkt.
-  */
-
   -webkit-mask-image:
     radial-gradient(
       ellipse 78% 98% at 50% 46%,
@@ -1517,8 +1512,6 @@ Ich bin da. Du kannst mir schreiben, Bilder zeigen oder mit mir sprechen. 🌻
 <section id="solStage">
 
 
-<!-- NEU: SPRACHMODUS TITEL -->
-
 <div id="voiceModeTitle">
 
 <strong>
@@ -1532,8 +1525,6 @@ Me, Myself &amp; I. 💜
 </div>
 
 
-<!-- NEU: ZURÜCK AUS SPRACHMODUS -->
-
 <button
   id="voiceExitButton"
   type="button"
@@ -1541,8 +1532,6 @@ Me, Myself &amp; I. 💜
 ✕ Zurück
 </button>
 
-
-<!-- NEU: STATUS IM SPRACHMODUS -->
 
 <div id="voiceStatus">
 Sol verbindet sich ...
@@ -1754,12 +1743,6 @@ const BACKEND_URL =
   "https://sol-holo.onrender.com";
 
 
-/*
-==========================================================
-ELEMENTE
-==========================================================
-*/
-
 const app =
   document.getElementById(
     "app"
@@ -1861,12 +1844,6 @@ const volumeNormal =
   );
 
 
-/*
-==========================================================
-BILD
-==========================================================
-*/
-
 const imageButton =
   document.getElementById(
     "imageButton"
@@ -1895,12 +1872,6 @@ const removeImageButton =
 let selectedImageDataUrl =
   null;
 
-
-/*
-==========================================================
-CLONE / LIP SYNC
-==========================================================
-*/
 
 const solCloneWrap =
   document.getElementById(
@@ -1938,12 +1909,6 @@ const LIP_SYNC_FACE = {
 };
 
 
-/*
-==========================================================
-WEBRTC
-==========================================================
-*/
-
 let pc =
   null;
 
@@ -1953,12 +1918,6 @@ let dc =
 let microphoneStream =
   null;
 
-
-/*
-==========================================================
-LIP SYNC ENGINE
-==========================================================
-*/
 
 let lipAudioContext =
   null;
@@ -1994,12 +1953,6 @@ let currentMouthRound =
   0;
 
 
-/*
-==========================================================
-HILFSFUNKTIONEN
-==========================================================
-*/
-
 function clamp(
   value,
   min,
@@ -2034,12 +1987,6 @@ function setLiveStatus(
     cleanText;
 }
 
-
-/*
-==========================================================
-NEU: VOICE MODE
-==========================================================
-*/
 
 function enterVoiceMode(){
 
@@ -2086,12 +2033,6 @@ function exitVoiceMode(){
   );
 }
 
-
-/*
-==========================================================
-BILD AUSWÄHLEN
-==========================================================
-*/
 
 imageButton.addEventListener(
   "click",
@@ -2402,12 +2343,6 @@ removeImageButton.addEventListener(
 );
 
 
-/*
-==========================================================
-AUDIOCONTEXT
-==========================================================
-*/
-
 async function ensureLipAudioContext(){
 
   if(
@@ -2460,12 +2395,6 @@ async function ensureLipAudioContext(){
   return true;
 }
 
-
-/*
-==========================================================
-MUNDGEOMETRIE
-==========================================================
-*/
 
 function updateMouthGeometry(){
 
@@ -2613,12 +2542,6 @@ function updateMouthGeometry(){
 }
 
 
-/*
-==========================================================
-FREQUENZBAND
-==========================================================
-*/
-
 function getFrequencyBand(
   minHz,
   maxHz
@@ -2703,12 +2626,6 @@ function getFrequencyBand(
   );
 }
 
-
-/*
-==========================================================
-LIP-SYNC ANIMATION
-==========================================================
-*/
 
 function animateLipSync(){
 
@@ -2959,12 +2876,6 @@ function animateLipSync(){
 }
 
 
-/*
-==========================================================
-LIP SYNC START
-==========================================================
-*/
-
 async function startLipSync(
   stream
 ){
@@ -3196,12 +3107,6 @@ function stopLipSync(
 }
 
 
-/*
-==========================================================
-GEOMETRIE
-==========================================================
-*/
-
 solImage.addEventListener(
   "load",
   () => {
@@ -3238,12 +3143,6 @@ if(
   );
 }
 
-
-/*
-==========================================================
-LAUTSTÄRKE
-==========================================================
-*/
 
 let solVolume =
   0.22;
@@ -3318,12 +3217,6 @@ volumeNormal.addEventListener(
   }
 );
 
-
-/*
-==========================================================
-CHAT-NACHRICHT
-==========================================================
-*/
 
 function addMessage(
   speaker,
@@ -3421,12 +3314,6 @@ function addMessage(
 }
 
 
-/*
-==========================================================
-MENÜ
-==========================================================
-*/
-
 menuButton.addEventListener(
   "click",
   () => {
@@ -3448,12 +3335,6 @@ closeMenuButton.addEventListener(
   }
 );
 
-
-/*
-==========================================================
-TEXT / BILD SENDEN
-==========================================================
-*/
 
 async function sendMessage(
   forcedMessage = null
@@ -3687,12 +3568,6 @@ messageInput.addEventListener(
 );
 
 
-/*
-==========================================================
-MEMORY
-==========================================================
-*/
-
 memoryButton.addEventListener(
   "click",
   async () => {
@@ -3799,12 +3674,6 @@ async function sendLiveTranscriptToMemory(
 }
 
 
-/*
-==========================================================
-MIKROFON
-==========================================================
-*/
-
 async function openFilteredMicrophone(){
 
   if(
@@ -3846,12 +3715,6 @@ async function openFilteredMicrophone(){
   return stream;
 }
 
-
-/*
-==========================================================
-LIVE STOP
-==========================================================
-*/
 
 function stopLiveConversation(){
 
@@ -3925,12 +3788,6 @@ function stopLiveConversation(){
 }
 
 
-/*
-==========================================================
-LIVE START
-==========================================================
-*/
-
 async function startLiveConversation(){
 
   if(
@@ -3956,7 +3813,7 @@ async function startLiveConversation(){
         `${BACKEND_URL}/realtime/token`,
         {
 
-          method:"GET",
+          method:"POST",
 
           cache:"no-store"
         }
@@ -4343,16 +4200,6 @@ async function startLiveConversation(){
 }
 
 
-/*
-==========================================================
-MIKRO BUTTON
-
-JETZT:
-1. Vollbild öffnen
-2. Realtime starten
-==========================================================
-*/
-
 liveButton.addEventListener(
   "click",
   async () => {
@@ -4364,15 +4211,6 @@ liveButton.addEventListener(
   }
 );
 
-
-/*
-==========================================================
-ZURÜCK BUTTON
-
-1. Gespräch stoppen
-2. Vollbild schließen
-==========================================================
-*/
 
 voiceExitButton.addEventListener(
   "click",
@@ -4386,21 +4224,9 @@ voiceExitButton.addEventListener(
 );
 
 
-/*
-==========================================================
-STANDARD-LAUTSTÄRKE
-==========================================================
-*/
-
 realtimeAudio.volume =
   solVolume;
 
-
-/*
-==========================================================
-SERVICE WORKER
-==========================================================
-*/
 
 if(
   "serviceWorker" in navigator
@@ -4427,12 +4253,6 @@ if(
   );
 }
 
-
-/*
-==========================================================
-MUND INITIALISIEREN
-==========================================================
-*/
 
 if(
   solImage.complete
