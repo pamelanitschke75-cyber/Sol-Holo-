@@ -765,9 +765,6 @@ voiceButton.addEventListener(
   ==========================================================
   VOICE CONSENT AN OPENAI SENDEN
   ==========================================================
-
-  WICHTIG:
-  Hier wird ausschließlich OPENAI_VOICE_API_KEY verwendet.
 */
 
 app.post(
@@ -782,9 +779,7 @@ app.post(
 
   async (req, res) => {
     try {
-      if (
-        !OPENAI_VOICE_API_KEY
-      ) {
+      if (!OPENAI_VOICE_API_KEY) {
         return res.status(500).json({
           error:
             "OPENAI_VOICE_API_KEY fehlt."
@@ -931,9 +926,6 @@ app.post(
   ==========================================================
   EIGENE STIMME AN OPENAI SENDEN
   ==========================================================
-
-  Auch hier wird ausschließlich
-  OPENAI_VOICE_API_KEY verwendet.
 */
 
 app.post(
@@ -948,9 +940,7 @@ app.post(
 
   async (req, res) => {
     try {
-      if (
-        !OPENAI_VOICE_API_KEY
-      ) {
+      if (!OPENAI_VOICE_API_KEY) {
         return res.status(500).json({
           error:
             "OPENAI_VOICE_API_KEY fehlt."
@@ -1188,6 +1178,94 @@ async function loadFulltimeMemory(
 
 /*
   ==========================================================
+  REALTIME → VOLLZEITGEDÄCHTNIS
+  ==========================================================
+
+  Dieser Endpunkt nimmt die Transkription aus der
+  Realtime-Sprachverbindung entgegen.
+
+  Standardmäßig wird die Nachricht als Nachricht
+  von Pam gespeichert.
+
+  Später kann derselbe Endpunkt auch für transkribierte
+  Antworten von Sol mit role = "assistant" verwendet werden.
+*/
+
+app.post(
+  "/live/memory",
+  async (req, res) => {
+    try {
+      const transcript =
+        String(
+          req.body?.transcript ||
+          ""
+        ).trim();
+
+      const requestedRole =
+        String(
+          req.body?.role ||
+          "user"
+        ).trim();
+
+      const role =
+        requestedRole === "assistant"
+          ? "assistant"
+          : "user";
+
+      if (!transcript) {
+        return res.status(400).json({
+          error:
+            "Kein Sprachtranskript erhalten."
+        });
+      }
+
+      if (transcript.length > 4000) {
+        return res.status(400).json({
+          error:
+            "Das Sprachtranskript ist zu lang."
+        });
+      }
+
+      await saveMemory(
+        role,
+        transcript
+      );
+
+      await saveFulltimeMemory(
+        role,
+        transcript
+      );
+
+      console.log(
+        "✅ Realtime-Nachricht gespeichert:",
+        {
+          role,
+          transcript
+        }
+      );
+
+      return res.json({
+        saved: true,
+        role,
+        memory: transcript
+      });
+
+    } catch (error) {
+      console.error(
+        "Realtime-Memory Fehler:",
+        error
+      );
+
+      return res.status(500).json({
+        error:
+          "Realtime-Nachricht konnte nicht gespeichert werden."
+      });
+    }
+  }
+);
+
+/*
+  ==========================================================
   LANGZEITGEDÄCHTNIS
   ==========================================================
 */
@@ -1331,20 +1409,20 @@ async function loadAllLongTermMemory() {
 
   Realtime verwendet weiterhin OPENAI_API_KEY.
 
-  NEU:
-  Beim Erstellen der Realtime-Session wird jetzt
-  derselbe vorhandene Sol-Holo-Gedächtniskontext
-  mitgegeben:
+  Beim Erstellen der Realtime-Session wird
+  Sol-Holo-Gedächtniskontext mitgegeben:
 
   - Gesprächsgedächtnis
   - Langzeitgedächtnis
   - Vollzeitgedächtnis
 
-  Damit kennt die Sprach-Sol beim Start denselben
-  vorhandenen Kontext wie die Text-Sol.
+  NEU:
 
-  Das automatische SPEICHERN neuer Realtime-Gespräche
-  kommt im nächsten Entwicklungsschritt über index.html.
+  Zusätzlich wird die Transkription der
+  Mikrofoneingabe aktiviert.
+
+  Dadurch kann index.html das fertige Transkript
+  empfangen und an /live/memory senden.
 */
 
 app.post("/realtime/token", async (req, res) => {
@@ -1359,7 +1437,8 @@ app.post("/realtime/token", async (req, res) => {
       );
 
       return res.status(500).json({
-        error: "OPENAI_API_KEY fehlt."
+        error:
+          "OPENAI_API_KEY fehlt."
       });
     }
 
@@ -1384,10 +1463,6 @@ app.post("/realtime/token", async (req, res) => {
 
     /*
       Langzeitgedächtnis laden
-
-      Da beim Erstellen der Realtime-Session noch
-      keine aktuelle Frage vorliegt, laden wir hier
-      die letzten Langzeiterinnerungen.
     */
 
     const longTermMemories =
@@ -1505,13 +1580,26 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
 
     const sessionConfig = {
       session: {
-        type: "realtime",
-        model: "gpt-realtime-2.1",
+        type:
+          "realtime",
+
+        model:
+          "gpt-realtime-2.1",
 
         instructions:
           realtimeInstructions,
 
         audio: {
+          input: {
+            transcription: {
+              model:
+                "gpt-transcribe",
+
+              language:
+                "de"
+            }
+          },
+
           output: {
             voice:
               SOL_HOLO_VOICE
@@ -1523,7 +1611,8 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
     const response = await fetch(
       "https://api.openai.com/v1/realtime/client_secrets",
       {
-        method: "POST",
+        method:
+          "POST",
 
         headers: {
           Authorization:
@@ -1533,9 +1622,10 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
             "application/json"
         },
 
-        body: JSON.stringify(
-          sessionConfig
-        )
+        body:
+          JSON.stringify(
+            sessionConfig
+          )
       }
     );
 
@@ -1569,6 +1659,10 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
         fulltimeMemory:
           fulltimeMemories.length
       }
+    );
+
+    console.log(
+      ">>> Realtime-Input-Transkription aktiv"
     );
 
     return res.json(data);
@@ -1821,7 +1915,8 @@ app.post("/sol", async (req, res) => {
 
     const response =
       await openai.responses.create({
-        model: "gpt-5",
+        model:
+          "gpt-5",
 
         instructions: `
 Du bist Sol innerhalb des Projekts Sol Holo.
@@ -1918,7 +2013,8 @@ LETZTE UNTERHALTUNG:
 ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
 `,
 
-        input: message
+        input:
+          message
       });
 
     const answer =
