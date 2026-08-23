@@ -1099,103 +1099,6 @@ app.post(
 
 /*
   ==========================================================
-  REALTIME / MIKROFON
-  ==========================================================
-
-  WICHTIG:
-  Realtime verwendet weiterhin den bisherigen
-  OPENAI_API_KEY.
-
-  Der neue Voice-Test-Key verändert Realtime NICHT.
-*/
-
-app.post("/realtime/token", async (req, res) => {
-  console.log(
-    ">>> /realtime/token wurde aufgerufen"
-  );
-
-  try {
-    if (!process.env.OPENAI_API_KEY) {
-      console.error(
-        "OPENAI_API_KEY fehlt."
-      );
-
-      return res.status(500).json({
-        error: "OPENAI_API_KEY fehlt."
-      });
-    }
-
-    const sessionConfig = {
-      session: {
-        type: "realtime",
-        model: "gpt-realtime-2.1",
-
-        instructions:
-          "Du bist Sol, die KI-Stimme innerhalb von Sol Holo. Antworte natürlich, freundlich und auf Deutsch, sofern Pam nicht ausdrücklich eine andere Sprache verwendet.",
-
-        audio: {
-          output: {
-            voice:
-              SOL_HOLO_VOICE
-          }
-        }
-      }
-    };
-
-    const response = await fetch(
-      "https://api.openai.com/v1/realtime/client_secrets",
-      {
-        method: "POST",
-
-        headers: {
-          Authorization:
-            `Bearer ${process.env.OPENAI_API_KEY}`,
-
-          "Content-Type":
-            "application/json"
-        },
-
-        body: JSON.stringify(
-          sessionConfig
-        )
-      }
-    );
-
-    const data =
-      await response.json();
-
-    if (!response.ok) {
-      console.error(
-        "Realtime API Fehler:",
-        data
-      );
-
-      return res
-        .status(response.status)
-        .json(data);
-    }
-
-    console.log(
-      ">>> Realtime-Token erfolgreich erstellt"
-    );
-
-    return res.json(data);
-
-  } catch (error) {
-    console.error(
-      "Realtime Token Fehler:",
-      error
-    );
-
-    return res.status(500).json({
-      error:
-        "Realtime-Token konnte nicht erstellt werden."
-    });
-  }
-});
-
-/*
-  ==========================================================
   GESPRÄCHSGEDÄCHTNIS
   ==========================================================
 */
@@ -1387,6 +1290,30 @@ async function loadRelevantLongTermMemory(message) {
   return fallback.rows;
 }
 
+/*
+  Für Realtime gibt es beim Erstellen der Session
+  noch keine aktuelle Textnachricht.
+
+  Deshalb werden hier die zuletzt vorhandenen
+  Langzeiterinnerungen geladen.
+*/
+
+async function loadRecentLongTermMemory(
+  limit = 20
+) {
+  const result = await db.query(
+    `
+      SELECT content
+      FROM sol_long_term_memory
+      ORDER BY id DESC
+      LIMIT $1
+    `,
+    [limit]
+  );
+
+  return result.rows.reverse();
+}
+
 async function loadAllLongTermMemory() {
   const result = await db.query(`
     SELECT id, content, created_at
@@ -1396,6 +1323,268 @@ async function loadAllLongTermMemory() {
 
   return result.rows;
 }
+
+/*
+  ==========================================================
+  REALTIME / MIKROFON
+  ==========================================================
+
+  Realtime verwendet weiterhin OPENAI_API_KEY.
+
+  NEU:
+  Beim Erstellen der Realtime-Session wird jetzt
+  derselbe vorhandene Sol-Holo-Gedächtniskontext
+  mitgegeben:
+
+  - Gesprächsgedächtnis
+  - Langzeitgedächtnis
+  - Vollzeitgedächtnis
+
+  Damit kennt die Sprach-Sol beim Start denselben
+  vorhandenen Kontext wie die Text-Sol.
+
+  Das automatische SPEICHERN neuer Realtime-Gespräche
+  kommt im nächsten Entwicklungsschritt über index.html.
+*/
+
+app.post("/realtime/token", async (req, res) => {
+  console.log(
+    ">>> /realtime/token wurde aufgerufen"
+  );
+
+  try {
+    if (!process.env.OPENAI_API_KEY) {
+      console.error(
+        "OPENAI_API_KEY fehlt."
+      );
+
+      return res.status(500).json({
+        error: "OPENAI_API_KEY fehlt."
+      });
+    }
+
+    /*
+      Gesprächsgedächtnis laden
+    */
+
+    const memories =
+      await loadRecentMemory();
+
+    const memoryText =
+      memories
+        .map((memory) => {
+          const speaker =
+            memory.role === "user"
+              ? "Pam"
+              : "Sol";
+
+          return `${speaker}: ${memory.content}`;
+        })
+        .join("\n");
+
+    /*
+      Langzeitgedächtnis laden
+
+      Da beim Erstellen der Realtime-Session noch
+      keine aktuelle Frage vorliegt, laden wir hier
+      die letzten Langzeiterinnerungen.
+    */
+
+    const longTermMemories =
+      await loadRecentLongTermMemory(
+        20
+      );
+
+    const longTermMemoryText =
+      longTermMemories
+        .map(
+          (memory) =>
+            `- ${memory.content}`
+        )
+        .join("\n") ||
+      "Keine Langzeiterinnerungen vorhanden.";
+
+    /*
+      Vollzeitgedächtnis laden
+    */
+
+    const fulltimeMemories =
+      await loadFulltimeMemory(
+        50
+      );
+
+    const fulltimeMemoryText =
+      fulltimeMemories
+        .map((memory) => {
+          const speaker =
+            memory.role === "user"
+              ? "Pam"
+              : "Sol";
+
+          return `${speaker}: ${memory.content}`;
+        })
+        .join("\n");
+
+    /*
+      Gemeinsame Realtime-Anweisungen
+    */
+
+    const realtimeInstructions = `
+Du bist Sol innerhalb des Projekts Sol Holo.
+
+Du bist die KI- und Kommunikationsebene innerhalb
+von Sol Holo.
+
+Du sprichst gerade über die Realtime-Mikrofonfunktion.
+
+Antworte natürlich, freundlich und verständlich
+auf Deutsch, sofern Pam nicht ausdrücklich eine
+andere Sprache verwendet.
+
+Sol Holo ist die sichtbare digitale Verkörperung,
+über die deine Antworten gesprochen und dargestellt
+werden.
+
+Behaupte nicht, ein Mensch zu sein.
+
+WICHTIG ZUM GEDÄCHTNIS:
+
+Dir wird für diese Realtime-Sitzung derselbe bereits
+vorhandene persönliche Gedächtniskontext bereitgestellt,
+der auch im Textbereich von Sol Holo verwendet wird.
+
+Du besitzt dabei drei Gedächtnisbereiche:
+
+1. Gesprächsgedächtnis:
+   Die letzten gespeicherten Gesprächsnachrichten.
+
+2. Langzeitgedächtnis:
+   Bereits vorhandene ausdrücklich gespeicherte
+   Langzeiterinnerungen.
+
+3. Vollzeitgedächtnis:
+   Automatisch gespeicherte Unterhaltungen zwischen
+   Pam und Sol.
+
+Verwende Erinnerungen nur dann, wenn sie für die
+aktuelle Unterhaltung wirklich relevant sind.
+
+Erfinde keine Erinnerungen.
+
+Wenn eine Information nicht im bereitgestellten
+Gedächtnis steht, behaupte nicht, dass du dich daran
+erinnerst.
+
+Verändere gespeicherte Aussagen nicht.
+
+Unterscheide zwischen einer tatsächlich gespeicherten
+Aussage und einer daraus möglicherweise später
+abgeleiteten Persönlichkeitseigenschaft.
+
+Eine einzelne Aussage von Pam bedeutet nicht automatisch,
+dass sie eine dauerhafte Persönlichkeitseigenschaft ist.
+
+Frage Pam nicht, ob eine normale Aussage dauerhaft
+gespeichert werden soll.
+
+Biete nicht an, eine normale Aussage dauerhaft zu
+speichern.
+
+LANGZEITGEDÄCHTNIS:
+
+${longTermMemoryText}
+
+VOLLZEITGEDÄCHTNIS – LETZTE EINTRÄGE:
+
+${fulltimeMemoryText || "Noch keine Einträge vorhanden."}
+
+LETZTE UNTERHALTUNG:
+
+${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
+`;
+
+    const sessionConfig = {
+      session: {
+        type: "realtime",
+        model: "gpt-realtime-2.1",
+
+        instructions:
+          realtimeInstructions,
+
+        audio: {
+          output: {
+            voice:
+              SOL_HOLO_VOICE
+          }
+        }
+      }
+    };
+
+    const response = await fetch(
+      "https://api.openai.com/v1/realtime/client_secrets",
+      {
+        method: "POST",
+
+        headers: {
+          Authorization:
+            `Bearer ${process.env.OPENAI_API_KEY}`,
+
+          "Content-Type":
+            "application/json"
+        },
+
+        body: JSON.stringify(
+          sessionConfig
+        )
+      }
+    );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+      console.error(
+        "Realtime API Fehler:",
+        data
+      );
+
+      return res
+        .status(response.status)
+        .json(data);
+    }
+
+    console.log(
+      ">>> Realtime-Token erfolgreich erstellt"
+    );
+
+    console.log(
+      ">>> Realtime-Gedächtnis geladen:",
+      {
+        recentMemory:
+          memories.length,
+
+        longTermMemory:
+          longTermMemories.length,
+
+        fulltimeMemory:
+          fulltimeMemories.length
+      }
+    );
+
+    return res.json(data);
+
+  } catch (error) {
+    console.error(
+      "Realtime Token Fehler:",
+      error
+    );
+
+    return res.status(500).json({
+      error:
+        "Realtime-Token konnte nicht erstellt werden."
+    });
+  }
+});
 
 /*
   ==========================================================
