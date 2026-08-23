@@ -47,6 +47,22 @@ const SOL_HOLO_VOICE =
   ).trim();
 
 /*
+  Separater API-Key nur für Voice-Setup
+
+  Der normale Sol-Holo-Betrieb verwendet weiterhin
+  OPENAI_API_KEY.
+
+  Voice Consent und Voice Creation verwenden
+  ausschließlich OPENAI_VOICE_API_KEY.
+*/
+
+const OPENAI_VOICE_API_KEY =
+  String(
+    process.env.OPENAI_VOICE_API_KEY ||
+    ""
+  ).trim();
+
+/*
   Memory-Tabellen anlegen
 */
 
@@ -86,6 +102,12 @@ async function initializeMemory() {
     process.env.SOL_HOLO_VOICE_ID
       ? "Persönliche Sol-Holo-Stimme aktiv."
       : "Noch keine persönliche Voice-ID – marin bleibt aktiv."
+  );
+
+  console.log(
+    OPENAI_VOICE_API_KEY
+      ? "Separater Voice-API-Key ist bereit."
+      : "OPENAI_VOICE_API_KEY fehlt noch."
   );
 }
 
@@ -743,6 +765,9 @@ voiceButton.addEventListener(
   ==========================================================
   VOICE CONSENT AN OPENAI SENDEN
   ==========================================================
+
+  WICHTIG:
+  Hier wird ausschließlich OPENAI_VOICE_API_KEY verwendet.
 */
 
 app.post(
@@ -758,11 +783,11 @@ app.post(
   async (req, res) => {
     try {
       if (
-        !process.env.OPENAI_API_KEY
+        !OPENAI_VOICE_API_KEY
       ) {
         return res.status(500).json({
           error:
-            "OPENAI_API_KEY fehlt."
+            "OPENAI_VOICE_API_KEY fehlt."
         });
       }
 
@@ -832,7 +857,7 @@ app.post(
 
             headers:{
               Authorization:
-                `Bearer ${process.env.OPENAI_API_KEY}`
+                `Bearer ${OPENAI_VOICE_API_KEY}`
             },
 
             body:form
@@ -906,6 +931,9 @@ app.post(
   ==========================================================
   EIGENE STIMME AN OPENAI SENDEN
   ==========================================================
+
+  Auch hier wird ausschließlich
+  OPENAI_VOICE_API_KEY verwendet.
 */
 
 app.post(
@@ -921,11 +949,11 @@ app.post(
   async (req, res) => {
     try {
       if (
-        !process.env.OPENAI_API_KEY
+        !OPENAI_VOICE_API_KEY
       ) {
         return res.status(500).json({
           error:
-            "OPENAI_API_KEY fehlt."
+            "OPENAI_VOICE_API_KEY fehlt."
         });
       }
 
@@ -1002,7 +1030,7 @@ app.post(
 
             headers:{
               Authorization:
-                `Bearer ${process.env.OPENAI_API_KEY}`
+                `Bearer ${OPENAI_VOICE_API_KEY}`
             },
 
             body:form
@@ -1073,6 +1101,12 @@ app.post(
   ==========================================================
   REALTIME / MIKROFON
   ==========================================================
+
+  WICHTIG:
+  Realtime verwendet weiterhin den bisherigen
+  OPENAI_API_KEY.
+
+  Der neue Voice-Test-Key verändert Realtime NICHT.
 */
 
 app.post("/realtime/token", async (req, res) => {
