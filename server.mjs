@@ -34,17 +34,19 @@ const db = new Pool({
 const CURRENT_CLONE_ID = "pam-sol-001";
 
 /*
-  Persönliche Stimme
+  ==========================================================
+  SOL-HOLO-STIMME
+  ==========================================================
 
-  Solange noch keine eigene Voice-ID vorhanden ist,
-  bleibt marin als Fallback aktiv.
+  Bis OpenAI Custom Voices / Voice Consents
+  für die Organisation freigeschaltet hat,
+  verwendet Sol Holo stabil die OpenAI-Stimme marin.
+
+  Die persönliche Stimme bleibt vorbereitet
+  und wird später wieder aktiviert.
 */
 
-const SOL_HOLO_VOICE =
-  String(
-    process.env.SOL_HOLO_VOICE_ID ||
-    "marin"
-  ).trim();
+const SOL_HOLO_VOICE = "marin";
 
 /*
   Separater API-Key nur für Voice-Setup
@@ -97,12 +99,7 @@ async function initializeMemory() {
 
   console.log("Sol-Holo-Memory ist bereit.");
   console.log("Sol-Holo-Vollzeitgedächtnis ist bereit.");
-
-  console.log(
-    process.env.SOL_HOLO_VOICE_ID
-      ? "Persönliche Sol-Holo-Stimme aktiv."
-      : "Noch keine persönliche Voice-ID – marin bleibt aktiv."
-  );
+  console.log("Realtime-Stimme: marin aktiv.");
 
   console.log(
     OPENAI_VOICE_API_KEY
@@ -1180,15 +1177,6 @@ async function loadFulltimeMemory(
   ==========================================================
   REALTIME → VOLLZEITGEDÄCHTNIS
   ==========================================================
-
-  Dieser Endpunkt nimmt die Transkription aus der
-  Realtime-Sprachverbindung entgegen.
-
-  Standardmäßig wird die Nachricht als Nachricht
-  von Pam gespeichert.
-
-  Später kann derselbe Endpunkt auch für transkribierte
-  Antworten von Sol mit role = "assistant" verwendet werden.
 */
 
 app.post(
@@ -1368,14 +1356,6 @@ async function loadRelevantLongTermMemory(message) {
   return fallback.rows;
 }
 
-/*
-  Für Realtime gibt es beim Erstellen der Session
-  noch keine aktuelle Textnachricht.
-
-  Deshalb werden hier die zuletzt vorhandenen
-  Langzeiterinnerungen geladen.
-*/
-
 async function loadRecentLongTermMemory(
   limit = 20
 ) {
@@ -1406,23 +1386,6 @@ async function loadAllLongTermMemory() {
   ==========================================================
   REALTIME / MIKROFON
   ==========================================================
-
-  Realtime verwendet weiterhin OPENAI_API_KEY.
-
-  Beim Erstellen der Realtime-Session wird
-  Sol-Holo-Gedächtniskontext mitgegeben:
-
-  - Gesprächsgedächtnis
-  - Langzeitgedächtnis
-  - Vollzeitgedächtnis
-
-  NEU:
-
-  Zusätzlich wird die Transkription der
-  Mikrofoneingabe aktiviert.
-
-  Dadurch kann index.html das fertige Transkript
-  empfangen und an /live/memory senden.
 */
 
 app.post("/realtime/token", async (req, res) => {
@@ -1442,10 +1405,6 @@ app.post("/realtime/token", async (req, res) => {
       });
     }
 
-    /*
-      Gesprächsgedächtnis laden
-    */
-
     const memories =
       await loadRecentMemory();
 
@@ -1461,10 +1420,6 @@ app.post("/realtime/token", async (req, res) => {
         })
         .join("\n");
 
-    /*
-      Langzeitgedächtnis laden
-    */
-
     const longTermMemories =
       await loadRecentLongTermMemory(
         20
@@ -1478,10 +1433,6 @@ app.post("/realtime/token", async (req, res) => {
         )
         .join("\n") ||
       "Keine Langzeiterinnerungen vorhanden.";
-
-    /*
-      Vollzeitgedächtnis laden
-    */
 
     const fulltimeMemories =
       await loadFulltimeMemory(
@@ -1499,10 +1450,6 @@ app.post("/realtime/token", async (req, res) => {
           return `${speaker}: ${memory.content}`;
         })
         .join("\n");
-
-    /*
-      Gemeinsame Realtime-Anweisungen
-    */
 
     const realtimeInstructions = `
 Du bist Sol innerhalb des Projekts Sol Holo.
