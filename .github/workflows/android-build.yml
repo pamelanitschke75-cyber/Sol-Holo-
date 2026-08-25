@@ -33,39 +33,42 @@ jobs:
       - name: Android-Projekt erzeugen
         run: npx cap add android
 
-      - name: Mikrofon-Berechtigung setzen
+      - name: Sol Holo Web-App nach Android synchronisieren
+        run: npx cap sync android
+
+      - name: Mikrofon-Berechtigungen setzen
         run: |
           python - <<'PY'
           from pathlib import Path
 
           manifest = Path("android/app/src/main/AndroidManifest.xml")
-
           text = manifest.read_text(encoding="utf-8")
 
-          permission = '<uses-permission android:name="android.permission.RECORD_AUDIO" />'
+          marker = '<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
 
-          if permission not in text:
-              marker = '<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
+          permissions = [
+              '<uses-permission android:name="android.permission.RECORD_AUDIO" />',
+              '<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />'
+          ]
 
-              if marker in text:
+          if marker not in text:
+              raise SystemExit("Manifest-Tag nicht gefunden.")
+
+          for permission in permissions:
+              if permission not in text:
                   text = text.replace(
                       marker,
                       marker + '\n    ' + permission,
                       1
                   )
-              else:
-                  raise SystemExit("Manifest-Tag nicht gefunden.")
 
           manifest.write_text(
               text,
               encoding="utf-8"
           )
 
-          print("RECORD_AUDIO-Berechtigung ist gesetzt.")
+          print("Alle Mikrofon-Berechtigungen sind gesetzt.")
           PY
-
-      - name: Sol Holo Web-App nach Android synchronisieren
-        run: npx cap sync android
 
       - name: Gradle ausführbar machen
         run: chmod +x android/gradlew
