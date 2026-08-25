@@ -1698,6 +1698,12 @@ const BACKEND_URL =
   "https://sol-holo.onrender.com";
 
 
+/*
+==========================================================
+ELEMENTE
+==========================================================
+*/
+
 const app =
   document.getElementById("app");
 
@@ -1798,10 +1804,22 @@ const LIP_SYNC_FACE = {
 };
 
 
+/*
+==========================================================
+WEBRTC
+==========================================================
+*/
+
 let pc = null;
 let dc = null;
 let microphoneStream = null;
 
+
+/*
+==========================================================
+LIP SYNC ENGINE
+==========================================================
+*/
 
 let lipAudioContext = null;
 let lipSourceNode = null;
@@ -1816,6 +1834,12 @@ let currentMouthOpen = 0;
 let currentMouthWide = 0;
 let currentMouthRound = 0;
 
+
+/*
+==========================================================
+HILFSFUNKTIONEN
+==========================================================
+*/
 
 function clamp(
   value,
@@ -1851,6 +1875,12 @@ function setLiveStatus(
     cleanText;
 }
 
+
+/*
+==========================================================
+VOICE MODE
+==========================================================
+*/
 
 function enterVoiceMode(){
 
@@ -1891,6 +1921,12 @@ function exitVoiceMode(){
   );
 }
 
+
+/*
+==========================================================
+BILD AUSWÄHLEN
+==========================================================
+*/
 
 imageButton.addEventListener(
   "click",
@@ -2203,6 +2239,12 @@ removeImageButton.addEventListener(
 );
 
 
+/*
+==========================================================
+AUDIOCONTEXT
+==========================================================
+*/
+
 async function ensureLipAudioContext(){
 
   if(
@@ -2255,6 +2297,12 @@ async function ensureLipAudioContext(){
   return true;
 }
 
+
+/*
+==========================================================
+MUNDGEOMETRIE
+==========================================================
+*/
 
 function updateMouthGeometry(){
 
@@ -2398,6 +2446,12 @@ function updateMouthGeometry(){
 }
 
 
+/*
+==========================================================
+FREQUENZBAND
+==========================================================
+*/
+
 function getFrequencyBand(
   minHz,
   maxHz
@@ -2475,6 +2529,12 @@ function getFrequencyBand(
   );
 }
 
+
+/*
+==========================================================
+LIP-SYNC ANIMATION
+==========================================================
+*/
 
 function animateLipSync(){
 
@@ -2724,6 +2784,12 @@ function animateLipSync(){
 }
 
 
+/*
+==========================================================
+LIP SYNC START
+==========================================================
+*/
+
 async function startLipSync(
   stream
 ){
@@ -2948,6 +3014,12 @@ function stopLipSync(
 }
 
 
+/*
+==========================================================
+GEOMETRIE
+==========================================================
+*/
+
 solImage.addEventListener(
   "load",
   updateMouthGeometry
@@ -2975,6 +3047,12 @@ if(
   );
 }
 
+
+/*
+==========================================================
+LAUTSTÄRKE
+==========================================================
+*/
 
 let solVolume =
   0.22;
@@ -3049,6 +3127,12 @@ volumeNormal.addEventListener(
   }
 );
 
+
+/*
+==========================================================
+CHAT
+==========================================================
+*/
 
 function addMessage(
   speaker,
@@ -3146,6 +3230,12 @@ function addMessage(
 }
 
 
+/*
+==========================================================
+MENÜ
+==========================================================
+*/
+
 menuButton.addEventListener(
   "click",
   () => {
@@ -3167,6 +3257,12 @@ closeMenuButton.addEventListener(
   }
 );
 
+
+/*
+==========================================================
+TEXT / BILD SENDEN
+==========================================================
+*/
 
 async function sendMessage(
   forcedMessage = null
@@ -3399,6 +3495,12 @@ messageInput.addEventListener(
 );
 
 
+/*
+==========================================================
+MEMORY
+==========================================================
+*/
+
 memoryButton.addEventListener(
   "click",
   async () => {
@@ -3505,6 +3607,12 @@ async function sendLiveTranscriptToMemory(
 }
 
 
+/*
+==========================================================
+MIKROFON
+==========================================================
+*/
+
 async function openFilteredMicrophone(){
 
   if(
@@ -3546,6 +3654,12 @@ async function openFilteredMicrophone(){
   return stream;
 }
 
+
+/*
+==========================================================
+LIVE STOP
+==========================================================
+*/
 
 function stopLiveConversation(){
 
@@ -3616,6 +3730,12 @@ function stopLiveConversation(){
     "🎙️ Mikrofon bereit.";
 }
 
+
+/*
+==========================================================
+LIVE START
+==========================================================
+*/
 
 async function startLiveConversation(){
 
@@ -4029,6 +4149,12 @@ async function startLiveConversation(){
 }
 
 
+/*
+==========================================================
+MIKRO → VOLLBILD
+==========================================================
+*/
+
 liveButton.addEventListener(
   "click",
   async () => {
@@ -4040,6 +4166,12 @@ liveButton.addEventListener(
   }
 );
 
+
+/*
+==========================================================
+ZURÜCK
+==========================================================
+*/
 
 voiceExitButton.addEventListener(
   "click",
@@ -4053,9 +4185,21 @@ voiceExitButton.addEventListener(
 );
 
 
+/*
+==========================================================
+STANDARD-LAUTSTÄRKE
+==========================================================
+*/
+
 realtimeAudio.volume =
   solVolume;
 
+
+/*
+==========================================================
+SERVICE WORKER
+==========================================================
+*/
 
 if(
   "serviceWorker" in navigator
@@ -4082,6 +4226,12 @@ if(
   );
 }
 
+
+/*
+==========================================================
+MUND INITIALISIEREN
+==========================================================
+*/
 
 if(
   solImage.complete
