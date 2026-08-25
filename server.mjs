@@ -4,6 +4,8 @@ import OpenAI from "openai";
 import path from "path";
 import { fileURLToPath } from "url";
 import pg from "pg";
+import { google } from "googleapis";
+import { createHash } from "crypto";
 
 const app = express();
 
@@ -18,7 +20,9 @@ const openai = new OpenAI({
 });
 
 /*
-  Verbindung zu Sol-Holo-Memory
+  ==========================================================
+  VERBINDUNG ZU SOL-HOLO-MEMORY
+  ==========================================================
 */
 
 const { Pool } = pg;
@@ -28,10 +32,49 @@ const db = new Pool({
 });
 
 /*
-  Persönlicher Clone
+  ==========================================================
+  PERSÖNLICHER CLONE
+  ==========================================================
 */
 
 const CURRENT_CLONE_ID = "pam-sol-001";
+
+/*
+  ==========================================================
+  GOOGLE CALENDAR
+  ==========================================================
+*/
+
+const GOOGLE_CLIENT_ID =
+  String(
+    process.env.GOOGLE_CLIENT_ID ||
+    ""
+  ).trim();
+
+const GOOGLE_CLIENT_SECRET =
+  String(
+    process.env.GOOGLE_CLIENT_SECRET ||
+    ""
+  ).trim();
+
+const GOOGLE_REDIRECT_URI =
+  String(
+    process.env.GOOGLE_REDIRECT_URI ||
+    "https://sol-holo.onrender.com/auth/google/callback"
+  ).trim();
+
+const GOOGLE_CALENDAR_ID =
+  String(
+    process.env.GOOGLE_CALENDAR_ID ||
+    "primary"
+  ).trim();
+
+const GOOGLE_CALENDAR_TIMEZONE =
+  "Europe/Berlin";
+
+const GOOGLE_CALENDAR_SCOPES = [
+  "https://www.googleapis.com/auth/calendar.events"
+];
 
 /*
   ==========================================================
@@ -65,7 +108,9 @@ const OPENAI_VOICE_API_KEY =
   ).trim();
 
 /*
-  Memory-Tabellen anlegen
+  ==========================================================
+  MEMORY-TABELLEN ANLEGEN
+  ==========================================================
 */
 
 async function initializeMemory() {
@@ -97,14 +142,73 @@ async function initializeMemory() {
     )
   `);
 
+  /*
+    Google OAuth Tokens
+
+    Wichtig:
+    Refresh-Token wird in PostgreSQL gespeichert,
+    damit die Kalender-Verbindung einen Render-Neustart
+    überlebt.
+  */
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS sol_google_tokens (
+      clone_id TEXT PRIMARY KEY,
+      access_token TEXT,
+      refresh_token TEXT,
+      scope TEXT,
+      token_type TEXT,
+      expiry_date BIGINT,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  /*
+    Schutz gegen doppelte Kalender-Einträge.
+
+    Das ist besonders für Realtime wichtig,
+    weil Sprachtranskripte unter Umständen mehrmals
+    eintreffen können.
+  */
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS sol_calendar_actions (
+      id BIGSERIAL PRIMARY KEY,
+      clone_id TEXT NOT NULL,
+      fingerprint TEXT NOT NULL,
+      original_message TEXT NOT NULL,
+      google_event_id TEXT,
+      event_summary TEXT,
+      event_start TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.query(`
+    CREATE INDEX IF NOT EXISTS sol_calendar_actions_lookup
+    ON sol_calendar_actions (
+      clone_id,
+      fingerprint,
+      created_at
+    )
+  `);
+
   console.log("Sol-Holo-Memory ist bereit.");
   console.log("Sol-Holo-Vollzeitgedächtnis ist bereit.");
+  console.log("Sol-Holo-Kalender-Speicher ist bereit.");
   console.log("Realtime-Stimme: marin aktiv.");
 
   console.log(
     OPENAI_VOICE_API_KEY
       ? "Separater Voice-API-Key ist bereit."
       : "OPENAI_VOICE_API_KEY fehlt noch."
+  );
+
+  console.log(
+    GOOGLE_CLIENT_ID &&
+    GOOGLE_CLIENT_SECRET
+      ? "Google Calendar OAuth ist vorbereitet."
+      : "Google Calendar OAuth Variablen fehlen."
   );
 }
 
@@ -116,7 +220,9 @@ initializeMemory().catch((error) => {
 });
 
 /*
-  Sol-Holo-Oberfläche ausliefern
+  ==========================================================
+  SOL-HOLO-OBERFLÄCHE AUSLIEFERN
+  ==========================================================
 */
 
 app.use(express.static(__dirname));
@@ -126,6 +232,1057 @@ app.get("/", (req, res) => {
     path.join(__dirname, "index.html")
   );
 });
+
+/*
+  ==========================================================
+  GOOGLE CALENDAR – OAUTH CLIENT
+  ==========================================================
+*/
+
+function createGoogleOAuthClient() {
+  if (
+    !GOOGLE_CLIENT_ID ||
+    !GOOGLE_CLIENT_SECRET
+  ) {
+    throw new Error(
+      "Google Calendar ist noch nicht vollständig konfiguriert. GOOGLE_CLIENT_ID oder GOOGLE_CLIENT_SECRET fehlt."
+    );
+  }
+
+  return new google.auth.OAuth2(
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
+    GOOGLE_REDIRECT_URI
+  );
+}
+
+/*
+  ==========================================================
+  GOOGLE CALENDAR – TOKENS SPEICHERN
+  ==========================================================
+*/
+
+async function saveGoogleTokens(tokens) {
+  if (!tokens) {
+    return;
+  }
+
+  const existing =
+    await db.query(
+      `
+        SELECT refresh_token
+        FROM sol_google_tokens
+        WHERE clone_id = $1
+        LIMIT 1
+      `,
+      [
+        CURRENT_CLONE_ID
+      ]
+    );
+
+  const previousRefreshToken =
+    existing.rows?.[0]?.refresh_token ||
+    null;
+
+  const refreshToken =
+    tokens.refresh_token ||
+    previousRefreshToken ||
+    null;
+
+  await db.query(
+    `
+      INSERT INTO sol_google_tokens (
+        clone_id,
+        access_token,
+        refresh_token,
+        scope,
+        token_type,
+        expiry_date,
+        updated_at
+      )
+      VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        NOW()
+      )
+      ON CONFLICT (clone_id)
+      DO UPDATE SET
+        access_token = EXCLUDED.access_token,
+        refresh_token = COALESCE(
+          EXCLUDED.refresh_token,
+          sol_google_tokens.refresh_token
+        ),
+        scope = EXCLUDED.scope,
+        token_type = EXCLUDED.token_type,
+        expiry_date = EXCLUDED.expiry_date,
+        updated_at = NOW()
+    `,
+    [
+      CURRENT_CLONE_ID,
+      tokens.access_token || null,
+      refreshToken,
+      tokens.scope || null,
+      tokens.token_type || null,
+      tokens.expiry_date || null
+    ]
+  );
+
+  console.log(
+    "✅ Google Calendar Tokens gespeichert."
+  );
+}
+
+/*
+  ==========================================================
+  GOOGLE CALENDAR – TOKENS LADEN
+  ==========================================================
+*/
+
+async function loadGoogleTokens() {
+  const result =
+    await db.query(
+      `
+        SELECT
+          access_token,
+          refresh_token,
+          scope,
+          token_type,
+          expiry_date
+        FROM sol_google_tokens
+        WHERE clone_id = $1
+        LIMIT 1
+      `,
+      [
+        CURRENT_CLONE_ID
+      ]
+    );
+
+  if (
+    result.rows.length === 0
+  ) {
+    return null;
+  }
+
+  return result.rows[0];
+}
+
+/*
+  ==========================================================
+  GOOGLE CALENDAR – AUTORISIERUNGS-URL
+  ==========================================================
+*/
+
+app.get(
+  "/auth/google",
+  async (req, res) => {
+    try {
+      const oauth2Client =
+        createGoogleOAuthClient();
+
+      const url =
+        oauth2Client.generateAuthUrl({
+          access_type:
+            "offline",
+
+          prompt:
+            "consent",
+
+          scope:
+            GOOGLE_CALENDAR_SCOPES
+        });
+
+      return res.redirect(url);
+
+    } catch (error) {
+      console.error(
+        "Google OAuth Start Fehler:",
+        error
+      );
+
+      return res.status(500).send(
+        "Google Calendar konnte nicht verbunden werden."
+      );
+    }
+  }
+);
+
+/*
+  ==========================================================
+  GOOGLE CALENDAR – CALLBACK
+  ==========================================================
+*/
+
+app.get(
+  "/auth/google/callback",
+  async (req, res) => {
+    try {
+      const code =
+        String(
+          req.query.code ||
+          ""
+        ).trim();
+
+      if (!code) {
+        return res.status(400).send(
+          "Google hat keinen Autorisierungscode geliefert."
+        );
+      }
+
+      const oauth2Client =
+        createGoogleOAuthClient();
+
+      const tokenResult =
+        await oauth2Client.getToken(
+          code
+        );
+
+      const tokens =
+        tokenResult.tokens;
+
+      await saveGoogleTokens(
+        tokens
+      );
+
+      oauth2Client.setCredentials(
+        tokens
+      );
+
+      return res.type("html").send(`
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1"
+>
+<title>Sol Holo – Google Calendar</title>
+
+<style>
+body{
+  margin:0;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#05030b;
+  color:white;
+  font-family:Arial,sans-serif;
+  padding:24px;
+}
+
+.box{
+  width:100%;
+  max-width:560px;
+  padding:28px;
+  border:1px solid #7139a7;
+  border-radius:22px;
+  background:#100719;
+  text-align:center;
+}
+
+h1{
+  color:#bd72ff;
+}
+
+.ok{
+  color:#45e5a2;
+  font-size:20px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+
+<h1>
+🌻 Sol Holo
+</h1>
+
+<p class="ok">
+✅ Google Kalender wurde erfolgreich verbunden.
+</p>
+
+<p>
+Du kannst dieses Fenster jetzt schließen
+und zu Sol Holo zurückkehren.
+</p>
+
+</div>
+
+</body>
+</html>
+      `);
+
+    } catch (error) {
+      console.error(
+        "Google OAuth Callback Fehler:",
+        error
+      );
+
+      return res.status(500).send(
+        "Die Verbindung mit Google Calendar konnte nicht abgeschlossen werden."
+      );
+    }
+  }
+);
+
+/*
+  ==========================================================
+  GOOGLE CALENDAR – VERBINDUNGSSTATUS
+  ==========================================================
+*/
+
+app.get(
+  "/calendar/status",
+  async (req, res) => {
+    try {
+      const tokens =
+        await loadGoogleTokens();
+
+      return res.json({
+        connected:
+          Boolean(
+            tokens?.refresh_token ||
+            tokens?.access_token
+          ),
+
+        calendar:
+          GOOGLE_CALENDAR_ID,
+
+        timezone:
+          GOOGLE_CALENDAR_TIMEZONE
+      });
+
+    } catch (error) {
+      console.error(
+        "Calendar Status Fehler:",
+        error
+      );
+
+      return res.status(500).json({
+        connected:
+          false,
+
+        error:
+          "Kalenderstatus konnte nicht gelesen werden."
+      });
+    }
+  }
+);
+
+/*
+  ==========================================================
+  GOOGLE CALENDAR – AUTORISIERTER CLIENT
+  ==========================================================
+*/
+
+async function getAuthorizedGoogleClient() {
+  const storedTokens =
+    await loadGoogleTokens();
+
+  if (!storedTokens) {
+    throw new Error(
+      "GOOGLE_CALENDAR_NOT_CONNECTED"
+    );
+  }
+
+  const oauth2Client =
+    createGoogleOAuthClient();
+
+  oauth2Client.setCredentials({
+    access_token:
+      storedTokens.access_token,
+
+    refresh_token:
+      storedTokens.refresh_token,
+
+    scope:
+      storedTokens.scope,
+
+    token_type:
+      storedTokens.token_type,
+
+    expiry_date:
+      storedTokens.expiry_date
+        ? Number(
+            storedTokens.expiry_date
+          )
+        : undefined
+  });
+
+  /*
+    Wenn Google automatisch einen neuen Access Token
+    erzeugt, wird er wieder dauerhaft gespeichert.
+  */
+
+  oauth2Client.on(
+    "tokens",
+    async (newTokens) => {
+      try {
+        await saveGoogleTokens(
+          newTokens
+        );
+
+      } catch (error) {
+        console.error(
+          "Fehler beim Aktualisieren der Google Tokens:",
+          error
+        );
+      }
+    }
+  );
+
+  return oauth2Client;
+}
+
+/*
+  ==========================================================
+  BERLIN – AKTUELLE ZEIT FÜR KALENDER-PARSER
+  ==========================================================
+*/
+
+function getBerlinCurrentDateTimeText() {
+  return new Intl.DateTimeFormat(
+    "de-DE",
+    {
+      timeZone:
+        GOOGLE_CALENDAR_TIMEZONE,
+
+      year:
+        "numeric",
+
+      month:
+        "2-digit",
+
+      day:
+        "2-digit",
+
+      hour:
+        "2-digit",
+
+      minute:
+        "2-digit",
+
+      second:
+        "2-digit",
+
+      hour12:
+        false
+    }
+  ).format(
+    new Date()
+  );
+}
+
+/*
+  ==========================================================
+  KALENDER-BEFEHL SCHNELL ERKENNEN
+  ==========================================================
+
+  Diese Funktion entscheidet nur,
+  ob überhaupt ein Schreibwunsch wahrscheinlich ist.
+
+  Die eigentliche Interpretation macht danach
+  das Modell.
+*/
+
+function looksLikeCalendarWriteRequest(
+  message
+) {
+  const text =
+    String(
+      message ||
+      ""
+    ).toLowerCase();
+
+  if (!text) {
+    return false;
+  }
+
+  const patterns = [
+    "kalender",
+    "trag ",
+    "trage ",
+    "eintragen",
+    "termin",
+    "erinnere mich",
+    "erinnerung",
+    "plane ",
+    "plan ",
+    "setze ",
+    "mach mir einen termin",
+    "mach einen termin"
+  ];
+
+  return patterns.some(
+    (pattern) =>
+      text.includes(pattern)
+  );
+}
+
+/*
+  ==========================================================
+  JSON AUS MODELLANTWORT LESEN
+  ==========================================================
+*/
+
+function parseJsonText(text) {
+  const clean =
+    String(
+      text ||
+      ""
+    )
+      .trim()
+      .replace(
+        /^```json\s*/i,
+        ""
+      )
+      .replace(
+        /^```\s*/i,
+        ""
+      )
+      .replace(
+        /\s*```$/,
+        ""
+      )
+      .trim();
+
+  return JSON.parse(clean);
+}
+
+/*
+  ==========================================================
+  KALENDER-BEFEHL MIT SOL VERSTEHEN
+  ==========================================================
+*/
+
+async function parseCalendarCommand(
+  message
+) {
+  const currentBerlin =
+    getBerlinCurrentDateTimeText();
+
+  const parsingResponse =
+    await openai.responses.create({
+      model:
+        "gpt-5",
+
+      instructions: `
+Du analysierst ausschließlich Kalender-Schreibbefehle.
+
+Aktuelles Datum und aktuelle Uhrzeit in Deutschland,
+Zeitzone Europe/Berlin:
+
+${currentBerlin}
+
+Der Nutzer ist Pam.
+
+Prüfe, ob die Nachricht wirklich verlangt,
+einen Google-Kalendertermin zu ERSTELLEN.
+
+Gib ausschließlich gültiges JSON zurück.
+Keine Markdown-Codeblöcke.
+Keine Erklärung.
+
+Wenn KEIN Kalendertermin erstellt werden soll:
+
+{
+  "action": "none"
+}
+
+Wenn ein Kalendertermin erstellt werden soll:
+
+{
+  "action": "create",
+  "summary": "Kurzer Titel",
+  "start": "RFC3339 Datum mit deutscher Zeitzone",
+  "end": "RFC3339 Datum mit deutscher Zeitzone",
+  "description": "Optionale Beschreibung oder leer",
+  "reminderMinutes": null
+}
+
+REGELN:
+
+1. Relative Angaben wie heute, morgen,
+   Mittwoch oder nächste Woche müssen anhand
+   des oben genannten aktuellen Datums bestimmt werden.
+
+2. Europe/Berlin verwenden.
+
+3. Wenn nur eine Uhrzeit und keine Dauer angegeben ist,
+   dauert der Termin standardmäßig 30 Minuten.
+
+4. Wenn Pam sagt:
+   "Erinnere mich um 11 Uhr ..."
+   dann wird der Kalendertermin um 11 Uhr erstellt.
+
+5. Wenn Pam ausdrücklich sagt:
+   "10 Minuten vorher erinnern"
+   dann reminderMinutes = 10.
+
+6. Wenn keine vorherige Erinnerung genannt wurde,
+   reminderMinutes = null.
+
+7. Fehlende Informationen nicht frei erfinden.
+   Ein sinnvoller kurzer Titel aus dem vorhandenen Text
+   ist erlaubt.
+
+8. Nutze für Deutschland im August normalerweise
+   den korrekten Europe/Berlin Offset.
+
+9. Niemals behaupten, dass Google etwas gespeichert hat.
+   Du analysierst nur den Befehl.
+`,
+
+      input:
+        message
+    });
+
+  const outputText =
+    parsingResponse.output_text?.trim();
+
+  if (!outputText) {
+    return {
+      action:
+        "none"
+    };
+  }
+
+  try {
+    const parsed =
+      parseJsonText(
+        outputText
+      );
+
+    return parsed;
+
+  } catch (error) {
+    console.error(
+      "Kalender-Parser JSON Fehler:",
+      {
+        outputText,
+        error
+      }
+    );
+
+    return {
+      action:
+        "none"
+    };
+  }
+}
+
+/*
+  ==========================================================
+  KALENDER-EINTRAG-FINGERPRINT
+  ==========================================================
+*/
+
+function createCalendarFingerprint(
+  message,
+  parsed
+) {
+  const source =
+    [
+      CURRENT_CLONE_ID,
+      String(
+        message ||
+        ""
+      ).trim().toLowerCase(),
+
+      parsed?.summary ||
+        "",
+
+      parsed?.start ||
+        "",
+
+      parsed?.end ||
+        ""
+    ].join("|");
+
+  return createHash(
+    "sha256"
+  )
+    .update(source)
+    .digest("hex");
+}
+
+/*
+  ==========================================================
+  DOPPELTEN KALENDER-EINTRAG PRÜFEN
+  ==========================================================
+*/
+
+async function findRecentCalendarAction(
+  fingerprint
+) {
+  const result =
+    await db.query(
+      `
+        SELECT
+          google_event_id,
+          event_summary,
+          event_start,
+          created_at
+        FROM sol_calendar_actions
+        WHERE clone_id = $1
+          AND fingerprint = $2
+          AND created_at >
+              NOW() - INTERVAL '2 minutes'
+        ORDER BY id DESC
+        LIMIT 1
+      `,
+      [
+        CURRENT_CLONE_ID,
+        fingerprint
+      ]
+    );
+
+  return (
+    result.rows?.[0] ||
+    null
+  );
+}
+
+/*
+  ==========================================================
+  KALENDER-AKTION SPEICHERN
+  ==========================================================
+*/
+
+async function saveCalendarAction(
+  fingerprint,
+  originalMessage,
+  googleEventId,
+  summary,
+  start
+) {
+  await db.query(
+    `
+      INSERT INTO sol_calendar_actions (
+        clone_id,
+        fingerprint,
+        original_message,
+        google_event_id,
+        event_summary,
+        event_start
+      )
+      VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6
+      )
+    `,
+    [
+      CURRENT_CLONE_ID,
+      fingerprint,
+      originalMessage,
+      googleEventId ||
+        null,
+      summary ||
+        null,
+      start ||
+        null
+    ]
+  );
+}
+
+/*
+  ==========================================================
+  GOOGLE CALENDAR – ECHTEN TERMIN ERSTELLEN
+  ==========================================================
+*/
+
+async function createGoogleCalendarEvent(
+  parsedCommand,
+  originalMessage
+) {
+  const oauth2Client =
+    await getAuthorizedGoogleClient();
+
+  const calendar =
+    google.calendar({
+      version:
+        "v3",
+
+      auth:
+        oauth2Client
+    });
+
+  const reminders =
+    Number.isFinite(
+      Number(
+        parsedCommand.reminderMinutes
+      )
+    ) &&
+    parsedCommand.reminderMinutes !== null
+
+      ? {
+          useDefault:
+            false,
+
+          overrides: [
+            {
+              method:
+                "popup",
+
+              minutes:
+                Math.max(
+                  0,
+                  Number(
+                    parsedCommand.reminderMinutes
+                  )
+                )
+            }
+          ]
+        }
+
+      : {
+          useDefault:
+            true
+        };
+
+  const requestBody = {
+    summary:
+      String(
+        parsedCommand.summary ||
+        "Sol Holo Termin"
+      ).trim(),
+
+    description:
+      String(
+        parsedCommand.description ||
+        ""
+      ).trim(),
+
+    start: {
+      dateTime:
+        parsedCommand.start,
+
+      timeZone:
+        GOOGLE_CALENDAR_TIMEZONE
+    },
+
+    end: {
+      dateTime:
+        parsedCommand.end,
+
+      timeZone:
+        GOOGLE_CALENDAR_TIMEZONE
+    },
+
+    reminders
+  };
+
+  const response =
+    await calendar.events.insert({
+      calendarId:
+        GOOGLE_CALENDAR_ID,
+
+      requestBody
+    });
+
+  /*
+    KRITISCH:
+
+    Erst wenn Google eine Event-ID liefert,
+    gilt der Vorgang als erfolgreich.
+  */
+
+  const googleEvent =
+    response.data;
+
+  if (
+    !googleEvent ||
+    !googleEvent.id
+  ) {
+    throw new Error(
+      "GOOGLE_CALENDAR_NO_EVENT_ID"
+    );
+  }
+
+  console.log(
+    "✅ Google Calendar Termin wirklich erstellt:",
+    {
+      id:
+        googleEvent.id,
+
+      summary:
+        googleEvent.summary,
+
+      start:
+        googleEvent.start
+    }
+  );
+
+  return googleEvent;
+}
+
+/*
+  ==========================================================
+  KALENDER-WUNSCH KOMPLETT VERARBEITEN
+  ==========================================================
+*/
+
+async function handleCalendarWriteRequest(
+  message
+) {
+  if (
+    !looksLikeCalendarWriteRequest(
+      message
+    )
+  ) {
+    return {
+      handled:
+        false
+    };
+  }
+
+  const parsed =
+    await parseCalendarCommand(
+      message
+    );
+
+  if (
+    parsed?.action !==
+    "create"
+  ) {
+    return {
+      handled:
+        false
+    };
+  }
+
+  if (
+    !parsed.summary ||
+    !parsed.start ||
+    !parsed.end
+  ) {
+    return {
+      handled:
+        true,
+
+      success:
+        false,
+
+      answer:
+        "Pam, ich habe erkannt, dass du einen Kalendereintrag möchtest, aber Datum oder Uhrzeit sind nicht eindeutig genug."
+    };
+  }
+
+  const fingerprint =
+    createCalendarFingerprint(
+      message,
+      parsed
+    );
+
+  const duplicate =
+    await findRecentCalendarAction(
+      fingerprint
+    );
+
+  if (duplicate) {
+    return {
+      handled:
+        true,
+
+      success:
+        true,
+
+      duplicate:
+        true,
+
+      googleEventId:
+        duplicate.google_event_id,
+
+      answer:
+        `Pam, der Termin „${duplicate.event_summary || parsed.summary}“ wurde bereits gerade eben in deinem Google Kalender angelegt.`
+    };
+  }
+
+  try {
+    const googleEvent =
+      await createGoogleCalendarEvent(
+        parsed,
+        message
+      );
+
+    await saveCalendarAction(
+      fingerprint,
+      message,
+      googleEvent.id,
+      googleEvent.summary ||
+        parsed.summary,
+      googleEvent.start?.dateTime ||
+        parsed.start
+    );
+
+    const answer =
+      `Ja, Pam. Der Termin „${googleEvent.summary || parsed.summary}“ wurde jetzt wirklich in deinem Google Kalender gespeichert.`;
+
+    return {
+      handled:
+        true,
+
+      success:
+        true,
+
+      googleEventId:
+        googleEvent.id,
+
+      htmlLink:
+        googleEvent.htmlLink ||
+        null,
+
+      answer
+    };
+
+  } catch (error) {
+    console.error(
+      "Google Calendar Eintrag Fehler:",
+      error
+    );
+
+    if (
+      error?.message ===
+      "GOOGLE_CALENDAR_NOT_CONNECTED"
+    ) {
+      return {
+        handled:
+          true,
+
+        success:
+          false,
+
+        needsGoogleAuth:
+          true,
+
+        answer:
+          "Pam, dein Google Kalender ist noch nicht mit Sol Holo verbunden. Öffne bitte einmal /auth/google."
+      };
+    }
+
+    return {
+      handled:
+        true,
+
+      success:
+        false,
+
+      answer:
+        "Pam, der Kalendereintrag wurde nicht gespeichert. Google Calendar hat den Vorgang nicht bestätigt."
+    };
+  }
+}
 
 /*
   ==========================================================
@@ -171,7 +1328,9 @@ function checkVoiceSetupSecret(
 }
 
 /*
-  Audio-MIME-Typ bestimmen
+  ==========================================================
+  AUDIO-MIME-TYP BESTIMMEN
+  ==========================================================
 */
 
 function normalizeAudioMimeType(
@@ -1177,6 +2336,13 @@ async function loadFulltimeMemory(
   ==========================================================
   REALTIME → VOLLZEITGEDÄCHTNIS
   ==========================================================
+
+  ERWEITERUNG:
+  Wenn ein USER-Sprachtranskript ein echter
+  Kalender-Schreibbefehl ist, wird hier zusätzlich
+  versucht, ihn wirklich in Google Calendar anzulegen.
+
+  Die Memory-Funktion selbst bleibt bestehen.
 */
 
 app.post(
@@ -1224,18 +2390,66 @@ app.post(
         transcript
       );
 
+      let calendarResult =
+        null;
+
+      if (
+        role === "user" &&
+        looksLikeCalendarWriteRequest(
+          transcript
+        )
+      ) {
+        calendarResult =
+          await handleCalendarWriteRequest(
+            transcript
+          );
+
+        if (
+          calendarResult?.handled &&
+          calendarResult?.answer
+        ) {
+          /*
+            Ergebnis ebenfalls im Gedächtnis sichern.
+
+            So steht später fest,
+            ob Google wirklich bestätigt hat
+            oder ob der Vorgang fehlgeschlagen ist.
+          */
+
+          await saveMemory(
+            "assistant",
+            calendarResult.answer
+          );
+
+          await saveFulltimeMemory(
+            "assistant",
+            calendarResult.answer
+          );
+        }
+      }
+
       console.log(
         "✅ Realtime-Nachricht gespeichert:",
         {
           role,
-          transcript
+          transcript,
+          calendarHandled:
+            Boolean(
+              calendarResult?.handled
+            ),
+          calendarSuccess:
+            calendarResult?.success ??
+            null
         }
       );
 
       return res.json({
         saved: true,
         role,
-        memory: transcript
+        memory: transcript,
+
+        calendar:
+          calendarResult
       });
 
     } catch (error) {
@@ -1512,6 +2726,25 @@ gespeichert werden soll.
 Biete nicht an, eine normale Aussage dauerhaft zu
 speichern.
 
+WICHTIG ZU GOOGLE CALENDAR:
+
+Wenn Pam per Sprache verlangt,
+einen Termin oder eine Erinnerung in ihren
+Google Kalender einzutragen,
+darfst du NICHT behaupten,
+dass der Eintrag erfolgreich gespeichert wurde,
+nur weil du ihren Wunsch verstanden hast.
+
+Die technische Speicherung erfolgt über das Sol-Holo-Backend.
+
+Sage deshalb niemals ohne echte Backend-Bestätigung:
+"Der Termin wurde erstellt."
+"Die Erinnerung wurde eingetragen."
+"Das ist jetzt im Kalender."
+oder sinngleiche Aussagen.
+
+Erfinde niemals einen erfolgreichen Kalender-Schreibvorgang.
+
 LANGZEITGEDÄCHTNIS:
 
 ${longTermMemoryText}
@@ -1690,6 +2923,85 @@ app.post("/sol", async (req, res) => {
       originalMessage
     );
 
+    /*
+      ========================================================
+      GOOGLE CALENDAR ZUERST PRÜFEN
+      ========================================================
+
+      Ganz wichtig:
+
+      Wenn es ein Kalender-Schreibbefehl ist,
+      darf GPT nicht einfach eine Antwort erfinden.
+
+      Stattdessen wird zuerst Google Calendar
+      wirklich aufgerufen.
+
+      Erst danach wird Erfolg gemeldet.
+    */
+
+    const calendarResult =
+      await handleCalendarWriteRequest(
+        message
+      );
+
+    if (
+      calendarResult?.handled
+    ) {
+      await saveMemory(
+        "user",
+        message
+      );
+
+      await saveMemory(
+        "assistant",
+        calendarResult.answer
+      );
+
+      await saveFulltimeMemory(
+        "assistant",
+        calendarResult.answer
+      );
+
+      return res.json({
+        answer:
+          calendarResult.answer,
+
+        calendar: {
+          handled:
+            true,
+
+          success:
+            Boolean(
+              calendarResult.success
+            ),
+
+          duplicate:
+            Boolean(
+              calendarResult.duplicate
+            ),
+
+          needsGoogleAuth:
+            Boolean(
+              calendarResult.needsGoogleAuth
+            ),
+
+          googleEventId:
+            calendarResult.googleEventId ||
+            null,
+
+          htmlLink:
+            calendarResult.htmlLink ||
+            null
+        }
+      });
+    }
+
+    /*
+      ========================================================
+      MEMORY-BEFEHL – DAUERHAFT MERKEN
+      ========================================================
+    */
+
     const rememberContent =
       extractRememberCommand(
         message
@@ -1724,6 +3036,12 @@ app.post("/sol", async (req, res) => {
         answer
       });
     }
+
+    /*
+      ========================================================
+      MEMORY-BEFEHL – VERGESSEN
+      ========================================================
+    */
 
     const forgetContent =
       extractForgetCommand(
@@ -1760,6 +3078,12 @@ app.post("/sol", async (req, res) => {
         answer
       });
     }
+
+    /*
+      ========================================================
+      MEMORY-BEFEHL – ANZEIGEN
+      ========================================================
+    */
 
     if (
       isListMemoryCommand(
@@ -1808,6 +3132,12 @@ app.post("/sol", async (req, res) => {
         answer
       });
     }
+
+    /*
+      ========================================================
+      NORMALE SOL-ANTWORT
+      ========================================================
+    */
 
     const memories =
       await loadRecentMemory();
@@ -1946,6 +3276,21 @@ dass sie eine dauerhafte Persönlichkeitseigenschaft ist.
 
 Wenn eine Information nicht im Gedächtnis steht,
 behaupte nicht, dass du dich daran erinnerst.
+
+WICHTIG ZU GOOGLE CALENDAR:
+
+Behaupte niemals,
+dass du einen Termin oder eine Erinnerung
+in Google Calendar erstellt,
+geändert oder gelöscht hast,
+wenn der entsprechende technische Google-API-Aufruf
+nicht tatsächlich erfolgreich durchgeführt wurde.
+
+Wenn ein Kalender-Schreibbefehl erfolgreich ausgeführt wird,
+wird dieser bereits vor dieser normalen Antwort
+vom Sol-Holo-Backend verarbeitet.
+
+Du darfst daher niemals einen Kalender-Erfolg erfinden.
 
 LANGZEITGEDÄCHTNIS:
 
