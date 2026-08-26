@@ -2017,7 +2017,10 @@ app.post(
       if (!response.ok) {
         console.error(
           "Voice Consent API Fehler:",
-          data
+          {
+            status: response.status,
+            data
+          }
         );
 
         return res
