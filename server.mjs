@@ -9,7 +9,7 @@ import { createHash } from "crypto";
 
 const app = express();
 
-app.use(express.json());
+app.use(express.json({ limit: "20mb" }));
 app.use(cors());
 
 const __filename = fileURLToPath(import.meta.url);
@@ -616,11 +616,6 @@ async function getAuthorizedGoogleClient() {
         : undefined
   });
 
-  /*
-    Wenn Google automatisch einen neuen Access Token
-    erzeugt, wird er wieder dauerhaft gespeichert.
-  */
-
   oauth2Client.on(
     "tokens",
     async (newTokens) => {
@@ -684,12 +679,6 @@ function getBerlinCurrentDateTimeText() {
   ==========================================================
   KALENDER-BEFEHL SCHNELL ERKENNEN
   ==========================================================
-
-  Diese Funktion entscheidet nur,
-  ob überhaupt ein Schreibwunsch wahrscheinlich ist.
-
-  Die eigentliche Interpretation macht danach
-  das Modell.
 */
 
 function looksLikeCalendarWriteRequest(
@@ -1090,13 +1079,6 @@ async function createGoogleCalendarEvent(
 
       requestBody
     });
-
-  /*
-    KRITISCH:
-
-    Erst wenn Google eine Event-ID liefert,
-    gilt der Vorgang als erfolgreich.
-  */
 
   const googleEvent =
     response.data;
@@ -2336,13 +2318,6 @@ async function loadFulltimeMemory(
   ==========================================================
   REALTIME → VOLLZEITGEDÄCHTNIS
   ==========================================================
-
-  ERWEITERUNG:
-  Wenn ein USER-Sprachtranskript ein echter
-  Kalender-Schreibbefehl ist, wird hier zusätzlich
-  versucht, ihn wirklich in Google Calendar anzulegen.
-
-  Die Memory-Funktion selbst bleibt bestehen.
 */
 
 app.post(
@@ -2408,14 +2383,6 @@ app.post(
           calendarResult?.handled &&
           calendarResult?.answer
         ) {
-          /*
-            Ergebnis ebenfalls im Gedächtnis sichern.
-
-            So steht später fest,
-            ob Google wirklich bestätigt hat
-            oder ob der Vorgang fehlgeschlagen ist.
-          */
-
           await saveMemory(
             "assistant",
             calendarResult.answer
@@ -2923,22 +2890,6 @@ app.post("/sol", async (req, res) => {
       originalMessage
     );
 
-    /*
-      ========================================================
-      GOOGLE CALENDAR ZUERST PRÜFEN
-      ========================================================
-
-      Ganz wichtig:
-
-      Wenn es ein Kalender-Schreibbefehl ist,
-      darf GPT nicht einfach eine Antwort erfinden.
-
-      Stattdessen wird zuerst Google Calendar
-      wirklich aufgerufen.
-
-      Erst danach wird Erfolg gemeldet.
-    */
-
     const calendarResult =
       await handleCalendarWriteRequest(
         message
@@ -2996,12 +2947,6 @@ app.post("/sol", async (req, res) => {
       });
     }
 
-    /*
-      ========================================================
-      MEMORY-BEFEHL – DAUERHAFT MERKEN
-      ========================================================
-    */
-
     const rememberContent =
       extractRememberCommand(
         message
@@ -3036,12 +2981,6 @@ app.post("/sol", async (req, res) => {
         answer
       });
     }
-
-    /*
-      ========================================================
-      MEMORY-BEFEHL – VERGESSEN
-      ========================================================
-    */
 
     const forgetContent =
       extractForgetCommand(
@@ -3078,12 +3017,6 @@ app.post("/sol", async (req, res) => {
         answer
       });
     }
-
-    /*
-      ========================================================
-      MEMORY-BEFEHL – ANZEIGEN
-      ========================================================
-    */
 
     if (
       isListMemoryCommand(
@@ -3132,12 +3065,6 @@ app.post("/sol", async (req, res) => {
         answer
       });
     }
-
-    /*
-      ========================================================
-      NORMALE SOL-ANTWORT
-      ========================================================
-    */
 
     const memories =
       await loadRecentMemory();
