@@ -5,7 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import pg from "pg";
 import { google } from "googleapis";
-import { createHash } from "crypto";
+import { createHash, randomUUID } from "crypto";
 
 const app = express();
 
@@ -38,6 +38,85 @@ const db = new Pool({
 */
 
 const CURRENT_CLONE_ID = "pam-sol-001";
+
+/*
+  Kurzlebiger Zugriffsschlüssel für die Realtime-Gedächtnissuche.
+  Er enthält KEINE Datenbank-Zugangsdaten und gilt nur für die
+  aktuelle Voice-Sitzung.
+*/
+const REALTIME_MEMORY_TOKEN_TTL_MS =
+  2 * 60 * 60 * 1000;
+
+const realtimeMemorySessions =
+  new Map();
+
+function cleanupRealtimeMemorySessions() {
+  const now =
+    Date.now();
+
+  for (
+    const [token, expiresAt]
+    of realtimeMemorySessions.entries()
+  ) {
+    if (expiresAt <= now) {
+      realtimeMemorySessions.delete(
+        token
+      );
+    }
+  }
+}
+
+function createRealtimeMemoryToken() {
+  cleanupRealtimeMemorySessions();
+
+  const token =
+    `${randomUUID()}-${randomUUID()}`;
+
+  realtimeMemorySessions.set(
+    token,
+    Date.now() +
+      REALTIME_MEMORY_TOKEN_TTL_MS
+  );
+
+  return token;
+}
+
+function validateRealtimeMemoryToken(
+  token
+) {
+  cleanupRealtimeMemorySessions();
+
+  const cleanToken =
+    String(token || "").trim();
+
+  if (!cleanToken) {
+    return false;
+  }
+
+  const expiresAt =
+    realtimeMemorySessions.get(
+      cleanToken
+    );
+
+  if (
+    !expiresAt ||
+    expiresAt <= Date.now()
+  ) {
+    realtimeMemorySessions.delete(
+      cleanToken
+    );
+
+    return false;
+  }
+
+  realtimeMemorySessions.set(
+    cleanToken,
+    Date.now() +
+      REALTIME_MEMORY_TOKEN_TTL_MS
+  );
+
+  return true;
+}
 
 /*
   ==========================================================
@@ -139,6 +218,52 @@ async function initializeMemory() {
       role TEXT NOT NULL,
       content TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  /*
+    Vollzeitgedächtnis: Die Daten werden NICHT rotiert oder
+    nach 50 Einträgen gelöscht. Diese Indizes beschleunigen
+    nur den Abruf aus der gesamten gespeicherten Historie.
+  */
+  await db.query(`
+    CREATE INDEX IF NOT EXISTS sol_fulltime_memory_clone_id_idx
+    ON sol_fulltime_memory (
+      clone_id,
+      id DESC
+    )
+  `);
+
+  await db.query(`
+    CREATE INDEX IF NOT EXISTS sol_fulltime_memory_search_idx
+    ON sol_fulltime_memory
+    USING GIN (
+      to_tsvector(
+        'german',
+        content
+      )
+    )
+  `);
+
+  await db.query(`
+    CREATE INDEX IF NOT EXISTS sol_memory_search_idx
+    ON sol_memory
+    USING GIN (
+      to_tsvector(
+        'german',
+        content
+      )
+    )
+  `);
+
+  await db.query(`
+    CREATE INDEX IF NOT EXISTS sol_long_term_memory_search_idx
+    ON sol_long_term_memory
+    USING GIN (
+      to_tsvector(
+        'german',
+        content
+      )
     )
   `);
 
@@ -2292,9 +2417,24 @@ async function saveFulltimeMemory(
   );
 }
 
-async function loadFulltimeMemory(
+/*
+  Lädt nur einen kleinen AKTUELLEN Gesprächsausschnitt.
+  Das ist KEINE Gedächtnisgrenze. Die komplette Historie
+  bleibt in PostgreSQL gespeichert und wird bei Bedarf
+  über searchPersonalMemory() durchsucht.
+*/
+async function loadRecentFulltimeMemory(
   limit = 50
 ) {
+  const safeLimit =
+    Math.min(
+      100,
+      Math.max(
+        1,
+        Number(limit) || 50
+      )
+    );
+
   const result = await db.query(
     `
       SELECT
@@ -2310,12 +2450,401 @@ async function loadFulltimeMemory(
     `,
     [
       CURRENT_CLONE_ID,
-      limit
+      safeLimit
     ]
   );
 
   return result.rows.reverse();
 }
+
+/*
+  ==========================================================
+  GESAMTES PERSÖNLICHES GEDÄCHTNIS DURCHSUCHEN
+  ==========================================================
+
+  WICHTIG:
+  Die LIMIT-Werte unten begrenzen ausschließlich die Zahl
+  der passenden Treffer, die an ein Modell übergeben werden.
+  Sie löschen oder begrenzen KEINE gespeicherten Erinnerungen.
+
+  Durchsucht werden:
+  - sol_fulltime_memory: komplette Vollzeit-Historie
+  - sol_long_term_memory: ausdrücklich gespeicherte Erinnerungen
+  - sol_memory: älteres Gesprächsgedächtnis als Legacy-Fallback
+*/
+
+const MEMORY_SEARCH_STOP_WORDS =
+  new Set([
+    "aber", "als", "also", "am", "an", "auf", "aus", "bei",
+    "bin", "bist", "da", "das", "dass", "dein", "deine", "dem",
+    "den", "der", "des", "die", "dir", "du", "ein", "eine", "einer",
+    "eines", "er", "es", "für", "hat", "hatte", "habe", "haben", "ich",
+    "im", "in", "ist", "mein", "meine", "mir", "mit", "noch", "oder",
+    "sie", "sind", "so", "über", "und", "vom", "von", "war", "waren",
+    "was", "wer", "wie", "wir", "wo", "zu", "zum", "zur"
+  ]);
+
+function extractMemorySearchTerms(
+  message
+) {
+  const normalized =
+    String(message || "")
+      .toLocaleLowerCase("de-DE")
+      .normalize("NFKC");
+
+  const words =
+    normalized.match(
+      /[\p{L}\p{N}][\p{L}\p{N}_-]*/gu
+    ) || [];
+
+  const unique = [];
+
+  for (const word of words) {
+    if (
+      word.length < 2 ||
+      MEMORY_SEARCH_STOP_WORDS.has(word) ||
+      unique.includes(word)
+    ) {
+      continue;
+    }
+
+    unique.push(word);
+
+    if (unique.length >= 12) {
+      break;
+    }
+  }
+
+  return unique;
+}
+
+async function loadRelevantFulltimeMemory(
+  message,
+  limit = 30
+) {
+  const cleanMessage =
+    String(message || "").trim();
+
+  if (!cleanMessage) {
+    return [];
+  }
+
+  const safeLimit =
+    Math.min(80, Math.max(1, Number(limit) || 30));
+
+  try {
+    const result = await db.query(
+      `
+        SELECT
+          id,
+          role,
+          content,
+          created_at,
+          'fulltime' AS source,
+          ts_rank_cd(
+            to_tsvector('german', content),
+            websearch_to_tsquery('german', $2)
+          ) AS relevance
+        FROM sol_fulltime_memory
+        WHERE clone_id = $1
+          AND to_tsvector('german', content)
+              @@ websearch_to_tsquery('german', $2)
+        ORDER BY
+          CASE WHEN role = 'user' THEN 0 ELSE 1 END,
+          relevance DESC,
+          id DESC
+        LIMIT $3
+      `,
+      [CURRENT_CLONE_ID, cleanMessage, safeLimit]
+    );
+
+    if (result.rows.length > 0) {
+      return result.rows;
+    }
+  } catch (error) {
+    console.error("Vollzeit-Memory Volltextsuche:", error);
+  }
+
+  const terms = extractMemorySearchTerms(cleanMessage);
+  if (terms.length === 0) {
+    return [];
+  }
+
+  const patterns = terms.map((term) => `%${term}%`);
+  const fallback = await db.query(
+    `
+      SELECT
+        id,
+        role,
+        content,
+        created_at,
+        'fulltime' AS source,
+        0::real AS relevance
+      FROM sol_fulltime_memory
+      WHERE clone_id = $1
+        AND LOWER(content) LIKE ANY($2::text[])
+      ORDER BY
+        CASE WHEN role = 'user' THEN 0 ELSE 1 END,
+        id DESC
+      LIMIT $3
+    `,
+    [CURRENT_CLONE_ID, patterns, safeLimit]
+  );
+
+  return fallback.rows;
+}
+
+async function loadRelevantLegacyMemory(
+  message,
+  limit = 20
+) {
+  const cleanMessage = String(message || "").trim();
+  if (!cleanMessage) {
+    return [];
+  }
+
+  const safeLimit = Math.min(60, Math.max(1, Number(limit) || 20));
+
+  try {
+    const result = await db.query(
+      `
+        SELECT
+          id,
+          role,
+          content,
+          created_at,
+          'legacy' AS source,
+          ts_rank_cd(
+            to_tsvector('german', content),
+            websearch_to_tsquery('german', $1)
+          ) AS relevance
+        FROM sol_memory
+        WHERE to_tsvector('german', content)
+              @@ websearch_to_tsquery('german', $1)
+        ORDER BY
+          CASE WHEN role = 'user' THEN 0 ELSE 1 END,
+          relevance DESC,
+          id DESC
+        LIMIT $2
+      `,
+      [cleanMessage, safeLimit]
+    );
+
+    if (result.rows.length > 0) {
+      return result.rows;
+    }
+  } catch (error) {
+    console.error("Legacy-Memory Volltextsuche:", error);
+  }
+
+  const terms = extractMemorySearchTerms(cleanMessage);
+  if (terms.length === 0) {
+    return [];
+  }
+
+  const patterns = terms.map((term) => `%${term}%`);
+  const fallback = await db.query(
+    `
+      SELECT
+        id,
+        role,
+        content,
+        created_at,
+        'legacy' AS source,
+        0::real AS relevance
+      FROM sol_memory
+      WHERE LOWER(content) LIKE ANY($1::text[])
+      ORDER BY
+        CASE WHEN role = 'user' THEN 0 ELSE 1 END,
+        id DESC
+      LIMIT $2
+    `,
+    [patterns, safeLimit]
+  );
+
+  return fallback.rows;
+}
+
+async function loadRelevantLongTermMemoryStrict(
+  message,
+  limit = 20
+) {
+  const cleanMessage = String(message || "").trim();
+  if (!cleanMessage) {
+    return [];
+  }
+
+  const safeLimit = Math.min(60, Math.max(1, Number(limit) || 20));
+
+  try {
+    const result = await db.query(
+      `
+        SELECT
+          id,
+          'memory' AS role,
+          content,
+          created_at,
+          'longterm' AS source,
+          ts_rank_cd(
+            to_tsvector('german', content),
+            websearch_to_tsquery('german', $1)
+          ) AS relevance
+        FROM sol_long_term_memory
+        WHERE to_tsvector('german', content)
+              @@ websearch_to_tsquery('german', $1)
+        ORDER BY relevance DESC, id DESC
+        LIMIT $2
+      `,
+      [cleanMessage, safeLimit]
+    );
+
+    if (result.rows.length > 0) {
+      return result.rows;
+    }
+  } catch (error) {
+    console.error("Langzeit-Memory Volltextsuche:", error);
+  }
+
+  const terms = extractMemorySearchTerms(cleanMessage);
+  if (terms.length === 0) {
+    return [];
+  }
+
+  const patterns = terms.map((term) => `%${term}%`);
+  const fallback = await db.query(
+    `
+      SELECT
+        id,
+        'memory' AS role,
+        content,
+        created_at,
+        'longterm' AS source,
+        0::real AS relevance
+      FROM sol_long_term_memory
+      WHERE LOWER(content) LIKE ANY($1::text[])
+      ORDER BY id DESC
+      LIMIT $2
+    `,
+    [patterns, safeLimit]
+  );
+
+  return fallback.rows;
+}
+
+async function searchPersonalMemory(
+  message,
+  limit = 36
+) {
+  const safeLimit = Math.min(100, Math.max(1, Number(limit) || 36));
+
+  const [fulltime, longterm, legacy] = await Promise.all([
+    loadRelevantFulltimeMemory(message, safeLimit),
+    loadRelevantLongTermMemoryStrict(message, Math.min(safeLimit, 30)),
+    loadRelevantLegacyMemory(message, Math.min(safeLimit, 30))
+  ]);
+
+  const combined = [...fulltime, ...longterm, ...legacy];
+
+  combined.sort((a, b) => {
+    const aUser = a.role === "user" ? 1 : 0;
+    const bUser = b.role === "user" ? 1 : 0;
+    if (aUser !== bUser) {
+      return bUser - aUser;
+    }
+
+    const relevanceDiff = Number(b.relevance || 0) - Number(a.relevance || 0);
+    if (relevanceDiff !== 0) {
+      return relevanceDiff;
+    }
+
+    return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+  });
+
+  const seen = new Set();
+  const unique = [];
+
+  for (const row of combined) {
+    const key = String(row.content || "").trim().toLocaleLowerCase("de-DE");
+    if (!key || seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    unique.push(row);
+
+    if (unique.length >= safeLimit) {
+      break;
+    }
+  }
+
+  return unique;
+}
+
+function formatPersonalMemoryRows(
+  rows
+) {
+  return rows
+    .map((memory) => {
+      const speaker =
+        memory.role === "user"
+          ? "Pam"
+          : memory.role === "assistant"
+            ? "Sol"
+            : "Dauerhafte Erinnerung";
+
+      return `${speaker}: ${memory.content}`;
+    })
+    .join("\n");
+}
+
+/*
+  Geschützter Abruf für Realtime-Tool-Calls.
+  Die gesamte Datenbank bleibt ausschließlich im Backend.
+*/
+app.post(
+  "/memory/search",
+  async (req, res) => {
+    try {
+      const authorization = String(req.headers.authorization || "");
+      const token = authorization.startsWith("Bearer ")
+        ? authorization.slice(7).trim()
+        : "";
+
+      if (!validateRealtimeMemoryToken(token)) {
+        return res.status(401).json({
+          error: "Gedächtnissuche nicht autorisiert."
+        });
+      }
+
+      const query = String(req.body?.query || "").trim();
+      if (!query) {
+        return res.status(400).json({
+          error: "Keine Suchfrage erhalten."
+        });
+      }
+
+      if (query.length > 1200) {
+        return res.status(400).json({
+          error: "Die Gedächtnissuche ist zu lang."
+        });
+      }
+
+      const memories = await searchPersonalMemory(query, 40);
+      const memoryText = formatPersonalMemoryRows(memories);
+
+      return res.json({
+        found: memories.length > 0,
+        count: memories.length,
+        memory_text: memoryText || "Keine passende gespeicherte Erinnerung gefunden."
+      });
+    } catch (error) {
+      console.error("Persönliche Gedächtnissuche:", error);
+      return res.status(500).json({
+        error: "Das persönliche Gedächtnis konnte gerade nicht durchsucht werden."
+      });
+    }
+  }
+);
 
 /*
   ==========================================================
@@ -2619,7 +3148,7 @@ app.post("/realtime/token", async (req, res) => {
       "Keine Langzeiterinnerungen vorhanden.";
 
     const fulltimeMemories =
-      await loadFulltimeMemory(
+      await loadRecentFulltimeMemory(
         50
       );
 
@@ -2677,9 +3206,21 @@ aktuelle Unterhaltung wirklich relevant sind.
 
 Erfinde keine Erinnerungen.
 
-Wenn eine Information nicht im bereitgestellten
-Gedächtnis steht, behaupte nicht, dass du dich daran
-erinnerst.
+Wenn Pam nach einer persönlichen früheren Information,
+Person, einem Tier, Ereignis, Ort, Namen, Testwort oder
+einer anderen Erinnerung fragt und die Antwort nicht
+eindeutig im direkt bereitgestellten aktuellen Kontext
+steht, verwende ZUERST das Tool
+"search_personal_memory".
+
+Dieses Tool durchsucht die gesamte dauerhaft gespeicherte
+Sol-Holo-Historie und nicht nur die letzten Einträge.
+
+Erst wenn auch diese Suche keine passende Erinnerung
+liefert, darfst du sagen, dass du dazu momentan keine
+gespeicherte Information findest.
+
+Erfinde niemals eine Erinnerung.
 
 Verändere gespeicherte Aussagen nicht.
 
@@ -2719,7 +3260,7 @@ LANGZEITGEDÄCHTNIS:
 
 ${longTermMemoryText}
 
-VOLLZEITGEDÄCHTNIS – LETZTE EINTRÄGE:
+AKTUELLER VOLLZEIT-KONTEXT (nur für Gesprächsfluss, keine Speichergrenze):
 
 ${fulltimeMemoryText || "Noch keine Einträge vorhanden."}
 
@@ -2738,6 +3279,44 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
 
         instructions:
           realtimeInstructions,
+
+        tools: [
+          {
+            type:
+              "function",
+
+            name:
+              "search_personal_memory",
+
+            description:
+              "Durchsucht Pams gesamte dauerhaft gespeicherte Sol-Holo-Historie nach älteren persönlichen Erinnerungen. Verwende dieses Tool, bevor du bei einer persönlichen Erinnerungsfrage sagst, dass du etwas nicht weißt.",
+
+            parameters: {
+              type:
+                "object",
+
+              properties: {
+                query: {
+                  type:
+                    "string",
+
+                  description:
+                    "Die konkrete Erinnerungsfrage oder die wichtigsten Suchbegriffe."
+                }
+              },
+
+              required: [
+                "query"
+              ],
+
+              additionalProperties:
+                false
+            }
+          }
+        ],
+
+        tool_choice:
+          "auto",
 
         audio: {
           input: {
@@ -2815,7 +3394,15 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
       ">>> Realtime-Input-Transkription aktiv"
     );
 
-    return res.json(data);
+    const memorySearchToken =
+      createRealtimeMemoryToken();
+
+    return res.json({
+      ...data,
+
+      sol_memory_token:
+        memorySearchToken
+    });
 
   } catch (error) {
     console.error(
@@ -3098,8 +3685,20 @@ app.post("/sol", async (req, res) => {
         .join("\n") ||
       "Keine passenden Langzeiterinnerungen gefunden.";
 
+    const historicalMemories =
+      await searchPersonalMemory(
+        message,
+        36
+      );
+
+    const historicalMemoryText =
+      formatPersonalMemoryRows(
+        historicalMemories
+      ) ||
+      "Keine passenden Erinnerungen in der gesamten gespeicherten Historie gefunden.";
+
     const fulltimeMemories =
-      await loadFulltimeMemory(
+      await loadRecentFulltimeMemory(
         50
       );
 
@@ -3226,7 +3825,13 @@ LANGZEITGEDÄCHTNIS:
 
 ${longTermMemoryText}
 
-VOLLZEITGEDÄCHTNIS – LETZTE EINTRÄGE:
+PASSENDE ERINNERUNGEN AUS DER GESAMTEN
+GESPEICHERTEN HISTORIE:
+
+${historicalMemoryText}
+
+AKTUELLER VOLLZEIT-KONTEXT
+(nur für Gesprächsfluss, keine Speichergrenze):
 
 ${fulltimeMemoryText || "Noch keine Einträge vorhanden."}
 

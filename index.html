@@ -1918,6 +1918,18 @@ let dc =
 let microphoneStream =
   null;
 
+let realtimeMemoryToken =
+  "";
+
+const handledRealtimeMemoryToolCalls =
+  new Set();
+
+let lastAssistantMemoryTranscript =
+  "";
+
+let lastAssistantMemoryTranscriptAt =
+  0;
+
 
 let lipAudioContext =
   null;
@@ -3585,7 +3597,8 @@ memoryButton.addEventListener(
 
 
 async function sendLiveTranscriptToMemory(
-  transcript
+  transcript,
+  role = "user"
 ){
 
   const cleanTranscript =
@@ -3624,7 +3637,10 @@ async function sendLiveTranscriptToMemory(
             JSON.stringify({
 
               transcript:
-                cleanTranscript
+                cleanTranscript,
+
+              role:
+                role
             })
         }
       );
@@ -3949,7 +3965,18 @@ async function openFilteredMicrophone(){
 
 function stopLiveConversation(){
 
-  stopLipSync();
+  realtimeMemoryToken =
+    "";
+
+  handledRealtimeMemoryToolCalls.clear();
+
+  lastAssistantMemoryTranscript =
+    "";
+
+  lastAssistantMemoryTranscriptAt =
+    0;
+
+stopLipSync();
 
 
   if(
@@ -4016,6 +4043,166 @@ function stopLiveConversation(){
 
   micStatus.textContent =
     "🎙️ Mikrofon bereit.";
+}
+
+
+async function searchRealtimePersonalMemory(
+  query
+){
+
+  const cleanQuery =
+    String(
+      query || ""
+    ).trim();
+
+  if(!cleanQuery){
+    return "Keine Suchfrage erhalten.";
+  }
+
+  if(!realtimeMemoryToken){
+    return "Die Gedächtnissuche ist in dieser Realtime-Sitzung nicht autorisiert.";
+  }
+
+  const response =
+    await fetch(
+      `${BACKEND_URL}/memory/search`,
+      {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "Authorization":`Bearer ${realtimeMemoryToken}`
+        },
+        body:JSON.stringify({
+          query:cleanQuery
+        })
+      }
+    );
+
+  const responseText =
+    await response.text();
+
+  let data = null;
+
+  try{
+    data = JSON.parse(responseText);
+  }catch{
+    throw new Error("Die Gedächtnissuche hat keine gültige Antwort geliefert.");
+  }
+
+  if(!response.ok){
+    throw new Error(
+      data?.error ||
+      "Das persönliche Gedächtnis konnte nicht durchsucht werden."
+    );
+  }
+
+  return String(
+    data?.memory_text ||
+    "Keine passende gespeicherte Erinnerung gefunden."
+  );
+}
+
+function getRealtimeMemoryToolCall(
+  realtimeEvent
+){
+
+  if(
+    realtimeEvent?.type === "response.function_call_arguments.done" &&
+    realtimeEvent?.name === "search_personal_memory"
+  ){
+    return {
+      callId:String(realtimeEvent.call_id || ""),
+      argumentsText:String(realtimeEvent.arguments || "{}")
+    };
+  }
+
+  if(
+    realtimeEvent?.type === "response.output_item.done" &&
+    realtimeEvent?.item?.type === "function_call" &&
+    realtimeEvent?.item?.name === "search_personal_memory"
+  ){
+    return {
+      callId:String(realtimeEvent.item.call_id || ""),
+      argumentsText:String(realtimeEvent.item.arguments || "{}")
+    };
+  }
+
+  return null;
+}
+
+async function handleRealtimeMemoryToolCall(
+  toolCall
+){
+
+  const callId = String(toolCall?.callId || "").trim();
+  if(!callId || handledRealtimeMemoryToolCalls.has(callId)){
+    return;
+  }
+
+  handledRealtimeMemoryToolCalls.add(callId);
+
+  let query = "";
+  try{
+    const parsed = JSON.parse(toolCall.argumentsText || "{}");
+    query = String(parsed?.query || "").trim();
+  }catch(error){
+    console.error("Realtime Memory Tool Argument Fehler:", error);
+  }
+
+  let output;
+  try{
+    output = await searchRealtimePersonalMemory(query);
+  }catch(error){
+    console.error("Realtime Memory Tool Fehler:", error);
+    output = "Die persönliche Gedächtnissuche ist gerade technisch fehlgeschlagen. Erfinde keine Erinnerung.";
+  }
+
+  if(!dc || dc.readyState !== "open"){
+    return;
+  }
+
+  dc.send(
+    JSON.stringify({
+      type:"conversation.item.create",
+      item:{
+        type:"function_call_output",
+        call_id:callId,
+        output:output
+      }
+    })
+  );
+
+  dc.send(
+    JSON.stringify({
+      type:"response.create"
+    })
+  );
+}
+
+function saveRealtimeAssistantTranscript(
+  realtimeEvent
+){
+
+  const transcript = String(realtimeEvent?.transcript || "").trim();
+  if(!transcript){
+    return;
+  }
+
+  const now = Date.now();
+  if(
+    transcript === lastAssistantMemoryTranscript &&
+    now - lastAssistantMemoryTranscriptAt < 3000
+  ){
+    return;
+  }
+
+  lastAssistantMemoryTranscript = transcript;
+  lastAssistantMemoryTranscriptAt = now;
+
+  sendLiveTranscriptToMemory(
+    transcript,
+    "assistant"
+  );
 }
 
 
@@ -4088,6 +4275,12 @@ async function startLiveConversation(){
       String(
         tokenData?.value ||
         tokenData?.client_secret?.value ||
+        ""
+      ).trim();
+
+    realtimeMemoryToken =
+      String(
+        tokenData?.sol_memory_token ||
         ""
       ).trim();
 
@@ -4199,6 +4392,25 @@ async function startLiveConversation(){
             JSON.parse(
               event.data
             );
+
+          const memoryToolCall =
+            getRealtimeMemoryToolCall(
+              realtimeEvent
+            );
+
+          if(memoryToolCall){
+            void handleRealtimeMemoryToolCall(memoryToolCall);
+            return;
+          }
+
+          if(
+            realtimeEvent.type === "response.output_audio_transcript.done" ||
+            realtimeEvent.type === "response.audio_transcript.done"
+          ){
+            saveRealtimeAssistantTranscript(realtimeEvent);
+          }
+
+
 
 
           if(
