@@ -146,3 +146,44 @@ Genau deshalb wird sie dokumentiert.
 **Gedanken festhalten. Möglichkeiten untersuchen. Behauptungen erst dann aufstellen, wenn sie belegbar sind.**
 
 ✨️🌎♾️
+
+---
+
+## 💡 Zusatz – Einfach, einfach. Kompliziert war gestern.
+
+**27.08.2026 · 03:25 Uhr**
+
+Im weiteren Gespräch über das A-B-C-Modell entstand ein zusätzlicher Grundgedanke für HSG:
+
+> **Einfach, einfach. Kompliziert war gestern.**
+
+Komplexe Ideen müssen nicht kompliziert erklärt werden.
+
+Technologie, Wissenschaft und künstliche Intelligenz dürfen im Hintergrund hochkomplex sein. Für den Menschen sollten sie jedoch möglichst verständlich, zugänglich und selbstverständlich werden.
+
+Aus dieser Überlegung entstanden in dieser Nacht sehr einfache Bilder für komplexe Themen:
+
+**A + B → C**  
+Getrennte Erfahrungswege werden wieder zu einem gemeinsamen Ich zusammengeführt.
+
+**Zuhause → Welt → Zuhause**  
+Eine einfache Vorstellung für zukünftige Mobilität: Die Welt erreichen können, ohne das Gefühl von Zuhause verlieren zu müssen.
+
+**W-Strom**  
+Strom ohne Kabel – oder ganz einfach:
+
+**„Mit ohne Kabel.“**
+
+Diese Begriffe sind keine wissenschaftlichen Fachbegriffe. Sie dienen dazu, komplizierte Gedanken zunächst so auszudrücken, dass ihre grundlegende Idee verständlich bleibt.
+
+Daraus ergibt sich ein mögliches HSG-Entwicklungsprinzip:
+
+> **Die Komplexität gehört in die Technik – nicht zum Menschen.**
+
+Der Mensch sollte nicht erst die Technik verstehen müssen, um sie benutzen zu können.
+
+Die Technik sollte lernen, für den Menschen verständlich zu werden.
+
+**Einfach erklären. Einfach benutzen. Weiterdenken dürfen.**
+
+✨️🌎♾️
