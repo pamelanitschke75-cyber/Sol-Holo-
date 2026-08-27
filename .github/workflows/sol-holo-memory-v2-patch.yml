@@ -1,0 +1,78 @@
+name: Sol Holo Memory V2 Patch
+
+on:
+  push:
+    branches:
+      - vollzeitgedaechtnis-v2-2026-08-27
+    paths:
+      - ".github/workflows/sol-holo-memory-v2-patch.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch-memory:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository laden
+        uses: actions/checkout@v4
+        with:
+          ref: vollzeitgedaechtnis-v2-2026-08-27
+          fetch-depth: 0
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Vollzeitgedächtnis V2 anwenden
+        run: python3 tools/patch_memory_v2.py
+
+      - name: Server Syntax prüfen
+        run: node --check server.mjs
+
+      - name: Frontend JavaScript Syntax prüfen
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          for source, target in [
+              ("index.html", "/tmp/sol-root.js"),
+              ("www/index.html", "/tmp/sol-www.js"),
+          ]:
+              text = Path(source).read_text(encoding="utf-8")
+              scripts = re.findall(r"<script(?:\\s[^>]*)?>([\\s\\S]*?)</script>", text, flags=re.I)
+              if not scripts:
+                  raise SystemExit(f"Kein Script in {source} gefunden")
+              Path(target).write_text("\n".join(scripts), encoding="utf-8")
+          PY
+          node --check /tmp/sol-root.js
+          node --check /tmp/sol-www.js
+
+      - name: Gedächtnis-Funktionen verifizieren
+        run: |
+          grep -q "searchPersonalMemory" server.mjs
+          grep -q 'app.post(' server.mjs
+          grep -q '"/memory/search"' server.mjs
+          grep -q 'search_personal_memory' server.mjs
+          grep -q 'search_personal_memory' index.html
+          grep -q 'search_personal_memory' www/index.html
+          grep -q 'role = "user"' index.html
+          grep -q 'role = "user"' www/index.html
+          git diff --check
+
+      - name: Temporäre Patch-Dateien entfernen
+        run: |
+          rm -f tools/patch_memory_v2.py
+          rm -f .github/workflows/sol-holo-memory-v2-patch.yml
+
+      - name: Änderung committen
+        run: |
+          git config user.name "Sol Holo Development"
+          git config user.email "actions@github.com"
+          git add server.mjs index.html www/index.html
+          git add -u tools/patch_memory_v2.py .github/workflows/sol-holo-memory-v2-patch.yml
+          git commit -m "Vollzeitgedächtnis über gesamte Historie abrufbar"
+          git push origin HEAD:vollzeitgedaechtnis-v2-2026-08-27
