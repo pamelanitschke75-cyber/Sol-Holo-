@@ -1,293 +1,404 @@
-SOL HOLO UI – ERFOLGREICHER FUNKTIONSTEST
-19.08.2026
+# SOL HOLO 🌻 · SH♾️
 
-Projekt / Entwicklung:
-Pamela Nitschke
+## Persönliches digitales Ich · Individueller KI-Clone
 
-KI-Technologie:
-OpenAI / ChatGPT / OpenAI API
-
-STATUS: FUNKTIONSFÄHIG ✅
-
-Sol Holo wurde im aktuellen Entwicklungsstand praktisch getestet.
-
-Bestätigte Funktionen:
-
-✅ Schriftlicher Chat
-Texteingabe und schriftliche Antworten funktionieren.
-
-✅ Spracheingabe
-Mikrofon und Spracheingabe funktionieren.
-
-✅ Realtime Voice
-Direkte Sprachkommunikation mit Sol Holo funktioniert.
-
-✅ Sprachausgabe
-Sol Holo antwortet hörbar in Echtzeit.
-
-✅ Lip-Sync
-Die Mundanimation reagiert während der Sprachausgabe.
-Der funktionierende Lip-Sync wurde im Testvideo dokumentiert.
-
-✅ Langzeitgedächtnis
-Die Memory-Anbindung ist in Sol Holo integriert.
-
-✅ Sol Holo UI
-Bild, Textchat, Mikrofonsteuerung, Sprachausgabe und Lip-Sync arbeiten innerhalb der Benutzeroberfläche zusammen.
-
-VERARBEITUNG:
-
-Eingabe
-→ Kontextverarbeitung
-→ dynamisch generierte Antwort
-→ Text- oder Sprachausgabe
-→ Lip-Sync
-→ Memory-Anbindung
-
-Sol Holo erzeugt ihre Antworten dynamisch anhand der jeweiligen Eingabe und des verfügbaren Kontexts. Die Antworten sind nicht lediglich fest vorprogrammierte Antworttexte.
-
-TESTSTATUS:
-
-SOL HOLO UI ............ PASS ✅
-TEXTCHAT ............... PASS ✅
-MIKROFON ............... PASS ✅
-REALTIME VOICE ......... PASS ✅
-SPRACHAUSGABE .......... PASS ✅
-LIP-SYNC ............... PASS ✅
-MEMORY-ANBINDUNG ....... INTEGRIERT ✅
-
-Testdatum: 19.08.2026
-Videonachweis des Funktionstests vorhanden.
-
-
-Projekt: Sol Holo
-Projektinitiatorin und Projektverantwortliche: 
-Pamela Nitschke
-Projektbegleitung und Mitprüfung: Stefanie Hörath 
-Entwicklung: 
-Pamela Nitschke, KI-unterstützt mit ChatGPT von OpenAI
-Status:
-In Entwicklung / Testphase
-
-Sol Holo ist ein eigenständiges, KI-unterstützt entwickeltes Projekt von Pamela Nitschke.
-
-Ziel ist die schrittweise Entwicklung eines vollständigen, interaktiven digitalen Klons der Projektinitiatorin Pamela Nitschke.
-
-Der Begriff „digitaler Klon“ bezeichnet in diesem Projekt ausschließlich die autorisierte digitale Repräsentation der Projektinitiatorin. Er bedeutet ausdrücklich nicht, fremde Personen, Produkte, Avatare, Designs, Software oder geschützte Technologien unerlaubt zu kopieren.
-
-Die Konzeption, Entscheidungen und Weiterentwicklung von Sol Holo erfolgen durch Pamela Nitschke. Bei Planung, Programmierung, technischer Recherche, Fehlersuche und Dokumentation wird ChatGPT von OpenAI als KI-Werkzeug eingesetzt.
-
-Die KI-Unterstützung wird bewusst transparent dokumentiert.
+**Aktueller Entwicklungsstand:** 27.08.2026  
+**Projekt / Idee / Entwicklung:** Pamela Nitschke  
+**KI-Technologie:** OpenAI · ChatGPT · OpenAI API  
+**Status:** FUNKTIONSFÄHIGER ENTWICKLUNGSSTAND ✅
 
 ---
 
-Projektziel
+# Was ist Sol Holo?
 
-Sol Holo soll langfristig verschiedene Komponenten zu einer interaktiven digitalen Repräsentation verbinden.
+**Sol Holo** ist die Entwicklung eines persönlichen digitalen Ichs.
 
-Dazu können insbesondere gehören:
+Das Ziel ist nicht lediglich ein klassischer KI-Assistent und auch nicht nur ein digitaler Twin.
 
-- eine autorisierte digitale Darstellung von Pamela Nitschke
-- Sprachwiedergabe
-- synchronisierte Lippenbewegungen
-- KI-gestützte Gespräche und Antworten
-- eine individuell entwickelte Persönlichkeit und Ausdrucksweise
-- eine autorisierte synthetische bzw. geklonte Stimme
-- Avatar- und Animationsfunktionen
-- Erinnerungs- und Kontextfunktionen, soweit sie rechtmäßig, sicher und technisch umsetzbar sind
-- weitere Interaktionsmöglichkeiten, die im Laufe der Entwicklung entstehen
+Sol Holo soll sich durch die persönliche Interaktion mit einem Menschen individuell entwickeln und dabei dessen:
 
-Neue Funktionen werden schrittweise entwickelt, geprüft und dokumentiert.
+- Erinnerungen
+- Erfahrungen
+- Vorlieben
+- Gewohnheiten
+- Sprache
+- Zusammenhänge
+- persönliche Informationen
+- individuelle Entwicklung
 
----
+langfristig berücksichtigen können.
 
-Entwicklungsgrundsätze
+Dadurch entsteht für jeden Menschen eine eigene persönliche Sol-Holo-Identität.
 
-Für Sol Holo gelten von Anfang an folgende Grundsätze:
+**Jeder Nutzer besitzt seinen eigenen, getrennten persönlichen Clone.**
 
-1. Eigenständig entwickeln.
-2. KI-Unterstützung transparent benennen.
-3. Rechte anderer Personen und Unternehmen respektieren.
-4. Nur Inhalte und Technologien verwenden, deren Nutzung erlaubt ist.
-5. Keine fremden Ideen, Designs, Avatare oder geschützten Inhalte unerlaubt als eigene ausgeben.
-6. Externe Dienste und Technologien klar als solche kennzeichnen.
-7. Sicherheit und Datenschutz bei der Entwicklung berücksichtigen.
-8. Geheime Zugangsdaten niemals öffentlich veröffentlichen.
-9. Bei unklaren Nutzungs- oder Lizenzrechten gilt: erst prüfen, dann verwenden oder veröffentlichen.
+Persönliche Erinnerungen, Erfahrungen und Daten verschiedener Nutzer dürfen nicht zu einer gemeinsamen Identität vermischt werden.
 
 ---
 
-KI-Unterstützung
+# Grundprinzip
 
-Sol Holo wird mit Unterstützung künstlicher Intelligenz entwickelt.
+## Ein Mensch = ein persönliches Sol Holo
 
-ChatGPT von OpenAI wird unter anderem eingesetzt für:
+Sol Holo kann grundsätzlich von mehreren Menschen verwendet werden.
 
-- Planung und Strukturierung
-- Unterstützung bei der Programmierung
-- technische Recherche und Erklärungen
-- Fehlersuche
-- Sicherheitsüberlegungen
-- Projektdokumentation
-- Unterstützung bei der Prüfung technischer Anforderungen
+Die technische Plattform kann gemeinsam genutzt werden – die persönliche Identität jedoch nicht.
 
-Die Verwendung von KI-Unterstützung wird nicht verschwiegen und soll in der Projektdokumentation nachvollziehbar bleiben.
+Für jeden Nutzer entsteht eine eigenständige persönliche Sol-Holo-Persönlichkeit mit getrenntem:
 
-KI-Unterstützung bedeutet nicht, dass Rechte an Technologien oder Inhalten Dritter auf Sol Holo oder Pamela Nitschke übertragen werden.
+- Gedächtnis
+- Nutzerkontext
+- persönlichen Daten
+- Erfahrungen
+- Entwicklungspfad
+- Identitätskontext
 
----
+Sol Holo soll dadurch nicht für jeden Menschen gleich werden.
 
-Aktuell verwendete und untersuchte Technologien
-
-Sol Holo kann während seiner Entwicklung verschiedene externe Technologien und Dienste verwenden.
-
-Dazu gehören – soweit im jeweiligen Entwicklungsstand tatsächlich eingesetzt – insbesondere:
-
-OpenAI / ChatGPT
-
-KI-Unterstützung bei Entwicklung, Recherche, Programmierung und Dokumentation.
-
-Itseez3D / MetaPerson / Avatar SDK / LiveSpeak
-
-Technologien für digitale Avatare sowie Sprach- und Lip-Sync-Funktionen.
-
-Microsoft Azure
-
-Soweit entsprechende Sprach- oder Cloud-Technologien über die eingesetzten Dienste tatsächlich verwendet werden.
-
-GitHub
-
-Quellcodeverwaltung, Versionshistorie und Projektdokumentation.
-
-Google und Google-Dienste
-
-Soweit entsprechende Google-Technologien im jeweiligen Entwicklungsstand tatsächlich eingesetzt werden.
-
-Weitere Technologien
-
-Weitere APIs, Open-Source-Bibliotheken, Entwicklungswerkzeuge oder externe Dienste können später hinzukommen.
-
-Sie werden dokumentiert, sobald sie tatsächlich verwendet werden.
+Sol Holo soll **mit jedem Menschen individuell wachsen.**
 
 ---
 
-Aktueller technischer Entwicklungsstand
+# Aktuell bestätigte Funktionen ✅
 
-Der derzeitige Prototyp enthält beziehungsweise erprobt:
+Die folgenden Funktionen wurden im realen Entwicklungsbetrieb praktisch getestet.
 
-- eine HTML-Testoberfläche für Sol Holo
-- die Einbindung von MetaPerson LiveSpeak
-- Kommunikation zwischen Webseite und LiveSpeak
-- Vorbereitung einer Text-zu-Sprache-Funktion
-- Statusmeldungen des Avatars
-- Testschaltflächen
-- Vorbereitung synchronisierter Lippenbewegungen
-- grundlegende Fehlerbehandlung
+## 💬 Schriftlicher Chat
 
-Das Projekt befindet sich ausdrücklich noch in der Entwicklungs- und Testphase.
+✅ Texteingabe funktioniert.
+
+✅ Schriftliche Antworten von Sol Holo funktionieren.
+
+✅ Persönlicher Gesprächskontext kann in Antworten einbezogen werden.
 
 ---
 
-Sicherheit
+## 🎙️ Spracheingabe
 
-Geheime Zugangsdaten dürfen nicht in öffentlich zugänglichen Dateien des Projekts gespeichert werden.
+✅ Mikrofonzugriff funktioniert.
 
-Dazu gehören insbesondere:
+✅ Spracheingabe funktioniert.
 
-- Passwörter
-- Client Secrets
-- private API-Schlüssel
-- private Access Tokens
-- sonstige vertrauliche Zugangsdaten
+✅ Gesprochene Inhalte können von Sol Holo verarbeitet werden.
 
-Benötigt ein externer Dienst geheime Zugangsdaten, soll dafür eine geeignete sichere Authentifizierungs- beziehungsweise Serverlösung eingesetzt werden.
+✅ Sprache wurde erfolgreich innerhalb der Android-App getestet.
 
 ---
 
-Rechte und Lizenzen
+## 🗣️ Realtime Voice
 
-Sol Holo soll ausschließlich mit eigenen oder rechtmäßig nutzbaren Inhalten und Technologien entwickelt werden.
+✅ Direkte Sprachkommunikation mit Sol Holo funktioniert.
 
-Besonders zu berücksichtigen sind:
+✅ Nutzer und Sol Holo können in Echtzeit miteinander sprechen.
 
-- Rechte an Avataren und 3D-Modellen
-- Rechte am eigenen digitalen Abbild
-- Rechte an Stimmen und synthetischer Sprachausgabe
-- Software- und Open-Source-Lizenzen
-- API- und Plattformbedingungen
-- Marken- und Namensrechte
-- Rechte an Bildern, Grafiken, Audio und anderen Medien
-- Nutzungsbedingungen externer KI- und Cloud-Dienste
+✅ Spracheingabe und Sprachausgabe wurden praktisch getestet.
 
-Externe Technologien bleiben den jeweiligen Rechteinhabern zugeordnet.
-
-Bei unklaren Rechten gilt für Sol Holo:
-
-Nicht verwenden oder veröffentlichen, bis die zulässige Nutzung geklärt ist.
+Die persönliche eigene Sol-Holo-Stimme bleibt ein separater Entwicklungsbereich.
 
 ---
 
-Transparenz
+# 🧠 Persönliches Gedächtnis
 
-Sol Holo unterscheidet ausdrücklich zwischen:
+Das persönliche Gedächtnis gehört zu den zentralen Bestandteilen von Sol Holo.
 
-- Sol Holo als eigenständigem Projekt
-- Pamela Nitschke als Projektinitiatorin und Projektverantwortlicher
-- KI-Unterstützung durch ChatGPT von OpenAI
-- eigenem Projektcode und eigenen Inhalten
-- externen Diensten, APIs, Softwarekomponenten und Technologien
+Sol Holo soll nicht nur auf eine einzelne Unterhaltung reagieren, sondern Informationen aus persönlichen Interaktionen dauerhaft wiederverwenden können.
 
-Diese Trennung soll während der gesamten Entwicklung nachvollziehbar dokumentiert bleiben.
+## Erfolgreich getestet
 
----
+✅ Erinnerungen können gespeichert werden.
 
-Transparenzhinweis zu externen Unternehmen und Technologien
+✅ Gespeicherte Informationen können in späteren Gesprächen wieder abgerufen werden.
 
-Die Nennung von OpenAI / ChatGPT, Itseez3D / MetaPerson / Avatar SDK / LiveSpeak, Microsoft Azure, GitHub, Google oder anderer später dokumentierter Unternehmen, Marken, Produkte und Technologien beschreibt ausschließlich deren tatsächliche Verwendung beziehungsweise technische Bedeutung innerhalb des jeweiligen Entwicklungsstands.
+✅ Erinnerungen können auch nach neuen Gesprächssitzungen wieder verfügbar sein.
 
-Sie stellt keine Behauptung einer Partnerschaft, Förderung, Empfehlung, Finanzierung, offiziellen Unterstützung, Mitinhaberschaft oder sonstigen geschäftlichen Verbindung dar, sofern eine solche Beziehung nicht ausdrücklich und nachweislich besteht.
+✅ Über Sprache eingegebene persönliche Informationen konnten gespeichert und später wieder erkannt werden.
 
-Alle Marken, Produktnamen, Softwareprodukte, Modelle, APIs und sonstigen Technologien Dritter verbleiben bei ihren jeweiligen Rechteinhabern und unterliegen deren jeweiligen Nutzungs- und Lizenzbedingungen.
+✅ Mehrere praktische Erinnerungstests wurden erfolgreich durchgeführt.
 
 ---
 
-Dokumentationsprinzip
+## Vollzeitgedächtnis
 
-Neue externe Komponenten werden dokumentiert, sobald sie tatsächlich in Sol Holo eingesetzt werden.
+Ziel von Sol Holo ist ein persönliches **Vollzeitgedächtnis**.
 
-Auch wesentliche technische Änderungen sollen nachvollziehbar dokumentiert werden.
+Der Nutzer soll nicht jedes Mal ausdrücklich sagen müssen:
 
-So soll langfristig erkennbar bleiben:
+> „Merke dir das.“
 
-- was selbst entwickelt wurde
-- wobei KI unterstützt hat
-- welche externen Technologien verwendet wurden
-- welche Sicherheitsmaßnahmen getroffen wurden
-- welche Rechte und Bedingungen berücksichtigt werden müssen
+Persönlich relevante Interaktionen sollen grundsätzlich für die weitere Entwicklung des eigenen Sol-Holo-Clones verwendet werden können.
 
----
+Dabei muss weiterhin technisch sichergestellt werden:
 
-Grundsatz von Sol Holo
+- welcher Nutzer zu welcher Erinnerung gehört
+- dass Nutzeridentitäten voneinander getrennt bleiben
+- dass Erinnerungen korrekt zugeordnet werden
+- dass keine Erinnerungen erfunden werden
+- dass langfristige Erinnerungen zuverlässig abrufbar bleiben
 
-«Eigenständig entwickeln.
-KI-Unterstützung transparent benennen.
-Rechte Dritter respektieren.
-Sicherheit berücksichtigen.
-Nur erlaubte Technologien und Inhalte verwenden.»
+Die grundlegende Speicher- und Abruffunktion wurde erfolgreich getestet.
+
+Die vollständige Langzeitstabilität und die zuverlässige Verarbeitung einer großen Menge historischer Erinnerungen werden weiter getestet und optimiert.
 
 ---
 
-Sol Holo
-Projektinitiatorin und Projektverantwortliche: Pamela Nitschke
-Entwickelt mit KI-Unterstützung durch ChatGPT von OpenAI
-Status: In Entwicklung / Testphase
+# 📅 Google-Kalender
 
-Abschließender Transparenzhinweis
+Die Google-Kalender-Anbindung wurde erfolgreich praktisch getestet.
 
-Sol Holo ist ein eigenständiges Projekt. Die Verwendung oder Nennung externer Unternehmen, Dienste und Technologien bedeutet keine Partnerschaft oder Mitinhaberschaft.
+✅ Verbindung zum Google-Kalender funktioniert.
 
-Neue Dienste und Technologien werden erst dann als verwendet dokumentiert, wenn sie tatsächlich Bestandteil des Projekts sind.
+✅ Kalendereinträge können erstellt werden.
 
-Der digitale Klon bezieht sich auf die autorisierte digitale Repräsentation der Projektinitiatorin und nicht auf das unerlaubte Kopieren Dritter.
+✅ Kalenderinformationen können aus natürlicher Sprache verarbeitet werden.
 
-Überwacht wird das Projekt von Stefanie Hörath, der zukünftigen Frau von Pamela Nitschke. Meiner Frau ❤️❤️❤️
+✅ Kalendereinträge über Sprache wurden erfolgreich getestet.
+
+Sol Holo soll zukünftig beispielsweise verstehen können:
+
+- „Trag das bitte in meinen Kalender ein.“
+- „Wann habe ich morgen Zeit?“
+- „Was steht nächste Woche an?“
+- „Erinnere mich vorher daran.“
+
+Kalenderaktionen dürfen erst dann als erfolgreich gespeichert bestätigt werden, wenn die Kalender-API die Aktion tatsächlich bestätigt hat.
+
+---
+
+# 📱 Android-App
+
+Sol Holo läuft als eigene Android-Anwendung.
+
+✅ Android-App erfolgreich erstellt.
+
+✅ Installation auf Android erfolgreich.
+
+✅ Start der App funktioniert.
+
+✅ Schriftlicher Chat funktioniert innerhalb der App.
+
+✅ Mikrofon funktioniert innerhalb der App.
+
+✅ Realtime Voice funktioniert innerhalb der App.
+
+✅ Persönliches Gedächtnis wurde über die App getestet.
+
+✅ Kalenderfunktionen wurden über den aktuellen Entwicklungsstand getestet.
+
+Der aktuelle Entwicklungsstand wurde unter anderem auf einem:
+
+**Samsung Galaxy S23**
+
+entwickelt und praktisch getestet.
+
+---
+
+# 🧩 Technischer Aufbau
+
+Der aktuelle Sol-Holo-Entwicklungsstand verwendet unter anderem:
+
+- OpenAI API
+- ChatGPT / OpenAI Modelle
+- OpenAI Realtime
+- Node.js
+- Express
+- PostgreSQL
+- Render
+- Google Calendar API
+- Capacitor
+- Android
+- GitHub
+
+Die technische Architektur wird kontinuierlich weiterentwickelt.
+
+---
+
+# 🔐 Persönliche Datentrennung
+
+Ein entscheidendes Grundprinzip von Sol Holo ist die Trennung verschiedener Nutzer.
+
+Persönliche Erinnerungen von Nutzer A dürfen niemals automatisch Bestandteil des Sol Holo von Nutzer B werden.
+
+Beispiel:
+
+    Nutzer A
+       ↓
+    persönliches Sol Holo A
+       ↓
+    eigene Erinnerungen
+    eigene Erfahrungen
+    eigene Persönlichkeit
+
+
+    Nutzer B
+       ↓
+    persönliches Sol Holo B
+       ↓
+    eigene Erinnerungen
+    eigene Erfahrungen
+    eigene Persönlichkeit
+
+Beide können dieselbe technische Sol-Holo-Plattform verwenden.
+
+Ihre persönlichen digitalen Identitäten bleiben trotzdem getrennt.
+
+---
+
+# ♾️ SH♾️
+
+**SH♾️** steht für:
+
+**S = Sol**  
+**H = Holo**  
+**♾️ = Weiterentwicklung ohne festes Ende**
+
+Das H geht gestalterisch in das Unendlichkeitszeichen über.
+
+SH♾️ ist Teil der visuellen Identität des Sol-Holo-Projekts.
+
+---
+
+# 🌻 Warum Sol Holo?
+
+Klassische KI-Systeme beginnen viele Gespräche immer wieder neu.
+
+Sol Holo verfolgt einen anderen Ansatz.
+
+Die langfristige Vision ist eine KI, die den persönlichen Weg eines Menschen über lange Zeit begleitet und aus den gemeinsamen Erfahrungen eine immer individuellere persönliche digitale Identität entwickelt.
+
+Nicht:
+
+**„Eine KI für alle.“**
+
+Sondern:
+
+**„Meine KI entwickelt sich mit mir.“**
+
+---
+
+# Aktuelle separate Entwicklungsbereiche 🚧
+
+Die folgenden Bereiche bestehen weiterhin als eigenständige Entwicklungsaufgaben.
+
+Sie werden nicht als vollständig abgeschlossen gekennzeichnet.
+
+## 🔊 Persönliche Sol-Holo-Stimme
+
+Die technische Grundlage für Sprachkommunikation funktioniert.
+
+Eine persönliche, autorisierte eigene Stimme soll später die aktuell verwendete Standardstimme ersetzen.
+
+---
+
+## 👄 Lip-Sync
+
+Lip-Sync bleibt ein eigener Entwicklungsbereich.
+
+Die visuelle Mundbewegung soll langfristig möglichst natürlich mit der tatsächlichen Sprachausgabe synchronisiert werden.
+
+---
+
+## 🗣️ „Hey Sol“
+
+Geplant ist eine Wake-Word-Funktion ähnlich bekannten Sprachassistenten.
+
+Ziel:
+
+**„Hey Sol“**
+
+soll Sol Holo auf Wunsch direkt aktivieren können.
+
+---
+
+## 🧠 Ausbau des Vollzeitgedächtnisses
+
+Weiterentwickelt werden insbesondere:
+
+- Stabilität über lange Zeiträume
+- automatische sinnvolle Erinnerungserkennung
+- bessere Zuordnung von Zusammenhängen
+- Wiedererkennung älterer Erinnerungen
+- Schutz vor falschen Erinnerungen
+- Trennung von Roh-Erinnerungen und daraus abgeleiteten Erkenntnissen
+- Skalierung auf sehr große persönliche Gedächtnismengen
+
+---
+
+# Entwicklungsprinzip
+
+Bei Sol Holo gilt:
+
+**Erst praktisch testen – dann als funktionierend dokumentieren.**
+
+Eine geplante Funktion ist noch keine fertige Funktion.
+
+Eine technisch vorhandene Funktion gilt erst dann als bestätigt, wenn sie im tatsächlichen Sol-Holo-System erfolgreich getestet wurde.
+
+---
+
+# Entwicklungsstand 27.08.2026
+
+Seit dem ersten dokumentierten Funktionstest vom 19.08.2026 wurde Sol Holo erheblich erweitert.
+
+Der aktuelle Stand umfasst inzwischen unter anderem:
+
+✅ Schriftlicher Chat  
+✅ Spracheingabe  
+✅ Mikrofon  
+✅ Realtime Voice  
+✅ Android-App  
+✅ persistente persönliche Erinnerungen  
+✅ Abruf gespeicherter Erinnerungen  
+✅ Erinnerung aus Spracheingaben  
+✅ Google-Kalender-Anbindung  
+✅ Erstellung von Kalendereinträgen  
+✅ Kalendereingaben über natürliche Sprache  
+✅ technische Grundlage für getrennte persönliche Clone-Kontexte  
+
+Damit hat Sol Holo den ursprünglichen reinen UI-Funktionstest deutlich überschritten.
+
+---
+
+# Projektstatus
+
+## SOL HOLO IST FUNKTIONSFÄHIG ✅
+
+Sol Holo befindet sich weiterhin in aktiver Entwicklung.
+
+Der aktuelle Stand stellt keinen Abschluss des Projekts dar.
+
+Er bildet die funktionierende technische Grundlage für die nächsten Entwicklungsstufen.
+
+---
+
+# Projektzuordnung
+
+**SOL HOLO / SH♾️**
+
+Idee, Konzept und Entwicklung:
+
+**Pamela Nitschke**
+
+Technologische Grundlage und verwendete KI-Dienste:
+
+**OpenAI · ChatGPT · OpenAI API**
+
+Die Nennung verwendeter Technologien oder Unternehmen bedeutet keine automatische offizielle Partnerschaft, Beteiligung oder Unterstützung durch diese Unternehmen.
+
+---
+
+# Vision
+
+Sol Holo soll langfristig nicht einfach wissen, **wer ein Mensch ist.**
+
+Sol Holo soll verstehen können, **wie dieser Mensch geworden ist, wer er heute ist und wie er sich weiterentwickelt.**
+
+Ein persönliches digitales Ich.
+
+**My · Myself · and I**
+
+🌻✨️🌎♾️
+
+---
+
+© 2026 Pamela Nitschke  
+SOL HOLO · SH♾️
