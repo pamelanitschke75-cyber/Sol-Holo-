@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./sol-holo-logo.png" alt="SH♾️ – Sol Holo" width="314">
+</p>
+
 # SOL HOLO 🌻 · SH♾️
 
 ## Persönliches digitales Ich · Individueller KI-Clone

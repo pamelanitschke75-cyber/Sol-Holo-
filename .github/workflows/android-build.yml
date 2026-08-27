@@ -7,6 +7,12 @@ on:
       - main
     paths:
       - ".github/workflows/android-build.yml"
+      - "assets/logo.png"
+      - "www/icon-192.png"
+      - "www/icon-512.png"
+      - "www/manifest.json"
+      - "www/index.html"
+      - "package.json"
 
 jobs:
   build-android:
@@ -32,6 +38,16 @@ jobs:
 
       - name: Android-Projekt erzeugen
         run: npx cap add android
+
+      - name: SH♾️-App-Symbol erzeugen
+        run: |
+          npx @capacitor/assets generate \
+            --android \
+            --assetPath assets \
+            --iconBackgroundColor "#020714" \
+            --iconBackgroundColorDark "#020714" \
+            --splashBackgroundColor "#020714" \
+            --splashBackgroundColorDark "#020714"
 
       - name: Sol Holo Web-App nach Android synchronisieren
         run: npx cap sync android

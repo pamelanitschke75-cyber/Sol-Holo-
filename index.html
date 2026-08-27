@@ -7,6 +7,8 @@
 <title>Sol Holo</title>
 
 <link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png">
 <meta name="theme-color" content="#05030b">
 
 <style>
@@ -198,6 +200,34 @@ h1{
   text-shadow:
     0 0 10px rgba(170,77,255,.40),
     0 0 28px rgba(117,48,255,.20);
+}
+
+.brandLogo{
+  display:block;
+  height:auto;
+  object-fit:contain;
+
+  filter:
+    drop-shadow(0 0 10px rgba(125,91,255,.42))
+    drop-shadow(0 0 20px rgba(57,209,255,.18));
+}
+
+.brandLogo--header{
+  width:134px;
+  max-width:100%;
+  margin:-11px auto -7px;
+}
+
+.brandLogo--voice{
+  width:126px;
+  max-width:100%;
+  margin:0 auto;
+}
+
+.brandLogo--drawer{
+  width:176px;
+  max-width:100%;
+  margin:0 0 12px;
 }
 
 #subtitle{
@@ -1383,7 +1413,11 @@ HANDY
 </button>
 
 <h1>
-Sol Holo 🌻
+<img
+  class="brandLogo brandLogo--header"
+  src="/sol-holo-logo.png"
+  alt="SH♾️ – Sol Holo"
+>
 </h1>
 
 <div id="subtitle">
@@ -1515,7 +1549,11 @@ Ich bin da. Du kannst mir schreiben, Bilder zeigen oder mit mir sprechen. 🌻
 <div id="voiceModeTitle">
 
 <strong>
-Sol Holo 🌻
+<img
+  class="brandLogo brandLogo--voice"
+  src="/sol-holo-logo.png"
+  alt="SH♾️ – Sol Holo"
+>
 </strong>
 
 <span>
@@ -1695,7 +1733,11 @@ Mehr
 <aside id="drawer">
 
 <h2>
-Sol Holo 🌻
+<img
+  class="brandLogo brandLogo--drawer"
+  src="/sol-holo-logo.png"
+  alt="SH♾️ – Sol Holo"
+>
 </h2>
 
 <button

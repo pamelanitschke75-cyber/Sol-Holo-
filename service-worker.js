@@ -1,9 +1,12 @@
-const CACHE_NAME = "sol-holo-v1";
+const CACHE_NAME = "sol-holo-v2-sh-logo";
 
 const APP_FILES = [
   "/",
   "/index.html",
-  "/manifest.json"
+  "/manifest.json",
+  "/sol-holo-logo.png",
+  "/icon-192.png",
+  "/icon-512.png"
 ];
 
 self.addEventListener("install", (event) => {
