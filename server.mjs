@@ -1882,7 +1882,7 @@ consentButton.addEventListener(
         "status success";
 
       consentStatus.textContent =
-        "✅ Consent erstellt.\\n\\nConsent-ID:\\n" +
+        "✅ Consent erstellt.\n\nConsent-ID:\n" +
         data.id;
 
     } catch(error) {
@@ -1994,9 +1994,9 @@ voiceButton.addEventListener(
         "status success";
 
       voiceStatus.textContent =
-        "✅ Eigene Stimme erstellt!\\n\\nVOICE-ID:\\n" +
+        "✅ Eigene Stimme erstellt!\n\nVOICE-ID:\n" +
         data.id +
-        "\\n\\nDiese ID kommt anschließend als SOL_HOLO_VOICE_ID nach Render.";
+        "\n\nDiese ID kommt anschließend als SOL_HOLO_VOICE_ID nach Render.";
 
     } catch(error) {
       voiceStatus.className =
@@ -2731,19 +2731,129 @@ async function loadRelevantLongTermMemoryStrict(
   return fallback.rows;
 }
 
+/*
+  Zusätzliche breite Suche mit einzelnen bedeutenden Suchbegriffen.
+  Sie wird IMMER zusätzlich zur Volltextsuche ausgeführt. Dadurch kann
+  ein enger Volltexttreffer nicht mehr verhindern, dass eine ältere,
+  anders formulierte persönliche Erinnerung gefunden wird.
+*/
+async function loadBroadPersonalMemoryMatches(
+  message,
+  limit = 36
+) {
+  const terms =
+    extractMemorySearchTerms(
+      message
+    );
+
+  if (terms.length === 0) {
+    return [];
+  }
+
+  const safeLimit =
+    Math.min(
+      80,
+      Math.max(
+        1,
+        Number(limit) || 36
+      )
+    );
+
+  const patterns =
+    terms.map(
+      (term) => `%${term}%`
+    );
+
+  const [fulltime, longterm, legacy] =
+    await Promise.all([
+      db.query(
+        `
+          SELECT
+            id,
+            role,
+            content,
+            created_at,
+            'fulltime-broad' AS source,
+            0::real AS relevance
+          FROM sol_fulltime_memory
+          WHERE clone_id = $1
+            AND LOWER(content) LIKE ANY($2::text[])
+          ORDER BY
+            CASE WHEN role = 'user' THEN 0 ELSE 1 END,
+            id DESC
+          LIMIT $3
+        `,
+        [
+          CURRENT_CLONE_ID,
+          patterns,
+          safeLimit
+        ]
+      ),
+
+      db.query(
+        `
+          SELECT
+            id,
+            'memory' AS role,
+            content,
+            created_at,
+            'longterm-broad' AS source,
+            0::real AS relevance
+          FROM sol_long_term_memory
+          WHERE LOWER(content) LIKE ANY($1::text[])
+          ORDER BY id DESC
+          LIMIT $2
+        `,
+        [
+          patterns,
+          safeLimit
+        ]
+      ),
+
+      db.query(
+        `
+          SELECT
+            id,
+            role,
+            content,
+            created_at,
+            'legacy-broad' AS source,
+            0::real AS relevance
+          FROM sol_memory
+          WHERE LOWER(content) LIKE ANY($1::text[])
+          ORDER BY
+            CASE WHEN role = 'user' THEN 0 ELSE 1 END,
+            id DESC
+          LIMIT $2
+        `,
+        [
+          patterns,
+          safeLimit
+        ]
+      )
+    ]);
+
+  return [
+    ...fulltime.rows,
+    ...longterm.rows,
+    ...legacy.rows
+  ];
+}
+
 async function searchPersonalMemory(
   message,
   limit = 36
 ) {
   const safeLimit = Math.min(100, Math.max(1, Number(limit) || 36));
 
-  const [fulltime, longterm, legacy] = await Promise.all([
+  const [fulltime, longterm, legacy, broad] = await Promise.all([
     loadRelevantFulltimeMemory(message, safeLimit),
     loadRelevantLongTermMemoryStrict(message, Math.min(safeLimit, 30)),
-    loadRelevantLegacyMemory(message, Math.min(safeLimit, 30))
+    loadRelevantLegacyMemory(message, Math.min(safeLimit, 30)),
+    loadBroadPersonalMemoryMatches(message, safeLimit)
   ]);
 
-  const combined = [...fulltime, ...longterm, ...legacy];
+  const combined = [...fulltime, ...longterm, ...legacy, ...broad];
 
   combined.sort((a, b) => {
     const aUser = a.role === "user" ? 1 : 0;
@@ -2760,12 +2870,21 @@ async function searchPersonalMemory(
     return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
   });
 
+  const normalizedQuestion =
+    String(message || "")
+      .trim()
+      .toLocaleLowerCase("de-DE");
+
   const seen = new Set();
   const unique = [];
 
   for (const row of combined) {
     const key = String(row.content || "").trim().toLocaleLowerCase("de-DE");
-    if (!key || seen.has(key)) {
+    if (
+      !key ||
+      key === normalizedQuestion ||
+      seen.has(key)
+    ) {
       continue;
     }
 
@@ -3475,11 +3594,6 @@ app.post("/sol", async (req, res) => {
       });
     }
 
-    await saveFulltimeMemory(
-      "user",
-      originalMessage
-    );
-
     const calendarResult =
       await handleCalendarWriteRequest(
         message
@@ -3488,6 +3602,11 @@ app.post("/sol", async (req, res) => {
     if (
       calendarResult?.handled
     ) {
+      await saveFulltimeMemory(
+        "user",
+        originalMessage
+      );
+
       await saveMemory(
         "user",
         message
@@ -3543,6 +3662,11 @@ app.post("/sol", async (req, res) => {
       );
 
     if (rememberContent) {
+      await saveFulltimeMemory(
+        "user",
+        originalMessage
+      );
+
       await saveMemory(
         "user",
         message
@@ -3578,6 +3702,11 @@ app.post("/sol", async (req, res) => {
       );
 
     if (forgetContent) {
+      await saveFulltimeMemory(
+        "user",
+        originalMessage
+      );
+
       await saveMemory(
         "user",
         message
@@ -3613,6 +3742,11 @@ app.post("/sol", async (req, res) => {
         message
       )
     ) {
+      await saveFulltimeMemory(
+        "user",
+        originalMessage
+      );
+
       await saveMemory(
         "user",
         message
@@ -3656,6 +3790,12 @@ app.post("/sol", async (req, res) => {
       });
     }
 
+    /*
+      Für normale Unterhaltungen wird die alte Historie ZUERST
+      durchsucht. Erst danach wird die aktuelle Nachricht gespeichert.
+      So kann die gerade gestellte Frage nicht ihre eigene Suche
+      überdecken.
+    */
     const memories =
       await loadRecentMemory();
 
@@ -3713,6 +3853,11 @@ app.post("/sol", async (req, res) => {
           return `${speaker}: ${memory.content}`;
         })
         .join("\n");
+
+    await saveFulltimeMemory(
+      "user",
+      originalMessage
+    );
 
     await saveMemory(
       "user",
@@ -3805,6 +3950,12 @@ dass sie eine dauerhafte Persönlichkeitseigenschaft ist.
 
 Wenn eine Information nicht im Gedächtnis steht,
 behaupte nicht, dass du dich daran erinnerst.
+
+Wenn in den passenden historischen Erinnerungen eine
+Aussage von Pam zu einer persönlichen Person, einem Tier,
+einem Ereignis, Ort oder Namen vorhanden ist, hat diese
+Aussage von Pam Vorrang vor früheren Antworten von Sol
+und vor allgemeinem Weltwissen.
 
 WICHTIG ZU GOOGLE CALENDAR:
 
