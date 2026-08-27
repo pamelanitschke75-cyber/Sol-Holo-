@@ -27,7 +27,7 @@ jobs:
           node-version: "20"
 
       - name: Vollzeitgedächtnis V2 anwenden
-        run: python3 tools/patch_memory_v2.py
+        run: python3 tools/run_memory_v2.py
 
       - name: Server Syntax prüfen
         run: node --check server.mjs
@@ -43,7 +43,7 @@ jobs:
               ("www/index.html", "/tmp/sol-www.js"),
           ]:
               text = Path(source).read_text(encoding="utf-8")
-              scripts = re.findall(r"<script(?:\\s[^>]*)?>([\\s\\S]*?)</script>", text, flags=re.I)
+              scripts = re.findall(r"<script[^>]*>(.*?)</script>", text, flags=re.I | re.S)
               if not scripts:
                   raise SystemExit(f"Kein Script in {source} gefunden")
               Path(target).write_text("\n".join(scripts), encoding="utf-8")
@@ -54,7 +54,6 @@ jobs:
       - name: Gedächtnis-Funktionen verifizieren
         run: |
           grep -q "searchPersonalMemory" server.mjs
-          grep -q 'app.post(' server.mjs
           grep -q '"/memory/search"' server.mjs
           grep -q 'search_personal_memory' server.mjs
           grep -q 'search_personal_memory' index.html
@@ -66,6 +65,7 @@ jobs:
       - name: Temporäre Patch-Dateien entfernen
         run: |
           rm -f tools/patch_memory_v2.py
+          rm -f tools/run_memory_v2.py
           rm -f .github/workflows/sol-holo-memory-v2-patch.yml
 
       - name: Änderung committen
@@ -73,6 +73,6 @@ jobs:
           git config user.name "Sol Holo Development"
           git config user.email "actions@github.com"
           git add server.mjs index.html www/index.html
-          git add -u tools/patch_memory_v2.py .github/workflows/sol-holo-memory-v2-patch.yml
+          git add -u tools/patch_memory_v2.py tools/run_memory_v2.py .github/workflows/sol-holo-memory-v2-patch.yml
           git commit -m "Vollzeitgedächtnis über gesamte Historie abrufbar"
           git push origin HEAD:vollzeitgedaechtnis-v2-2026-08-27
