@@ -103,7 +103,7 @@ Antwort:
 
 ## Erfolgreicher aktueller Persistenz-Test
 
-Pam hatte Sol Holo am selben Tag erzählt, dass sie mit Steffi bei Anna Lena war und der Zeitpunkt 13 Uhr war.
+Pam hatte Sol Holo am selben Tag erzählt, dass sie mit Steffi bei A. L. war und der Zeitpunkt 13 Uhr war.
 
 Nach Neustart der App wurde gefragt:
 
@@ -111,7 +111,7 @@ Nach Neustart der App wurde gefragt:
 
 Sol Holo erinnerte sich korrekt an:
 
-> bei Anna Lena
+> bei A. L.
 
 **Ergebnis:** neu gespeicherte Erinnerung bleibt nach Neustart abrufbar ✅
 
@@ -127,9 +127,9 @@ Gesprochene Frage:
 
 Sol Holo antwortete sinngemäß:
 
-> Du hattest mir erzählt, dass du mit Steffi bei Anna Lena warst.
+> Du hattest mir erzählt, dass du mit Steffi bei A. L. warst.
 
-Der Name **Anna Lena** wurde in der gesprochenen Frage nicht genannt und musste aus dem gespeicherten Gedächtnis abgerufen werden.
+Der Name **A. L.** wurde in der gesprochenen Frage nicht genannt und musste aus dem gespeicherten Gedächtnis abgerufen werden.
 
 **Ergebnis:** persönlicher Gedächtnisabruf funktioniert auch im Sprachmodus ✅
 
