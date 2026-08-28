@@ -9,8 +9,22 @@ readonly PRIVATE_DIR="${PWD}/.sol-holo-private"
 readonly KEYSTORE_FILE="${PRIVATE_DIR}/Sol-Holo-Update-Key.jks"
 readonly WORKFLOW_FILE="android-build.yml"
 
+TEMPORARY_GH_LOGIN="false"
+AUTHENTICATED_USER=""
+
+gh_user() {
+  env -u GH_TOKEN -u GITHUB_TOKEN gh "$@"
+}
+
 cleanup() {
   SIGNING_PASSWORD=""
+  SIGNING_PASSWORD_REPEAT=""
+
+  if [[ "$TEMPORARY_GH_LOGIN" == "true" ]]; then
+    gh_user auth logout \
+      --hostname github.com \
+      --user "${AUTHENTICATED_USER:-pamelanitschke75-cyber}" >/dev/null 2>&1 || true
+  fi
 }
 trap cleanup EXIT
 
@@ -24,7 +38,27 @@ command -v keytool >/dev/null 2>&1 || fail "Java keytool wurde nicht gefunden."
 command -v base64 >/dev/null 2>&1 || fail "base64 wurde nicht gefunden."
 command -v grep >/dev/null 2>&1 || fail "grep wurde nicht gefunden."
 
-gh auth status >/dev/null 2>&1 || fail "GitHub ist in diesem Codespace nicht angemeldet."
+if ! gh_user auth status --hostname github.com >/dev/null 2>&1; then
+  printf '%s\n' \
+    "GitHub benötigt einmalig deine persönliche Freigabe für die geschützten Signaturwerte." \
+    "Es wird kein GitHub-Passwort und kein Zugangsschlüssel im Terminal eingegeben." \
+    "Bitte bestätige gleich nur die offizielle GitHub-Webseite."
+
+  gh_user auth login \
+    --hostname github.com \
+    --git-protocol https \
+    --web \
+    --scopes "repo,workflow" \
+    --skip-ssh-key
+
+  TEMPORARY_GH_LOGIN="true"
+fi
+
+AUTHENTICATED_USER="$(gh_user api user --jq .login)"
+
+if [[ "$AUTHENTICATED_USER" != "pamelanitschke75-cyber" ]]; then
+  fail "GitHub ist nicht mit dem Projektkonto pamelanitschke75-cyber verbunden."
+fi
 
 printf '%s\n' \
   "SOL HOLO – dauerhafte Android-Update-Signatur" \
@@ -82,13 +116,13 @@ else
 fi
 
 printf '%s' "$SIGNING_PASSWORD" \
-  | gh secret set SOL_HOLO_KEYSTORE_PASSWORD --repo "$REPOSITORY"
+  | gh_user secret set SOL_HOLO_KEYSTORE_PASSWORD --repo "$REPOSITORY"
 printf '%s' "$SIGNING_PASSWORD" \
-  | gh secret set SOL_HOLO_KEY_PASSWORD --repo "$REPOSITORY"
+  | gh_user secret set SOL_HOLO_KEY_PASSWORD --repo "$REPOSITORY"
 printf '%s' "$KEY_ALIAS" \
-  | gh secret set SOL_HOLO_KEY_ALIAS --repo "$REPOSITORY"
+  | gh_user secret set SOL_HOLO_KEY_ALIAS --repo "$REPOSITORY"
 base64 --wrap=0 "$KEYSTORE_FILE" \
-  | gh secret set SOL_HOLO_KEYSTORE_BASE64 --repo "$REPOSITORY"
+  | gh_user secret set SOL_HOLO_KEYSTORE_BASE64 --repo "$REPOSITORY"
 
 required_secrets=(
   SOL_HOLO_KEYSTORE_BASE64
@@ -97,13 +131,13 @@ required_secrets=(
   SOL_HOLO_KEY_PASSWORD
 )
 
-secret_names="$(gh secret list --repo "$REPOSITORY" --json name --jq '.[].name')"
+secret_names="$(gh_user secret list --repo "$REPOSITORY" --json name --jq '.[].name')"
 for secret_name in "${required_secrets[@]}"; do
   grep -Fxq "$secret_name" <<<"$secret_names" \
     || fail "GitHub hat ${secret_name} nicht bestätigt."
 done
 
-gh workflow run "$WORKFLOW_FILE" --repo "$REPOSITORY" --ref main
+gh_user workflow run "$WORKFLOW_FILE" --repo "$REPOSITORY" --ref main
 
 printf '\n%s\n' "FERTIG: Die vier Signaturwerte liegen geschützt in GitHub Actions."
 printf '%s\n' "Der erste dauerhaft signierte Sol-Holo-Update-Build wurde gestartet."
