@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-008-glass-ui";
+const CACHE_VERSION = "sol-holo-009-soft-edges";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
