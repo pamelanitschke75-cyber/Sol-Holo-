@@ -37,20 +37,21 @@ printf 'Das Passwort bleibt unsichtbar und wird nicht ausgegeben.\n\n'
 
 read -r -s -p "Eigenes Signier-Passwort (mindestens 20 Zeichen): " SIGNING_PASSWORD
 printf '\n'
-read -r -s -p "Dasselbe Passwort noch einmal: " SIGNING_PASSWORD_REPEAT
-printf '\n'
-
-if [[ "$SIGNING_PASSWORD" != "$SIGNING_PASSWORD_REPEAT" ]]; then
-  unset SIGNING_PASSWORD SIGNING_PASSWORD_REPEAT
-  fail "Die beiden Eingaben stimmen nicht überein."
-fi
 
 if (( ${#SIGNING_PASSWORD} < 20 )); then
-  unset SIGNING_PASSWORD SIGNING_PASSWORD_REPEAT
+  unset SIGNING_PASSWORD
   fail "Das Passwort ist kürzer als 20 Zeichen."
 fi
 
-unset SIGNING_PASSWORD_REPEAT
+printf 'Die Eingabe enthält %s Zeichen.\n' "${#SIGNING_PASSWORD}"
+read -r -p "Ist dieses Passwort sicher gespeichert? Tippe JA: " PASSWORD_CONFIRMED
+
+if [[ "${PASSWORD_CONFIRMED^^}" != "JA" ]]; then
+  unset SIGNING_PASSWORD PASSWORD_CONFIRMED
+  fail "Vorgang wurde ohne Änderung beendet."
+fi
+
+unset PASSWORD_CONFIRMED
 umask 077
 mkdir -p "$BACKUP_DIR"
 export SOL_HOLO_SIGNING_PASSWORD="$SIGNING_PASSWORD"
