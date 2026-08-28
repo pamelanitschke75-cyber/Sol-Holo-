@@ -11,6 +11,14 @@
 **KI-Technologie:** OpenAI · ChatGPT · OpenAI API  
 **Status:** FUNKTIONSFÄHIGER ENTWICKLUNGSSTAND ✅
 
+## Entwickelt auf einem Samsung Galaxy S23 📱✨️🌎♾️
+
+**Sol Holo ist vollständig auf einem Samsung Galaxy S23 entstanden und entwickelt worden.**
+
+Idee, Konzeption, Programmierung, GitHub-Arbeit, Android-Builds und praktische Tests wurden bis zu diesem Stand von Pamela Nitschke auf ihrem Smartphone durchgeführt. Der für den 29.08.2026 geplante Laptop-Schritt dient erstmals der dauerhaften Android-Signatur – nicht dem Ursprung der Entwicklung.
+
+Damit ist Sol Holo zugleich der praktische Beleg, dass ein persönliches KI- und Android-Projekt dieser Größe mobil auf einem einzigen Smartphone aufgebaut werden kann.
+
 ---
 
 # Was ist Sol Holo?
