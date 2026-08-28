@@ -34,6 +34,7 @@ mkdirSync(javaTarget, { recursive: true });
 for (const fileName of [
   "HeyHoSolPlugin.java",
   "HeyHoSolService.java",
+  "PhoneContactsPlugin.java",
   "SolAudioRoutePlugin.java",
   "WhatsAppDrivingModePlugin.java",
   "WhatsAppNotificationListener.java"
@@ -124,6 +125,18 @@ if (!mainActivity.includes("registerPlugin(SolAudioRoutePlugin.class)")) {
   );
 }
 
+if (!mainActivity.includes("registerPlugin(PhoneContactsPlugin.class)")) {
+  const registrationMarker = "        registerPlugin(SolAudioRoutePlugin.class);";
+  if (!mainActivity.includes(registrationMarker)) {
+    throw new Error("Audio-Plugin-Registrierung in MainActivity nicht gefunden.");
+  }
+
+  mainActivity = mainActivity.replace(
+    registrationMarker,
+    registrationMarker + "\n        registerPlugin(PhoneContactsPlugin.class);"
+  );
+}
+
 writeFileSync(mainActivityPath, mainActivity, "utf8");
 
 let manifest = readFileSync(manifestPath, "utf8");
@@ -135,6 +148,8 @@ for (const permission of [
   '<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />',
   '<uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />',
   '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
+  '<uses-permission android:name="android.permission.READ_CONTACTS" />',
+  '<uses-permission android:name="android.permission.READ_PHONE_STATE" />',
   '<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />',
   '<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />'
 ]) {
@@ -230,5 +245,5 @@ if (!manifest.includes(".HeyHoSolService")) {
 
 writeFileSync(manifestPath, manifest, "utf8");
 console.log(
-  "WhatsApp-Fahrmodus, Sol-Weckruf und Lautsprecherroute wurden in Android eingebunden."
+  "WhatsApp-Fahrmodus, Sol-Weckruf, Telefon, Kontakte und Lautsprecherroute wurden in Android eingebunden."
 );

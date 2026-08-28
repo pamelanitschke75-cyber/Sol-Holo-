@@ -50,6 +50,12 @@ const REALTIME_MEMORY_TOKEN_TTL_MS =
 const realtimeMemorySessions =
   new Map();
 
+const GOOGLE_OAUTH_STATE_TTL_MS =
+  10 * 60 * 1000;
+
+const googleOAuthStates =
+  new Map();
+
 function cleanupRealtimeMemorySessions() {
   const now =
     Date.now();
@@ -118,9 +124,30 @@ function validateRealtimeMemoryToken(
   return true;
 }
 
+function createGoogleOAuthState() {
+  const now = Date.now();
+
+  for (const [state, expiresAt] of googleOAuthStates.entries()) {
+    if (expiresAt <= now) {
+      googleOAuthStates.delete(state);
+    }
+  }
+
+  const state = `${randomUUID()}-${randomUUID()}`;
+  googleOAuthStates.set(state, now + GOOGLE_OAUTH_STATE_TTL_MS);
+  return state;
+}
+
+function consumeGoogleOAuthState(state) {
+  const cleanState = String(state || "").trim();
+  const expiresAt = googleOAuthStates.get(cleanState);
+  googleOAuthStates.delete(cleanState);
+  return Boolean(cleanState && expiresAt && expiresAt > Date.now());
+}
+
 /*
   ==========================================================
-  GOOGLE CALENDAR
+  GOOGLE-KONTO UND FREIGEGEBENE GOOGLE-DIENSTE
   ==========================================================
 */
 
@@ -151,9 +178,59 @@ const GOOGLE_CALENDAR_ID =
 const GOOGLE_CALENDAR_TIMEZONE =
   "Europe/Berlin";
 
-const GOOGLE_CALENDAR_SCOPES = [
-  "https://www.googleapis.com/auth/calendar.events"
+const GOOGLE_ACCOUNT_SCOPES = [
+  "openid",
+  "email",
+  "profile",
+  "https://www.googleapis.com/auth/calendar.events",
+  "https://www.googleapis.com/auth/gmail.readonly",
+  "https://www.googleapis.com/auth/contacts.readonly",
+  "https://www.googleapis.com/auth/drive.readonly"
 ];
+
+const GOOGLE_SERVICE_SCOPES = {
+  signIn: [
+    "openid",
+    "email",
+    "profile"
+  ],
+  calendar: [
+    "https://www.googleapis.com/auth/calendar.events"
+  ],
+  gmail: [
+    "https://www.googleapis.com/auth/gmail.readonly"
+  ],
+  contacts: [
+    "https://www.googleapis.com/auth/contacts.readonly"
+  ],
+  drive: [
+    "https://www.googleapis.com/auth/drive.readonly"
+  ]
+};
+
+function parseGoogleScopeSet(scopeText) {
+  return new Set(
+    String(scopeText || "")
+      .split(/\s+/)
+      .map((scope) => scope.trim())
+      .filter(Boolean)
+  );
+}
+
+function googleServiceAccess(scopeText) {
+  const grantedScopes =
+    parseGoogleScopeSet(scopeText);
+
+  return Object.fromEntries(
+    Object.entries(GOOGLE_SERVICE_SCOPES)
+      .map(([service, requiredScopes]) => [
+        service,
+        requiredScopes.every(
+          (scope) => grantedScopes.has(scope)
+        )
+      ])
+  );
+}
 
 /*
   ==========================================================
@@ -360,7 +437,7 @@ app.get("/", (req, res) => {
 
 /*
   ==========================================================
-  GOOGLE CALENDAR – OAUTH CLIENT
+  GOOGLE-KONTO – OAUTH CLIENT
   ==========================================================
 */
 
@@ -370,7 +447,7 @@ function createGoogleOAuthClient() {
     !GOOGLE_CLIENT_SECRET
   ) {
     throw new Error(
-      "Google Calendar ist noch nicht vollständig konfiguriert. GOOGLE_CLIENT_ID oder GOOGLE_CLIENT_SECRET fehlt."
+      "Das Google-Konto ist noch nicht vollständig konfiguriert. GOOGLE_CLIENT_ID oder GOOGLE_CLIENT_SECRET fehlt."
     );
   }
 
@@ -383,7 +460,7 @@ function createGoogleOAuthClient() {
 
 /*
   ==========================================================
-  GOOGLE CALENDAR – TOKENS SPEICHERN
+  GOOGLE-KONTO – TOKENS SPEICHERN
   ==========================================================
 */
 
@@ -395,7 +472,9 @@ async function saveGoogleTokens(tokens) {
   const existing =
     await db.query(
       `
-        SELECT refresh_token
+        SELECT
+          refresh_token,
+          scope
         FROM sol_google_tokens
         WHERE clone_id = $1
         LIMIT 1
@@ -409,9 +488,18 @@ async function saveGoogleTokens(tokens) {
     existing.rows?.[0]?.refresh_token ||
     null;
 
+  const previousScope =
+    existing.rows?.[0]?.scope ||
+    null;
+
   const refreshToken =
     tokens.refresh_token ||
     previousRefreshToken ||
+    null;
+
+  const scope =
+    tokens.scope ||
+    previousScope ||
     null;
 
   await db.query(
@@ -450,20 +538,20 @@ async function saveGoogleTokens(tokens) {
       CURRENT_CLONE_ID,
       tokens.access_token || null,
       refreshToken,
-      tokens.scope || null,
+      scope,
       tokens.token_type || null,
       tokens.expiry_date || null
     ]
   );
 
   console.log(
-    "✅ Google Calendar Tokens gespeichert."
+    "✅ Google-Konto-Tokens gespeichert."
   );
 }
 
 /*
   ==========================================================
-  GOOGLE CALENDAR – TOKENS LADEN
+  GOOGLE-KONTO – TOKENS LADEN
   ==========================================================
 */
 
@@ -497,7 +585,7 @@ async function loadGoogleTokens() {
 
 /*
   ==========================================================
-  GOOGLE CALENDAR – AUTORISIERUNGS-URL
+  GOOGLE-KONTO – AUTORISIERUNGS-URL
   ==========================================================
 */
 
@@ -516,8 +604,14 @@ app.get(
           prompt:
             "consent",
 
+          include_granted_scopes:
+            true,
+
+          state:
+            createGoogleOAuthState(),
+
           scope:
-            GOOGLE_CALENDAR_SCOPES
+            GOOGLE_ACCOUNT_SCOPES
         });
 
       return res.redirect(url);
@@ -529,7 +623,7 @@ app.get(
       );
 
       return res.status(500).send(
-        "Google Calendar konnte nicht verbunden werden."
+        "Das Google-Konto konnte nicht verbunden werden."
       );
     }
   }
@@ -537,7 +631,7 @@ app.get(
 
 /*
   ==========================================================
-  GOOGLE CALENDAR – CALLBACK
+  GOOGLE-KONTO – CALLBACK
   ==========================================================
 */
 
@@ -551,9 +645,21 @@ app.get(
           ""
         ).trim();
 
+      const state =
+        String(
+          req.query.state ||
+          ""
+        ).trim();
+
       if (!code) {
         return res.status(400).send(
           "Google hat keinen Autorisierungscode geliefert."
+        );
+      }
+
+      if (!consumeGoogleOAuthState(state)) {
+        return res.status(400).send(
+          "Diese Google-Anmeldung ist abgelaufen oder wurde nicht von Sol Holo gestartet. Bitte beginne die Verbindung erneut in der App."
         );
       }
 
@@ -585,7 +691,7 @@ app.get(
   name="viewport"
   content="width=device-width,initial-scale=1"
 >
-<title>Sol Holo – Google Calendar</title>
+<title>Sol Holo – Google-Konto</title>
 
 <style>
 body{
@@ -630,12 +736,13 @@ h1{
 </h1>
 
 <p class="ok">
-✅ Google Kalender wurde erfolgreich verbunden.
+✅ Dein Google-Konto wurde erfolgreich verbunden.
 </p>
 
 <p>
-Du kannst dieses Fenster jetzt schließen
-und zu Sol Holo zurückkehren.
+Gmail, Google Kontakte, Google Drive, Anmeldung und
+Kalender sind jetzt für Sol Holo freigegeben.
+Du kannst dieses Fenster schließen und zu Sol Holo zurückkehren.
 </p>
 
 </div>
@@ -651,8 +758,63 @@ und zu Sol Holo zurückkehren.
       );
 
       return res.status(500).send(
-        "Die Verbindung mit Google Calendar konnte nicht abgeschlossen werden."
+        "Die Verbindung mit dem Google-Konto konnte nicht abgeschlossen werden."
       );
+    }
+  }
+);
+
+/*
+  ==========================================================
+  GOOGLE-KONTO – VERBINDUNGSSTATUS
+  ==========================================================
+*/
+
+app.get(
+  "/google/status",
+  async (req, res) => {
+    try {
+      const tokens =
+        await loadGoogleTokens();
+
+      const connected =
+        Boolean(
+          tokens?.refresh_token ||
+          tokens?.access_token
+        );
+
+      const services =
+        googleServiceAccess(
+          tokens?.scope
+        );
+
+      return res.json({
+        connected,
+        allRequestedAccessGranted:
+          Object.values(services)
+            .every(Boolean),
+        services,
+        calendar:
+          GOOGLE_CALENDAR_ID,
+        timezone:
+          GOOGLE_CALENDAR_TIMEZONE
+      });
+    } catch (error) {
+      console.error(
+        "Google-Kontostatus:",
+        error
+      );
+
+      return res.status(500).json({
+        connected:
+          false,
+        allRequestedAccessGranted:
+          false,
+        services:
+          googleServiceAccess(""),
+        error:
+          "Der Google-Kontostatus konnte nicht gelesen werden."
+      });
     }
   }
 );
@@ -3379,6 +3541,28 @@ oder sinngleiche Aussagen.
 
 Erfinde niemals einen erfolgreichen Kalender-Schreibvorgang.
 
+WICHTIG ZU TELEFON UND KONTAKTEN:
+
+Wenn Pam einen Telefonkontakt sucht, jemanden anrufen oder
+eine SMS vorbereiten möchte, verwende das passende Telefon-Tool.
+
+Ein Anruf oder eine SMS darf niemals ohne die sichtbare
+Bestätigung von Pam gestartet oder vorbereitet werden.
+
+Behaupte erst dann, dass die Telefon-App oder Nachrichten-App
+geöffnet wurde, wenn das Tool dies wirklich bestätigt hat.
+
+WICHTIG ZUM FREIGEGEBENEN DATENUMFANG:
+
+Geschäftliche Inhalte, PINs, Passwörter, TANs,
+Banking- und Authenticator-Daten sind ausdrücklich
+ausgeschlossen. Fordere sie nicht an, suche nicht danach
+und übernimm sie nicht in Antworten oder Erinnerungen.
+
+Die Freigabe eines Dienstes ist kein automatischer
+Vollimport des Handys. Verwende nur die konkrete Funktion,
+die Pam gerade ausdrücklich angefordert hat.
+
 LANGZEITGEDÄCHTNIS:
 
 ${longTermMemoryText}
@@ -3430,6 +3614,110 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
 
               required: [
                 "query"
+              ],
+
+              additionalProperties:
+                false
+            }
+          },
+          {
+            type:
+              "function",
+
+            name:
+              "search_phone_contact",
+
+            description:
+              "Sucht einen Kontakt ausschließlich im lokalen Android-Telefonbuch. Verwende dies, wenn Pam nach einer Telefonnummer oder einem Kontakt fragt.",
+
+            parameters: {
+              type:
+                "object",
+
+              properties: {
+                query: {
+                  type:
+                    "string",
+
+                  description:
+                    "Name oder Namensteil des gesuchten Kontakts."
+                }
+              },
+
+              required: [
+                "query"
+              ],
+
+              additionalProperties:
+                false
+            }
+          },
+          {
+            type:
+              "function",
+
+            name:
+              "start_phone_call",
+
+            description:
+              "Sucht den Kontakt und öffnet erst nach Pams sichtbarer Bestätigung die Android-Telefon-App. Pam bestätigt den eigentlichen Anruf dort selbst.",
+
+            parameters: {
+              type:
+                "object",
+
+              properties: {
+                contact_name: {
+                  type:
+                    "string",
+
+                  description:
+                    "Name des Kontakts, den Pam anrufen möchte."
+                }
+              },
+
+              required: [
+                "contact_name"
+              ],
+
+              additionalProperties:
+                false
+            }
+          },
+          {
+            type:
+              "function",
+
+            name:
+              "prepare_sms",
+
+            description:
+              "Sucht den Kontakt und öffnet erst nach Pams sichtbarer Bestätigung eine vorbereitete SMS. Pam sendet sie in der Nachrichten-App selbst ab.",
+
+            parameters: {
+              type:
+                "object",
+
+              properties: {
+                contact_name: {
+                  type:
+                    "string",
+
+                  description:
+                    "Name des SMS-Empfängers."
+                },
+                message: {
+                  type:
+                    "string",
+
+                  description:
+                    "Der von Pam gewünschte SMS-Text."
+                }
+              },
+
+              required: [
+                "contact_name",
+                "message"
               ],
 
               additionalProperties:
@@ -4267,6 +4555,17 @@ wird dieser bereits vor dieser normalen Antwort
 vom Sol-Holo-Backend verarbeitet.
 
 Du darfst daher niemals einen Kalender-Erfolg erfinden.
+
+WICHTIG ZUM FREIGEGEBENEN DATENUMFANG:
+
+Geschäftliche Inhalte, PINs, Passwörter, TANs,
+Banking- und Authenticator-Daten sind ausdrücklich
+ausgeschlossen. Fordere sie nicht an, suche nicht danach
+und übernimm sie nicht in Antworten oder Erinnerungen.
+
+Die Freigabe eines Dienstes ist kein automatischer
+Vollimport des Handys. Verwende nur die konkrete Funktion,
+die Pam gerade ausdrücklich angefordert hat.
 
 LANGZEITGEDÄCHTNIS:
 

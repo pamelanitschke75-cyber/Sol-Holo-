@@ -3637,6 +3637,42 @@ async function sendMessage(
   }
 
 
+  if(
+    !isForcedMessage &&
+    !mediaKindToSend &&
+    typeof window.handleSolHoloLocalAction ===
+      "function"
+  ){
+
+    const localAction =
+      await window.handleSolHoloLocalAction(
+        message
+      );
+
+
+    if(
+      localAction?.handled
+    ){
+
+      addMessage(
+        "Sol",
+        String(
+          localAction.answer ||
+          "Die Telefonfunktion wurde ausgeführt."
+        ),
+        "sol-message"
+      );
+
+
+      chatStatus.textContent =
+        "Telefonfunktion abgeschlossen.";
+
+
+      return;
+    }
+  }
+
+
   sendButton.disabled =
     true;
 
@@ -4169,16 +4205,24 @@ async function searchRealtimePersonalMemory(
   );
 }
 
+const REALTIME_LOCAL_TOOL_NAMES = new Set([
+  "search_personal_memory",
+  "search_phone_contact",
+  "start_phone_call",
+  "prepare_sms"
+]);
+
 function getRealtimeMemoryToolCall(
   realtimeEvent
 ){
 
   if(
     realtimeEvent?.type === "response.function_call_arguments.done" &&
-    realtimeEvent?.name === "search_personal_memory"
+    REALTIME_LOCAL_TOOL_NAMES.has(realtimeEvent?.name)
   ){
     return {
       callId:String(realtimeEvent.call_id || ""),
+      name:String(realtimeEvent.name || ""),
       argumentsText:String(realtimeEvent.arguments || "{}")
     };
   }
@@ -4186,10 +4230,11 @@ function getRealtimeMemoryToolCall(
   if(
     realtimeEvent?.type === "response.output_item.done" &&
     realtimeEvent?.item?.type === "function_call" &&
-    realtimeEvent?.item?.name === "search_personal_memory"
+    REALTIME_LOCAL_TOOL_NAMES.has(realtimeEvent?.item?.name)
   ){
     return {
       callId:String(realtimeEvent.item.call_id || ""),
+      name:String(realtimeEvent.item.name || ""),
       argumentsText:String(realtimeEvent.item.arguments || "{}")
     };
   }
@@ -4208,20 +4253,38 @@ async function handleRealtimeMemoryToolCall(
 
   handledRealtimeMemoryToolCalls.add(callId);
 
-  let query = "";
+  let parsedArguments = {};
   try{
-    const parsed = JSON.parse(toolCall.argumentsText || "{}");
-    query = String(parsed?.query || "").trim();
+    parsedArguments = JSON.parse(toolCall.argumentsText || "{}");
   }catch(error){
-    console.error("Realtime Memory Tool Argument Fehler:", error);
+    console.error("Realtime Tool Argument Fehler:", error);
   }
 
   let output;
   try{
-    output = await searchRealtimePersonalMemory(query);
+    if(toolCall?.name === "search_personal_memory"){
+      output = await searchRealtimePersonalMemory(
+        String(parsedArguments?.query || "").trim()
+      );
+    }else if(
+      typeof window.executeSolHoloPhoneTool === "function"
+    ){
+      const result = await window.executeSolHoloPhoneTool(
+        toolCall?.name,
+        parsedArguments
+      );
+      output = String(
+        result?.answer ||
+        "Die Telefonfunktion hat keine Rückmeldung geliefert."
+      );
+    }else{
+      output = "Die Telefonfunktion ist nur in der Sol-Holo-Android-App verfügbar.";
+    }
   }catch(error){
-    console.error("Realtime Memory Tool Fehler:", error);
-    output = "Die persönliche Gedächtnissuche ist gerade technisch fehlgeschlagen. Erfinde keine Erinnerung.";
+    console.error("Realtime Tool Fehler:", error);
+    output = toolCall?.name === "search_personal_memory"
+      ? "Die persönliche Gedächtnissuche ist gerade technisch fehlgeschlagen. Erfinde keine Erinnerung."
+      : "Die Telefonfunktion ist gerade technisch fehlgeschlagen. Behaupte nicht, dass eine App geöffnet wurde.";
   }
 
   if(!dc || dc.readyState !== "open"){

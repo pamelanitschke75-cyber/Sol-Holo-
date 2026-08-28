@@ -92,6 +92,11 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   const onboarding = document.getElementById("onboardingScreen");
   let toastTimer = null;
   let googleConnected = false;
+  let googleStatus = {
+    connected: false,
+    allRequestedAccessGranted: false,
+    services: {}
+  };
   let whatsappStatus = {
     supported: false,
     permissionGranted: false,
@@ -111,6 +116,16 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   let wakeListenersRegistered = false;
   let lastWakeDetectedAt = 0;
   let pendingWakePrompt = "";
+  let phoneStatus = {
+    supported: false,
+    contactsPermissionGranted: false,
+    phoneStatePermissionGranted: false,
+    connected: false,
+    callState: "idle",
+    incomingCall: false
+  };
+  let phoneActionRunning = false;
+  let phoneListenersRegistered = false;
 
   function showToast(text) {
     uiToast.textContent = String(text || "");
@@ -146,6 +161,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     if (viewName === "services") {
       void loadWhatsAppStatus();
       void loadWakeStatus();
+      void loadPhoneStatus();
     }
 
     if (viewName === "chat" && typeof updateMouthGeometry === "function") {
@@ -197,17 +213,29 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
     try {
       const response = await fetch(
-        "https://sol-holo.onrender.com/calendar/status",
+        "https://sol-holo.onrender.com/google/status",
         { cache: "no-store" }
       );
       const data = await response.json();
 
-      googleConnected = Boolean(response.ok && data?.connected);
+      googleStatus = {
+        connected: Boolean(response.ok && data?.connected),
+        allRequestedAccessGranted: Boolean(
+          response.ok && data?.allRequestedAccessGranted
+        ),
+        services: data?.services || {}
+      };
+      googleConnected = googleStatus.allRequestedAccessGranted;
 
       if (googleConnected) {
         serviceState.textContent = "Verbunden";
         serviceState.classList.add("connected");
-        profileState.textContent = "Kalender verbunden";
+        profileState.textContent = "Vollständig verbunden";
+        todayState.textContent = "Google Kalender verbunden";
+      } else if (googleStatus.connected) {
+        serviceState.textContent = "Erweitern";
+        serviceState.classList.add("setup");
+        profileState.textContent = "Weitere Freigabe nötig";
         todayState.textContent = "Google Kalender verbunden";
       } else {
         serviceState.textContent = "Verbinden";
@@ -218,6 +246,11 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     } catch (error) {
       console.error("Google-Kontostatus:", error);
       googleConnected = false;
+      googleStatus = {
+        connected: false,
+        allRequestedAccessGranted: false,
+        services: {}
+      };
       serviceState.textContent = "Nicht erreichbar";
       serviceState.classList.add("setup");
       profileState.textContent = "Status nicht erreichbar";
@@ -336,6 +369,291 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       row.disabled = false;
     }
   }
+
+  function getPhoneContactsPlugin() {
+    return window.Capacitor?.Plugins?.PhoneContacts || null;
+  }
+
+  function renderPhoneStatus(nextStatus) {
+    const statusElement = document.getElementById("phoneContactsStatus");
+
+    phoneStatus = {
+      supported: Boolean(nextStatus?.supported),
+      contactsPermissionGranted: Boolean(
+        nextStatus?.contactsPermissionGranted
+      ),
+      phoneStatePermissionGranted: Boolean(
+        nextStatus?.phoneStatePermissionGranted
+      ),
+      connected: Boolean(nextStatus?.connected),
+      callState: String(nextStatus?.callState || "idle"),
+      incomingCall: Boolean(nextStatus?.incomingCall)
+    };
+
+    statusElement.classList.remove("connected", "setup");
+
+    if (!getPhoneContactsPlugin()) {
+      statusElement.textContent = "Nur Android";
+      statusElement.classList.add("setup");
+    } else if (phoneStatus.incomingCall) {
+      statusElement.textContent = "Anruf erkannt";
+      statusElement.classList.add("connected");
+    } else if (phoneStatus.connected) {
+      statusElement.textContent = "Verbunden";
+      statusElement.classList.add("connected");
+    } else {
+      statusElement.textContent = "Freigabe nötig";
+      statusElement.classList.add("setup");
+    }
+  }
+
+  async function registerPhoneListeners() {
+    const plugin = getPhoneContactsPlugin();
+    if (!plugin || phoneListenersRegistered) {
+      return;
+    }
+
+    phoneListenersRegistered = true;
+    try {
+      await plugin.addListener("phoneStatusChanged", (status) => {
+        renderPhoneStatus(status);
+      });
+
+      await plugin.addListener("callStateChanged", async (status) => {
+        const previousState = phoneStatus.callState;
+        renderPhoneStatus(status);
+
+        if (status?.callState === "ringing") {
+          showToast("Eingehender Anruf erkannt. Sol Holo pausiert.");
+          if (typeof stopLiveConversation === "function") {
+            stopLiveConversation();
+          }
+          await pauseWakeListeningForConversation();
+        } else if (
+          status?.callState === "idle" &&
+          previousState !== "idle"
+        ) {
+          showToast("Telefonat beendet. Sol Holo ist wieder da.");
+          void resumeWakeListeningAfterConversation();
+        }
+      });
+    } catch (error) {
+      phoneListenersRegistered = false;
+      console.error("Telefon-Ereignisse:", error);
+    }
+  }
+
+  async function loadPhoneStatus() {
+    const plugin = getPhoneContactsPlugin();
+    if (!plugin) {
+      renderPhoneStatus({ supported: false });
+      return phoneStatus;
+    }
+
+    await registerPhoneListeners();
+
+    try {
+      renderPhoneStatus(await plugin.getStatus());
+    } catch (error) {
+      console.error("Telefonstatus:", error);
+      renderPhoneStatus({ supported: true });
+    }
+
+    return phoneStatus;
+  }
+
+  async function requestPhoneAccess() {
+    if (phoneActionRunning) {
+      return phoneStatus;
+    }
+
+    const plugin = getPhoneContactsPlugin();
+    if (!plugin) {
+      showToast("Telefon und Kontakte sind nur in der Android-App verfügbar.");
+      return phoneStatus;
+    }
+
+    phoneActionRunning = true;
+    try {
+      const status = await plugin.requestAccess();
+      renderPhoneStatus(status);
+      await registerPhoneListeners();
+
+      if (status?.connected) {
+        showToast(
+          "Telefon und Kontakte verbunden. Anruf oder SMS erst nach Bestätigung."
+        );
+      } else {
+        showToast(
+          "Für alle Telefonfunktionen braucht Sol Holo beide Android-Freigaben."
+        );
+      }
+      return status;
+    } catch (error) {
+      console.error("Telefonfreigabe:", error);
+      showToast("Die Telefonfreigabe konnte gerade nicht abgeschlossen werden.");
+      return loadPhoneStatus();
+    } finally {
+      phoneActionRunning = false;
+    }
+  }
+
+  async function findPhoneContact(query) {
+    const plugin = getPhoneContactsPlugin();
+    if (!plugin) {
+      throw new Error("Telefon und Kontakte sind nur in der Android-App verfügbar.");
+    }
+
+    const cleanQuery = String(query || "").trim();
+    if (!cleanQuery) {
+      throw new Error("Bitte nenne einen Kontakt.");
+    }
+
+    const currentStatus = await loadPhoneStatus();
+    if (!currentStatus.contactsPermissionGranted) {
+      await requestPhoneAccess();
+    }
+
+    const result = await plugin.searchContacts({
+      query: cleanQuery,
+      limit: 8
+    });
+    const contacts = Array.isArray(result?.results) ? result.results : [];
+
+    const exact = contacts.find(
+      (contact) =>
+        String(contact?.name || "")
+          .localeCompare(cleanQuery, "de-DE", { sensitivity: "base" }) === 0
+    );
+
+    return {
+      contact: exact || contacts[0] || null,
+      contacts
+    };
+  }
+
+  async function executePhoneTool(name, args = {}) {
+    const actionName = String(name || "");
+    const contactName = String(args?.contact_name || args?.query || "").trim();
+
+    try {
+      const result = await findPhoneContact(contactName);
+
+      if (actionName === "search_phone_contact") {
+        if (result.contacts.length === 0) {
+          return {
+            success: false,
+            answer: `Ich habe keinen Telefonkontakt namens „${contactName}“ gefunden.`
+          };
+        }
+
+        return {
+          success: true,
+          answer: result.contacts
+            .map((contact) => `${contact.name} – ${contact.number}`)
+            .join("; ")
+        };
+      }
+
+      const contact = result.contact;
+      if (!contact) {
+        return {
+          success: false,
+          answer: `Ich habe keinen Telefonkontakt namens „${contactName}“ gefunden.`
+        };
+      }
+
+      if (actionName === "start_phone_call") {
+        const confirmed = window.confirm(
+          `Soll Sol Holo jetzt ${contact.name} (${contact.number}) in der Telefon-App öffnen?`
+        );
+        if (!confirmed) {
+          return { success: false, cancelled: true, answer: "Der Anruf wurde abgebrochen." };
+        }
+
+        await getPhoneContactsPlugin().openDialer({ number: contact.number });
+        return {
+          success: true,
+          answer: `${contact.name} ist in der Telefon-App geöffnet. Du bestätigst den Anruf dort.`
+        };
+      }
+
+      if (actionName === "prepare_sms") {
+        const message = String(args?.message || "").trim();
+        if (!message) {
+          return { success: false, answer: "Für die SMS fehlt noch der Text." };
+        }
+
+        const confirmed = window.confirm(
+          `SMS an ${contact.name} vorbereiten?\n\n${message}`
+        );
+        if (!confirmed) {
+          return { success: false, cancelled: true, answer: "Die SMS wurde abgebrochen." };
+        }
+
+        await getPhoneContactsPlugin().prepareSms({
+          number: contact.number,
+          message
+        });
+        return {
+          success: true,
+          answer: `Die SMS an ${contact.name} ist vorbereitet. Du sendest sie in der Nachrichten-App selbst ab.`
+        };
+      }
+
+      return { success: false, answer: "Unbekannte Telefonfunktion." };
+    } catch (error) {
+      console.error("Telefonfunktion:", error);
+      return {
+        success: false,
+        answer: String(error?.message || error || "Die Telefonfunktion ist fehlgeschlagen.")
+      };
+    }
+  }
+
+  window.executeSolHoloPhoneTool = executePhoneTool;
+
+  window.handleSolHoloLocalAction = async (message) => {
+    const cleanMessage = String(message || "").trim();
+    let match = cleanMessage.match(/^ruf(?:e)?(?:\s+mal)?\s+(.+?)(?:\s+an)?[.!?]?$/i);
+    if (!match) {
+      match = cleanMessage.match(/^(.+?)\s+anrufen[.!?]?$/i);
+    }
+    if (match) {
+      const result = await executePhoneTool("start_phone_call", {
+        contact_name: match[1]
+      });
+      return { handled: true, answer: result.answer };
+    }
+
+    match = cleanMessage.match(
+      /^(?:suche|finde)\s+(?:den\s+)?kontakt(?:\s+von)?\s+(.+?)[.!?]?$/i
+    );
+    if (!match) {
+      match = cleanMessage.match(/^welche\s+(?:telefon)?nummer\s+hat\s+(.+?)[.!?]?$/i);
+    }
+    if (match) {
+      const result = await executePhoneTool("search_phone_contact", {
+        query: match[1]
+      });
+      return { handled: true, answer: result.answer };
+    }
+
+    if (/\bsms\b/i.test(cleanMessage)) {
+      match = cleanMessage.match(
+        /^(?:schreib|schreibe|sende)\s+(?:eine\s+)?sms\s+(?:an\s+)?(.+?)(?:\s+mit(?:\s+dem)?\s+text|\s*[:,-])\s+(.+)$/i
+      );
+      if (match) {
+        const result = await executePhoneTool("prepare_sms", {
+          contact_name: match[1],
+          message: match[2]
+        });
+        return { handled: true, answer: result.answer };
+      }
+    }
+
+    return { handled: false };
+  };
 
   function getHeyHoSolPlugin() {
     return window.Capacitor?.Plugins?.HeyHoSol || null;
@@ -637,12 +955,13 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     void loadGoogleStatus();
     void loadWhatsAppStatus();
     void loadWakeStatus();
+    void loadPhoneStatus();
   });
 
   document.getElementById("googleAccountRow").addEventListener("click", () => {
     if (googleConnected) {
       showToast(
-        "Dein Google-Konto ist über den Google Kalender mit Sol Holo verbunden."
+        "Google-Konto verbunden: Anmeldung, Gmail, Kontakte, Drive und Kalender."
       );
       return;
     }
@@ -680,10 +999,13 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   });
 
   document.getElementById("phoneContactsRow").addEventListener("click", () => {
-    showToast(
-      "Telefon und Kontakte werden erst nach deiner Android-Freigabe verbunden. " +
-      "Ein Anruf startet niemals ohne deine Bestätigung."
-    );
+    if (phoneStatus.connected) {
+      showToast(
+        "Kontakte und Anruferkennung sind aktiv. Anruf oder SMS erst nach Bestätigung."
+      );
+      return;
+    }
+    void requestPhoneAccess();
   });
 
   document.getElementById("manageServicesButton").addEventListener("click", () => {
@@ -692,7 +1014,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       : "Den WhatsApp-Fahrmodus richtest du direkt über seine Zeile ein.";
     showToast(
       "Jeder Dienst wird einzeln freigegeben. " + whatsappText +
-      " Telefon und Kontakte folgen als eigener Android-Schritt."
+      " Google-Konto und Telefon richtest du über ihre jeweilige Zeile ein."
     );
   });
 
@@ -717,16 +1039,19 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     if (document.visibilityState === "visible") {
       void loadWhatsAppStatus();
       void loadWakeStatus(true);
+      void loadPhoneStatus();
     }
   });
 
   window.addEventListener("focus", () => {
     void loadWhatsAppStatus();
     void loadWakeStatus(true);
+    void loadPhoneStatus();
   });
 
   showView("home");
   void loadGoogleStatus();
   void loadWhatsAppStatus();
   void loadWakeStatus(true);
+  void loadPhoneStatus();
 })();
