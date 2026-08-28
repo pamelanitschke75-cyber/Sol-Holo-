@@ -797,7 +797,7 @@ LIP SYNC
 ==========================================================
 */
 
-#mouthPatch{
+#mouthCanvas{
   position:absolute;
 
   display:none;
@@ -806,56 +806,9 @@ LIP SYNC
 
   pointer-events:none;
 
-  background-repeat:no-repeat;
+  image-rendering:auto;
 
-  transform-origin:50% 42%;
-
-  will-change:
-    transform,
-    opacity;
-
-  border-radius:
-    48% 48% 46% 46%;
-
-  -webkit-mask-image:
-    radial-gradient(
-      ellipse at center,
-      #000 42%,
-      rgba(0,0,0,.92) 58%,
-      transparent 78%
-    );
-
-  mask-image:
-    radial-gradient(
-      ellipse at center,
-      #000 42%,
-      rgba(0,0,0,.92) 58%,
-      transparent 78%
-    );
-}
-
-#mouthDepth{
-  position:absolute;
-
-  display:none;
-
-  z-index:7;
-
-  pointer-events:none;
-
-  border-radius:50%;
-
-  background:
-    radial-gradient(
-      ellipse at center,
-      rgba(5,2,3,.86) 0%,
-      rgba(15,4,7,.58) 40%,
-      transparent 75%
-    );
-
-  opacity:0;
-
-  transform-origin:center;
+  will-change:contents;
 }
 
 #solCloneWrap.sol-speaking{
@@ -1578,8 +1531,7 @@ Verbindung
   alt="Sol Holo Clone"
 >
 
-<div id="mouthDepth"></div>
-<div id="mouthPatch"></div>
+<canvas id="mouthCanvas" aria-hidden="true"></canvas>
 
 </div>
 
@@ -1846,11 +1798,17 @@ const solCloneWrap =
 const solImage =
   document.getElementById("solImage");
 
-const mouthPatch =
-  document.getElementById("mouthPatch");
+const mouthCanvas =
+  document.getElementById("mouthCanvas");
 
-const mouthDepth =
-  document.getElementById("mouthDepth");
+const mouthCanvasContext =
+  mouthCanvas.getContext(
+    "2d",
+    {
+      alpha:true,
+      desynchronized:true
+    }
+  );
 
 
 let selectedImageDataUrl =
@@ -1992,6 +1950,22 @@ let lipAnimationFrame = null;
 let lipTimeData = null;
 let lipFrequencyData = null;
 let lipSyncRunning = false;
+let lipHeadAudioNode = null;
+let lipHeadAudioReady = false;
+let lipHeadAudioInitPromise = null;
+let lipAnimationLastAt = 0;
+let lipVisemeValues = Object.create(null);
+let lipMouthCanvasGeometry = null;
+let lipMouthRenderLayer =
+  document.createElement("canvas");
+let lipMouthRenderContext =
+  lipMouthRenderLayer.getContext(
+    "2d",
+    {
+      alpha:true,
+      desynchronized:true
+    }
+  );
 
 let currentMouthOpen = 0;
 let currentMouthWide = 0;
@@ -2595,6 +2569,337 @@ async function ensureLipAudioContext(){
 }
 
 
+function resetLipVisemeValues(){
+
+  lipVisemeValues =
+    Object.create(null);
+
+
+  if(
+    lipHeadAudioNode
+  ){
+
+    try{
+      lipHeadAudioNode.resetAll();
+    }catch{}
+  }
+}
+
+
+async function ensureHeadAudioVisemes(){
+
+  if(
+    lipHeadAudioReady &&
+    lipHeadAudioNode
+  ){
+
+    return true;
+  }
+
+
+  if(
+    lipHeadAudioInitPromise
+  ){
+
+    return lipHeadAudioInitPromise;
+  }
+
+
+  lipHeadAudioInitPromise =
+    (async () => {
+
+      if(
+        !lipAudioContext?.audioWorklet
+      ){
+
+        return false;
+      }
+
+
+      try{
+
+        const [module] =
+          await Promise.all([
+            import(
+              "./headaudio.min.mjs"
+            ),
+            lipAudioContext.audioWorklet
+              .addModule(
+                "./headworklet.min.mjs"
+              )
+          ]);
+
+
+        const modelResponse =
+          await fetch(
+            "./model-en-mixed.b64",
+            {
+              cache:"force-cache"
+            }
+          );
+
+
+        if(
+          !modelResponse.ok
+        ){
+
+          throw new Error(
+            "Visem-Modell konnte nicht geladen werden."
+          );
+        }
+
+
+        const base64Model =
+          (
+            await modelResponse.text()
+          )
+            .replace(
+              /\s+/g,
+              ""
+            );
+
+
+        const binaryModel =
+          atob(
+            base64Model
+          );
+
+
+        const modelBytes =
+          new Uint8Array(
+            binaryModel.length
+          );
+
+
+        for(
+          let index = 0;
+          index < binaryModel.length;
+          index++
+        ){
+
+          modelBytes[index] =
+            binaryModel.charCodeAt(
+              index
+            );
+        }
+
+
+        const modelUrl =
+          URL.createObjectURL(
+            new Blob(
+              [modelBytes],
+              {
+                type:"application/octet-stream"
+              }
+            )
+          );
+
+
+        try{
+
+          lipHeadAudioNode =
+            new module.HeadAudio(
+              lipAudioContext,
+              {
+                processorOptions:{
+                  visemeEventsEnabled:true
+                },
+                parameterData:{
+                  vadMode:1,
+                  vadGateActiveDb:-44,
+                  vadGateInactiveDb:-56,
+                  silMode:0,
+                  speakerMeanHz:220
+                }
+              }
+            );
+
+
+          await lipHeadAudioNode
+            .loadModel(
+              modelUrl
+            );
+
+        }finally{
+
+          URL.revokeObjectURL(
+            modelUrl
+          );
+        }
+
+
+        lipHeadAudioNode.onvalue =
+          (
+            key,
+            value
+          ) => {
+
+            lipVisemeValues[key] =
+              clamp(
+                Number(value) || 0,
+                0,
+                1
+              );
+          };
+
+
+        lipHeadAudioReady =
+          true;
+
+
+        return true;
+
+      }catch(
+        error
+      ){
+
+        console.warn(
+          "Lokale Visem-Erkennung:",
+          error
+        );
+
+
+        lipHeadAudioReady =
+          false;
+
+
+        if(
+          lipHeadAudioNode
+        ){
+
+          try{
+            lipHeadAudioNode.disconnect();
+          }catch{}
+
+
+          lipHeadAudioNode =
+            null;
+        }
+
+
+        return false;
+
+      }finally{
+
+        lipHeadAudioInitPromise =
+          null;
+      }
+    })();
+
+
+  return lipHeadAudioInitPromise;
+}
+
+
+function detectedMouthShape(
+  energyOpen,
+  energyWide,
+  energyRound
+){
+
+  if(
+    !lipHeadAudioReady
+  ){
+
+    return {
+      open:energyOpen,
+      wide:energyWide,
+      round:energyRound
+    };
+  }
+
+
+  const value =
+    key =>
+      clamp(
+        lipVisemeValues[key] || 0,
+        0,
+        1
+      );
+
+
+  const aa = value("viseme_aa");
+  const e = value("viseme_E");
+  const i = value("viseme_I");
+  const o = value("viseme_O");
+  const u = value("viseme_U");
+  const pp = value("viseme_PP");
+  const ss = value("viseme_SS");
+  const th = value("viseme_TH");
+  const dd = value("viseme_DD");
+  const ff = value("viseme_FF");
+  const kk = value("viseme_kk");
+  const nn = value("viseme_nn");
+  const rr = value("viseme_RR");
+  const ch = value("viseme_CH");
+
+
+  const visemeOpen =
+    Math.max(
+      aa,
+      e * 0.64,
+      i * 0.24,
+      o * 0.76,
+      u * 0.44,
+      ss * 0.12,
+      th * 0.30,
+      dd * 0.12,
+      ff * 0.08,
+      kk * 0.24,
+      nn * 0.12,
+      rr * 0.22,
+      ch * 0.30
+    );
+
+
+  const closure =
+    Math.max(
+      pp,
+      ff * 0.42
+    );
+
+
+  return {
+    open:
+      clamp(
+        Math.max(
+          visemeOpen,
+          energyOpen * 0.30
+        ) *
+        (
+          1 -
+          closure * 0.88
+        ),
+        0,
+        1
+      ),
+    wide:
+      clamp(
+        Math.max(
+          e * 0.74,
+          i,
+          ss * 0.68,
+          ff * 0.42,
+          energyWide * 0.20
+        ),
+        0,
+        1
+      ),
+    round:
+      clamp(
+        Math.max(
+          o * 0.88,
+          u,
+          rr * 0.36,
+          energyRound * 0.18
+        ),
+        0,
+        1
+      )
+  };
+}
+
+
 /*
 ==========================================================
 MUNDGEOMETRIE
@@ -2604,7 +2909,9 @@ MUNDGEOMETRIE
 function updateMouthGeometry(){
 
   if(
-    !solImage.complete
+    !solImage.complete ||
+    !mouthCanvasContext ||
+    !lipMouthRenderContext
   ){
 
     return;
@@ -2621,8 +2928,16 @@ function updateMouthGeometry(){
 
   if(
     imageRect.width <= 0 ||
-    imageRect.height <= 0
+    imageRect.height <= 0 ||
+    solImage.naturalWidth <= 0 ||
+    solImage.naturalHeight <= 0
   ){
+
+    lipMouthCanvasGeometry =
+      null;
+
+    mouthCanvas.style.display =
+      "none";
 
     return;
   }
@@ -2638,12 +2953,12 @@ function updateMouthGeometry(){
     wrapperRect.top;
 
 
-  const patchWidth =
+  const mouthWidth =
     imageRect.width *
     LIP_SYNC_FACE.width;
 
 
-  const patchHeight =
+  const mouthHeight =
     imageRect.height *
     LIP_SYNC_FACE.height;
 
@@ -2660,86 +2975,637 @@ function updateMouthGeometry(){
     LIP_SYNC_FACE.y;
 
 
-  const left =
+  const canvasWidth =
+    Math.max(
+      42,
+      mouthWidth * 1.58
+    );
+
+
+  const canvasHeight =
+    Math.max(
+      30,
+      mouthHeight * 2.35
+    );
+
+
+  const canvasLeft =
     centerX -
-    patchWidth / 2;
+    canvasWidth / 2;
 
 
-  const top =
+  const canvasTop =
     centerY -
-    patchHeight / 2;
+    canvasHeight * 0.42;
 
 
-  mouthPatch.style.left =
-    `${left}px`;
-
-
-  mouthPatch.style.top =
-    `${top}px`;
-
-
-  mouthPatch.style.width =
-    `${patchWidth}px`;
-
-
-  mouthPatch.style.height =
-    `${patchHeight}px`;
-
-
-  mouthPatch.style.backgroundImage =
-    `url("${solImage.src}")`;
-
-
-  mouthPatch.style.backgroundSize =
-    `${imageRect.width}px ${imageRect.height}px`;
-
-
-  mouthPatch.style.backgroundPosition =
-    `${-(
-      imageRect.width *
-      LIP_SYNC_FACE.x -
-      patchWidth / 2
-    )}px ${
-      -(
-        imageRect.height *
-        LIP_SYNC_FACE.y -
-        patchHeight / 2
+  const pixelRatio =
+    Math.min(
+      2,
+      Math.max(
+        1,
+        window.devicePixelRatio || 1
       )
-    }px`;
+    );
 
 
-  mouthDepth.style.left =
-    `${
-      centerX -
-      patchWidth * 0.31
-    }px`;
+  mouthCanvas.style.left =
+    `${canvasLeft}px`;
 
 
-  mouthDepth.style.top =
-    `${
-      centerY -
-      patchHeight * 0.10
-    }px`;
+  mouthCanvas.style.top =
+    `${canvasTop}px`;
 
 
-  mouthDepth.style.width =
-    `${
-      patchWidth * 0.62
-    }px`;
+  mouthCanvas.style.width =
+    `${canvasWidth}px`;
 
 
-  mouthDepth.style.height =
-    `${
-      patchHeight * 0.47
-    }px`;
+  mouthCanvas.style.height =
+    `${canvasHeight}px`;
 
 
-  mouthPatch.style.display =
+  const renderWidth =
+    Math.max(
+      1,
+      Math.round(
+        canvasWidth *
+        pixelRatio
+      )
+    );
+
+
+  const renderHeight =
+    Math.max(
+      1,
+      Math.round(
+        canvasHeight *
+        pixelRatio
+      )
+    );
+
+
+  if(
+    mouthCanvas.width !==
+      renderWidth ||
+    mouthCanvas.height !==
+      renderHeight
+  ){
+
+    mouthCanvas.width =
+      renderWidth;
+
+    mouthCanvas.height =
+      renderHeight;
+  }
+
+
+  if(
+    lipMouthRenderLayer.width !==
+      renderWidth ||
+    lipMouthRenderLayer.height !==
+      renderHeight
+  ){
+
+    lipMouthRenderLayer.width =
+      renderWidth;
+
+    lipMouthRenderLayer.height =
+      renderHeight;
+  }
+
+
+  const naturalScaleX =
+    solImage.naturalWidth /
+    imageRect.width;
+
+
+  const naturalScaleY =
+    solImage.naturalHeight /
+    imageRect.height;
+
+
+  lipMouthCanvasGeometry = {
+    width:canvasWidth,
+    height:canvasHeight,
+    seamY:canvasHeight * 0.42,
+    mouthWidth,
+    mouthHeight,
+    sourceX:
+      (
+        canvasLeft -
+        imageLeft
+      ) *
+      naturalScaleX,
+    sourceY:
+      (
+        canvasTop -
+        imageTop
+      ) *
+      naturalScaleY,
+    sourceWidth:
+      canvasWidth *
+      naturalScaleX,
+    sourceHeight:
+      canvasHeight *
+      naturalScaleY,
+    naturalScaleX,
+    naturalScaleY,
+    pixelRatio
+  };
+
+
+  mouthCanvas.style.display =
     "block";
 
 
-  mouthDepth.style.display =
-    "block";
+  clearNaturalMouth();
+}
+
+
+function clearNaturalMouth(){
+
+  if(
+    !mouthCanvasContext
+  ){
+
+    return;
+  }
+
+
+  mouthCanvasContext.setTransform(
+    1,
+    0,
+    0,
+    1,
+    0,
+    0
+  );
+
+
+  mouthCanvasContext.clearRect(
+    0,
+    0,
+    mouthCanvas.width,
+    mouthCanvas.height
+  );
+}
+
+
+function renderNaturalMouth(
+  openness,
+  wideness,
+  roundness
+){
+
+  const geometry =
+    lipMouthCanvasGeometry;
+
+
+  if(
+    !geometry ||
+    !mouthCanvasContext ||
+    !lipMouthRenderContext ||
+    !solImage.complete
+  ){
+
+    return;
+  }
+
+
+  const open =
+    clamp(
+      openness,
+      0,
+      1
+    );
+
+
+  if(
+    open <
+    0.015
+  ){
+
+    clearNaturalMouth();
+    return;
+  }
+
+
+  const wide =
+    clamp(
+      wideness,
+      0,
+      1
+    );
+
+
+  const round =
+    clamp(
+      roundness,
+      0,
+      1
+    );
+
+
+  const {
+    width,
+    height,
+    seamY,
+    mouthWidth,
+    mouthHeight,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    naturalScaleY,
+    pixelRatio
+  } = geometry;
+
+
+  const context =
+    lipMouthRenderContext;
+
+
+  context.setTransform(
+    pixelRatio,
+    0,
+    0,
+    pixelRatio,
+    0,
+    0
+  );
+
+
+  context.globalCompositeOperation =
+    "source-over";
+
+
+  context.clearRect(
+    0,
+    0,
+    width,
+    height
+  );
+
+
+  context.drawImage(
+    solImage,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    0,
+    0,
+    width,
+    height
+  );
+
+
+  const lipTravel =
+    Math.min(
+      8,
+      mouthHeight *
+      open *
+      0.34
+    );
+
+
+  const cavityWidth =
+    mouthWidth *
+    clamp(
+      0.55 +
+      wide * 0.11 -
+      round * 0.16,
+      0.36,
+      0.68
+    );
+
+
+  const cavityHeight =
+    Math.max(
+      1,
+      mouthHeight * 0.025 +
+      lipTravel *
+      (
+        0.72 +
+        round * 0.18
+      )
+    );
+
+
+  const cavityCenterY =
+    seamY +
+    lipTravel * 0.34;
+
+
+  context.save();
+
+
+  context.beginPath();
+
+
+  context.ellipse(
+    width / 2,
+    cavityCenterY,
+    cavityWidth / 2,
+    cavityHeight / 2,
+    0,
+    0,
+    Math.PI * 2
+  );
+
+
+  const cavityGradient =
+    context.createLinearGradient(
+      0,
+      cavityCenterY -
+        cavityHeight / 2,
+      0,
+      cavityCenterY +
+        cavityHeight / 2
+    );
+
+
+  cavityGradient.addColorStop(
+    0,
+    "rgba(58,12,19,.84)"
+  );
+
+
+  cavityGradient.addColorStop(
+    0.48,
+    "rgba(21,4,9,.96)"
+  );
+
+
+  cavityGradient.addColorStop(
+    1,
+    "rgba(73,13,24,.82)"
+  );
+
+
+  context.fillStyle =
+    cavityGradient;
+
+
+  context.fill();
+  context.clip();
+
+
+  if(
+    open >
+    0.32
+  ){
+
+    const teethOpacity =
+      clamp(
+        (
+          open -
+          0.32
+        ) *
+        0.18,
+        0,
+        0.10
+      );
+
+
+    context.fillStyle =
+      `rgba(247,232,216,${teethOpacity})`;
+
+
+    context.fillRect(
+      width / 2 -
+        cavityWidth * 0.33,
+      cavityCenterY -
+        cavityHeight * 0.45,
+      cavityWidth * 0.66,
+      cavityHeight * 0.20
+    );
+  }
+
+
+  context.restore();
+
+
+  const warpStart =
+    Math.max(
+      0,
+      seamY
+    );
+
+
+  const warpEnd =
+    Math.min(
+      height,
+      seamY +
+      mouthHeight * 1.28
+    );
+
+
+  const stripHeight =
+    Math.max(
+      0.75,
+      1 / pixelRatio
+    );
+
+
+  const shapeScale =
+    1 +
+    wide * 0.025 -
+    round * 0.035;
+
+
+  for(
+    let y = warpStart;
+    y < warpEnd;
+    y += stripHeight
+  ){
+
+    const distance =
+      clamp(
+        (
+          y -
+          warpStart
+        ) /
+        Math.max(
+          1,
+          warpEnd -
+          warpStart
+        ),
+        0,
+        1
+      );
+
+
+    const influence =
+      Math.pow(
+        1 -
+        distance,
+        1.55
+      );
+
+
+    const destinationWidth =
+      width *
+      (
+        1 +
+        (
+          shapeScale -
+          1
+        ) *
+        influence
+      );
+
+
+    const destinationX =
+      (
+        width -
+        destinationWidth
+      ) /
+      2;
+
+
+    context.drawImage(
+      solImage,
+      sourceX,
+      sourceY +
+        y *
+        naturalScaleY,
+      sourceWidth,
+      stripHeight *
+        naturalScaleY,
+      destinationX,
+      y +
+        lipTravel *
+        influence,
+      destinationWidth,
+      stripHeight +
+        0.8
+    );
+  }
+
+
+  context.globalCompositeOperation =
+    "destination-in";
+
+
+  const horizontalMask =
+    context.createLinearGradient(
+      0,
+      0,
+      width,
+      0
+    );
+
+
+  horizontalMask.addColorStop(
+    0,
+    "rgba(0,0,0,0)"
+  );
+
+
+  horizontalMask.addColorStop(
+    0.14,
+    "rgba(0,0,0,1)"
+  );
+
+
+  horizontalMask.addColorStop(
+    0.86,
+    "rgba(0,0,0,1)"
+  );
+
+
+  horizontalMask.addColorStop(
+    1,
+    "rgba(0,0,0,0)"
+  );
+
+
+  context.fillStyle =
+    horizontalMask;
+
+
+  context.fillRect(
+    0,
+    0,
+    width,
+    height
+  );
+
+
+  const verticalMask =
+    context.createLinearGradient(
+      0,
+      0,
+      0,
+      height
+    );
+
+
+  verticalMask.addColorStop(
+    0,
+    "rgba(0,0,0,0)"
+  );
+
+
+  verticalMask.addColorStop(
+    0.18,
+    "rgba(0,0,0,1)"
+  );
+
+
+  verticalMask.addColorStop(
+    0.82,
+    "rgba(0,0,0,1)"
+  );
+
+
+  verticalMask.addColorStop(
+    1,
+    "rgba(0,0,0,0)"
+  );
+
+
+  context.fillStyle =
+    verticalMask;
+
+
+  context.fillRect(
+    0,
+    0,
+    width,
+    height
+  );
+
+
+  context.globalCompositeOperation =
+    "source-over";
+
+
+  mouthCanvasContext.setTransform(
+    1,
+    0,
+    0,
+    1,
+    0,
+    0
+  );
+
+
+  mouthCanvasContext.clearRect(
+    0,
+    0,
+    mouthCanvas.width,
+    mouthCanvas.height
+  );
+
+
+  mouthCanvasContext.drawImage(
+    lipMouthRenderLayer,
+    0,
+    0
+  );
 }
 
 
@@ -2833,7 +3699,9 @@ LIP-SYNC ANIMATION
 ==========================================================
 */
 
-function animateLipSync(){
+function animateLipSync(
+  timestamp = performance.now()
+){
 
   if(
     !lipSyncRunning ||
@@ -2841,6 +3709,34 @@ function animateLipSync(){
   ){
 
     return;
+  }
+
+
+  const frameMilliseconds =
+    lipAnimationLastAt
+      ?
+      clamp(
+        timestamp -
+          lipAnimationLastAt,
+        8,
+        50
+      )
+      :
+      16.67;
+
+
+  lipAnimationLastAt =
+    timestamp;
+
+
+  if(
+    lipHeadAudioReady &&
+    lipHeadAudioNode
+  ){
+
+    lipHeadAudioNode.update(
+      frameMilliseconds
+    );
   }
 
 
@@ -2909,12 +3805,12 @@ function animateLipSync(){
     clamp(
       (
         rms -
-        0.008
+        0.010
       ) *
-      13.5,
+      9.4,
 
       0,
-      1
+      0.82
     );
 
 
@@ -2944,18 +3840,48 @@ function animateLipSync(){
     );
 
 
+  const detectedShape =
+    detectedMouthShape(
+      rawOpen,
+      rawWide,
+      rawRound
+    );
+
+
+  const targetOpen =
+    detectedShape.open;
+
+
+  const targetWide =
+    detectedShape.wide;
+
+
+  const targetRound =
+    detectedShape.round;
+
+
   const openSpeed =
-    rawOpen >
+    targetOpen >
       currentMouthOpen
       ?
-      0.45
+      1 -
+        Math.pow(
+          0.69,
+          frameMilliseconds /
+            16.67
+        )
       :
-      0.24;
+      1 -
+        Math.pow(
+          0.82,
+          frameMilliseconds /
+            16.67
+        );
 
 
   currentMouthOpen +=
     (
-      rawOpen -
+      targetOpen -
       currentMouthOpen
     ) *
     openSpeed;
@@ -2963,18 +3889,32 @@ function animateLipSync(){
 
   currentMouthWide +=
     (
-      rawWide -
+      targetWide -
       currentMouthWide
     ) *
-    0.20;
+    (
+      1 -
+      Math.pow(
+        0.80,
+        frameMilliseconds /
+          16.67
+      )
+    );
 
 
   currentMouthRound +=
     (
-      rawRound -
+      targetRound -
       currentMouthRound
     ) *
-    0.18;
+    (
+      1 -
+      Math.pow(
+        0.82,
+        frameMilliseconds /
+          16.67
+      )
+    );
 
 
   if(
@@ -2994,84 +3934,11 @@ function animateLipSync(){
   }
 
 
-  const scaleY =
-    1 +
-    currentMouthOpen *
-    0.72;
-
-
-  const wideInfluence =
-    currentMouthWide *
-    (
-      1 -
-      currentMouthRound *
-      0.55
-    );
-
-
-  const scaleX =
-    1 +
-    wideInfluence *
-    0.11 -
-    currentMouthRound *
-    0.055;
-
-
-  const moveY =
-    currentMouthOpen *
-    1.8;
-
-
-  mouthPatch.style.transform =
-    `
-      translateY(${moveY}px)
-      scaleX(${scaleX})
-      scaleY(${scaleY})
-    `;
-
-
-  const depthOpacity =
-    clamp(
-      (
-        currentMouthOpen -
-        0.18
-      ) *
-      0.72,
-
-      0,
-      0.42
-    );
-
-
-  mouthDepth.style.opacity =
-    depthOpacity;
-
-
-  mouthDepth.style.transform =
-    `
-      scaleX(${
-        0.88 +
-        wideInfluence *
-        0.20
-      })
-
-      scaleY(${
-        0.28 +
-        currentMouthOpen *
-        0.95
-      })
-    `;
-
-
-  mouthPatch.style.opacity =
-    clamp(
-      0.72 +
-      currentMouthOpen *
-      0.28,
-
-      0.72,
-      1
-    );
+  renderNaturalMouth(
+    currentMouthOpen,
+    currentMouthWide,
+    currentMouthRound
+  );
 
 
   lipAnimationFrame =
@@ -3114,6 +3981,10 @@ async function startLipSync(
   stopLipSync(
     false
   );
+
+
+  const visemesReady =
+    await ensureHeadAudioVisemes();
 
 
   try{
@@ -3164,6 +4035,23 @@ async function startLipSync(
     );
 
 
+    if(
+      visemesReady &&
+      lipHeadAudioNode
+    ){
+
+      resetLipVisemeValues();
+
+
+      lipHeadAudioNode.start();
+
+
+      lipSourceNode.connect(
+        lipHeadAudioNode
+      );
+    }
+
+
     lipAnalyser.connect(
       lipSilentGain
     );
@@ -3181,8 +4069,16 @@ async function startLipSync(
       true;
 
 
+    lipAnimationLastAt =
+      performance.now();
+
+
     lipSyncStatus.textContent =
-      "👄 Lip-Sync folgt Sols Stimme.";
+      visemesReady
+        ?
+        "👄 Echte Sprachlaute steuern Lippen und Kiefer."
+        :
+        "👄 Natürliche Mundformen folgen Sols Stimme.";
 
 
     animateLipSync();
@@ -3211,6 +4107,10 @@ function stopLipSync(
     false;
 
 
+  lipAnimationLastAt =
+    0;
+
+
   if(
     lipAnimationFrame
   ){
@@ -3236,6 +4136,19 @@ function stopLipSync(
 
     lipSourceNode =
       null;
+  }
+
+
+  if(
+    lipHeadAudioNode
+  ){
+
+    try{
+      lipHeadAudioNode.stop();
+    }catch{}
+
+
+    resetLipVisemeValues();
   }
 
 
@@ -3280,20 +4193,7 @@ function stopLipSync(
   currentMouthRound = 0;
 
 
-  mouthPatch.style.transform =
-    "translateY(0) scaleX(1) scaleY(1)";
-
-
-  mouthPatch.style.opacity =
-    "0.72";
-
-
-  mouthDepth.style.opacity =
-    "0";
-
-
-  mouthDepth.style.transform =
-    "scaleX(1) scaleY(.25)";
+  clearNaturalMouth();
 
 
   solCloneWrap.classList.remove(

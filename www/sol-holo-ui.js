@@ -39,7 +39,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   profilePhotoButton.append(profileCloneImage);
   profilePhotoButton.insertAdjacentHTML(
     "beforeend",
-    '<span id="profileMouthMarker" class="profileMouthMarker" hidden>+</span>' +
+    '<span id="profileMouthMarker" class="profileMouthMarker" hidden></span>' +
     '<span class="profilePhotoEdit">✎ Bild ändern</span>'
   );
 
@@ -50,6 +50,28 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     '<div id="profilePhotoActions" class="profilePhotoActions" hidden>' +
       '<button id="profileMouthButton" type="button">👄 Mund festlegen</button>' +
       '<button id="profilePhotoResetButton" type="button">SH♾️ zurück</button>' +
+    '</div>' +
+    '<div id="profileMouthControls" class="profileMouthControls" hidden>' +
+      '<strong>Mund genau einstellen</strong>' +
+      '<p>Tippe zuerst im Bild genau auf die Mitte des Mundes.</p>' +
+      '<label>Links ↔ Rechts <output id="profileMouthXValue">50.0 %</output>' +
+        '<input id="profileMouthX" type="range" min="8" max="92" ' +
+          'step="0.25" value="50"></label>' +
+      '<label>Hoch ↕ Runter <output id="profileMouthYValue">58.0 %</output>' +
+        '<input id="profileMouthY" type="range" min="8" max="92" ' +
+          'step="0.25" value="58"></label>' +
+      '<label>Mundbreite <output id="profileMouthWidthValue">16 %</output>' +
+        '<input id="profileMouthWidth" type="range" min="6" max="32" ' +
+          'step="0.5" value="16"></label>' +
+      '<label>Mundhöhe <output id="profileMouthHeightValue">7.5 %</output>' +
+        '<input id="profileMouthHeight" type="range" min="3.5" max="18" ' +
+          'step="0.5" value="7.5"></label>' +
+      '<div class="profileMouthConfirmRow">' +
+        '<button id="profileMouthConfirmButton" class="confirm" type="button">' +
+          '✅ Mundposition bestätigen' +
+        '</button>' +
+        '<button id="profileMouthCancelButton" type="button">Abbrechen</button>' +
+      '</div>' +
     '</div>' +
     '<p id="profilePhotoHelp" class="profilePhotoHelp">' +
       'Bild antippen und aus der Galerie wählen · bleibt nur auf diesem Gerät.' +
@@ -78,6 +100,22 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   const phoneContactsRow = document.getElementById("phoneContactsRow");
   phoneContactsRow.insertAdjacentHTML(
     "afterend",
+    '<button id="samsungGalleryRow" class="serviceRow" type="button">' +
+      '<span class="rowIcon">▣</span>' +
+      '<span class="rowText">' +
+        '<span class="rowTitle">Samsung Galerie</span>' +
+        '<span class="rowMeta">Galerie öffnen · dein Bild selbst auswählen</span>' +
+      '</span>' +
+      '<span id="samsungGalleryStatus" class="serviceStatus connected">Verbunden</span>' +
+    '</button>' +
+    '<button id="smartThingsRow" class="serviceRow" type="button">' +
+      '<span class="rowIcon">⌂</span>' +
+      '<span class="rowText">' +
+        '<span class="rowTitle">SmartThings Zuhause</span>' +
+        '<span class="rowMeta">Räume &amp; Geräte · Aktion erst nach Bestätigung</span>' +
+      '</span>' +
+      '<span id="smartThingsStatus" class="serviceStatus setup">Wird geprüft …</span>' +
+    '</button>' +
     '<button id="samsungNotesRow" class="serviceRow" type="button">' +
       '<span class="rowIcon">✎</span>' +
       '<span class="rowText">' +
@@ -97,8 +135,9 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   );
 
   document.querySelector("#servicesView .permissionNote").textContent =
-    "Sol Holo liest keine WhatsApp-Nachricht, keinen Kontakt, keine Notiz " +
-    "und keinen Health-Wert ohne deine sichtbare Auswahl oder Android-Freigabe.";
+    "Sol Holo liest keine WhatsApp-Nachricht, keinen Kontakt, kein Bild, keine " +
+    "Notiz und keinen Health-Wert ohne deine sichtbare Auswahl oder Freigabe. " +
+    "Ein SmartThings-Gerät wird nur nach deiner Bestätigung geschaltet.";
 
   const chatView = document.createElement("section");
   chatView.id = "chatView";
@@ -157,9 +196,29 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   );
   const profilePhotoHelp = document.getElementById("profilePhotoHelp");
   const profileMouthMarker = document.getElementById("profileMouthMarker");
+  const profileMouthControls = document.getElementById("profileMouthControls");
+  const profileMouthX = document.getElementById("profileMouthX");
+  const profileMouthY = document.getElementById("profileMouthY");
+  const profileMouthWidth = document.getElementById("profileMouthWidth");
+  const profileMouthHeight = document.getElementById("profileMouthHeight");
+  const profileMouthXValue = document.getElementById("profileMouthXValue");
+  const profileMouthYValue = document.getElementById("profileMouthYValue");
+  const profileMouthWidthValue = document.getElementById(
+    "profileMouthWidthValue"
+  );
+  const profileMouthHeightValue = document.getElementById(
+    "profileMouthHeightValue"
+  );
+  const profileMouthConfirmButton = document.getElementById(
+    "profileMouthConfirmButton"
+  );
+  const profileMouthCancelButton = document.getElementById(
+    "profileMouthCancelButton"
+  );
   let toastTimer = null;
   let customClonePhoto = "";
   let cloneMouthCalibrationActive = false;
+  let cloneMouthBeforeCalibration = null;
   let customCloneMouth = {
     x: 0.5,
     y: 0.58,
@@ -171,6 +230,12 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     connected: false,
     allRequestedAccessGranted: false,
     services: {}
+  };
+  let smartThingsStatus = {
+    configured: false,
+    connected: false,
+    selectedDevicesOnly: true,
+    actionsRequireConfirmation: true
   };
   let whatsappStatus = {
     supported: false,
@@ -239,7 +304,26 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     const mouth = normalizedCloneMouth(customCloneMouth);
     profileMouthMarker.style.left = `${mouth.x * 100}%`;
     profileMouthMarker.style.top = `${mouth.y * 100}%`;
-    profileMouthMarker.hidden = !customClonePhoto;
+    profileMouthMarker.style.width = `${mouth.width * 100}%`;
+    profileMouthMarker.style.height = `${mouth.height * 100}%`;
+    profileMouthMarker.hidden =
+      !customClonePhoto || !cloneMouthCalibrationActive;
+  }
+
+  function updateCloneMouthControls() {
+    const mouth = normalizedCloneMouth(customCloneMouth);
+    const xPercent = mouth.x * 100;
+    const yPercent = mouth.y * 100;
+    const widthPercent = mouth.width * 100;
+    const heightPercent = mouth.height * 100;
+    profileMouthX.value = String(xPercent);
+    profileMouthY.value = String(yPercent);
+    profileMouthWidth.value = String(widthPercent);
+    profileMouthHeight.value = String(heightPercent);
+    profileMouthXValue.textContent = `${xPercent.toFixed(1)} %`;
+    profileMouthYValue.textContent = `${yPercent.toFixed(1)} %`;
+    profileMouthWidthValue.textContent = `${widthPercent.toFixed(1)} %`;
+    profileMouthHeightValue.textContent = `${heightPercent.toFixed(1)} %`;
   }
 
   function applyCustomCloneAppearance(photo, mouth) {
@@ -247,9 +331,12 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     customCloneMouth = normalizedCloneMouth(mouth);
 
     if (!customClonePhoto) {
+      cloneMouthCalibrationActive = false;
+      cloneMouthBeforeCalibration = null;
       profileCloneImage.src = "sol-holo-logo.png";
       profilePhotoButton.classList.remove("customPhoto", "calibrating");
       profilePhotoActions.hidden = true;
+      profileMouthControls.hidden = true;
       profileMouthMarker.hidden = true;
       profilePhotoHelp.textContent =
         "Bild antippen und aus der Galerie wählen · bleibt nur auf diesem Gerät.";
@@ -260,8 +347,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     profileCloneImage.src = customClonePhoto;
     profilePhotoButton.classList.add("customPhoto");
     profilePhotoActions.hidden = false;
+    profileMouthControls.hidden = true;
+    profileMouthMarker.hidden = true;
     profilePhotoHelp.textContent =
-      "Der Lip-Sync folgt der echten Sol-Stimme. Das Bild bleibt nur auf diesem Gerät.";
+      "Mehrere Mundformen folgen der echten Sol-Stimme. Das Bild bleibt nur auf diesem Gerät.";
     updateCloneMouthMarker();
     window.SolHoloClone?.setImage(customClonePhoto);
     window.SolHoloClone?.setMouthGeometry(customCloneMouth);
@@ -319,18 +408,24 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       return;
     }
 
+    cloneMouthBeforeCalibration = {
+      ...customCloneMouth
+    };
     cloneMouthCalibrationActive = true;
     profilePhotoButton.classList.add("calibrating");
+    profileMouthControls.hidden = false;
+    updateCloneMouthControls();
+    updateCloneMouthMarker();
     profilePhotoButton.setAttribute(
       "aria-label",
-      "Jetzt genau auf den Mund im Bild tippen"
+      "Mundbox durch Antippen genau positionieren"
     );
     profilePhotoHelp.textContent =
-      "Jetzt im Bild genau auf die Mitte des Mundes tippen.";
-    showToast("Tippe jetzt im Bild genau auf den Mund 👄");
+      "Mund antippen, Position und Größe fein einstellen, dann mit ✅ bestätigen.";
+    showToast("Tippe auf den Mund und stelle die blaue Box genau ein 👄");
   }
 
-  function finishCloneMouthCalibration(event) {
+  function moveCloneMouthCalibration(event) {
     const imageRect = profileCloneImage.getBoundingClientRect();
     if (imageRect.width <= 0 || imageRect.height <= 0) {
       return;
@@ -342,15 +437,37 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       y: (event.clientY - imageRect.top) / imageRect.height
     });
 
+    updateCloneMouthMarker();
+    updateCloneMouthControls();
+    window.SolHoloClone?.setMouthGeometry(customCloneMouth);
+    profilePhotoHelp.textContent =
+      "Die blaue Box kann weiter versetzt oder mit den Reglern angepasst werden.";
+  }
+
+  function previewCloneMouthGeometry() {
+    customCloneMouth = normalizedCloneMouth({
+      x: Number(profileMouthX.value) / 100,
+      y: Number(profileMouthY.value) / 100,
+      width: Number(profileMouthWidth.value) / 100,
+      height: Number(profileMouthHeight.value) / 100
+    });
+    updateCloneMouthControls();
+    updateCloneMouthMarker();
+    window.SolHoloClone?.setMouthGeometry(customCloneMouth);
+  }
+
+  function confirmCloneMouthCalibration() {
     cloneMouthCalibrationActive = false;
+    cloneMouthBeforeCalibration = null;
     profilePhotoButton.classList.remove("calibrating");
+    profileMouthControls.hidden = true;
+    profileMouthMarker.hidden = true;
     profilePhotoButton.setAttribute(
       "aria-label",
       "Eigenes Sol-Holo-Bild aus der Galerie ändern"
     );
     profilePhotoHelp.textContent =
-      "Mund gespeichert · Lip-Sync folgt der echten Sol-Stimme.";
-    updateCloneMouthMarker();
+      "Mund gespeichert · natürliche Mundformen folgen der echten Sol-Stimme.";
     window.SolHoloClone?.setMouthGeometry(customCloneMouth);
 
     try {
@@ -359,7 +476,25 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       console.error("Sol-Holo-Mundposition speichern:", error);
     }
 
-    showToast("Mundposition gespeichert. Lip-Sync ist bereit 👄✅️");
+    showToast("Mundbox bestätigt. Der natürliche Lip-Sync ist bereit ✅️");
+  }
+
+  function cancelCloneMouthCalibration() {
+    if (cloneMouthBeforeCalibration) {
+      customCloneMouth = normalizedCloneMouth(cloneMouthBeforeCalibration);
+    }
+    cloneMouthCalibrationActive = false;
+    cloneMouthBeforeCalibration = null;
+    profilePhotoButton.classList.remove("calibrating");
+    profileMouthControls.hidden = true;
+    profileMouthMarker.hidden = true;
+    profilePhotoButton.setAttribute(
+      "aria-label",
+      "Eigenes Sol-Holo-Bild aus der Galerie ändern"
+    );
+    profilePhotoHelp.textContent =
+      "Änderung abgebrochen · die bisherige Mundbox bleibt gespeichert.";
+    window.SolHoloClone?.setMouthGeometry(customCloneMouth);
   }
 
   function showView(viewName) {
@@ -482,6 +617,49 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       serviceState.classList.add("setup");
       profileState.textContent = "Status nicht erreichbar";
       todayState.textContent = "Kalenderstatus offen";
+    }
+  }
+
+  async function loadSmartThingsStatus() {
+    const serviceState = document.getElementById("smartThingsStatus");
+    serviceState.textContent = "Wird geprüft …";
+    serviceState.classList.remove("connected", "setup");
+
+    try {
+      const response = await fetch(
+        "https://sol-holo.onrender.com/smartthings/status",
+        { cache: "no-store" }
+      );
+      const data = await response.json();
+
+      smartThingsStatus = {
+        configured: Boolean(response.ok && data?.configured),
+        connected: Boolean(response.ok && data?.connected),
+        selectedDevicesOnly: data?.selectedDevicesOnly !== false,
+        actionsRequireConfirmation:
+          data?.actionsRequireConfirmation !== false
+      };
+
+      if (smartThingsStatus.connected) {
+        serviceState.textContent = "Zuhause verbunden";
+        serviceState.classList.add("connected");
+      } else if (smartThingsStatus.configured) {
+        serviceState.textContent = "Verbinden";
+        serviceState.classList.add("setup");
+      } else {
+        serviceState.textContent = "Einrichtung nötig";
+        serviceState.classList.add("setup");
+      }
+    } catch (error) {
+      console.error("SmartThings-Status:", error);
+      smartThingsStatus = {
+        configured: false,
+        connected: false,
+        selectedDevicesOnly: true,
+        actionsRequireConfirmation: true
+      };
+      serviceState.textContent = "Nicht erreichbar";
+      serviceState.classList.add("setup");
     }
   }
 
@@ -1510,7 +1688,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
   profilePhotoButton.addEventListener("click", (event) => {
     if (cloneMouthCalibrationActive) {
-      finishCloneMouthCalibration(event);
+      moveCloneMouthCalibration(event);
       return;
     }
     profilePhotoInput.click();
@@ -1548,8 +1726,28 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     beginCloneMouthCalibration();
   });
 
+  [
+    profileMouthX,
+    profileMouthY,
+    profileMouthWidth,
+    profileMouthHeight
+  ].forEach((control) => {
+    control.addEventListener("input", () => {
+      previewCloneMouthGeometry();
+    });
+  });
+
+  profileMouthConfirmButton.addEventListener("click", () => {
+    confirmCloneMouthCalibration();
+  });
+
+  profileMouthCancelButton.addEventListener("click", () => {
+    cancelCloneMouthCalibration();
+  });
+
   profilePhotoResetButton.addEventListener("click", () => {
     cloneMouthCalibrationActive = false;
+    cloneMouthBeforeCalibration = null;
     try {
       localStorage.removeItem(clonePhotoKey);
       localStorage.removeItem(cloneMouthKey);
@@ -1582,6 +1780,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
   document.getElementById("refreshServicesButton").addEventListener("click", () => {
     void loadGoogleStatus();
+    void loadSmartThingsStatus();
     void loadWhatsAppStatus();
     void loadWakeStatus();
     void loadPhoneStatus();
@@ -1639,6 +1838,40 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     void requestPhoneAccess();
   });
 
+  document.getElementById("samsungGalleryRow").addEventListener("click", () => {
+    showView("profile");
+    profilePhotoInput.click();
+    showToast("Samsung Galerie ist geöffnet · wähle dein gewünschtes Sol-Holo-Bild.");
+  });
+
+  document.getElementById("smartThingsRow").addEventListener("click", () => {
+    if (smartThingsStatus.connected) {
+      showToast(
+        "SmartThings-Zuhause verbunden. Geräteaktionen brauchen immer deine Bestätigung."
+      );
+      return;
+    }
+
+    if (!smartThingsStatus.configured) {
+      showToast(
+        "Die sichere SmartThings-Verbindung ist vorbereitet. " +
+        "Die einmalige Samsung-Appregistrierung schließen wir am Laptop ab."
+      );
+      return;
+    }
+
+    const authWindow = window.open(
+      "https://sol-holo.onrender.com/auth/smartthings",
+      "_blank",
+      "noopener"
+    );
+
+    if (!authWindow) {
+      window.location.href =
+        "https://sol-holo.onrender.com/auth/smartthings";
+    }
+  });
+
   document.getElementById("samsungNotesRow").addEventListener("click", () => {
     if (!getPhoneContactsPlugin()) {
       showToast("Samsung Notes kann nur mit der Sol-Holo-Android-App geteilt werden.");
@@ -1661,8 +1894,8 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       : "Den WhatsApp-Fahrmodus richtest du direkt über seine Zeile ein.";
     showToast(
       "Jeder Dienst wird einzeln freigegeben. " + whatsappText +
-      " Google-Konto, Telefon und Health richtest du über ihre jeweilige Zeile ein. " +
-      "Samsung Notes kommt nur über das Teilen-Menü."
+      " Google-Konto, Telefon, Health und SmartThings richtest du über ihre Zeile ein. " +
+      "Samsung Galerie öffnet die Bildauswahl; Samsung Notes kommt über das Teilen-Menü."
     );
   });
 
@@ -1689,6 +1922,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       void loadWakeStatus(true);
       void loadPhoneStatus();
       void loadHealthStatus();
+      void loadSmartThingsStatus();
       void consumeSharedNoteImport();
     }
   });
@@ -1698,12 +1932,14 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     void loadWakeStatus(true);
     void loadPhoneStatus();
     void loadHealthStatus();
+    void loadSmartThingsStatus();
     void consumeSharedNoteImport();
   });
 
   restoreCustomCloneAppearance();
   showView("home");
   void loadGoogleStatus();
+  void loadSmartThingsStatus();
   void loadWhatsAppStatus();
   void loadWakeStatus(true);
   void loadPhoneStatus();

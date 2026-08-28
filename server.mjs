@@ -5,7 +5,13 @@ import path from "path";
 import { fileURLToPath } from "url";
 import pg from "pg";
 import { google } from "googleapis";
-import { createHash, randomUUID } from "crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomBytes,
+  randomUUID
+} from "crypto";
 
 const app = express();
 
@@ -54,6 +60,12 @@ const GOOGLE_OAUTH_STATE_TTL_MS =
   10 * 60 * 1000;
 
 const googleOAuthStates =
+  new Map();
+
+const SMARTTHINGS_OAUTH_STATE_TTL_MS =
+  10 * 60 * 1000;
+
+const smartThingsOAuthStates =
   new Map();
 
 function cleanupRealtimeMemorySessions() {
@@ -142,6 +154,30 @@ function consumeGoogleOAuthState(state) {
   const cleanState = String(state || "").trim();
   const expiresAt = googleOAuthStates.get(cleanState);
   googleOAuthStates.delete(cleanState);
+  return Boolean(cleanState && expiresAt && expiresAt > Date.now());
+}
+
+function createSmartThingsOAuthState() {
+  const now = Date.now();
+
+  for (const [state, expiresAt] of smartThingsOAuthStates.entries()) {
+    if (expiresAt <= now) {
+      smartThingsOAuthStates.delete(state);
+    }
+  }
+
+  const state = `${randomUUID()}-${randomUUID()}`;
+  smartThingsOAuthStates.set(
+    state,
+    now + SMARTTHINGS_OAUTH_STATE_TTL_MS
+  );
+  return state;
+}
+
+function consumeSmartThingsOAuthState(state) {
+  const cleanState = String(state || "").trim();
+  const expiresAt = smartThingsOAuthStates.get(cleanState);
+  smartThingsOAuthStates.delete(cleanState);
   return Boolean(cleanState && expiresAt && expiresAt > Date.now());
 }
 
@@ -251,6 +287,101 @@ function googleServiceAccess(scopeText) {
         )
       ])
   );
+}
+
+/*
+  ==========================================================
+  SMARTTHINGS – DIGITALES ZUHAUSE
+  ==========================================================
+*/
+
+const SMARTTHINGS_CLIENT_ID =
+  String(process.env.SMARTTHINGS_CLIENT_ID || "").trim();
+
+const SMARTTHINGS_CLIENT_SECRET =
+  String(process.env.SMARTTHINGS_CLIENT_SECRET || "").trim();
+
+const SMARTTHINGS_REDIRECT_URI =
+  String(
+    process.env.SMARTTHINGS_REDIRECT_URI ||
+    "https://sol-holo.onrender.com/auth/smartthings/callback"
+  ).trim();
+
+const SMARTTHINGS_TOKEN_ENCRYPTION_KEY =
+  String(process.env.SMARTTHINGS_TOKEN_ENCRYPTION_KEY || "").trim();
+
+const SMARTTHINGS_AUTHORIZE_URL =
+  "https://api.smartthings.com/oauth/authorize";
+
+const SMARTTHINGS_TOKEN_URL =
+  "https://api.smartthings.com/oauth/token";
+
+const SMARTTHINGS_SCOPES = [
+  "r:locations:*",
+  "r:devices:$",
+  "x:devices:$"
+];
+
+function smartThingsConfigured() {
+  return Boolean(
+    SMARTTHINGS_CLIENT_ID &&
+    SMARTTHINGS_CLIENT_SECRET &&
+    SMARTTHINGS_REDIRECT_URI &&
+    SMARTTHINGS_TOKEN_ENCRYPTION_KEY
+  );
+}
+
+function smartThingsEncryptionKey() {
+  if (!SMARTTHINGS_TOKEN_ENCRYPTION_KEY) {
+    throw new Error("SMARTTHINGS_TOKEN_ENCRYPTION_KEY fehlt.");
+  }
+
+  return createHash("sha256")
+    .update(SMARTTHINGS_TOKEN_ENCRYPTION_KEY, "utf8")
+    .digest();
+}
+
+function encryptSmartThingsToken(value) {
+  const cleanValue = String(value || "");
+  if (!cleanValue) {
+    return null;
+  }
+
+  const iv = randomBytes(12);
+  const cipher = createCipheriv(
+    "aes-256-gcm",
+    smartThingsEncryptionKey(),
+    iv
+  );
+  const encrypted = Buffer.concat([
+    cipher.update(cleanValue, "utf8"),
+    cipher.final()
+  ]);
+  const tag = cipher.getAuthTag();
+
+  return [iv, tag, encrypted]
+    .map((part) => part.toString("base64url"))
+    .join(".");
+}
+
+function decryptSmartThingsToken(value) {
+  const parts = String(value || "").split(".");
+  if (parts.length !== 3) {
+    return null;
+  }
+
+  const [ivText, tagText, encryptedText] = parts;
+  const decipher = createDecipheriv(
+    "aes-256-gcm",
+    smartThingsEncryptionKey(),
+    Buffer.from(ivText, "base64url")
+  );
+  decipher.setAuthTag(Buffer.from(tagText, "base64url"));
+
+  return Buffer.concat([
+    decipher.update(Buffer.from(encryptedText, "base64url")),
+    decipher.final()
+  ]).toString("utf8");
 }
 
 /*
@@ -387,6 +518,25 @@ async function initializeMemory() {
   `);
 
   /*
+    SmartThings OAuth Tokens
+
+    Zugriff und Refresh-Token werden vor dem Speichern
+    mit AES-256-GCM verschlüsselt.
+  */
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS sol_smartthings_tokens (
+      clone_id TEXT PRIMARY KEY,
+      access_token_ciphertext TEXT,
+      refresh_token_ciphertext TEXT,
+      scope TEXT,
+      token_type TEXT,
+      expires_at BIGINT,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  /*
     Schutz gegen doppelte Kalender-Einträge.
 
     Das ist besonders für Realtime wichtig,
@@ -432,6 +582,12 @@ async function initializeMemory() {
     GOOGLE_CLIENT_SECRET
       ? "Google Calendar OAuth ist vorbereitet."
       : "Google Calendar OAuth Variablen fehlen."
+  );
+
+  console.log(
+    smartThingsConfigured()
+      ? "SmartThings OAuth ist sicher vorbereitet."
+      : "SmartThings OAuth Variablen fehlen noch."
   );
 }
 
@@ -839,6 +995,269 @@ app.get(
     }
   }
 );
+
+/*
+  ==========================================================
+  SMARTTHINGS – TOKENS SPEICHERN UND LADEN
+  ==========================================================
+*/
+
+async function loadSmartThingsTokens() {
+  const result = await db.query(
+    `
+      SELECT
+        access_token_ciphertext,
+        refresh_token_ciphertext,
+        scope,
+        token_type,
+        expires_at
+      FROM sol_smartthings_tokens
+      WHERE clone_id = $1
+      LIMIT 1
+    `,
+    [CURRENT_CLONE_ID]
+  );
+
+  const record = result.rows?.[0];
+  if (!record) {
+    return null;
+  }
+
+  return {
+    access_token: decryptSmartThingsToken(
+      record.access_token_ciphertext
+    ),
+    refresh_token: decryptSmartThingsToken(
+      record.refresh_token_ciphertext
+    ),
+    scope: record.scope || "",
+    token_type: record.token_type || "Bearer",
+    expires_at: record.expires_at
+      ? Number(record.expires_at)
+      : null
+  };
+}
+
+async function saveSmartThingsTokens(tokens) {
+  if (!tokens) {
+    return;
+  }
+
+  const previous = await loadSmartThingsTokens();
+  const accessToken =
+    tokens.access_token || previous?.access_token || null;
+  const refreshToken =
+    tokens.refresh_token || previous?.refresh_token || null;
+  const scope =
+    tokens.scope || previous?.scope || SMARTTHINGS_SCOPES.join(" ");
+  const tokenType =
+    tokens.token_type || previous?.token_type || "Bearer";
+  const expiresInSeconds = Number(tokens.expires_in || 0);
+  const expiresAt = expiresInSeconds > 0
+    ? Date.now() + expiresInSeconds * 1000
+    : previous?.expires_at || null;
+
+  await db.query(
+    `
+      INSERT INTO sol_smartthings_tokens (
+        clone_id,
+        access_token_ciphertext,
+        refresh_token_ciphertext,
+        scope,
+        token_type,
+        expires_at,
+        updated_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      ON CONFLICT (clone_id)
+      DO UPDATE SET
+        access_token_ciphertext = EXCLUDED.access_token_ciphertext,
+        refresh_token_ciphertext = EXCLUDED.refresh_token_ciphertext,
+        scope = EXCLUDED.scope,
+        token_type = EXCLUDED.token_type,
+        expires_at = EXCLUDED.expires_at,
+        updated_at = NOW()
+    `,
+    [
+      CURRENT_CLONE_ID,
+      encryptSmartThingsToken(accessToken),
+      encryptSmartThingsToken(refreshToken),
+      scope,
+      tokenType,
+      expiresAt
+    ]
+  );
+
+  console.log("✅ SmartThings-Tokens verschlüsselt gespeichert.");
+}
+
+async function exchangeSmartThingsToken(parameters) {
+  if (!smartThingsConfigured()) {
+    throw new Error("SMARTTHINGS_NOT_CONFIGURED");
+  }
+
+  const body = new URLSearchParams({
+    ...parameters,
+    client_id: SMARTTHINGS_CLIENT_ID
+  });
+
+  const basicAuth = Buffer.from(
+    `${SMARTTHINGS_CLIENT_ID}:${SMARTTHINGS_CLIENT_SECRET}`,
+    "utf8"
+  ).toString("base64");
+
+  const response = await fetch(SMARTTHINGS_TOKEN_URL, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Basic ${basicAuth}`,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body
+  });
+
+  if (!response.ok) {
+    const responseText = await response.text();
+    throw new Error(
+      `SMARTTHINGS_TOKEN_${response.status}: ${responseText.slice(0, 500)}`
+    );
+  }
+
+  return response.json();
+}
+
+/*
+  ==========================================================
+  SMARTTHINGS – OAUTH START UND CALLBACK
+  ==========================================================
+*/
+
+app.get("/auth/smartthings", (req, res) => {
+  if (!smartThingsConfigured()) {
+    return res.status(503).type("text").send(
+      "Die sichere SmartThings-Verbindung ist vorbereitet. " +
+      "Die einmalige Samsung-Appregistrierung muss noch abgeschlossen werden."
+    );
+  }
+
+  const authorizationUrl = new URL(SMARTTHINGS_AUTHORIZE_URL);
+  authorizationUrl.searchParams.set("client_id", SMARTTHINGS_CLIENT_ID);
+  authorizationUrl.searchParams.set("response_type", "code");
+  authorizationUrl.searchParams.set("redirect_uri", SMARTTHINGS_REDIRECT_URI);
+  authorizationUrl.searchParams.set("scope", SMARTTHINGS_SCOPES.join(" "));
+  authorizationUrl.searchParams.set("state", createSmartThingsOAuthState());
+
+  return res.redirect(authorizationUrl.toString());
+});
+
+app.get("/auth/smartthings/callback", async (req, res) => {
+  try {
+    const oauthError = String(req.query.error || "").trim();
+    const code = String(req.query.code || "").trim();
+    const state = String(req.query.state || "").trim();
+
+    if (oauthError) {
+      return res.status(400).type("text").send(
+        "Die SmartThings-Freigabe wurde nicht erteilt."
+      );
+    }
+
+    if (!code) {
+      return res.status(400).type("text").send(
+        "SmartThings hat keinen Autorisierungscode geliefert."
+      );
+    }
+
+    if (!consumeSmartThingsOAuthState(state)) {
+      return res.status(400).type("text").send(
+        "Diese SmartThings-Anmeldung ist abgelaufen oder wurde nicht von " +
+        "Sol Holo gestartet. Bitte beginne die Verbindung erneut in der App."
+      );
+    }
+
+    const tokens = await exchangeSmartThingsToken({
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: SMARTTHINGS_REDIRECT_URI
+    });
+
+    await saveSmartThingsTokens(tokens);
+
+    return res.type("html").send(`
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sol Holo – SmartThings</title>
+<style>
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+background:#05030b;color:white;font-family:Arial,sans-serif;padding:24px}
+.box{width:100%;max-width:560px;padding:28px;border:1px solid #7139a7;
+border-radius:22px;background:#100719;text-align:center}
+h1{color:#bd72ff}.ok{color:#45e5a2;font-size:20px}
+</style>
+</head>
+<body><div class="box">
+<h1>🏠 Sol Holo</h1>
+<p class="ok">✅ Dein SmartThings-Zuhause wurde verbunden.</p>
+<p>Sol Holo darf die von dir ausgewählten Räume und Geräte erkennen.
+Eine Geräteaktion wird erst nach deiner Bestätigung ausgeführt.</p>
+</div></body>
+</html>
+    `);
+  } catch (error) {
+    console.error("SmartThings OAuth Callback Fehler:", error);
+    return res.status(500).type("text").send(
+      "Die Verbindung mit SmartThings konnte nicht abgeschlossen werden."
+    );
+  }
+});
+
+app.get("/smartthings/status", async (req, res) => {
+  try {
+    const configured = smartThingsConfigured();
+    if (!configured) {
+      return res.json({
+        configured: false,
+        connected: false,
+        selectedDevicesOnly: true,
+        actionsRequireConfirmation: true
+      });
+    }
+
+    const tokens = await loadSmartThingsTokens();
+    const connected = Boolean(
+      tokens?.refresh_token || tokens?.access_token
+    );
+    const scopeSet = new Set(
+      String(tokens?.scope || "").split(/\s+/).filter(Boolean)
+    );
+
+    return res.json({
+      configured: true,
+      connected,
+      selectedDevicesOnly: true,
+      actionsRequireConfirmation: true,
+      permissions: {
+        locations: scopeSet.has("r:locations:*"),
+        devices: scopeSet.has("r:devices:$"),
+        deviceControl: scopeSet.has("x:devices:$"),
+        scenes: scopeSet.has("r:scenes:*"),
+        sceneControl: scopeSet.has("x:scenes:*")
+      }
+    });
+  } catch (error) {
+    console.error("SmartThings Status Fehler:", error);
+    return res.status(500).json({
+      configured: smartThingsConfigured(),
+      connected: false,
+      selectedDevicesOnly: true,
+      actionsRequireConfirmation: true,
+      error: "Der SmartThings-Status konnte nicht gelesen werden."
+    });
+  }
+});
 
 /*
   ==========================================================
