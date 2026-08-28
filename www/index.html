@@ -1588,14 +1588,14 @@ Lautstärke
 
 <button
   id="volumeLow"
-  class="stageVolumeButton active"
+  class="stageVolumeButton"
   type="button">
 🔉 Leise
 </button>
 
 <button
   id="volumeNormal"
-  class="stageVolumeButton"
+  class="stageVolumeButton active"
   type="button">
 🔊 Normal
 </button>
@@ -3111,7 +3111,45 @@ LAUTSTÄRKE
 */
 
 let solVolume =
-  0.22;
+  1;
+
+
+function getSolAudioRoutePlugin(){
+
+  return window.Capacitor?.Plugins?.SolAudioRoute || null;
+}
+
+
+async function routeSolAudioToSpeaker(){
+
+  const plugin = getSolAudioRoutePlugin();
+
+  if(!plugin){
+    return;
+  }
+
+  try{
+    await plugin.useSpeaker();
+  }catch(error){
+    console.warn("Sol-Lautsprecherroute:", error);
+  }
+}
+
+
+async function restoreSolAudioRoute(){
+
+  const plugin = getSolAudioRoutePlugin();
+
+  if(!plugin){
+    return;
+  }
+
+  try{
+    await plugin.restore();
+  }catch(error){
+    console.warn("Sol-Audioroute wiederherstellen:", error);
+  }
+}
 
 
 function setSolVolume(
@@ -3704,7 +3742,22 @@ async function openFilteredMicrophone(){
 
           channelCount:1
         }
-      });
+        });
+
+
+  const audioTrack =
+    stream.getAudioTracks()[0];
+
+
+  if(!audioTrack){
+    stream.getTracks().forEach(track => track.stop());
+    throw new Error("Keine Mikrofonspur gefunden.");
+  }
+
+
+  if("contentHint" in audioTrack){
+    audioTrack.contentHint = "speech";
+  }
 
 
   micStatus.textContent =
@@ -3782,6 +3835,9 @@ stopLipSync();
 
   realtimeAudio.srcObject =
     null;
+
+
+  void restoreSolAudioRoute();
 
 
   liveButton.classList.remove(
@@ -3986,6 +4042,9 @@ async function startLiveConversation(){
   }
 
 
+  await routeSolAudioToSpeaker();
+
+
   await ensureLipAudioContext();
 
 
@@ -4092,6 +4151,9 @@ async function startLiveConversation(){
           solVolume;
 
 
+        void routeSolAudioToSpeaker();
+
+
         realtimeAudio
           .play()
           .catch(
@@ -4107,6 +4169,9 @@ async function startLiveConversation(){
 
     microphoneStream =
       await openFilteredMicrophone();
+
+
+    await routeSolAudioToSpeaker();
 
 
     const audioTrack =

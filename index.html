@@ -1633,14 +1633,14 @@ Lautstärke
 
 <button
   id="volumeLow"
-  class="stageVolumeButton active"
+  class="stageVolumeButton"
   type="button">
 🔉 Leise
 </button>
 
 <button
   id="volumeNormal"
-  class="stageVolumeButton"
+  class="stageVolumeButton active"
   type="button">
 🔊 Normal
 </button>
@@ -3200,7 +3200,45 @@ if(
 
 
 let solVolume =
-  0.22;
+  1;
+
+
+function getSolAudioRoutePlugin(){
+
+  return window.Capacitor?.Plugins?.SolAudioRoute || null;
+}
+
+
+async function routeSolAudioToSpeaker(){
+
+  const plugin = getSolAudioRoutePlugin();
+
+  if(!plugin){
+    return;
+  }
+
+  try{
+    await plugin.useSpeaker();
+  }catch(error){
+    console.warn("Sol-Lautsprecherroute:", error);
+  }
+}
+
+
+async function restoreSolAudioRoute(){
+
+  const plugin = getSolAudioRoutePlugin();
+
+  if(!plugin){
+    return;
+  }
+
+  try{
+    await plugin.restore();
+  }catch(error){
+    console.warn("Sol-Audioroute wiederherstellen:", error);
+  }
+}
 
 
 function setSolVolume(
@@ -3938,6 +3976,11 @@ async function openFilteredMicrophone(){
       {};
 
 
+  if("contentHint" in audioTrack){
+    audioTrack.contentHint = "speech";
+  }
+
+
   console.log(
     "Sol Holo Mikrofon-Einstellungen:",
     settings
@@ -4069,6 +4112,9 @@ stopLipSync();
 
   realtimeAudio.srcObject =
     null;
+
+
+  void restoreSolAudioRoute();
 
 
   liveButton.classList.remove(
@@ -4267,6 +4313,9 @@ async function startLiveConversation(){
   }
 
 
+  await routeSolAudioToSpeaker();
+
+
   await ensureLipAudioContext();
 
 
@@ -4373,6 +4422,9 @@ async function startLiveConversation(){
           solVolume;
 
 
+        void routeSolAudioToSpeaker();
+
+
         realtimeAudio
           .play()
           .catch(
@@ -4388,6 +4440,9 @@ async function startLiveConversation(){
 
     microphoneStream =
       await openFilteredMicrophone();
+
+
+    await routeSolAudioToSpeaker();
 
 
     const audioTrack =

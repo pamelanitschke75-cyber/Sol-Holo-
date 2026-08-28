@@ -1,4 +1,4 @@
-const CACHE_NAME = "sol-holo-v9-hey-ho-sol";
+const CACHE_NAME = "sol-holo-v10-hallo-hello-sol";
 
 const APP_FILES = [
   "/",

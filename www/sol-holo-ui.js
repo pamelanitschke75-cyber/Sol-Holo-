@@ -30,13 +30,13 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     '<button id="heyHoSolRow" class="serviceRow" type="button">' +
       '<span class="rowIcon">✦</span>' +
       '<span class="rowText">' +
-        '<span class="rowTitle">Hey ho Sol</span>' +
-        '<span class="rowMeta">„Bist du da?“ · „Are you ready?“</span>' +
+        '<span class="rowTitle">Sol-Weckruf</span>' +
+        '<span class="rowMeta">„Hallo Sol“ · „Hello Sol“</span>' +
       '</span>' +
       '<span id="heyHoSolStatus" class="serviceStatus setup">Wird geprüft …</span>' +
     '</button>' +
     '<div id="wakeModeChooser" class="wakeModeChooser" ' +
-      'aria-label="Hey-ho-Sol-Hörmodus auswählen">' +
+      'aria-label="Sol-Weckruf-Hörmodus auswählen">' +
       '<button type="button" data-wake-mode="off">Aus</button>' +
       '<button type="button" data-wake-mode="foreground">App offen</button>' +
       '<button type="button" data-wake-mode="background">Hintergrund</button>' +
@@ -461,7 +461,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
     const plugin = getHeyHoSolPlugin();
     if (!plugin) {
-      showToast("Hey ho Sol ist nur in der Android-App verfügbar.");
+      showToast("Der Sol-Weckruf ist nur in der Android-App verfügbar.");
       return;
     }
 
@@ -478,9 +478,9 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
           "dass Sol auf deinen Weckruf wartet."
         );
       } else if (mode === "foreground") {
-        showToast("Hey ho Sol hört nur zu, solange die App geöffnet ist.");
+        showToast("Sol hört nur auf den Weckruf, solange die App geöffnet ist.");
       } else {
-        showToast("Hey ho Sol ist ausgeschaltet.");
+        showToast("Der Sol-Weckruf ist ausgeschaltet.");
       }
     } catch (error) {
       const message = String(error?.message || error || "");
@@ -495,7 +495,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
           await plugin.openSpeechSettings();
         } catch {}
       } else {
-        showToast(message || "Hey ho Sol konnte gerade nicht aktiviert werden.");
+        showToast(message || "Der Sol-Weckruf konnte gerade nicht aktiviert werden.");
       }
 
       await loadWakeStatus();
@@ -545,9 +545,9 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
     lastWakeDetectedAt = detectedAt;
     pendingWakePrompt = String(
-      event?.phrase || "Hey ho Sol, bist du da?"
+      event?.phrase || "Hallo Sol"
     );
-    showToast("Hey ho Sol gehört ✨");
+    showToast("Sol-Weckruf gehört ✨");
     await startSolVoice();
   }
 

@@ -3295,6 +3295,10 @@ Antworte natürlich, freundlich und verständlich
 auf Deutsch, sofern Pam nicht ausdrücklich eine
 andere Sprache verwendet.
 
+Sprich flüssig und zusammenhängend in natürlich klingenden
+Sätzen. Vermeide abgehackte Wortfolgen und unnötig lange
+Pausen. Halte gesprochene Antworten klar und eher kompakt.
+
 Sol Holo ist die sichtbare digitale Verkörperung,
 über die deine Antworten gesprochen und dargestellt
 werden.
@@ -3439,6 +3443,31 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
 
         audio: {
           input: {
+            noise_reduction: {
+              type:
+                "far_field"
+            },
+
+            turn_detection: {
+              type:
+                "server_vad",
+
+              threshold:
+                0.75,
+
+              prefix_padding_ms:
+                300,
+
+              silence_duration_ms:
+                850,
+
+              create_response:
+                true,
+
+              interrupt_response:
+                false
+            },
+
             transcription: {
               model:
                 "gpt-transcribe",

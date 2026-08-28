@@ -34,6 +34,7 @@ mkdirSync(javaTarget, { recursive: true });
 for (const fileName of [
   "HeyHoSolPlugin.java",
   "HeyHoSolService.java",
+  "SolAudioRoutePlugin.java",
   "WhatsAppDrivingModePlugin.java",
   "WhatsAppNotificationListener.java"
 ]) {
@@ -79,6 +80,18 @@ if (!mainActivity.includes("registerPlugin(HeyHoSolPlugin.class)")) {
   );
 }
 
+if (!mainActivity.includes("registerPlugin(SolAudioRoutePlugin.class)")) {
+  const registrationMarker = "        registerPlugin(HeyHoSolPlugin.class);";
+  if (!mainActivity.includes(registrationMarker)) {
+    throw new Error("Weckruf-Plugin-Registrierung in MainActivity nicht gefunden.");
+  }
+
+  mainActivity = mainActivity.replace(
+    registrationMarker,
+    registrationMarker + "\n        registerPlugin(SolAudioRoutePlugin.class);"
+  );
+}
+
 writeFileSync(mainActivityPath, mainActivity, "utf8");
 
 let manifest = readFileSync(manifestPath, "utf8");
@@ -87,6 +100,7 @@ const manifestMarker =
 
 for (const permission of [
   '<uses-permission android:name="android.permission.RECORD_AUDIO" />',
+  '<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />',
   '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
   '<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />',
   '<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />'
@@ -183,5 +197,5 @@ if (!manifest.includes(".HeyHoSolService")) {
 
 writeFileSync(manifestPath, manifest, "utf8");
 console.log(
-  "WhatsApp-Fahrmodus und Hey-ho-Sol-Weckmodus wurden in Android eingebunden."
+  "WhatsApp-Fahrmodus und Sol-Weckruf wurden in Android eingebunden."
 );
