@@ -104,7 +104,8 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     mode: "off",
     active: false,
     listening: false,
-    pausedForConversation: false
+    pausedForConversation: false,
+    overlayPermissionGranted: false
   };
   let wakeActionRunning = false;
   let wakeListenersRegistered = false;
@@ -351,6 +352,9 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       active: Boolean(nextStatus?.active),
       listening: Boolean(nextStatus?.listening),
       pausedForConversation: Boolean(nextStatus?.pausedForConversation),
+      overlayPermissionGranted: Boolean(
+        nextStatus?.overlayPermissionGranted
+      ),
       lastError: String(nextStatus?.lastError || "")
     };
 
@@ -378,6 +382,12 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     } else if (wakeStatus.pausedForConversation) {
       statusElement.textContent = "Sol spricht";
       statusElement.classList.add("connected");
+    } else if (
+      wakeStatus.mode === "background" &&
+      !wakeStatus.overlayPermissionGranted
+    ) {
+      statusElement.textContent = "Freigabe nötig";
+      statusElement.classList.add("setup");
     } else if (wakeStatus.mode === "background") {
       statusElement.textContent = wakeStatus.listening
         ? "Hintergrund aktiv"
@@ -473,9 +483,17 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       renderWakeStatus(status);
 
       if (mode === "background") {
+        if (!status.overlayPermissionGranted) {
+          showToast(
+            "Aktiviere jetzt „Sol Holo“ bei „Über anderen Apps einblenden“ " +
+            "und kehre danach zurück."
+          );
+          await plugin.openOverlaySettings();
+          return;
+        }
+
         showToast(
-          "Hintergrund-Hören aktiv. Android zeigt dauerhaft an, " +
-          "dass Sol auf deinen Weckruf wartet."
+          "Hintergrund-Hören und automatisches Öffnen sind aktiv."
         );
       } else if (mode === "foreground") {
         showToast("Sol hört nur auf den Weckruf, solange die App geöffnet ist.");
@@ -646,7 +664,11 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
   document.getElementById("heyHoSolRow").addEventListener("click", () => {
     showToast(
-      "Wähle: Aus, nur bei geöffneter App oder sichtbar im Hintergrund."
+      wakeStatus.mode === "background" &&
+      !wakeStatus.overlayPermissionGranted
+        ? "Tippe unten noch einmal auf „Hintergrund“, um die einmalige " +
+          "Android-Freigabe zu öffnen."
+        : "Wähle: Aus, nur bei geöffneter App oder sichtbar im Hintergrund."
     );
   });
 

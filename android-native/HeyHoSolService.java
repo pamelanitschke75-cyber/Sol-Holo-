@@ -10,14 +10,23 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
+import android.graphics.Color;
+import android.graphics.PixelFormat;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.provider.Settings;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
+import android.view.Gravity;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
@@ -54,6 +63,8 @@ public class HeyHoSolService extends Service implements RecognitionListener {
     private boolean wakeHandled;
     private boolean recognitionStarted;
     private boolean foregroundNotificationActive;
+    private WindowManager wakeOverlayManager;
+    private View wakeOverlayView;
 
     public static Intent startIntent(Context context, String mode) {
         return new Intent(context, HeyHoSolService.class)
@@ -329,6 +340,30 @@ public class HeyHoSolService extends Service implements RecognitionListener {
     }
 
     private void openSolHolo() {
+        if (HeyHoSolPlugin.isActivityVisible()) {
+            launchSolHoloActivity();
+            return;
+        }
+
+        if (!Settings.canDrawOverlays(this)) {
+            saveError(
+                "Für das automatische Öffnen fehlt die Android-Einblendfreigabe."
+            );
+            updateBackgroundNotification(
+                "Weckruf gehört · Einblend-Freigabe nötig"
+            );
+            return;
+        }
+
+        if (!showWakeOverlay()) {
+            return;
+        }
+
+        mainHandler.postDelayed(this::launchSolHoloActivity, 320L);
+        mainHandler.postDelayed(this::removeWakeOverlay, 2_000L);
+    }
+
+    private void launchSolHoloActivity() {
         Intent launchIntent = new Intent(this, MainActivity.class);
         launchIntent.addFlags(
             Intent.FLAG_ACTIVITY_NEW_TASK
@@ -344,6 +379,88 @@ public class HeyHoSolService extends Service implements RecognitionListener {
                 "Android hat das automatische Öffnen im Hintergrund verhindert."
             );
         }
+    }
+
+    private boolean showWakeOverlay() {
+        removeWakeOverlay();
+
+        TextView overlay = new TextView(this);
+        overlay.setText("SH∞  Sol ist da ✦");
+        overlay.setTextColor(Color.WHITE);
+        overlay.setTextSize(17f);
+        overlay.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        overlay.setGravity(Gravity.CENTER);
+        overlay.setPadding(dp(20), dp(12), dp(20), dp(12));
+
+        GradientDrawable background = new GradientDrawable(
+            GradientDrawable.Orientation.LEFT_RIGHT,
+            new int[] {
+                Color.rgb(84, 54, 190),
+                Color.rgb(41, 112, 205)
+            }
+        );
+        background.setCornerRadius(dp(28));
+        background.setStroke(dp(1), Color.rgb(150, 209, 255));
+        overlay.setBackground(background);
+        overlay.setAlpha(0f);
+        overlay.setElevation(dp(12));
+
+        WindowManager.LayoutParams params = new WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+                | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT
+        );
+        params.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
+        params.y = dp(76);
+        params.setTitle("Sol-Weckruf");
+
+        try {
+            wakeOverlayManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+            if (wakeOverlayManager == null) {
+                throw new IllegalStateException("WindowManager fehlt");
+            }
+
+            wakeOverlayManager.addView(overlay, params);
+            wakeOverlayView = overlay;
+            overlay.animate().alpha(1f).setDuration(180L).start();
+            return true;
+        } catch (RuntimeException error) {
+            wakeOverlayManager = null;
+            wakeOverlayView = null;
+            saveError(
+                "Android konnte die sichtbare Sol-Einblendung nicht anzeigen."
+            );
+            updateBackgroundNotification(
+                "Weckruf gehört · Sol über Hinweis öffnen"
+            );
+            return false;
+        }
+    }
+
+    private void removeWakeOverlay() {
+        View overlay = wakeOverlayView;
+        WindowManager manager = wakeOverlayManager;
+        wakeOverlayView = null;
+        wakeOverlayManager = null;
+
+        if (overlay == null || manager == null) {
+            return;
+        }
+
+        try {
+            manager.removeViewImmediate(overlay);
+        } catch (RuntimeException ignored) {
+        }
+    }
+
+    private int dp(int value) {
+        return Math.round(
+            value * getResources().getDisplayMetrics().density
+        );
     }
 
     private void createNotificationChannel() {
@@ -435,6 +552,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
     private void stopWakeService() {
         pausedForConversation = false;
         pauseRecognition();
+        removeWakeOverlay();
         if (foregroundNotificationActive) {
             stopForeground(STOP_FOREGROUND_REMOVE);
             foregroundNotificationActive = false;
@@ -529,6 +647,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
         listening = false;
         pausedForConversation = false;
         mainHandler.removeCallbacksAndMessages(null);
+        removeWakeOverlay();
 
         if (speechRecognizer != null) {
             try {

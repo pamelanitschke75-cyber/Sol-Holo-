@@ -6,6 +6,7 @@ import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -63,6 +64,7 @@ public class HeyHoSolPlugin extends Plugin {
         super.handleOnResume();
         activityVisible = true;
         startSavedModeIfNeeded();
+        publishStatusEvent();
     }
 
     @Override
@@ -112,6 +114,11 @@ public class HeyHoSolPlugin extends Plugin {
             ) == PackageManager.PERMISSION_GRANTED;
     }
 
+    private boolean overlayPermissionGranted() {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.M
+            || Settings.canDrawOverlays(getContext());
+    }
+
     private boolean onDeviceRecognitionSupported() {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
             && SpeechRecognizer.isOnDeviceRecognitionAvailable(getContext());
@@ -131,12 +138,18 @@ public class HeyHoSolPlugin extends Plugin {
         boolean supported = onDeviceRecognitionSupported();
         boolean microphonePermissionGranted = microphoneGranted();
         boolean notificationPermissionGranted = notificationsGranted();
+        boolean overlayPermissionGranted = overlayPermissionGranted();
 
         JSObject result = new JSObject();
         result.put("supported", supported);
         result.put("mode", mode);
         result.put("microphonePermissionGranted", microphonePermissionGranted);
         result.put("notificationPermissionGranted", notificationPermissionGranted);
+        result.put("overlayPermissionGranted", overlayPermissionGranted);
+        result.put(
+            "backgroundLaunchReady",
+            !MODE_BACKGROUND.equals(mode) || overlayPermissionGranted
+        );
         result.put("serviceRunning", HeyHoSolService.isRunning());
         result.put("listening", HeyHoSolService.isListening());
         result.put("pausedForConversation", HeyHoSolService.isPausedForConversation());
@@ -294,6 +307,47 @@ public class HeyHoSolPlugin extends Plugin {
             } catch (ActivityNotFoundException fallbackError) {
                 call.reject(
                     "Die Android-Spracheinstellungen wurden nicht gefunden.",
+                    null,
+                    fallbackError
+                );
+            }
+        }
+    }
+
+    @PluginMethod
+    public void openOverlaySettings(PluginCall call) {
+        runOnMainThread(() -> openOverlaySettingsOnMainThread(call));
+    }
+
+    private void openOverlaySettingsOnMainThread(PluginCall call) {
+        Activity activity = getActivity();
+        if (activity == null) {
+            call.reject("Die Android-Einblendfreigabe konnte nicht geöffnet werden.");
+            return;
+        }
+
+        if (overlayPermissionGranted()) {
+            call.resolve(status());
+            return;
+        }
+
+        Intent permissionIntent = new Intent(
+            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            Uri.parse("package:" + getContext().getPackageName())
+        );
+
+        try {
+            activity.startActivity(permissionIntent);
+            call.resolve(status());
+        } catch (ActivityNotFoundException error) {
+            try {
+                activity.startActivity(
+                    new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+                );
+                call.resolve(status());
+            } catch (ActivityNotFoundException fallbackError) {
+                call.reject(
+                    "Die Android-Einblendfreigabe wurde nicht gefunden.",
                     null,
                     fallbackError
                 );
