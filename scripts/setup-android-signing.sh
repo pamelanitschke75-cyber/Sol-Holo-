@@ -6,6 +6,11 @@ ALIAS="sol-holo"
 BACKUP_DIR="SOL-HOLO-SIGNING-BACKUP"
 KEYSTORE_PATH="${BACKUP_DIR}/sol-holo-release.jks"
 
+cleanup() {
+  unset SIGNING_PASSWORD SOL_HOLO_SIGNING_PASSWORD PASSWORD_CONFIRMED 2>/dev/null || true
+}
+trap cleanup EXIT
+
 fail() {
   printf '\nFEHLER: %s\n' "$1" >&2
   exit 1
@@ -28,48 +33,67 @@ if [[ -z "$KEYTOOL" ]]; then
   fail "Java keytool wurde nicht gefunden."
 fi
 
+printf '\nSol Holo – dauerhafte Android-App-Signatur\n'
+
 if [[ -e "$KEYSTORE_PATH" ]]; then
-  fail "Es existiert bereits ein lokaler Signierschlüssel. Es wurde nichts überschrieben."
+  printf 'Vorhandener Signierschlüssel gefunden. Er wird nicht verändert oder überschrieben.\n'
+else
+  printf 'Es wird einmalig ein neuer Signierschlüssel erstellt.\n'
 fi
 
-printf '\nSol Holo – dauerhaften Android-Signierschlüssel erstellen\n'
 printf 'Das Passwort bleibt unsichtbar und wird nicht ausgegeben.\n\n'
-
-read -r -s -p "Eigenes Signier-Passwort (mindestens 20 Zeichen): " SIGNING_PASSWORD
+read -r -s -p "Signier-Passwort (mindestens 20 Zeichen): " SIGNING_PASSWORD
 printf '\n'
 
 if (( ${#SIGNING_PASSWORD} < 20 )); then
-  unset SIGNING_PASSWORD
   fail "Das Passwort ist kürzer als 20 Zeichen."
 fi
 
-printf 'Die Eingabe enthält %s Zeichen.\n' "${#SIGNING_PASSWORD}"
-read -r -p "Ist dieses Passwort sicher gespeichert? Tippe JA: " PASSWORD_CONFIRMED
-
-if [[ "${PASSWORD_CONFIRMED^^}" != "JA" ]]; then
-  unset SIGNING_PASSWORD PASSWORD_CONFIRMED
-  fail "Vorgang wurde ohne Änderung beendet."
-fi
-
-unset PASSWORD_CONFIRMED
-umask 077
-mkdir -p "$BACKUP_DIR"
 export SOL_HOLO_SIGNING_PASSWORD="$SIGNING_PASSWORD"
 
-"$KEYTOOL" -genkeypair \
-  -keystore "$KEYSTORE_PATH" \
-  -storetype PKCS12 \
-  -alias "$ALIAS" \
-  -keyalg RSA \
-  -keysize 4096 \
-  -validity 36500 \
-  -storepass:env SOL_HOLO_SIGNING_PASSWORD \
-  -keypass:env SOL_HOLO_SIGNING_PASSWORD \
-  -dname "CN=Sol Holo, OU=SH, O=Pamela Nitschke, C=DE" \
-  >/dev/null
+if [[ -e "$KEYSTORE_PATH" ]]; then
+  if ! "$KEYTOOL" -list \
+    -keystore "$KEYSTORE_PATH" \
+    -alias "$ALIAS" \
+    -storepass:env SOL_HOLO_SIGNING_PASSWORD \
+    >/dev/null 2>&1; then
+    fail "Das Passwort öffnet den vorhandenen Schlüssel nicht. Der Schlüssel wurde nicht verändert."
+  fi
+  printf 'Passwort und vorhandener Signierschlüssel passen zusammen.\n'
+else
+  printf 'Die Eingabe enthält %s Zeichen.\n' "${#SIGNING_PASSWORD}"
+  read -r -p "Ist dieses Passwort sicher gespeichert? Tippe JA: " PASSWORD_CONFIRMED
 
-printf '%s' "$SIGNING_PASSWORD" | gh secret set ANDROID_SIGNING_PASSWORD
-base64 -w 0 "$KEYSTORE_PATH" | gh secret set ANDROID_KEYSTORE_BASE64
+  if [[ "${PASSWORD_CONFIRMED^^}" != "JA" ]]; then
+    fail "Vorgang wurde ohne Änderung beendet."
+  fi
+
+  unset PASSWORD_CONFIRMED
+  umask 077
+  mkdir -p "$BACKUP_DIR"
+
+  "$KEYTOOL" -genkeypair \
+    -keystore "$KEYSTORE_PATH" \
+    -storetype PKCS12 \
+    -alias "$ALIAS" \
+    -keyalg RSA \
+    -keysize 4096 \
+    -validity 36500 \
+    -storepass:env SOL_HOLO_SIGNING_PASSWORD \
+    -keypass:env SOL_HOLO_SIGNING_PASSWORD \
+    -dname "CN=Sol Holo, OU=SH, O=Pamela Nitschke, C=DE" \
+    >/dev/null
+
+  printf 'Der feste Signierschlüssel wurde erstellt.\n'
+fi
+
+if ! printf '%s' "$SIGNING_PASSWORD" | gh secret set ANDROID_SIGNING_PASSWORD; then
+  fail "GitHub konnte das Passwort-Secret nicht speichern. Der lokale Schlüssel bleibt unverändert erhalten."
+fi
+
+if ! base64 -w 0 "$KEYSTORE_PATH" | gh secret set ANDROID_KEYSTORE_BASE64; then
+  fail "GitHub konnte das Schlüssel-Secret nicht speichern. Der lokale Schlüssel bleibt unverändert erhalten."
+fi
 
 CERT_FINGERPRINT="$(
   "$KEYTOOL" -list -v \
@@ -80,9 +104,7 @@ CERT_FINGERPRINT="$(
     | head -n 1
 )"
 
-unset SIGNING_PASSWORD SOL_HOLO_SIGNING_PASSWORD
-
-printf '\nDer feste Signierschlüssel wurde erstellt.\n'
+printf '\nFERTIG: Der feste Signierschlüssel ist gültig.\n'
 printf 'Die zwei verschlüsselten GitHub-Secrets wurden hinterlegt.\n'
 printf 'WICHTIG: Lade den Ordner %s als private Sicherung herunter.\n' "$BACKUP_DIR"
 printf 'Der Schlüssel oder das Passwort dürfen niemals veröffentlicht oder in einen Commit aufgenommen werden.\n\n'
