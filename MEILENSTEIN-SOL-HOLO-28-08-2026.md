@@ -48,7 +48,7 @@ Verbindungen.
 - Bilder an Sol senden
 - Realtime-Sprachgespräch
 - Mikrofonsteuerung
-- Lip-Sync und Avataransicht
+- Lip-Sync und Clone-Ansicht
 - Vollzeitgedächtnis
 - Google-Kalender-Verbindungsstatus
 
@@ -129,8 +129,8 @@ jeweiligen Android- beziehungsweise Samsung-Geräts ab.
 
 - Die kosmische Oberfläche läuft auf Pams Android-Handy.
 - Das transparente SH♾️ schwebt frei über dem Sternenhimmel.
-- Texteingabe, Bilder, Mikrofon, Antworten, Navigation, Gedächtnis und Avatar
-  bleiben funktionsfähig.
+- Texteingabe, Bilder, Mikrofon, Antworten, Navigation, Gedächtnis und
+  Clone-Darstellung bleiben funktionsfähig.
 - Das Google-Konto ist über den Google-Kalender verbunden.
 - Der WhatsApp-Fahrmodus ist nativ umgesetzt, gebaut und in der App aktiviert.
 - Beide „Hey ho Sol“-Sätze sind integriert.
