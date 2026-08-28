@@ -73,6 +73,13 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   const onboarding = document.getElementById("onboardingScreen");
   let toastTimer = null;
   let googleConnected = false;
+  let whatsappStatus = {
+    supported: false,
+    permissionGranted: false,
+    enabled: false,
+    active: false
+  };
+  let whatsappActionRunning = false;
 
   function showToast(text) {
     uiToast.textContent = String(text || "");
@@ -103,6 +110,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
     if (viewName === "services" || viewName === "profile") {
       void loadGoogleStatus();
+    }
+
+    if (viewName === "services") {
+      void loadWhatsAppStatus();
     }
 
     if (viewName === "chat" && typeof updateMouthGeometry === "function") {
@@ -180,6 +191,118 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     }
   }
 
+  function getWhatsAppDrivingModePlugin() {
+    return window.Capacitor?.Plugins?.WhatsAppDrivingMode || null;
+  }
+
+  function renderWhatsAppStatus(nextStatus) {
+    const statusElement = document.getElementById("whatsappDriveStatus");
+    const row = document.getElementById("whatsappDriveRow");
+
+    whatsappStatus = {
+      supported: Boolean(nextStatus?.supported),
+      permissionGranted: Boolean(nextStatus?.permissionGranted),
+      enabled: Boolean(nextStatus?.enabled),
+      active: Boolean(nextStatus?.active)
+    };
+
+    statusElement.classList.remove("connected", "setup");
+    row.setAttribute("aria-pressed", String(whatsappStatus.active));
+
+    if (!whatsappStatus.supported) {
+      statusElement.textContent = "Nur Android";
+      statusElement.classList.add("setup");
+    } else if (!whatsappStatus.permissionGranted) {
+      statusElement.textContent = "Freigabe nötig";
+      statusElement.classList.add("setup");
+    } else if (whatsappStatus.active) {
+      statusElement.textContent = "Aktiv";
+      statusElement.classList.add("connected");
+    } else {
+      statusElement.textContent = "Aus";
+      statusElement.classList.add("setup");
+    }
+  }
+
+  async function loadWhatsAppStatus() {
+    const plugin = getWhatsAppDrivingModePlugin();
+    if (!plugin) {
+      renderWhatsAppStatus({ supported: false });
+      return whatsappStatus;
+    }
+
+    try {
+      const status = await plugin.getStatus();
+      renderWhatsAppStatus(status);
+    } catch (error) {
+      console.error("WhatsApp-Fahrmodusstatus:", error);
+      renderWhatsAppStatus({ supported: true });
+      document.getElementById("whatsappDriveStatus").textContent =
+        "Status offen";
+    }
+
+    return whatsappStatus;
+  }
+
+  async function toggleWhatsAppDrivingMode() {
+    if (whatsappActionRunning) {
+      return;
+    }
+
+    const plugin = getWhatsAppDrivingModePlugin();
+    if (!plugin) {
+      showToast("Der WhatsApp-Fahrmodus ist nur in der Android-App verfügbar.");
+      renderWhatsAppStatus({ supported: false });
+      return;
+    }
+
+    const row = document.getElementById("whatsappDriveRow");
+    whatsappActionRunning = true;
+    row.disabled = true;
+
+    try {
+      const currentStatus = await plugin.getStatus();
+
+      if (!currentStatus.permissionGranted) {
+        await plugin.setEnabled({ enabled: true });
+        showToast(
+          "Bitte erlaube Sol Holo jetzt den Benachrichtigungszugriff. " +
+          "Danach ist der WhatsApp-Fahrmodus aktiv."
+        );
+        await plugin.openNotificationAccessSettings();
+        renderWhatsAppStatus({
+          supported: true,
+          permissionGranted: false,
+          enabled: true,
+          active: false
+        });
+        return;
+      }
+
+      const nextStatus = await plugin.setEnabled({
+        enabled: !currentStatus.active
+      });
+      renderWhatsAppStatus(nextStatus);
+
+      if (nextStatus.active) {
+        showToast(
+          "WhatsApp-Fahrmodus aktiv: Neue Nachrichten werden vorgelesen."
+        );
+      } else {
+        showToast("WhatsApp-Fahrmodus ausgeschaltet.");
+      }
+    } catch (error) {
+      console.error("WhatsApp-Fahrmodus:", error);
+      showToast(
+        "Der WhatsApp-Fahrmodus konnte gerade nicht geändert werden."
+      );
+      await loadWhatsAppStatus();
+    } finally {
+      whatsappActionRunning = false;
+      row.disabled = false;
+    }
+  }
+
   document.addEventListener("click", (event) => {
     const viewButton = event.target.closest("[data-open-view]");
     if (viewButton) {
@@ -236,6 +359,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
   document.getElementById("refreshServicesButton").addEventListener("click", () => {
     void loadGoogleStatus();
+    void loadWhatsAppStatus();
   });
 
   document.getElementById("googleAccountRow").addEventListener("click", () => {
@@ -258,10 +382,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   });
 
   document.getElementById("whatsappDriveRow").addEventListener("click", () => {
-    showToast(
-      "Der WhatsApp-Fahrmodus braucht eine einmalige Android-Freigabe. " +
-      "Er wird erst im nächsten sicheren Android-Schritt aktiviert."
-    );
+    void toggleWhatsAppDrivingMode();
   });
 
   document.getElementById("phoneContactsRow").addEventListener("click", () => {
@@ -272,10 +393,12 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   });
 
   document.getElementById("manageServicesButton").addEventListener("click", () => {
+    const whatsappText = whatsappStatus.active
+      ? "Der WhatsApp-Fahrmodus ist aktiv."
+      : "Den WhatsApp-Fahrmodus richtest du direkt über seine Zeile ein.";
     showToast(
-      "Jeder Dienst wird einzeln verbunden. " +
-      "Google Kalender ist bereits technisch vorbereitet; " +
-      "WhatsApp, Telefon und Kontakte folgen als Android-Funktionen."
+      "Jeder Dienst wird einzeln freigegeben. " + whatsappText +
+      " Telefon und Kontakte folgen als eigener Android-Schritt."
     );
   });
 
@@ -296,7 +419,17 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     }
   } catch {}
 
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      void loadWhatsAppStatus();
+    }
+  });
+
+  window.addEventListener("focus", () => {
+    void loadWhatsAppStatus();
+  });
+
   showView("home");
   void loadGoogleStatus();
+  void loadWhatsAppStatus();
 })();
-

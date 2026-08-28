@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-009-soft-edges";
+const CACHE_VERSION = "sol-holo-010-whatsapp-drive-mode";
 
 self.addEventListener("install", () => {
   self.skipWaiting();

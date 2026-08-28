@@ -17,6 +17,8 @@ on:
       - "www/sol-holo-ui.js"
       - "www/service-worker.js"
       - "package.json"
+      - "android-native/**"
+      - "scripts/install-whatsapp-driving-mode.mjs"
 
 jobs:
   build-android:
@@ -55,6 +57,9 @@ jobs:
 
       - name: Sol Holo Web-App nach Android synchronisieren
         run: npx cap sync android
+
+      - name: Sicheren WhatsApp-Fahrmodus einbinden
+        run: node scripts/install-whatsapp-driving-mode.mjs
 
       - name: Mikrofon-Berechtigungen setzen
         run: |

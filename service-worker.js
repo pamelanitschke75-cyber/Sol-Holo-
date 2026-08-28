@@ -1,4 +1,4 @@
-const CACHE_NAME = "sol-holo-v7-soft-edges";
+const CACHE_NAME = "sol-holo-v8-whatsapp-drive-mode";
 
 const APP_FILES = [
   "/",
