@@ -46,7 +46,11 @@ if (!mainActivity.includes("registerPlugin(WhatsAppDrivingModePlugin.class)")) {
   if (!mainActivity.includes("import android.os.Bundle;")) {
     mainActivity = mainActivity.replace(
       /package com\.solholo\.app;\s*/,
-      "package com.solholo.app;\n\nimport android.os.Bundle;\n\n"
+      "package com.solholo.app;\n\n" +
+      "import android.content.Intent;\n" +
+      "import android.os.Build;\n" +
+      "import android.os.Bundle;\n" +
+      "import android.view.WindowManager;\n\n"
     );
   }
 
@@ -62,6 +66,34 @@ if (!mainActivity.includes("registerPlugin(WhatsAppDrivingModePlugin.class)")) {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(WhatsAppDrivingModePlugin.class);
         super.onCreate(savedInstanceState);
+        applyWakeScreenBehavior(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        applyWakeScreenBehavior(intent);
+    }
+
+    private void applyWakeScreenBehavior(Intent intent) {
+        if (
+            intent == null
+                || !intent.getBooleanExtra("hey_ho_sol_wake", false)
+        ) {
+            return;
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true);
+            setTurnScreenOn(true);
+            return;
+        }
+
+        getWindow().addFlags(
+            WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+                | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+        );
     }
 }`
   );
