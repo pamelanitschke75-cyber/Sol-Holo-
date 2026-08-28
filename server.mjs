@@ -209,12 +209,33 @@ const GOOGLE_SERVICE_SCOPES = {
 };
 
 function parseGoogleScopeSet(scopeText) {
-  return new Set(
+  const scopes = new Set(
     String(scopeText || "")
       .split(/\s+/)
       .map((scope) => scope.trim())
       .filter(Boolean)
   );
+
+  // Google may return the canonical userinfo scope URLs even when
+  // `email` and `profile` were requested as OpenID Connect scopes.
+  // Treat both spellings as the same granted sign-in permission.
+  if (
+    scopes.has(
+      "https://www.googleapis.com/auth/userinfo.email"
+    )
+  ) {
+    scopes.add("email");
+  }
+
+  if (
+    scopes.has(
+      "https://www.googleapis.com/auth/userinfo.profile"
+    )
+  ) {
+    scopes.add("profile");
+  }
+
+  return scopes;
 }
 
 function googleServiceAccess(scopeText) {
