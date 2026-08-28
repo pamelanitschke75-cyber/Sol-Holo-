@@ -12,6 +12,8 @@ import android.health.connect.datatypes.Record;
 import android.os.Build;
 import android.os.OutcomeReceiver;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
 
@@ -31,6 +33,7 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -40,6 +43,9 @@ public class HealthConnectPlugin extends Plugin {
         "android.permission.health.";
     private static final int MAX_DAYS = 30;
     private static final int MAX_RECORDS_PER_TYPE = 3;
+
+    private ActivityResultLauncher<String[]> healthPermissionLauncher;
+    private PluginCall pendingPermissionCall;
 
     private static final class PermissionSpec {
         final String name;
@@ -159,6 +165,27 @@ public class HealthConnectPlugin extends Plugin {
         new RecordSpec("activity", "Rollstuhlschübe", "READ_WHEELCHAIR_PUSHES", "WheelchairPushesRecord", 34)
     };
 
+    @Override
+    public void load() {
+        healthPermissionLauncher = getBridge().registerForActivityResult(
+            new ActivityResultContracts.RequestMultiplePermissions(),
+            this::finishPermissionRequest
+        );
+    }
+
+    private void finishPermissionRequest(Map<String, Boolean> results) {
+        PluginCall call = pendingPermissionCall;
+        pendingPermissionCall = null;
+        if (call == null) {
+            return;
+        }
+
+        JSObject result = status();
+        result.put("permissionRequestCompleted", true);
+        result.put("answeredPermissionCount", results.size());
+        call.resolve(result);
+    }
+
     private boolean supported() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             return false;
@@ -217,6 +244,41 @@ public class HealthConnectPlugin extends Plugin {
             return;
         }
 
+        if (pendingPermissionCall != null) {
+            call.reject(
+                "Die Health-Connect-Freigabe ist bereits geöffnet.",
+                "HEALTH_CONNECT_REQUEST_ACTIVE"
+            );
+            return;
+        }
+
+        List<String> missingPermissions = new ArrayList<>();
+        for (PermissionSpec permission : PERMISSIONS) {
+            if (
+                Build.VERSION.SDK_INT >= permission.minApi
+                    && !granted(permission.name)
+            ) {
+                missingPermissions.add(permission.name);
+            }
+        }
+
+        if (!missingPermissions.isEmpty()) {
+            pendingPermissionCall = call;
+            try {
+                healthPermissionLauncher.launch(
+                    missingPermissions.toArray(new String[0])
+                );
+            } catch (RuntimeException error) {
+                pendingPermissionCall = null;
+                call.reject(
+                    "Androids Health-Connect-Freigabe konnte nicht geöffnet werden.",
+                    "HEALTH_CONNECT_REQUEST_FAILED",
+                    error
+                );
+            }
+            return;
+        }
+
         try {
             Intent intent = new Intent(
                 HealthConnectManager.ACTION_MANAGE_HEALTH_PERMISSIONS
@@ -226,8 +288,14 @@ public class HealthConnectPlugin extends Plugin {
                 getContext().getPackageName()
             );
             getActivity().startActivity(intent);
-            call.resolve(status());
-        } catch (ActivityNotFoundException | NullPointerException error) {
+            JSObject result = status();
+            result.put("settingsOpened", true);
+            call.resolve(result);
+        } catch (
+            ActivityNotFoundException
+                | NullPointerException
+                | SecurityException error
+        ) {
             call.reject(
                 "Die Health-Connect-Freigaben konnten nicht geöffnet werden.",
                 "HEALTH_CONNECT_SETTINGS_UNAVAILABLE",

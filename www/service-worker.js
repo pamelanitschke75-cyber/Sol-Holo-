@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-015-notes-health";
+const CACHE_VERSION = "sol-holo-016-health-permissions";
 
 self.addEventListener("install", () => {
   self.skipWaiting();

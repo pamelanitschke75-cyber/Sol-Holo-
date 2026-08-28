@@ -803,21 +803,35 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     }
 
     healthActionRunning = true;
+    const statusElement = document.getElementById("healthConnectStatus");
+    statusElement.textContent = "Android wird geöffnet …";
+    statusElement.classList.remove("connected");
+    statusElement.classList.add("setup");
+    showToast("Androids Health-Freigabe wird geöffnet …");
+
     try {
-      const status = await plugin.getStatus();
+      const status = await plugin.openPermissions();
       renderHealthStatus(status);
       if (!status?.supported) {
         showToast("Für diese direkte Health-Verbindung braucht das Handy Android 14 oder neuer.");
         return;
       }
 
-      await plugin.openPermissions();
-      showToast(
-        "Android zeigt jetzt alle Health-Lesefreigaben. " +
-        "Du entscheidest jede Kategorie selbst."
-      );
+      if (status?.settingsOpened) {
+        showToast("Android zeigt die Health-Freigaben von Sol Holo.");
+      } else if (status?.allGranted) {
+        showToast("Health Connect ist vollständig und nur lesend verbunden.");
+      } else if (status?.connected) {
+        showToast(
+          `${status.grantedPermissionCount} von ` +
+          `${status.availablePermissionCount} Health-Bereichen sind lesend freigegeben.`
+        );
+      } else {
+        showToast("Es wurde noch keine Health-Lesefreigabe erteilt.");
+      }
     } catch (error) {
       console.error("Health-Freigaben:", error);
+      await loadHealthStatus();
       showToast("Die Health-Connect-Freigaben konnten nicht geöffnet werden.");
     } finally {
       healthActionRunning = false;
