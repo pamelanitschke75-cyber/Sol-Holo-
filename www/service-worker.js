@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-016-health-permissions";
+const CACHE_VERSION = "sol-holo-017-gallery-clone";
 
 self.addEventListener("install", () => {
   self.skipWaiting();

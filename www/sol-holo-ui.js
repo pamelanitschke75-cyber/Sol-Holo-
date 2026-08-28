@@ -24,6 +24,38 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
   currentHeader.insertAdjacentHTML("beforebegin", uiMarkup);
 
+  const profileCloneImage = document.querySelector("#profileView .profileLogo");
+  const profilePhotoButton = document.createElement("button");
+  profilePhotoButton.id = "profilePhotoButton";
+  profilePhotoButton.className = "profilePhotoButton";
+  profilePhotoButton.type = "button";
+  profilePhotoButton.setAttribute(
+    "aria-label",
+    "Eigenes Sol-Holo-Bild aus der Galerie auswählen"
+  );
+  profileCloneImage.id = "profileCloneImage";
+  profileCloneImage.alt = "Persönliches Bild von Pam und Sol Holo";
+  profileCloneImage.replaceWith(profilePhotoButton);
+  profilePhotoButton.append(profileCloneImage);
+  profilePhotoButton.insertAdjacentHTML(
+    "beforeend",
+    '<span id="profileMouthMarker" class="profileMouthMarker" hidden>+</span>' +
+    '<span class="profilePhotoEdit">✎ Bild ändern</span>'
+  );
+
+  const profileMeta = document.querySelector("#profileView .profileMeta");
+  profileMeta.insertAdjacentHTML(
+    "afterend",
+    '<input id="profilePhotoInput" type="file" accept="image/*" hidden>' +
+    '<div id="profilePhotoActions" class="profilePhotoActions" hidden>' +
+      '<button id="profileMouthButton" type="button">👄 Mund festlegen</button>' +
+      '<button id="profilePhotoResetButton" type="button">SH♾️ zurück</button>' +
+    '</div>' +
+    '<p id="profilePhotoHelp" class="profilePhotoHelp">' +
+      'Bild antippen und aus der Galerie wählen · bleibt nur auf diesem Gerät.' +
+    '</p>'
+  );
+
   const whatsappDriveRow = document.getElementById("whatsappDriveRow");
   whatsappDriveRow.insertAdjacentHTML(
     "afterend",
@@ -114,8 +146,26 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   };
 
   const introKey = "sol-holo-intro-v2-seen";
+  const clonePhotoKey = "sol-holo-clone-photo-v1";
+  const cloneMouthKey = "sol-holo-clone-mouth-v1";
   const onboarding = document.getElementById("onboardingScreen");
+  const profilePhotoInput = document.getElementById("profilePhotoInput");
+  const profilePhotoActions = document.getElementById("profilePhotoActions");
+  const profileMouthButton = document.getElementById("profileMouthButton");
+  const profilePhotoResetButton = document.getElementById(
+    "profilePhotoResetButton"
+  );
+  const profilePhotoHelp = document.getElementById("profilePhotoHelp");
+  const profileMouthMarker = document.getElementById("profileMouthMarker");
   let toastTimer = null;
+  let customClonePhoto = "";
+  let cloneMouthCalibrationActive = false;
+  let customCloneMouth = {
+    x: 0.5,
+    y: 0.58,
+    width: 0.16,
+    height: 0.075
+  };
   let googleConnected = false;
   let googleStatus = {
     connected: false,
@@ -170,6 +220,146 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     toastTimer = window.setTimeout(() => {
       uiToast.classList.remove("visible");
     }, 4200);
+  }
+
+  function clampCloneValue(value, minimum, maximum) {
+    return Math.min(maximum, Math.max(minimum, Number(value) || 0));
+  }
+
+  function normalizedCloneMouth(value) {
+    return {
+      x: clampCloneValue(value?.x || 0.5, 0.08, 0.92),
+      y: clampCloneValue(value?.y || 0.58, 0.08, 0.92),
+      width: clampCloneValue(value?.width || 0.16, 0.06, 0.32),
+      height: clampCloneValue(value?.height || 0.075, 0.035, 0.18)
+    };
+  }
+
+  function updateCloneMouthMarker() {
+    const mouth = normalizedCloneMouth(customCloneMouth);
+    profileMouthMarker.style.left = `${mouth.x * 100}%`;
+    profileMouthMarker.style.top = `${mouth.y * 100}%`;
+    profileMouthMarker.hidden = !customClonePhoto;
+  }
+
+  function applyCustomCloneAppearance(photo, mouth) {
+    customClonePhoto = String(photo || "");
+    customCloneMouth = normalizedCloneMouth(mouth);
+
+    if (!customClonePhoto) {
+      profileCloneImage.src = "sol-holo-logo.png";
+      profilePhotoButton.classList.remove("customPhoto", "calibrating");
+      profilePhotoActions.hidden = true;
+      profileMouthMarker.hidden = true;
+      profilePhotoHelp.textContent =
+        "Bild antippen und aus der Galerie wählen · bleibt nur auf diesem Gerät.";
+      window.SolHoloClone?.reset();
+      return;
+    }
+
+    profileCloneImage.src = customClonePhoto;
+    profilePhotoButton.classList.add("customPhoto");
+    profilePhotoActions.hidden = false;
+    profilePhotoHelp.textContent =
+      "Der Lip-Sync folgt der echten Sol-Stimme. Das Bild bleibt nur auf diesem Gerät.";
+    updateCloneMouthMarker();
+    window.SolHoloClone?.setImage(customClonePhoto);
+    window.SolHoloClone?.setMouthGeometry(customCloneMouth);
+  }
+
+  function restoreCustomCloneAppearance() {
+    try {
+      const savedPhoto = localStorage.getItem(clonePhotoKey) || "";
+      const savedMouth = JSON.parse(
+        localStorage.getItem(cloneMouthKey) || "null"
+      );
+      if (savedPhoto.startsWith("data:image/")) {
+        applyCustomCloneAppearance(savedPhoto, savedMouth);
+      }
+    } catch (error) {
+      console.error("Sol-Holo-Bild wiederherstellen:", error);
+    }
+  }
+
+  function readImageElement(source) {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error("Bild konnte nicht geöffnet werden."));
+      image.src = source;
+    });
+  }
+
+  async function prepareClonePhoto(file) {
+    if (!file || !String(file.type || "").startsWith("image/")) {
+      throw new Error("Bitte ein Bild aus der Galerie auswählen.");
+    }
+
+    const source = URL.createObjectURL(file);
+    try {
+      const image = await readImageElement(source);
+      const largestSide = Math.max(image.naturalWidth, image.naturalHeight);
+      const scale = Math.min(1, 1200 / Math.max(1, largestSide));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const context = canvas.getContext("2d", { alpha: false });
+      context.fillStyle = "#020714";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL("image/webp", 0.86);
+    } finally {
+      URL.revokeObjectURL(source);
+    }
+  }
+
+  function beginCloneMouthCalibration() {
+    if (!customClonePhoto) {
+      profilePhotoInput.click();
+      return;
+    }
+
+    cloneMouthCalibrationActive = true;
+    profilePhotoButton.classList.add("calibrating");
+    profilePhotoButton.setAttribute(
+      "aria-label",
+      "Jetzt genau auf den Mund im Bild tippen"
+    );
+    profilePhotoHelp.textContent =
+      "Jetzt im Bild genau auf die Mitte des Mundes tippen.";
+    showToast("Tippe jetzt im Bild genau auf den Mund 👄");
+  }
+
+  function finishCloneMouthCalibration(event) {
+    const imageRect = profileCloneImage.getBoundingClientRect();
+    if (imageRect.width <= 0 || imageRect.height <= 0) {
+      return;
+    }
+
+    customCloneMouth = normalizedCloneMouth({
+      ...customCloneMouth,
+      x: (event.clientX - imageRect.left) / imageRect.width,
+      y: (event.clientY - imageRect.top) / imageRect.height
+    });
+
+    cloneMouthCalibrationActive = false;
+    profilePhotoButton.classList.remove("calibrating");
+    profilePhotoButton.setAttribute(
+      "aria-label",
+      "Eigenes Sol-Holo-Bild aus der Galerie ändern"
+    );
+    profilePhotoHelp.textContent =
+      "Mund gespeichert · Lip-Sync folgt der echten Sol-Stimme.";
+    updateCloneMouthMarker();
+    window.SolHoloClone?.setMouthGeometry(customCloneMouth);
+
+    try {
+      localStorage.setItem(cloneMouthKey, JSON.stringify(customCloneMouth));
+    } catch (error) {
+      console.error("Sol-Holo-Mundposition speichern:", error);
+    }
+
+    showToast("Mundposition gespeichert. Lip-Sync ist bereit 👄✅️");
   }
 
   function showView(viewName) {
@@ -1318,6 +1508,56 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     showView("profile");
   });
 
+  profilePhotoButton.addEventListener("click", (event) => {
+    if (cloneMouthCalibrationActive) {
+      finishCloneMouthCalibration(event);
+      return;
+    }
+    profilePhotoInput.click();
+  });
+
+  profilePhotoInput.addEventListener("change", async () => {
+    const file = profilePhotoInput.files?.[0];
+    profilePhotoInput.value = "";
+    if (!file) {
+      return;
+    }
+
+    showToast("Dein Bild wird für Sol Holo vorbereitet …");
+    try {
+      const photo = await prepareClonePhoto(file);
+      const mouth = normalizedCloneMouth({
+        x: 0.5,
+        y: 0.58,
+        width: 0.16,
+        height: 0.075
+      });
+      localStorage.setItem(clonePhotoKey, photo);
+      localStorage.setItem(cloneMouthKey, JSON.stringify(mouth));
+      applyCustomCloneAppearance(photo, mouth);
+      beginCloneMouthCalibration();
+    } catch (error) {
+      console.error("Sol-Holo-Galeriebild:", error);
+      showToast(
+        error?.message || "Das Bild konnte gerade nicht übernommen werden."
+      );
+    }
+  });
+
+  profileMouthButton.addEventListener("click", () => {
+    beginCloneMouthCalibration();
+  });
+
+  profilePhotoResetButton.addEventListener("click", () => {
+    cloneMouthCalibrationActive = false;
+    try {
+      localStorage.removeItem(clonePhotoKey);
+      localStorage.removeItem(cloneMouthKey);
+    } catch {}
+    applyCustomCloneAppearance("", null);
+    showToast("Das ursprüngliche SH♾️-Bild ist wieder aktiv.");
+  });
+
   document.getElementById("homeComposer").addEventListener("submit", (event) => {
     event.preventDefault();
     const homeInput = document.getElementById("homeMessageInput");
@@ -1461,6 +1701,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     void consumeSharedNoteImport();
   });
 
+  restoreCustomCloneAppearance();
   showView("home");
   void loadGoogleStatus();
   void loadWhatsAppStatus();

@@ -1866,11 +1866,91 @@ let selectedMediaKind =
   null;
 
 
-const LIP_SYNC_FACE = {
+const DEFAULT_SOL_CLONE_IMAGE =
+  solImage.getAttribute("src");
+
+const DEFAULT_LIP_SYNC_FACE = {
   x:0.500,
   y:0.392,
   width:0.145,
   height:0.072
+};
+
+const LIP_SYNC_FACE = {
+  ...DEFAULT_LIP_SYNC_FACE
+};
+
+
+function applyLipSyncFace(
+  nextFace
+){
+
+  LIP_SYNC_FACE.x =
+    clamp(
+      Number(nextFace?.x) ||
+      DEFAULT_LIP_SYNC_FACE.x,
+      0.08,
+      0.92
+    );
+
+  LIP_SYNC_FACE.y =
+    clamp(
+      Number(nextFace?.y) ||
+      DEFAULT_LIP_SYNC_FACE.y,
+      0.08,
+      0.92
+    );
+
+  LIP_SYNC_FACE.width =
+    clamp(
+      Number(nextFace?.width) ||
+      DEFAULT_LIP_SYNC_FACE.width,
+      0.06,
+      0.32
+    );
+
+  LIP_SYNC_FACE.height =
+    clamp(
+      Number(nextFace?.height) ||
+      DEFAULT_LIP_SYNC_FACE.height,
+      0.035,
+      0.18
+    );
+
+  requestAnimationFrame(
+    updateMouthGeometry
+  );
+}
+
+
+window.SolHoloClone = {
+  setImage(source){
+    const cleanSource =
+      String(source || "").trim();
+
+    if(cleanSource){
+      solImage.src = cleanSource;
+    }
+  },
+
+  setMouthGeometry(nextFace){
+    applyLipSyncFace(nextFace);
+  },
+
+  getMouthGeometry(){
+    return {
+      ...LIP_SYNC_FACE
+    };
+  },
+
+  reset(){
+    solImage.src =
+      DEFAULT_SOL_CLONE_IMAGE;
+
+    applyLipSyncFace(
+      DEFAULT_LIP_SYNC_FACE
+    );
+  }
 };
 
 
@@ -3102,7 +3182,7 @@ async function startLipSync(
 
 
     lipSyncStatus.textContent =
-      "👄 Lip-Sync aktiv.";
+      "👄 Lip-Sync folgt Sols Stimme.";
 
 
     animateLipSync();
@@ -3226,7 +3306,7 @@ function stopLipSync(
   ){
 
     lipSyncStatus.textContent =
-      "👄 Lip-Sync bereit.";
+      "👄 Lip-Sync zur Stimme bereit.";
   }
 }
 
