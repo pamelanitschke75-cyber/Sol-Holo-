@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-006-floating-logo";
+const CACHE_VERSION = "sol-holo-007-transparent-logo";
 
 self.addEventListener("install", () => {
   self.skipWaiting();

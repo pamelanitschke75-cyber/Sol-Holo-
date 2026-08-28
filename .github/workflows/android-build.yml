@@ -12,6 +12,7 @@ on:
       - "www/icon-512.png"
       - "www/manifest.json"
       - "www/index.html"
+      - "www/sol-holo-logo.png"
       - "www/sol-holo-ui.css"
       - "www/sol-holo-ui.js"
       - "www/service-worker.js"
