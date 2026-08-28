@@ -1,4 +1,4 @@
-# Sol Holo verbindet Google, Telefon und Kontakte – mit klaren Datenschutzgrenzen
+# Sol Holo verbindet Google, Telefon, Notes und Health – mit klaren Datenschutzgrenzen
 
 **Meilenstein vom 28. August 2026**  
 **Projekt:** Sol Holo · Pam & Sol · Me, Myself & I  
@@ -62,6 +62,18 @@ Eine SMS wird nicht automatisch versendet. Sol Holo öffnet mit `ACTION_SENDTO` 
 
 Die Anruferkennung erkennt ausschließlich den Zustand wie „klingelt“, „Telefonat aktiv“ oder „beendet“. Gesprächsinhalte werden weder aufgenommen noch gelesen.
 
+### Samsung Notes
+
+Persönliche Notizen kommen bewusst nicht als unkontrollierter Komplettimport zu Sol Holo. Pam wählt in Samsung Notes genau eine Notiz aus und teilt sie über **Teilen → Sol Holo**. Sol Holo zeigt den ausgewählten Inhalt anschließend noch einmal sichtbar an und fragt, ob er wirklich dauerhaft gemerkt werden soll.
+
+Ohne diese Bestätigung wird die Notiz verworfen. Zu lange Inhalte werden nicht still gekürzt oder gespeichert, sondern müssen bewusst in einen kürzeren persönlichen Ausschnitt geteilt werden. Geschäftliche Inhalte, PINs, Passwörter, TANs, Banking- und Authenticator-Daten bleiben auch hier ausgeschlossen.
+
+### Samsung Health über Health Connect
+
+Sol Holo kann die Gesundheitsdaten lesen, die Samsung Health auf dem Galaxy S23 für **Health Connect** bereitstellt. Die Android-Freigabe bleibt granular: Pam wählt im geschützten Android-Berechtigungsfenster selbst aus, welche Datenarten sie freigibt. Unterstützt werden die auf dem Gerät verfügbaren Lesebereiche für Aktivität, Körperwerte, Vitalwerte, Schlaf, Ernährung und reproduktive Gesundheit.
+
+Die Integration ist ausschließlich lesend. Sie enthält keine Schreib-, Lösch- oder Hintergrundberechtigung, übernimmt keine Trainingsrouten oder Standortdaten und speichert Health-Werte nicht automatisch als Langzeitgedächtnis. Sol Holo kann daraus verständliche Zusammenfassungen geben, aber keine medizinische Diagnose stellen.
+
 ## Bedienung per Text und Sprache
 
 Sol Holo versteht die Telefonfunktionen sowohl im Textchat als auch im Realtime-Sprachmodus. Beispiele:
@@ -85,40 +97,44 @@ Neu hinzugekommen sind ausschließlich die für diese Funktionen erforderlichen 
 
 - `android.permission.READ_CONTACTS`
 - `android.permission.READ_PHONE_STATE`
+- die von Android 14/15 bereitgestellten Health-Connect-**Leseberechtigungen** für die von Pam ausgewählten Datenarten.
 
-Beim ersten Öffnen der Telefon-Verbindung fragt Android beide Freigaben sichtbar ab. Ohne Zustimmung bleibt die Funktion aus.
+Beim ersten Öffnen der jeweiligen Verbindung fragt Android die Freigaben sichtbar ab. Ohne Zustimmung bleibt die Funktion aus. Im Manifest stehen 38 Health-Connect-Leseberechtigungen; es gibt dort keine Health-Connect-Schreibberechtigung und keine Berechtigung für Health-Daten im Hintergrund.
 
 ## Technische Umsetzung
 
 Geändert oder ergänzt wurden:
 
 - `server.mjs` – Google-Berechtigungen, Statusprüfung, OAuth-Schutz und Realtime-Telefonwerkzeuge,
-- `android-native/PhoneContactsPlugin.java` – lokaler Kontaktzugriff, Dialer, SMS und Anrufstatus,
-- `scripts/install-whatsapp-driving-mode.mjs` – Android-Registrierung und Manifest-Berechtigungen,
-- `www/index.html` – lokale Text- und Realtime-Werkzeugausführung,
-- `www/sol-holo-ui.js` – Freigabeoberfläche, Bestätigungen und Anrufpause,
+- `android-native/PhoneContactsPlugin.java` – lokaler Kontaktzugriff, Dialer, SMS, Anrufstatus und bestätigter Samsung-Notes-Import,
+- `android-native/HealthConnectPlugin.java` – granularer, schreibgeschützter Zugriff auf Health Connect,
+- `android-native/HealthPrivacyActivity.java` – sichtbare Datenschutzerklärung vor der Android-Health-Freigabe,
+- `scripts/install-whatsapp-driving-mode.mjs` – Android-Registrierung, Notes-Teilen-Menü und Manifest-Berechtigungen,
+- `www/index.html` – lokale Text- und Realtime-Werkzeugausführung einschließlich Health-Abfrage,
+- `www/sol-holo-ui.js` – Freigabeoberfläche, Notes-Bestätigung, Health-Auswahl und Anrufpause,
 - `www/service-worker.js` – neue App-Version ohne alten Cache.
 
-Die statischen Prüfungen für Server, Web-App und Installationsskript sind erfolgreich. Das Android-Installationsskript wurde doppelt ausgeführt, um sicherzustellen, dass Plugin-Registrierungen und Berechtigungen nicht doppelt eingetragen werden.
+Die statischen Prüfungen für Server, Web-App und Installationsskript sind erfolgreich. Das Android-Installationsskript wurde doppelt ausgeführt, um sicherzustellen, dass Plugin-Registrierungen und Berechtigungen nicht doppelt eingetragen werden. Die offizielle Android-Kompilierung ist ebenfalls erfolgreich; der praktische Notes- und Health-Test auf Pams Galaxy S23 folgt nach der Neuinstallation.
 
 ## APK und Signatur
 
 Die App wird weiterhin als normale Datei **`Sol-Holo.apk`** im Paket **`Sol-Holo-Android`** bereitgestellt. Sie trägt weder eine TEST- noch eine UPDATE-Bezeichnung. Die heutige APK ist wie von Pam gewünscht für eine manuelle Neuinstallation bestimmt.
 
-### Verifizierter Build #40
+### Verifizierter Build #41
 
-Der offizielle [GitHub-Actions-Lauf #40](https://github.com/pamelanitschke75-cyber/Sol-Holo-/actions/runs/33209807666) wurde vollständig erfolgreich abgeschlossen:
+Der offizielle [GitHub-Actions-Lauf #41](https://github.com/pamelanitschke75-cyber/Sol-Holo-/actions/runs/33212847727) zum [Notes-und-Health-Commit](https://github.com/pamelanitschke75-cyber/Sol-Holo-/commit/6a2cdc829efd15efc490677eb7bf0b93759b6662) wurde vollständig erfolgreich abgeschlossen:
 
 - Release-APK kompiliert,
 - Neuinstallations-Signatur erzeugt,
 - APK-Signatur mit Android `apksigner` geprüft,
 - Paket `Sol-Holo-Android` hochgeladen,
 - enthaltene Datei: `Sol-Holo.apk`,
-- Größe der APK: 5.854.383 Bytes,
-- SHA-256 der APK: `2163b3923d7b7ca1ee174301f4afec48c822f11fdc7f0ee36478aeab54a6dbb5`,
-- SHA-256 des GitHub-Artefakts: `b64f732e68e8db73baf9f65a106a39ed9cbd1755ffe04345a229dc838b4624df`.
+- Größe der APK: 5.866.671 Bytes,
+- SHA-256 der APK: `c505facab239cb149589b6c966af1db480f3613425a659a6ec4491b8ff69fcd5`,
+- Größe des GitHub-Artefakts: 5.460.206 Bytes,
+- SHA-256 des GitHub-Artefakts: `ca5e656ce1716c62a98c7e895e447e6ae3d091d8ea7a5bc3d8705974704d6e11`.
 
-Die fertige APK wurde zusätzlich entpackt und kontrolliert. Das neue `PhoneContactsPlugin`, die Methoden `searchContacts`, `openDialer` und `prepareSms`, das Ereignis `callStateChanged`, beide Android-Berechtigungen sowie die neuen Text- und Sprachwerkzeuge sind im ausgelieferten Paket vorhanden.
+Die fertige APK wurde zusätzlich entpackt und kontrolliert. `HealthConnectPlugin`, `HealthPrivacyActivity`, `readSnapshot`, `openPermissions`, `consumeSharedNote`, `sharedNoteReceived`, die Samsung-Notes-Oberfläche und das lokale Werkzeug `read_health_snapshot` sind im ausgelieferten Paket vorhanden. Das Paket enthält weiterhin genau die normal benannte Datei `Sol-Holo.apk`.
 
 Die dauerhafte Signatur wird nicht auf dem Telefon improvisiert. Pam und Sol richten sie morgen, nach der Rückkehr nach München, in Ruhe am Laptop ein. Bis dahin bleibt der heutige Neuinstallationsweg bestehen.
 
