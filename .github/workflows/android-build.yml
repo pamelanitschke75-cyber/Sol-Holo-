@@ -45,6 +45,33 @@ jobs:
       - name: Android-Projekt erzeugen
         run: npx cap add android
 
+      - name: Fortlaufende Update-Version setzen
+        env:
+          SOL_HOLO_VERSION_CODE: ${{ github.run_number }}
+        run: |
+          python - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          build_file = Path("android/app/build.gradle")
+          text = build_file.read_text(encoding="utf-8")
+          version_code = os.environ["SOL_HOLO_VERSION_CODE"]
+
+          updated, replacements = re.subn(
+              r"(?m)^(\s*)versionCode\s+\d+\s*$",
+              rf"\1versionCode {version_code}",
+              text,
+              count=1,
+          )
+
+          if replacements != 1:
+              raise SystemExit("Android-versionCode konnte nicht eindeutig gesetzt werden.")
+
+          build_file.write_text(updated, encoding="utf-8")
+          print(f"Sol-Holo-versionCode: {version_code}")
+          PY
+
       - name: SH♾️-App-Symbol erzeugen
         run: |
           npx @capacitor/assets generate \
@@ -98,12 +125,91 @@ jobs:
       - name: Gradle ausführbar machen
         run: chmod +x android/gradlew
 
-      - name: Debug-APK bauen
+      - name: Dauerhafte Signatur prüfen
+        id: signing
+        env:
+          SOL_HOLO_KEYSTORE_BASE64: ${{ secrets.SOL_HOLO_KEYSTORE_BASE64 }}
+          SOL_HOLO_KEYSTORE_PASSWORD: ${{ secrets.SOL_HOLO_KEYSTORE_PASSWORD }}
+          SOL_HOLO_KEY_ALIAS: ${{ secrets.SOL_HOLO_KEY_ALIAS }}
+          SOL_HOLO_KEY_PASSWORD: ${{ secrets.SOL_HOLO_KEY_PASSWORD }}
+        run: |
+          if [[ -n "$SOL_HOLO_KEYSTORE_BASE64" \
+            && -n "$SOL_HOLO_KEYSTORE_PASSWORD" \
+            && -n "$SOL_HOLO_KEY_ALIAS" \
+            && -n "$SOL_HOLO_KEY_PASSWORD" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "Dauerhafte Sol-Holo-Update-Signatur ist eingerichtet."
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Dauerhafte Signatur fehlt noch; es wird weiterhin nur eine Test-APK gebaut."
+          fi
+
+      - name: Test-APK bauen
+        if: steps.signing.outputs.enabled != 'true'
         working-directory: android
         run: ./gradlew assembleDebug
 
-      - name: Sol Holo APK bereitstellen
+      - name: Test-APK bereitstellen
+        if: steps.signing.outputs.enabled != 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: Sol-Holo-Android
+          name: Sol-Holo-Android-TEST
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Signaturschlüssel geschützt wiederherstellen
+        if: steps.signing.outputs.enabled == 'true'
+        env:
+          SOL_HOLO_KEYSTORE_BASE64: ${{ secrets.SOL_HOLO_KEYSTORE_BASE64 }}
+        run: |
+          printf '%s' "$SOL_HOLO_KEYSTORE_BASE64" \
+            | base64 --decode > "$RUNNER_TEMP/sol-holo-update.jks"
+          chmod 600 "$RUNNER_TEMP/sol-holo-update.jks"
+
+      - name: Update-APK bauen
+        if: steps.signing.outputs.enabled == 'true'
+        working-directory: android
+        run: ./gradlew assembleRelease
+
+      - name: Update-APK dauerhaft signieren und prüfen
+        if: steps.signing.outputs.enabled == 'true'
+        env:
+          SOL_HOLO_KEYSTORE_PASSWORD: ${{ secrets.SOL_HOLO_KEYSTORE_PASSWORD }}
+          SOL_HOLO_KEY_ALIAS: ${{ secrets.SOL_HOLO_KEY_ALIAS }}
+          SOL_HOLO_KEY_PASSWORD: ${{ secrets.SOL_HOLO_KEY_PASSWORD }}
+        run: |
+          set -Eeuo pipefail
+
+          unsigned_apk="android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          aligned_apk="$RUNNER_TEMP/Sol-Holo-aligned.apk"
+          signed_apk="android/app/build/outputs/apk/release/Sol-Holo-UPDATE.apk"
+          android_sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          test -n "$android_sdk"
+          build_tools="$(find "$android_sdk/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+
+          test -f "$unsigned_apk"
+          test -x "$build_tools/zipalign"
+          test -x "$build_tools/apksigner"
+
+          "$build_tools/zipalign" -p -f 4 "$unsigned_apk" "$aligned_apk"
+
+          "$build_tools/apksigner" sign \
+            --ks "$RUNNER_TEMP/sol-holo-update.jks" \
+            --ks-key-alias "$SOL_HOLO_KEY_ALIAS" \
+            --ks-pass env:SOL_HOLO_KEYSTORE_PASSWORD \
+            --key-pass env:SOL_HOLO_KEY_PASSWORD \
+            --pass-encoding utf-8 \
+            --out "$signed_apk" \
+            "$aligned_apk"
+
+          "$build_tools/apksigner" verify --verbose --print-certs "$signed_apk"
+
+      - name: Sol Holo Update-APK bereitstellen
+        if: steps.signing.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sol-Holo-Android-UPDATE
+          path: android/app/build/outputs/apk/release/Sol-Holo-UPDATE.apk
+
+      - name: Temporären Signaturschlüssel entfernen
+        if: always() && steps.signing.outputs.enabled == 'true'
+        run: rm -f "$RUNNER_TEMP/sol-holo-update.jks" "$RUNNER_TEMP/Sol-Holo-aligned.apk"

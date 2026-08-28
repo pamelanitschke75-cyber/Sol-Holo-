@@ -1,0 +1,14 @@
+# Dependencies and generated Android project
+node_modules/
+android/
+
+# Local environment files
+.env
+.env.*
+
+# Sol Holo signing material must never be committed
+.sol-holo-private/
+*.jks
+*.keystore
+*.p12
+
