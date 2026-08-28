@@ -20,6 +20,9 @@ on:
       - "android-native/**"
       - "scripts/install-whatsapp-driving-mode.mjs"
 
+permissions:
+  contents: read
+
 jobs:
   build-android:
     runs-on: ubuntu-latest
@@ -87,23 +90,110 @@ jobs:
                       1
                   )
 
-          manifest.write_text(
+          manifest.write_text(text, encoding="utf-8")
+          print("Alle Mikrofon-Berechtigungen sind gesetzt.")
+          PY
+
+      - name: Versionsnummer für echte Updates erhöhen
+        env:
+          SOL_HOLO_RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          python - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          gradle = Path("android/app/build.gradle")
+          text = gradle.read_text(encoding="utf-8")
+
+          run_number = int(os.environ["SOL_HOLO_RUN_NUMBER"])
+          version_code = 1000 + run_number
+          version_name = f"1.0.{run_number}"
+
+          text, code_count = re.subn(
+              r'(?m)^(\s*)versionCode\s+\d+\s*$',
+              lambda match: f"{match.group(1)}versionCode {version_code}",
               text,
-              encoding="utf-8"
+              count=1
+          )
+          text, name_count = re.subn(
+              r'(?m)^(\s*)versionName\s+"[^"]*"\s*$',
+              lambda match: f'{match.group(1)}versionName "{version_name}"',
+              text,
+              count=1
           )
 
-          print("Alle Mikrofon-Berechtigungen sind gesetzt.")
+          if code_count != 1 or name_count != 1:
+              raise SystemExit("Android-Versionsfelder wurden nicht eindeutig gefunden.")
+
+          gradle.write_text(text, encoding="utf-8")
+          print(f"Sol Holo Version {version_name} (Code {version_code})")
           PY
 
       - name: Gradle ausführbar machen
         run: chmod +x android/gradlew
 
-      - name: Debug-APK bauen
-        working-directory: android
-        run: ./gradlew assembleDebug
+      - name: Festen Signierschlüssel sicher laden
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_SIGNING_PASSWORD: ${{ secrets.ANDROID_SIGNING_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_SIGNING_PASSWORD" ]; then
+            echo "::error title=App-Signatur fehlt::Die geschützten Android-Signierdaten sind noch nicht vollständig hinterlegt."
+            exit 1
+          fi
 
-      - name: Sol Holo APK bereitstellen
+          KEYSTORE_PATH="$RUNNER_TEMP/sol-holo-release.jks"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          chmod 600 "$KEYSTORE_PATH"
+
+          keytool -list \
+            -keystore "$KEYSTORE_PATH" \
+            -storepass "$ANDROID_SIGNING_PASSWORD" \
+            -alias "sol-holo" \
+            >/dev/null
+
+      - name: Release-APK bauen
+        working-directory: android
+        run: ./gradlew assembleRelease
+
+      - name: Release-APK dauerhaft signieren und prüfen
+        env:
+          ANDROID_SIGNING_PASSWORD: ${{ secrets.ANDROID_SIGNING_PASSWORD }}
+        run: |
+          BUILD_TOOLS_DIR="$(dirname "$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name apksigner | sort -V | tail -n 1)")"
+          UNSIGNED_APK="android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          ALIGNED_APK="$RUNNER_TEMP/Sol-Holo-aligned.apk"
+          SIGNED_APK="android/app/build/outputs/apk/release/Sol-Holo.apk"
+
+          if [ ! -x "$BUILD_TOOLS_DIR/apksigner" ] || [ ! -x "$BUILD_TOOLS_DIR/zipalign" ]; then
+            echo "::error title=Android-Build-Tools fehlen::apksigner oder zipalign wurde nicht gefunden."
+            exit 1
+          fi
+
+          if [ ! -f "$UNSIGNED_APK" ]; then
+            echo "::error title=Release-APK fehlt::Die unsignierte Release-APK wurde nicht erzeugt."
+            exit 1
+          fi
+
+          "$BUILD_TOOLS_DIR/zipalign" -f -p 4 "$UNSIGNED_APK" "$ALIGNED_APK"
+
+          "$BUILD_TOOLS_DIR/apksigner" sign \
+            --ks "$RUNNER_TEMP/sol-holo-release.jks" \
+            --ks-key-alias "sol-holo" \
+            --ks-pass env:ANDROID_SIGNING_PASSWORD \
+            --key-pass env:ANDROID_SIGNING_PASSWORD \
+            --out "$SIGNED_APK" \
+            "$ALIGNED_APK"
+
+          "$BUILD_TOOLS_DIR/apksigner" verify \
+            --verbose \
+            --print-certs \
+            "$SIGNED_APK"
+
+      - name: Signierte Sol Holo APK bereitstellen
         uses: actions/upload-artifact@v4
         with:
           name: Sol-Holo-Android
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/release/Sol-Holo.apk
+          if-no-files-found: error
