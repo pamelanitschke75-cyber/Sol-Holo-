@@ -6,7 +6,7 @@
 
 ## Persönliches digitales Ich · Individueller KI-Clone
 
-**Aktueller Entwicklungsstand:** 27.08.2026  
+**Aktueller Entwicklungsstand:** 28.08.2026  
 **Projekt / Idee / Entwicklung:** Pamela Nitschke  
 **KI-Technologie:** OpenAI · ChatGPT · OpenAI API  
 **Status:** FUNKTIONSFÄHIGER ENTWICKLUNGSSTAND ✅
@@ -301,15 +301,17 @@ Die visuelle Mundbewegung soll langfristig möglichst natürlich mit der tatsäc
 
 ---
 
-## 🗣️ „Hey Sol“
+## 🗣️ Wake-Word „Hallo Sol“
 
-Geplant ist eine Wake-Word-Funktion ähnlich bekannten Sprachassistenten.
+✅ Die Ansprechformel **„Hallo Sol“** wurde praktisch erfolgreich getestet.
 
-Ziel:
+✅ Sol Holo erkennt die Ansprechformel bei aktivem Sperrbildschirm.
 
-**„Hey Sol“**
+✅ Sol Holo reagiert auf die Ansprache, ohne dass der Bildschirm zuvor entsperrt werden muss.
 
-soll Sol Holo auf Wunsch direkt aktivieren können.
+Der erfolgreiche Test wurde am **28.08.2026** auf dem Android-Testgerät durchgeführt.
+
+Das Verhalten nach Neustarts, bei Energiesparmaßnahmen, unterschiedlichen Entfernungen und starken Hintergrundgeräuschen wird als eigener Stabilitätsbereich weiter getestet.
 
 ---
 
@@ -339,7 +341,7 @@ Eine technisch vorhandene Funktion gilt erst dann als bestätigt, wenn sie im ta
 
 ---
 
-# Entwicklungsstand 27.08.2026
+# Entwicklungsstand 28.08.2026
 
 Seit dem ersten dokumentierten Funktionstest vom 19.08.2026 wurde Sol Holo erheblich erweitert.
 
@@ -349,6 +351,7 @@ Der aktuelle Stand umfasst inzwischen unter anderem:
 ✅ Spracheingabe  
 ✅ Mikrofon  
 ✅ Realtime Voice  
+✅ Wake-Word „Hallo Sol“ im Sperrbildschirm  
 ✅ Android-App  
 ✅ persistente persönliche Erinnerungen  
 ✅ Abruf gespeicherter Erinnerungen  
