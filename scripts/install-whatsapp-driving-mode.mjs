@@ -197,5 +197,5 @@ if (!manifest.includes(".HeyHoSolService")) {
 
 writeFileSync(manifestPath, manifest, "utf8");
 console.log(
-  "WhatsApp-Fahrmodus und Sol-Weckruf wurden in Android eingebunden."
+  "WhatsApp-Fahrmodus, Sol-Weckruf und Lautsprecherroute wurden in Android eingebunden."
 );
