@@ -343,7 +343,7 @@ Eine technisch vorhandene Funktion gilt erst dann als bestätigt, wenn sie im ta
 
 # Entwicklungsstand 28.08.2026
 
-Seit dem ersten dokumentierten Funktionstest vom 19.08.2026 wurde Sol Holo erheblich erweitert.
+Seit dem ersten dokumentierten Funktionstest vom 12.08.2026 wurde Sol Holo erheblich erweitert.
 
 Der aktuelle Stand umfasst inzwischen unter anderem:
 
