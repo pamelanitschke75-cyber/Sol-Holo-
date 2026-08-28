@@ -92,6 +92,16 @@ body{
   animation:viewIn .28s ease both;
 }
 
+/* The source logo has a black canvas. Screen blending lets the holographic
+   mark float naturally over every dark Sol-Holo surface. */
+.brandLogo,
+.screenLogo,
+.welcomeLogo,
+.orbitLogo,
+.profileLogo{
+  mix-blend-mode:screen;
+}
+
 @keyframes viewIn{
   from{opacity:.25;transform:translateY(7px)}
   to{opacity:1;transform:translateY(0)}
@@ -1113,4 +1123,3 @@ body.voice-open #onboardingScreen{
     transition-duration:.01ms!important;
   }
 }
-

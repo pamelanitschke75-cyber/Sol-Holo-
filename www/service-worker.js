@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-005-cosmic-ui";
+const CACHE_VERSION = "sol-holo-006-floating-logo";
 
 self.addEventListener("install", () => {
   self.skipWaiting();

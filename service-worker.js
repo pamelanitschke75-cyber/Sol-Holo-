@@ -1,4 +1,4 @@
-const CACHE_NAME = "sol-holo-v3-cosmic-ui";
+const CACHE_NAME = "sol-holo-v4-floating-logo";
 
 const APP_FILES = [
   "/",
