@@ -1,0 +1,9 @@
+node_modules/
+android/
+
+# Private Android signing material must never be committed.
+SOL-HOLO-SIGNING-BACKUP/
+*.jks
+*.keystore
+*.p12
+*.pfx
