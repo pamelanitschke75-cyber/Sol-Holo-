@@ -7,7 +7,7 @@
 
 Am 28. August 2026 wurde aus Pams visueller Idee eine tatsächlich laufende
 Sol-Holo-App für Android und Web – mit eigener kosmischer Oberfläche, echter
-Sprache, sicherem WhatsApp-Fahrmodus und einem wählbaren „Hey ho Sol“-Weckruf.
+Sprache, sicherem WhatsApp-Fahrmodus und einem wählbaren Sol-Weckruf.
 
 Das war kein reines Mock-up: Die neue Oberfläche wurde in die bestehende
 Anwendung integriert, auf einem echten Android-Gerät geöffnet, gemeinsam
@@ -28,7 +28,7 @@ prüfte Quellcode und fertige APKs und veröffentlichte die Builds.
 - animierte Sol-Kugel als Einstieg in den Sprachmodus
 - transparenter Glas-Look für Eingaben, Karten und Navigation
 - weich auslaufende, leuchtende Kanten statt harter Rahmen
-- weich in den kosmischen Hintergrund eingeblendetes Avatarbild
+- weich in den kosmischen Hintergrund eingeblendetes Clonebild
 - echtes transparentes **SH♾️-Logo** ohne rechteckigen Bildhintergrund
 
 ### Neue App-Struktur
@@ -69,12 +69,17 @@ vorlesen.
 Wenn WhatsApp den Vorschautext auf dem Sperrbildschirm verbirgt, kann Sol nur
 den Text vorlesen, den Android der App tatsächlich zur Verfügung stellt.
 
-## 🎙️ „Hey ho Sol“ – Sol hört jetzt auf ihren Namen
+## 🎙️ „Hallo Sol“ / „Hello Sol“ – kurzer Sol-Weckruf
 
-Zwei Weckrufe wurden direkt in die Android-App integriert:
+Zwei kurze Weckrufe wurden direkt in die Android-App integriert:
 
-- **„Hey ho Sol, bist du da?“**
-- **„Hey ho Sol, are you ready?“**
+- **„Hallo Sol“** für Deutsch
+- **„Hello Sol“** für Englisch
+
+Die bisherigen längeren Sätze bleiben als Reserve erhalten:
+
+- „Hey ho Sol, bist du da?“
+- „Hey ho Sol, are you ready?“
 
 Pam kann in der Dienste-Ansicht selbst auswählen:
 
@@ -89,13 +94,33 @@ Weckwort-Erkennung automatisch, damit Sol sich nicht selbst aufweckt. Danach
 wird sie wieder fortgesetzt.
 
 Für die Erkennung wird ausdrücklich die lokale On-Device-Spracherkennung von
-Android angefordert. Das passende deutsche beziehungsweise englische
-Offline-Sprachpaket muss auf dem Gerät vorhanden sein. Der Hintergrundmodus
-zeigt dauerhaft einen Android-Hinweis mit Ausschalter.
+Android angefordert. Das deutsche Offline-Sprachpaket muss auf dem Gerät
+vorhanden sein. Der Hintergrundmodus zeigt dauerhaft einen Android-Hinweis
+mit Ausschalter.
 
-Dauerhaftes Zuhören kann mehr Akku benötigen. Das automatische Öffnen über
+Dauerhaftes Zuhören kann mehr Akku benötigen. Die neue kurze Form ist für
+Alltagsgeräusche leichter erkennbar, muss aber noch auf Pams Samsung-Gerät
+getestet werden. Das automatische Öffnen über
 einen gesperrten Bildschirm hängt zusätzlich von den Sicherheitsregeln des
 jeweiligen Android- beziehungsweise Samsung-Geräts ab.
+
+## 🔊 Lautsprecher und ruhigere Realtime-Gespräche
+
+Sols Realtime-Stimme erhält in der Android-App jetzt ausdrücklich die
+Handy-Lautsprecherroute. Die App startet außerdem mit **Normal** statt
+**Leise**.
+
+Für Gespräche bei laufendem Ventilator oder anderen gleichmäßigen
+Hintergrundgeräuschen wurden mehrere Schutzschichten ergänzt:
+
+- lokale Echo- und Rauschunterdrückung des Handys
+- Kennzeichnung der Mikrofonspur als Sprache
+- serverseitiger Fernfeld-Rauschfilter
+- höhere Aktivierungsschwelle für echte Sprache
+- keine Unterbrechung von Sol durch kurze Hintergrundgeräusche
+
+Diese Abstimmung ist technisch integriert. Wie stark sie den konkreten
+Ventilator auf Pams Samsung ausblendet, entscheidet der gemeinsame Praxistest.
 
 ## 🔐 Datenschutz und Kontrolle
 
@@ -121,9 +146,12 @@ jeweiligen Android- beziehungsweise Samsung-Geräts ab.
 - Android-`SpeechRecognizer` mit On-Device-/Offline-Anforderung angebunden
 - sichtbaren Mikrofon-`ForegroundService` mit Ausschalter integriert
 - Weckwort und Realtime-Sprachgespräch gegen Mikrofonkonflikte abgesichert
+- native Android-Lautsprecherroute für Sols Realtime-Stimme ergänzt
+- lokale und serverseitige Rauschfilter für laute Umgebungen kombiniert
+- Spracherkennung gegen Dauergeräusche und Selbstunterbrechungen gehärtet
 - JavaScript-, Service-Worker-, Manifest- und Konsistenzprüfungen ausgeführt
 - fertige APK auf alle nativen Klassen und ausgelieferten Web-Dateien geprüft
-- GitHub Pages und Android-Build **#32** vollständig erfolgreich abgeschlossen
+- GitHub Pages und Android-Build **#34** vollständig erfolgreich abgeschlossen
 
 ## ✅ Der bestätigte Stand
 
@@ -133,8 +161,11 @@ jeweiligen Android- beziehungsweise Samsung-Geräts ab.
   Clone-Darstellung bleiben funktionsfähig.
 - Das Google-Konto ist über den Google-Kalender verbunden.
 - Der WhatsApp-Fahrmodus ist nativ umgesetzt, gebaut und in der App aktiviert.
-- Beide „Hey ho Sol“-Sätze sind integriert.
+- „Hallo Sol“ und „Hello Sol“ sind als kurze Weckrufe integriert.
+- Beide bisherigen „Hey ho Sol“-Sätze bleiben als Reserve erhalten.
 - Vordergrund- und Hintergrundmodus sind direkt in der App wählbar.
+- Android-Lautsprecherroute und Realtime-Rauschfilter sind gebaut; der
+  Praxistest mit Pams Ventilator steht noch aus.
 - Web-Deployment und Android-APK-Build sind grün.
 - Die App fühlt sich nicht mehr wie ein Entwurf an, sondern wie eine eigene
   Sol-Holo-Welt.
@@ -147,17 +178,18 @@ jeweiligen Android- beziehungsweise Samsung-Geräts ab.
 - [Holografische Glaskanten weichgezeichnet](https://github.com/pamelanitschke75-cyber/Sol-Holo-/commit/7e1c927bd915090b55e53cb15533bf2f5555baa1)
 - [Sicherer WhatsApp-Fahrmodus](https://github.com/pamelanitschke75-cyber/Sol-Holo-/commit/1962f53b0a5a06f5d783a9034573c8ff1437d863)
 - [„Hey ho Sol“ als wählbarer Weckruf](https://github.com/pamelanitschke75-cyber/Sol-Holo-/commit/21d908e7ad3bdebcf09c4fa7f6408a515c948ec5)
-- [Erfolgreicher Android-Build #32](https://github.com/pamelanitschke75-cyber/Sol-Holo-/actions/runs/33134260072)
+- [Kurze Weckrufe und störungsärmeres Realtime-Audio](https://github.com/pamelanitschke75-cyber/Sol-Holo-/commit/34dc21fa4166d337218c81ac60ddf41c906bac23)
+- [Erfolgreicher Android-Build #34](https://github.com/pamelanitschke75-cyber/Sol-Holo-/actions/runs/33138058757)
 
 ## 🚀 Die nächsten großen Schritte
 
 1. feste und sicher verwahrte Android-Signatur einrichten, damit Updates ohne
    vorherige Deinstallation möglich werden
-2. „Hey ho Sol“ auf Pams Samsung-Gerät in Ruhe testen und Akkuverbrauch
-   beobachten
-3. Telefon- und Kontaktfreigaben mit Bestätigung vor jedem Anruf umsetzen
-4. Google-Konto-Verknüpfung schrittweise um weitere Dienste erweitern
-5. echtes Nutzerfeedback sammeln – einschließlich der mit Spannung erwarteten
+2. „Hallo Sol“ und „Hello Sol“ auf Pams Samsung-Gerät testen
+3. Lautsprecher und Gesprächsruhe mit eingeschaltetem Ventilator prüfen
+4. Telefon- und Kontaktfreigaben mit Bestätigung vor jedem Anruf umsetzen
+5. Google-Konto-Verknüpfung schrittweise um weitere Dienste erweitern
+6. echtes Nutzerfeedback sammeln – einschließlich der mit Spannung erwarteten
    Reaktion von Steffi
 
 ---
