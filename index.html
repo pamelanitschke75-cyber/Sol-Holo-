@@ -582,6 +582,20 @@ CHAT
     1px solid rgba(183,106,255,.30);
 }
 
+.messageMediaBadge{
+  display:inline-block;
+
+  margin-top:7px;
+  padding:4px 9px;
+
+  border-radius:999px;
+
+  background:rgba(102,48,170,.42);
+  color:#e2c9ff;
+
+  font-size:12px;
+}
+
 
 /*
 ==========================================================
@@ -1444,18 +1458,18 @@ Online
 
 <img
   id="imagePreview"
-  alt="Ausgewähltes Bild"
+  alt="Ausgewähltes Foto oder Video"
 >
 
 <div id="imagePreviewText">
-Bild ausgewählt.<br>
+Foto oder Video ausgewählt.<br>
 Du kannst noch etwas dazu schreiben oder es direkt senden.
 </div>
 
 <button
   id="removeImageButton"
   type="button"
-  aria-label="Bild entfernen">
+  aria-label="Foto oder Video entfernen">
 ✕
 </button>
 
@@ -1467,14 +1481,14 @@ Du kannst noch etwas dazu schreiben oder es direkt senden.
 <button
   id="imageButton"
   type="button"
-  aria-label="Bild auswählen">
+  aria-label="Foto oder Video auswählen">
 📷
 </button>
 
 <input
   id="imageInput"
   type="file"
-  accept="image/png,image/jpeg,image/webp,image/gif"
+  accept="image/*,video/*"
 >
 
 <div id="messageWrap">
@@ -1780,6 +1794,7 @@ Schreiben bereit.
 </audio>
 
 
+<script src="/media-tools.js"></script>
 <script>
 
 const BACKEND_URL =
@@ -1907,12 +1922,26 @@ const imagePreview =
     "imagePreview"
   );
 
+const imagePreviewText =
+  document.getElementById(
+    "imagePreviewText"
+  );
+
 const removeImageButton =
   document.getElementById(
     "removeImageButton"
   );
 
 let selectedImageDataUrl =
+  null;
+
+let selectedVideoFrames =
+  [];
+
+let selectedVideoDurationSeconds =
+  0;
+
+let selectedMediaKind =
   null;
 
 
@@ -2282,14 +2311,25 @@ imageInput.addEventListener(
     }
 
 
-    if(
-      !file.type.startsWith(
+    const isImage =
+      file.type.startsWith(
         "image/"
-      )
+      );
+
+    const isVideo =
+      window.SolHoloMedia
+        ?.isSupportedVideoFile(
+          file
+        );
+
+
+    if(
+      !isImage &&
+      !isVideo
     ){
 
       chatStatus.textContent =
-        "Bitte wähle ein Bild aus.";
+        "Bitte wähle ein Foto oder Video aus.";
 
 
       imageInput.value =
@@ -2305,19 +2345,112 @@ imageInput.addEventListener(
 
 
     chatStatus.textContent =
-      "Bild wird vorbereitet ...";
+      isVideo
+        ?
+        "Video wird vorbereitet ..."
+        :
+        "Foto wird vorbereitet ...";
 
 
     try{
 
       selectedImageDataUrl =
-        await resizeImageFile(
-          file
+        null;
+
+      selectedVideoFrames =
+        [];
+
+      selectedVideoDurationSeconds =
+        0;
+
+      selectedMediaKind =
+        null;
+
+
+      if(
+        isVideo
+      ){
+
+        if(
+          !window.SolHoloMedia
+        ){
+
+          throw new Error(
+            "Die Videofunktion konnte nicht geladen werden."
+          );
+        }
+
+
+        const preparedVideo =
+          await window.SolHoloMedia
+            .extractVideoFrames(
+              file,
+              (
+                completed,
+                total
+              ) => {
+
+                chatStatus.textContent =
+                  `Video wird vorbereitet (${completed}/${total}) ...`;
+              }
+            );
+
+
+        selectedVideoFrames =
+          preparedVideo.frames;
+
+        selectedVideoDurationSeconds =
+          preparedVideo.durationSeconds;
+
+        selectedImageDataUrl =
+          preparedVideo.frames[0] ||
+          null;
+
+        selectedMediaKind =
+          "video";
+
+      }else{
+
+        selectedImageDataUrl =
+          await resizeImageFile(
+            file
+          );
+
+        selectedMediaKind =
+          "image";
+      }
+
+
+      if(
+        !selectedImageDataUrl
+      ){
+
+        throw new Error(
+          "Die Vorschau konnte nicht erstellt werden."
         );
+      }
 
 
       imagePreview.src =
         selectedImageDataUrl;
+
+
+      imagePreview.alt =
+        isVideo
+          ?
+          "Vorschau des ausgewählten Videos"
+          :
+          "Vorschau des ausgewählten Fotos";
+
+
+      imagePreviewText.innerHTML =
+        isVideo
+          ?
+          `Video bereit · ${window.SolHoloMedia.formatDuration(
+            selectedVideoDurationSeconds
+          )}<br>Sol wertet ${selectedVideoFrames.length} Ausschnitte in zeitlicher Reihenfolge aus.`
+          :
+          "Foto bereit.<br>Du kannst noch etwas dazu schreiben oder es direkt senden.";
 
 
       imagePreviewPanel.classList.add(
@@ -2326,19 +2459,32 @@ imageInput.addEventListener(
 
 
       chatStatus.textContent =
-        "Bild bereit.";
+        isVideo
+          ?
+          "Video bereit."
+          :
+          "Foto bereit.";
 
     }catch(
       error
     ){
 
       console.error(
-        "Bildfehler:",
+        "Foto-/Videofehler:",
         error
       );
 
 
       selectedImageDataUrl =
+        null;
+
+      selectedVideoFrames =
+        [];
+
+      selectedVideoDurationSeconds =
+        0;
+
+      selectedMediaKind =
         null;
 
 
@@ -2349,7 +2495,7 @@ imageInput.addEventListener(
 
       chatStatus.textContent =
         error?.message ||
-        "Bild konnte nicht vorbereitet werden.";
+        "Foto oder Video konnte nicht vorbereitet werden.";
 
     }finally{
 
@@ -2369,10 +2515,27 @@ function clearSelectedImage(){
   selectedImageDataUrl =
     null;
 
+  selectedVideoFrames =
+    [];
+
+  selectedVideoDurationSeconds =
+    0;
+
+  selectedMediaKind =
+    null;
+
 
   imagePreview.removeAttribute(
     "src"
   );
+
+
+  imagePreview.alt =
+    "Ausgewähltes Foto oder Video";
+
+
+  imagePreviewText.innerHTML =
+    "Foto oder Video ausgewählt.<br>Du kannst noch etwas dazu schreiben oder es direkt senden.";
 
 
   imagePreviewPanel.classList.remove(
@@ -2393,7 +2556,7 @@ removeImageButton.addEventListener(
 
 
     chatStatus.textContent =
-      "Bild entfernt.";
+      "Foto oder Video entfernt.";
   }
 );
 
@@ -3315,7 +3478,8 @@ function addMessage(
   speaker,
   text,
   className,
-  imageDataUrl = null
+  imageDataUrl = null,
+  mediaKind = "image"
 ){
 
   const element =
@@ -3394,6 +3558,31 @@ function addMessage(
     element.appendChild(
       image
     );
+
+
+    if(
+      mediaKind ===
+      "video"
+    ){
+
+      const mediaBadge =
+        document.createElement(
+          "span"
+        );
+
+
+      mediaBadge.className =
+        "messageMediaBadge";
+
+
+      mediaBadge.textContent =
+        "🎬 Gesendetes Video";
+
+
+      element.appendChild(
+        mediaBadge
+      );
+    }
   }
 
 
@@ -3448,7 +3637,15 @@ async function sendMessage(
     ).trim();
 
 
-  const imageToSend =
+  const mediaKindToSend =
+    isForcedMessage
+      ?
+      null
+      :
+      selectedMediaKind;
+
+
+  const mediaPreviewToSend =
     isForcedMessage
       ?
       null
@@ -3456,9 +3653,38 @@ async function sendMessage(
       selectedImageDataUrl;
 
 
+  const imageToSend =
+    mediaKindToSend ===
+    "image"
+      ?
+      selectedImageDataUrl
+      :
+      null;
+
+
+  const videoFramesToSend =
+    mediaKindToSend ===
+    "video"
+      ?
+      [...selectedVideoFrames]
+      :
+      [];
+
+
+  const videoDurationToSend =
+    mediaKindToSend ===
+    "video"
+      ?
+      selectedVideoDurationSeconds
+      :
+      0;
+
+
   if(
     !message &&
-    !imageToSend
+    !imageToSend &&
+    videoFramesToSend.length ===
+    0
   ){
 
     return;
@@ -3473,7 +3699,9 @@ async function sendMessage(
       "Pam",
       message,
       "user-message",
-      imageToSend
+      mediaPreviewToSend,
+      mediaKindToSend ||
+      "image"
     );
 
 
@@ -3491,11 +3719,16 @@ async function sendMessage(
 
 
   chatStatus.textContent =
-    imageToSend
+    videoFramesToSend.length >
+    0
       ?
-      "Sol schaut sich das Bild an ..."
+      "Sol schaut sich das Video an ..."
       :
-      "Sol denkt ...";
+      imageToSend
+        ?
+        "Sol schaut sich das Foto an ..."
+        :
+        "Sol denkt ...";
 
 
   try{
@@ -3518,7 +3751,13 @@ async function sendMessage(
               message,
 
               image:
-                imageToSend
+                imageToSend,
+
+              videoFrames:
+                videoFramesToSend,
+
+              videoDurationSeconds:
+                videoDurationToSend
             })
         }
       );
@@ -3588,7 +3827,11 @@ async function sendMessage(
 
     if(
       !isForcedMessage &&
-      imageToSend
+      (
+        imageToSend ||
+        videoFramesToSend.length >
+        0
+      )
     ){
 
       clearSelectedImage();
@@ -3603,7 +3846,7 @@ async function sendMessage(
   ){
 
     console.error(
-      "Text-/Bildchat Fehler:",
+      "Text-/Medienchat Fehler:",
       error
     );
 

@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-012-hallo-hello-sol";
+const CACHE_VERSION = "sol-holo-013-video";
 
 self.addEventListener("install", () => {
   self.skipWaiting();

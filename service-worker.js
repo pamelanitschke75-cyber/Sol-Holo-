@@ -1,4 +1,4 @@
-const CACHE_NAME = "sol-holo-v10-hallo-hello-sol";
+const CACHE_NAME = "sol-holo-v11-video";
 
 const APP_FILES = [
   "/",
@@ -6,6 +6,7 @@ const APP_FILES = [
   "/manifest.json",
   "/sol-holo-ui.css",
   "/sol-holo-ui.js",
+  "/media-tools.js",
   "/sol-holo-logo.png",
   "/icon-192.png",
   "/icon-512.png"

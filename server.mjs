@@ -3595,6 +3595,161 @@ function isListMemoryCommand(message) {
 
 /*
   ==========================================================
+  FOTO- UND VIDEOEINGABEN
+  ==========================================================
+
+  Die Responses API verarbeitet Bildinhalte. Videos werden deshalb
+  bereits auf dem Handy in wenige, zeitlich geordnete Einzelbilder
+  zerlegt. Das vollständige Originalvideo wird nicht hochgeladen.
+*/
+
+const MAX_VIDEO_FRAME_COUNT =
+  8;
+
+const MAX_MEDIA_DATA_URL_LENGTH =
+  2_500_000;
+
+const MAX_MEDIA_TOTAL_LENGTH =
+  14_000_000;
+
+const IMAGE_DATA_URL_PATTERN =
+  /^data:image\/(?:jpeg|jpg|png|webp|gif);base64,[a-z0-9+/=]+$/i;
+
+function createMediaInputError(message) {
+  const error =
+    new Error(message);
+
+  error.statusCode =
+    400;
+
+  return error;
+}
+
+function normalizeMediaDataUrl(value, label) {
+  if (
+    typeof value !==
+    "string"
+  ) {
+    throw createMediaInputError(
+      `${label} hat ein ungültiges Format.`
+    );
+  }
+
+  const cleanValue =
+    value.trim();
+
+  if (
+    !cleanValue ||
+    cleanValue.length >
+      MAX_MEDIA_DATA_URL_LENGTH ||
+    !IMAGE_DATA_URL_PATTERN.test(
+      cleanValue
+    )
+  ) {
+    throw createMediaInputError(
+      `${label} konnte nicht sicher verarbeitet werden.`
+    );
+  }
+
+  return cleanValue;
+}
+
+function readVisualMediaInput(body) {
+  const image =
+    body?.image == null ||
+    body?.image ===
+      ""
+      ? null
+      : normalizeMediaDataUrl(
+          body.image,
+          "Das Foto"
+        );
+
+  const rawVideoFrames =
+    body?.videoFrames == null
+      ? []
+      : body.videoFrames;
+
+  if (
+    !Array.isArray(
+      rawVideoFrames
+    )
+  ) {
+    throw createMediaInputError(
+      "Die Videoausschnitte haben ein ungültiges Format."
+    );
+  }
+
+  if (
+    rawVideoFrames.length >
+    MAX_VIDEO_FRAME_COUNT
+  ) {
+    throw createMediaInputError(
+      "Das Video enthält zu viele Ausschnitte."
+    );
+  }
+
+  const videoFrames =
+    rawVideoFrames.map(
+      (frame, index) =>
+        normalizeMediaDataUrl(
+          frame,
+          `Videoausschnitt ${index + 1}`
+        )
+    );
+
+  if (
+    image &&
+    videoFrames.length >
+      0
+  ) {
+    throw createMediaInputError(
+      "Bitte sende ein Foto oder ein Video, nicht beides gleichzeitig."
+    );
+  }
+
+  const totalLength =
+    (image?.length || 0) +
+    videoFrames.reduce(
+      (sum, frame) =>
+        sum + frame.length,
+      0
+    );
+
+  if (
+    totalLength >
+    MAX_MEDIA_TOTAL_LENGTH
+  ) {
+    throw createMediaInputError(
+      "Foto oder Video ist für diese Nachricht zu groß."
+    );
+  }
+
+  const requestedDuration =
+    Number(
+      body?.videoDurationSeconds
+    );
+
+  const videoDurationSeconds =
+    Number.isFinite(
+      requestedDuration
+    ) &&
+    requestedDuration >
+      0 &&
+    requestedDuration <=
+      6 * 60 * 60
+      ? requestedDuration
+      : null;
+
+  return {
+    image,
+    videoDurationSeconds,
+    videoFrames
+  };
+}
+
+/*
+  ==========================================================
   ANFRAGE AN SOL
   ==========================================================
 */
@@ -3609,10 +3764,35 @@ app.post("/sol", async (req, res) => {
     const message =
       originalMessage.trim();
 
-    if (!message) {
+    const {
+      image,
+      videoDurationSeconds,
+      videoFrames
+    } =
+      readVisualMediaInput(
+        req.body
+      );
+
+    const hasImage =
+      Boolean(
+        image
+      );
+
+    const hasVideo =
+      videoFrames.length >
+      0;
+
+    const hasVisualMedia =
+      hasImage ||
+      hasVideo;
+
+    if (
+      !message &&
+      !hasVisualMedia
+    ) {
       return res.status(400).json({
         error:
-          "Keine Frage erhalten."
+          "Keine Nachricht, kein Foto und kein Video erhalten."
       });
     }
 
@@ -3624,9 +3804,11 @@ app.post("/sol", async (req, res) => {
     }
 
     const calendarResult =
-      await handleCalendarWriteRequest(
-        message
-      );
+      hasVisualMedia
+        ? null
+        : await handleCalendarWriteRequest(
+            message
+          );
 
     if (
       calendarResult?.handled
@@ -3686,9 +3868,11 @@ app.post("/sol", async (req, res) => {
     }
 
     const rememberContent =
-      extractRememberCommand(
-        message
-      );
+      hasVisualMedia
+        ? null
+        : extractRememberCommand(
+            message
+          );
 
     if (rememberContent) {
       await saveFulltimeMemory(
@@ -3726,9 +3910,11 @@ app.post("/sol", async (req, res) => {
     }
 
     const forgetContent =
-      extractForgetCommand(
-        message
-      );
+      hasVisualMedia
+        ? null
+        : extractForgetCommand(
+            message
+          );
 
     if (forgetContent) {
       await saveFulltimeMemory(
@@ -3767,6 +3953,7 @@ app.post("/sol", async (req, res) => {
     }
 
     if (
+      !hasVisualMedia &&
       isListMemoryCommand(
         message
       )
@@ -3819,6 +4006,33 @@ app.post("/sol", async (req, res) => {
       });
     }
 
+    const mediaMemoryLabel =
+      hasVideo
+        ? `[Video gesendet${
+            videoDurationSeconds
+              ? ` · ${Math.round(videoDurationSeconds)} Sekunden`
+              : ""
+          }]`
+        : hasImage
+          ? "[Foto gesendet]"
+          : "";
+
+    const userMemoryMessage =
+      [
+        message,
+        mediaMemoryLabel
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+    const promptMessage =
+      message ||
+      (
+        hasVideo
+          ? "Bitte beschreibe, was in diesem Video passiert."
+          : "Bitte beschreibe, was auf diesem Foto zu sehen ist."
+      );
+
     /*
       Für normale Unterhaltungen wird die alte Historie ZUERST
       durchsucht. Erst danach wird die aktuelle Nachricht gespeichert.
@@ -3842,7 +4056,7 @@ app.post("/sol", async (req, res) => {
 
     const longTermMemories =
       await loadRelevantLongTermMemory(
-        message
+        promptMessage
       );
 
     const longTermMemoryText =
@@ -3856,7 +4070,7 @@ app.post("/sol", async (req, res) => {
 
     const historicalMemories =
       await searchPersonalMemory(
-        message,
+        promptMessage,
         36
       );
 
@@ -3885,13 +4099,66 @@ app.post("/sol", async (req, res) => {
 
     await saveFulltimeMemory(
       "user",
-      originalMessage
+      userMemoryMessage
     );
 
     await saveMemory(
       "user",
-      message
+      userMemoryMessage
     );
+
+    const mediaPrompt =
+      hasVideo
+        ? `Pam hat ein Video gesendet. Die folgenden ${videoFrames.length} Bilder sind zeitlich geordnete Ausschnitte aus diesem Video${
+            videoDurationSeconds
+              ? ` mit einer Länge von ungefähr ${Math.round(videoDurationSeconds)} Sekunden`
+              : ""
+          }. Erkenne den sichtbaren Ablauf über alle Ausschnitte hinweg. Behaupte nicht, Ton oder gesprochene Wörter gehört zu haben.\n\nPam fragt: ${promptMessage}`
+        : hasImage
+          ? `Pam hat ein Foto gesendet. Analysiere das Foto zusammen mit ihrer Frage.\n\nPam fragt: ${promptMessage}`
+          : promptMessage;
+
+    const responseInput =
+      hasVisualMedia
+        ? [
+            {
+              role:
+                "user",
+
+              content: [
+                {
+                  type:
+                    "input_text",
+
+                  text:
+                    mediaPrompt
+                },
+
+                ...(
+                  hasImage
+                    ? [
+                        {
+                          type:
+                            "input_image",
+
+                          image_url:
+                            image
+                        }
+                      ]
+                    : videoFrames.map(
+                        (frame) => ({
+                          type:
+                            "input_image",
+
+                          image_url:
+                            frame
+                        })
+                      )
+                )
+              ]
+            }
+          ]
+        : promptMessage;
 
     const response =
       await openai.responses.create({
@@ -4021,7 +4288,7 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
 `,
 
         input:
-          message
+          responseInput
       });
 
     const answer =
@@ -4049,6 +4316,16 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
     });
 
   } catch (error) {
+    if (
+      error?.statusCode ===
+      400
+    ) {
+      return res.status(400).json({
+        error:
+          error.message
+      });
+    }
+
     console.error(
       "Sol-Holo-Backend-Fehler:",
       error
