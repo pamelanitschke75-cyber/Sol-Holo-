@@ -58,7 +58,7 @@ jobs:
       - name: Sol Holo Web-App nach Android synchronisieren
         run: npx cap sync android
 
-      - name: Sicheren WhatsApp-Fahrmodus einbinden
+      - name: Sicheren Fahr- und Weckmodus einbinden
         run: node scripts/install-whatsapp-driving-mode.mjs
 
       - name: Mikrofon-Berechtigungen setzen

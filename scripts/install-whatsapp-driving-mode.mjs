@@ -32,6 +32,8 @@ const mainActivityPath = join(javaTarget, "MainActivity.java");
 mkdirSync(javaTarget, { recursive: true });
 
 for (const fileName of [
+  "HeyHoSolPlugin.java",
+  "HeyHoSolService.java",
   "WhatsAppDrivingModePlugin.java",
   "WhatsAppNotificationListener.java"
 ]) {
@@ -62,10 +64,43 @@ if (!mainActivity.includes("registerPlugin(WhatsAppDrivingModePlugin.class)")) {
     }
 }`
   );
-  writeFileSync(mainActivityPath, mainActivity, "utf8");
 }
 
+if (!mainActivity.includes("registerPlugin(HeyHoSolPlugin.class)")) {
+  const registrationMarker =
+    "        registerPlugin(WhatsAppDrivingModePlugin.class);";
+  if (!mainActivity.includes(registrationMarker)) {
+    throw new Error("Plugin-Registrierung in MainActivity nicht gefunden.");
+  }
+
+  mainActivity = mainActivity.replace(
+    registrationMarker,
+    registrationMarker + "\n        registerPlugin(HeyHoSolPlugin.class);"
+  );
+}
+
+writeFileSync(mainActivityPath, mainActivity, "utf8");
+
 let manifest = readFileSync(manifestPath, "utf8");
+const manifestMarker =
+  '<manifest xmlns:android="http://schemas.android.com/apk/res/android">';
+
+for (const permission of [
+  '<uses-permission android:name="android.permission.RECORD_AUDIO" />',
+  '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
+  '<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />',
+  '<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />'
+]) {
+  if (!manifest.includes(permission)) {
+    if (!manifest.includes(manifestMarker)) {
+      throw new Error("Manifest-Tag nicht gefunden.");
+    }
+    manifest = manifest.replace(
+      manifestMarker,
+      manifestMarker + "\n    " + permission
+    );
+  }
+}
 
 if (!manifest.includes("android.intent.action.TTS_SERVICE")) {
   const applicationMarker = "    <application";
@@ -82,6 +117,24 @@ if (!manifest.includes("android.intent.action.TTS_SERVICE")) {
     </queries>
 
 ${applicationMarker}`
+  );
+}
+
+if (!manifest.includes("android.speech.RecognitionService")) {
+  const queriesEnd = "    </queries>";
+  if (!manifest.includes(queriesEnd)) {
+    throw new Error("Queries-Tag im Android-Manifest nicht gefunden.");
+  }
+
+  const recognitionQuery = [
+    "        <intent>",
+    '            <action android:name="android.speech.RecognitionService" />',
+    "        </intent>"
+  ].join("\n");
+
+  manifest = manifest.replace(
+    queriesEnd,
+    recognitionQuery + "\n" + queriesEnd
   );
 }
 
@@ -107,5 +160,28 @@ ${applicationEnd}`
   );
 }
 
+if (!manifest.includes(".HeyHoSolService")) {
+  const applicationEnd = "    </application>";
+  if (!manifest.includes(applicationEnd)) {
+    throw new Error("Application-Ende im Android-Manifest nicht gefunden.");
+  }
+
+  const wakeService = [
+    "        <service",
+    '            android:name=".HeyHoSolService"',
+    '            android:exported="false"',
+    '            android:foregroundServiceType="microphone"',
+    '            android:stopWithTask="false" />',
+    ""
+  ].join("\n");
+
+  manifest = manifest.replace(
+    applicationEnd,
+    wakeService + "\n" + applicationEnd
+  );
+}
+
 writeFileSync(manifestPath, manifest, "utf8");
-console.log("WhatsApp-Fahrmodus wurde in das Android-Projekt eingebunden.");
+console.log(
+  "WhatsApp-Fahrmodus und Hey-ho-Sol-Weckmodus wurden in Android eingebunden."
+);

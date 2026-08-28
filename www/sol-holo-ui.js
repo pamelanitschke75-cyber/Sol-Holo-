@@ -24,6 +24,25 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
   currentHeader.insertAdjacentHTML("beforebegin", uiMarkup);
 
+  const whatsappDriveRow = document.getElementById("whatsappDriveRow");
+  whatsappDriveRow.insertAdjacentHTML(
+    "afterend",
+    '<button id="heyHoSolRow" class="serviceRow" type="button">' +
+      '<span class="rowIcon">✦</span>' +
+      '<span class="rowText">' +
+        '<span class="rowTitle">Hey ho Sol</span>' +
+        '<span class="rowMeta">„Bist du da?“ · „Are you ready?“</span>' +
+      '</span>' +
+      '<span id="heyHoSolStatus" class="serviceStatus setup">Wird geprüft …</span>' +
+    '</button>' +
+    '<div id="wakeModeChooser" class="wakeModeChooser" ' +
+      'aria-label="Hey-ho-Sol-Hörmodus auswählen">' +
+      '<button type="button" data-wake-mode="off">Aus</button>' +
+      '<button type="button" data-wake-mode="foreground">App offen</button>' +
+      '<button type="button" data-wake-mode="background">Hintergrund</button>' +
+    '</div>'
+  );
+
   const chatView = document.createElement("section");
   chatView.id = "chatView";
   chatView.className = "appView";
@@ -80,6 +99,17 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     active: false
   };
   let whatsappActionRunning = false;
+  let wakeStatus = {
+    supported: false,
+    mode: "off",
+    active: false,
+    listening: false,
+    pausedForConversation: false
+  };
+  let wakeActionRunning = false;
+  let wakeListenersRegistered = false;
+  let lastWakeDetectedAt = 0;
+  let pendingWakePrompt = "";
 
   function showToast(text) {
     uiToast.textContent = String(text || "");
@@ -114,6 +144,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
     if (viewName === "services") {
       void loadWhatsAppStatus();
+      void loadWakeStatus();
     }
 
     if (viewName === "chat" && typeof updateMouthGeometry === "function") {
@@ -137,12 +168,14 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   }
 
   async function startSolVoice() {
+    await pauseWakeListeningForConversation();
     showView("chat");
 
     if (
       typeof enterVoiceMode !== "function" ||
       typeof startLiveConversation !== "function"
     ) {
+      await resumeWakeListeningAfterConversation();
       showToast("Der Sprachmodus ist gerade nicht verfügbar.");
       return;
     }
@@ -303,6 +336,231 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     }
   }
 
+  function getHeyHoSolPlugin() {
+    return window.Capacitor?.Plugins?.HeyHoSol || null;
+  }
+
+  function renderWakeStatus(nextStatus) {
+    const statusElement = document.getElementById("heyHoSolStatus");
+    const chooser = document.getElementById("wakeModeChooser");
+    const pluginAvailable = Boolean(getHeyHoSolPlugin());
+
+    wakeStatus = {
+      supported: Boolean(nextStatus?.supported),
+      mode: String(nextStatus?.mode || "off"),
+      active: Boolean(nextStatus?.active),
+      listening: Boolean(nextStatus?.listening),
+      pausedForConversation: Boolean(nextStatus?.pausedForConversation),
+      lastError: String(nextStatus?.lastError || "")
+    };
+
+    statusElement.classList.remove("connected", "setup");
+    chooser.querySelectorAll("[data-wake-mode]").forEach((button) => {
+      button.classList.toggle(
+        "active",
+        button.dataset.wakeMode === wakeStatus.mode
+      );
+      button.setAttribute(
+        "aria-pressed",
+        String(button.dataset.wakeMode === wakeStatus.mode)
+      );
+      button.disabled =
+        wakeActionRunning ||
+        (!pluginAvailable && button.dataset.wakeMode !== "off");
+    });
+
+    if (!pluginAvailable) {
+      statusElement.textContent = "Nur Android";
+      statusElement.classList.add("setup");
+    } else if (!wakeStatus.supported) {
+      statusElement.textContent = "Offline fehlt";
+      statusElement.classList.add("setup");
+    } else if (wakeStatus.pausedForConversation) {
+      statusElement.textContent = "Sol spricht";
+      statusElement.classList.add("connected");
+    } else if (wakeStatus.mode === "background") {
+      statusElement.textContent = wakeStatus.listening
+        ? "Hintergrund aktiv"
+        : "Startet …";
+      statusElement.classList.add("connected");
+    } else if (wakeStatus.mode === "foreground") {
+      statusElement.textContent = wakeStatus.listening
+        ? "App hört zu"
+        : "App offen";
+      statusElement.classList.add("connected");
+    } else {
+      statusElement.textContent = "Aus";
+      statusElement.classList.add("setup");
+    }
+  }
+
+  async function registerWakeListeners() {
+    const plugin = getHeyHoSolPlugin();
+    if (!plugin || wakeListenersRegistered) {
+      return;
+    }
+
+    wakeListenersRegistered = true;
+    try {
+      await plugin.addListener("wakePhraseDetected", (event) => {
+        void handleWakePhraseDetected(event);
+      });
+      await plugin.addListener("wakeStatusChanged", (status) => {
+        renderWakeStatus(status);
+      });
+    } catch (error) {
+      wakeListenersRegistered = false;
+      console.error("Hey-ho-Sol-Ereignisse:", error);
+    }
+  }
+
+  async function consumePendingWakeEvent() {
+    const plugin = getHeyHoSolPlugin();
+    if (!plugin) {
+      return;
+    }
+
+    try {
+      const event = await plugin.consumeWakeEvent();
+      if (event?.detected) {
+        await handleWakePhraseDetected(event);
+      }
+    } catch (error) {
+      console.error("Hey-ho-Sol-Weckruf:", error);
+    }
+  }
+
+  async function loadWakeStatus(consumeEvent = false) {
+    const plugin = getHeyHoSolPlugin();
+    if (!plugin) {
+      renderWakeStatus({ supported: false, mode: "off" });
+      return wakeStatus;
+    }
+
+    await registerWakeListeners();
+
+    try {
+      const status = await plugin.getStatus();
+      renderWakeStatus(status);
+      if (consumeEvent) {
+        await consumePendingWakeEvent();
+      }
+    } catch (error) {
+      console.error("Hey-ho-Sol-Status:", error);
+      renderWakeStatus({ supported: true, mode: "off" });
+      document.getElementById("heyHoSolStatus").textContent = "Status offen";
+    }
+
+    return wakeStatus;
+  }
+
+  async function setWakeMode(mode) {
+    if (wakeActionRunning) {
+      return;
+    }
+
+    const plugin = getHeyHoSolPlugin();
+    if (!plugin) {
+      showToast("Hey ho Sol ist nur in der Android-App verfügbar.");
+      return;
+    }
+
+    wakeActionRunning = true;
+    renderWakeStatus(wakeStatus);
+
+    try {
+      const status = await plugin.setMode({ mode });
+      renderWakeStatus(status);
+
+      if (mode === "background") {
+        showToast(
+          "Hintergrund-Hören aktiv. Android zeigt dauerhaft an, " +
+          "dass Sol auf deinen Weckruf wartet."
+        );
+      } else if (mode === "foreground") {
+        showToast("Hey ho Sol hört nur zu, solange die App geöffnet ist.");
+      } else {
+        showToast("Hey ho Sol ist ausgeschaltet.");
+      }
+    } catch (error) {
+      const message = String(error?.message || error || "");
+      console.error("Hey-ho-Sol-Modus:", error);
+
+      if (message.toLowerCase().includes("offline")) {
+        showToast(
+          "Die Offline-Spracherkennung fehlt. " +
+          "Ich öffne die Android-Spracheinstellungen."
+        );
+        try {
+          await plugin.openSpeechSettings();
+        } catch {}
+      } else {
+        showToast(message || "Hey ho Sol konnte gerade nicht aktiviert werden.");
+      }
+
+      await loadWakeStatus();
+    } finally {
+      wakeActionRunning = false;
+      renderWakeStatus(wakeStatus);
+    }
+  }
+
+  async function pauseWakeListeningForConversation() {
+    const plugin = getHeyHoSolPlugin();
+    if (!plugin || wakeStatus.mode === "off") {
+      return;
+    }
+
+    try {
+      const status = await plugin.pauseForConversation();
+      renderWakeStatus(status);
+      await new Promise((resolve) => window.setTimeout(resolve, 260));
+    } catch (error) {
+      console.error("Hey ho Sol pausieren:", error);
+    }
+  }
+
+  async function resumeWakeListeningAfterConversation() {
+    const plugin = getHeyHoSolPlugin();
+    if (!plugin) {
+      return;
+    }
+
+    try {
+      const status = await plugin.resumeAfterConversation();
+      renderWakeStatus(status);
+    } catch (error) {
+      console.error("Hey ho Sol fortsetzen:", error);
+    }
+  }
+
+  async function handleWakePhraseDetected(event) {
+    const detectedAt = Number(event?.detectedAt || Date.now());
+    if (
+      detectedAt <= lastWakeDetectedAt ||
+      Date.now() - detectedAt > 30_000
+    ) {
+      return;
+    }
+
+    lastWakeDetectedAt = detectedAt;
+    pendingWakePrompt = String(
+      event?.phrase || "Hey ho Sol, bist du da?"
+    );
+    showToast("Hey ho Sol gehört ✨");
+    await startSolVoice();
+  }
+
+  window.consumeSolHoloWakePrompt = () => {
+    const prompt = pendingWakePrompt;
+    pendingWakePrompt = "";
+    return prompt;
+  };
+
+  window.pauseHeyHoSolForConversation = pauseWakeListeningForConversation;
+  window.resumeHeyHoSolAfterConversation =
+    resumeWakeListeningAfterConversation;
+
   document.addEventListener("click", (event) => {
     const viewButton = event.target.closest("[data-open-view]");
     if (viewButton) {
@@ -360,6 +618,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   document.getElementById("refreshServicesButton").addEventListener("click", () => {
     void loadGoogleStatus();
     void loadWhatsAppStatus();
+    void loadWakeStatus();
   });
 
   document.getElementById("googleAccountRow").addEventListener("click", () => {
@@ -383,6 +642,19 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
   document.getElementById("whatsappDriveRow").addEventListener("click", () => {
     void toggleWhatsAppDrivingMode();
+  });
+
+  document.getElementById("heyHoSolRow").addEventListener("click", () => {
+    showToast(
+      "Wähle: Aus, nur bei geöffneter App oder sichtbar im Hintergrund."
+    );
+  });
+
+  document.getElementById("wakeModeChooser").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-wake-mode]");
+    if (button) {
+      void setWakeMode(button.dataset.wakeMode);
+    }
   });
 
   document.getElementById("phoneContactsRow").addEventListener("click", () => {
@@ -422,14 +694,17 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
       void loadWhatsAppStatus();
+      void loadWakeStatus(true);
     }
   });
 
   window.addEventListener("focus", () => {
     void loadWhatsAppStatus();
+    void loadWakeStatus(true);
   });
 
   showView("home");
   void loadGoogleStatus();
   void loadWhatsAppStatus();
+  void loadWakeStatus(true);
 })();

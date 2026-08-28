@@ -4086,6 +4086,14 @@ stopLipSync();
 
   micStatus.textContent =
     "🎙️ Mikrofon bereit.";
+
+
+  if(
+    typeof window.resumeHeyHoSolAfterConversation === "function"
+  ){
+
+    void window.resumeHeyHoSolAfterConversation();
+  }
 }
 
 
@@ -4421,6 +4429,40 @@ async function startLiveConversation(){
         setLiveStatus(
           "🌻 Ich höre dir zu ..."
         );
+
+
+        if(
+          typeof window.consumeSolHoloWakePrompt === "function"
+        ){
+
+          const wakePrompt =
+            window.consumeSolHoloWakePrompt();
+
+
+          if(wakePrompt){
+
+            dc.send(
+              JSON.stringify({
+                type:"conversation.item.create",
+                item:{
+                  type:"message",
+                  role:"user",
+                  content:[{
+                    type:"input_text",
+                    text:wakePrompt
+                  }]
+                }
+              })
+            );
+
+
+            dc.send(
+              JSON.stringify({
+                type:"response.create"
+              })
+            );
+          }
+        }
       }
     );
 
@@ -4689,6 +4731,13 @@ async function startLiveConversation(){
 liveButton.addEventListener(
   "click",
   async () => {
+
+    if(
+      typeof window.pauseHeyHoSolForConversation === "function"
+    ){
+
+      await window.pauseHeyHoSolForConversation();
+    }
 
     enterVoiceMode();
 
