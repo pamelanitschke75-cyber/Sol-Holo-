@@ -43,6 +43,31 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     '</div>'
   );
 
+  const phoneContactsRow = document.getElementById("phoneContactsRow");
+  phoneContactsRow.insertAdjacentHTML(
+    "afterend",
+    '<button id="samsungNotesRow" class="serviceRow" type="button">' +
+      '<span class="rowIcon">✎</span>' +
+      '<span class="rowText">' +
+        '<span class="rowTitle">Samsung Notes</span>' +
+        '<span class="rowMeta">Ausgewählte Notiz über „Teilen“ an Sol geben</span>' +
+      '</span>' +
+      '<span id="samsungNotesStatus" class="serviceStatus setup">Über Teilen</span>' +
+    '</button>' +
+    '<button id="healthConnectRow" class="serviceRow" type="button">' +
+      '<span class="rowIcon">♡</span>' +
+      '<span class="rowText">' +
+        '<span class="rowTitle">Health Connect</span>' +
+        '<span class="rowMeta">Samsung Health &amp; andere Quellen · nur lesen</span>' +
+      '</span>' +
+      '<span id="healthConnectStatus" class="serviceStatus setup">Wird geprüft …</span>' +
+    '</button>'
+  );
+
+  document.querySelector("#servicesView .permissionNote").textContent =
+    "Sol Holo liest keine WhatsApp-Nachricht, keinen Kontakt, keine Notiz " +
+    "und keinen Health-Wert ohne deine sichtbare Auswahl oder Android-Freigabe.";
+
   const chatView = document.createElement("section");
   chatView.id = "chatView";
   chatView.className = "appView";
@@ -126,6 +151,17 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   };
   let phoneActionRunning = false;
   let phoneListenersRegistered = false;
+  let noteImportRunning = false;
+  let noteListenerRegistered = false;
+  let healthStatus = {
+    supported: false,
+    readOnly: true,
+    availablePermissionCount: 0,
+    grantedPermissionCount: 0,
+    connected: false,
+    allGranted: false
+  };
+  let healthActionRunning = false;
 
   function showToast(text) {
     uiToast.textContent = String(text || "");
@@ -162,6 +198,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       void loadWhatsAppStatus();
       void loadWakeStatus();
       void loadPhoneStatus();
+      void loadHealthStatus();
     }
 
     if (viewName === "chat" && typeof updateMouthGeometry === "function") {
@@ -613,8 +650,346 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
   window.executeSolHoloPhoneTool = executePhoneTool;
 
+  async function registerSharedNoteListener() {
+    const plugin = getPhoneContactsPlugin();
+    if (!plugin || noteListenerRegistered) {
+      return;
+    }
+
+    noteListenerRegistered = true;
+    try {
+      await plugin.addListener("sharedNoteReceived", () => {
+        void consumeSharedNoteImport();
+      });
+    } catch (error) {
+      noteListenerRegistered = false;
+      console.error("Samsung-Notes-Ereignis:", error);
+    }
+  }
+
+  function renderSamsungNotesStatus() {
+    const statusElement = document.getElementById("samsungNotesStatus");
+    statusElement.classList.remove("connected", "setup");
+    if (getPhoneContactsPlugin()) {
+      statusElement.textContent = "Über Teilen";
+      statusElement.classList.add("connected");
+    } else {
+      statusElement.textContent = "Nur Android";
+      statusElement.classList.add("setup");
+    }
+  }
+
+  async function consumeSharedNoteImport() {
+    const plugin = getPhoneContactsPlugin();
+    if (!plugin || noteImportRunning) {
+      return;
+    }
+
+    noteImportRunning = true;
+    try {
+      const note = await plugin.consumeSharedNote();
+      if (!note?.available) {
+        return;
+      }
+
+      if (note.truncated) {
+        window.alert(
+          "Diese Notiz ist für die sichere Einzelübergabe zu lang. " +
+          "Bitte markiere in Samsung Notes einen kürzeren persönlichen " +
+          "Abschnitt und teile ihn erneut mit Sol Holo. Es wurde nichts gespeichert."
+        );
+        return;
+      }
+
+      const title = String(note.title || "").trim();
+      const text = String(note.text || "").trim();
+      const preview = text.length > 800
+        ? text.slice(0, 800) + " …"
+        : text;
+      const confirmed = window.confirm(
+        "Diese ausgewählte Samsung-Notiz dauerhaft in Sol Holo speichern?\n\n" +
+        (title ? `Titel: ${title}\n\n` : "") +
+        preview +
+        "\n\nNur persönliche Inhalte bestätigen. Geschäftliche Daten, PINs, " +
+        "Passwörter, TANs, Banking- und Authenticator-Daten bleiben ausgeschlossen."
+      );
+
+      if (!confirmed) {
+        showToast("Notiz verworfen. Es wurde nichts gespeichert.");
+        return;
+      }
+
+      const memoryText = [
+        "Samsung Notes · von Pam ausdrücklich freigegeben",
+        title ? `Titel: ${title}` : "",
+        text
+      ].filter(Boolean).join("\n\n");
+
+      await askSol(`Sol, merke dir dauerhaft: ${memoryText}`);
+      showToast("Die bestätigte Notiz wurde an Sol übergeben.");
+    } catch (error) {
+      console.error("Samsung-Notes-Import:", error);
+      showToast("Die geteilte Notiz konnte gerade nicht übernommen werden.");
+    } finally {
+      noteImportRunning = false;
+    }
+  }
+
+  function getHealthConnectPlugin() {
+    return window.Capacitor?.Plugins?.HealthConnect || null;
+  }
+
+  function renderHealthStatus(nextStatus) {
+    const statusElement = document.getElementById("healthConnectStatus");
+    healthStatus = {
+      supported: Boolean(nextStatus?.supported),
+      readOnly: nextStatus?.readOnly !== false,
+      availablePermissionCount: Number(
+        nextStatus?.availablePermissionCount || 0
+      ),
+      grantedPermissionCount: Number(
+        nextStatus?.grantedPermissionCount || 0
+      ),
+      connected: Boolean(nextStatus?.connected),
+      allGranted: Boolean(nextStatus?.allGranted)
+    };
+
+    statusElement.classList.remove("connected", "setup");
+    if (!getHealthConnectPlugin()) {
+      statusElement.textContent = "Nur Android";
+      statusElement.classList.add("setup");
+    } else if (!healthStatus.supported) {
+      statusElement.textContent = "Ab Android 14";
+      statusElement.classList.add("setup");
+    } else if (healthStatus.allGranted) {
+      statusElement.textContent = "Alles lesend";
+      statusElement.classList.add("connected");
+    } else if (healthStatus.connected) {
+      statusElement.textContent =
+        `${healthStatus.grantedPermissionCount}/` +
+        `${healthStatus.availablePermissionCount} lesend`;
+      statusElement.classList.add("connected");
+    } else {
+      statusElement.textContent = "Freigaben wählen";
+      statusElement.classList.add("setup");
+    }
+  }
+
+  async function loadHealthStatus() {
+    const plugin = getHealthConnectPlugin();
+    if (!plugin) {
+      renderHealthStatus({ supported: false });
+      return healthStatus;
+    }
+
+    try {
+      renderHealthStatus(await plugin.getStatus());
+    } catch (error) {
+      console.error("Health-Connect-Status:", error);
+      renderHealthStatus({ supported: false });
+    }
+    return healthStatus;
+  }
+
+  async function openHealthPermissions() {
+    if (healthActionRunning) {
+      return;
+    }
+
+    const plugin = getHealthConnectPlugin();
+    if (!plugin) {
+      showToast("Health Connect ist nur in der Android-App verfügbar.");
+      return;
+    }
+
+    healthActionRunning = true;
+    try {
+      const status = await plugin.getStatus();
+      renderHealthStatus(status);
+      if (!status?.supported) {
+        showToast("Für diese direkte Health-Verbindung braucht das Handy Android 14 oder neuer.");
+        return;
+      }
+
+      await plugin.openPermissions();
+      showToast(
+        "Android zeigt jetzt alle Health-Lesefreigaben. " +
+        "Du entscheidest jede Kategorie selbst."
+      );
+    } catch (error) {
+      console.error("Health-Freigaben:", error);
+      showToast("Die Health-Connect-Freigaben konnten nicht geöffnet werden.");
+    } finally {
+      healthActionRunning = false;
+    }
+  }
+
+  function healthCategoryFromText(text) {
+    const value = String(text || "").toLowerCase();
+    if (/schlaf|sleep/.test(value)) {
+      return "sleep";
+    }
+    if (/gewicht|größe|körperfett|körperwasser|knochen|grundumsatz/.test(value)) {
+      return "body";
+    }
+    if (/ernährung|nahrung|trinken|wasser|hydration/.test(value)) {
+      return "nutrition";
+    }
+    if (/zyklus|menstru|ovulation|reproduktiv|zwischenblutung/.test(value)) {
+      return "reproductive";
+    }
+    if (/herz|puls|blut|sauerstoff|atem|temperatur|vo2|vital/.test(value)) {
+      return "vitals";
+    }
+    if (/schritt|training|bewegung|kalorien|distanz|etagen|aktivität/.test(value)) {
+      return "activity";
+    }
+    return "all";
+  }
+
+  function compactHealthValue(value, depth = 0) {
+    if (value == null) {
+      return "";
+    }
+    if (typeof value !== "object") {
+      return String(value);
+    }
+    if (depth >= 2) {
+      return JSON.stringify(value).slice(0, 220);
+    }
+    if (Array.isArray(value)) {
+      return value.slice(0, 4)
+        .map((item) => compactHealthValue(item, depth + 1))
+        .filter(Boolean)
+        .join(", ");
+    }
+    return Object.entries(value)
+      .slice(0, 10)
+      .map(([key, item]) => `${key}: ${compactHealthValue(item, depth + 1)}`)
+      .join(", ");
+  }
+
+  function formatHealthSnapshot(snapshot) {
+    const categories = Array.isArray(snapshot?.categories)
+      ? snapshot.categories
+      : [];
+    if (categories.length === 0) {
+      return (
+        `Health Connect enthält im gewählten Bereich für die letzten ` +
+        `${snapshot?.days || 7} Tage keine lesbaren Einträge. ` +
+        "Es wurde nichts automatisch gespeichert."
+      );
+    }
+
+    const lines = categories.map((category) => {
+      const records = Array.isArray(category?.records)
+        ? category.records
+        : [];
+      const latest = records[0]
+        ? compactHealthValue(records[0])
+        : "";
+      return `${category.label} (${category.count}): ${latest || "Eintrag vorhanden"}`;
+    });
+
+    const answer = [
+      `Health Connect · letzte ${snapshot.days || 7} Tage · nur lesend:`,
+      ...lines,
+      "Keine Diagnose. Diese Werte wurden nicht automatisch im Langzeitgedächtnis gespeichert."
+    ].join("\n");
+
+    return answer.length > 6000
+      ? answer.slice(0, 5900) + "\nWeitere freigegebene Kategorien sind vorhanden."
+      : answer;
+  }
+
+  async function executeHealthTool(name, args = {}) {
+    if (String(name || "") !== "read_health_snapshot") {
+      return { success: false, answer: "Unbekannte Health-Funktion." };
+    }
+
+    const plugin = getHealthConnectPlugin();
+    if (!plugin) {
+      return {
+        success: false,
+        answer: "Health Connect ist nur in der Sol-Holo-Android-App verfügbar."
+      };
+    }
+
+    const days = Math.max(1, Math.min(30, Number(args?.days) || 7));
+    const requestedCategory = String(args?.category || "all");
+    const category = [
+      "all",
+      "activity",
+      "body",
+      "vitals",
+      "sleep",
+      "nutrition",
+      "reproductive"
+    ].includes(requestedCategory)
+      ? requestedCategory
+      : healthCategoryFromText(args?.focus);
+
+    try {
+      const status = await loadHealthStatus();
+      if (!status.supported) {
+        return {
+          success: false,
+          answer: "Health Connect braucht auf diesem Handy Android 14 oder neuer."
+        };
+      }
+      if (!status.connected) {
+        return {
+          success: false,
+          answer: "Öffne in Sol Holo unter Dienste zuerst Health Connect und wähle die Lesefreigaben."
+        };
+      }
+
+      const confirmed = window.confirm(
+        `Health-Connect-Daten der letzten ${days} Tage jetzt lesend abrufen?\n\n` +
+        "Die freigegebenen Werte werden nur für diese bestätigte Antwort an Sol " +
+        "verarbeitet, nicht verändert und nicht automatisch als Erinnerung gespeichert."
+      );
+      if (!confirmed) {
+        return {
+          success: false,
+          cancelled: true,
+          answer: "Der Health-Zugriff wurde abgebrochen."
+        };
+      }
+
+      const snapshot = await plugin.readSnapshot({ days, category });
+      return {
+        success: true,
+        answer: formatHealthSnapshot(snapshot),
+        snapshot
+      };
+    } catch (error) {
+      console.error("Health-Connect-Abfrage:", error);
+      const message = String(error?.message || error || "");
+      return {
+        success: false,
+        answer: /freigabe|permission/i.test(message)
+          ? "Für diesen Health-Bereich fehlt noch die Android-Lesefreigabe. Öffne Health Connect unter Dienste."
+          : "Die Health-Connect-Daten konnten gerade nicht gelesen werden."
+      };
+    }
+  }
+
+  window.executeSolHoloHealthTool = executeHealthTool;
+
   window.handleSolHoloLocalAction = async (message) => {
     const cleanMessage = String(message || "").trim();
+    if (
+      /^(?:zeig|zeige|lies|lese|gib|wie\s+(?:viele|war|waren|ist|sind))\b/i.test(cleanMessage) &&
+      /health|gesundheit|gesundheitsdaten|schritt|schlaf|gewicht|herz|puls|blutdruck|sauerstoff|training|kalorien|zyklus|menstru|ernährung/i.test(cleanMessage)
+    ) {
+      const result = await executeHealthTool("read_health_snapshot", {
+        days: 7,
+        category: healthCategoryFromText(cleanMessage)
+      });
+      return { handled: true, answer: result.answer };
+    }
+
     let match = cleanMessage.match(/^ruf(?:e)?(?:\s+mal)?\s+(.+?)(?:\s+an)?[.!?]?$/i);
     if (!match) {
       match = cleanMessage.match(/^(.+?)\s+anrufen[.!?]?$/i);
@@ -956,6 +1331,8 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     void loadWhatsAppStatus();
     void loadWakeStatus();
     void loadPhoneStatus();
+    void loadHealthStatus();
+    renderSamsungNotesStatus();
   });
 
   document.getElementById("googleAccountRow").addEventListener("click", () => {
@@ -1008,13 +1385,30 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     void requestPhoneAccess();
   });
 
+  document.getElementById("samsungNotesRow").addEventListener("click", () => {
+    if (!getPhoneContactsPlugin()) {
+      showToast("Samsung Notes kann nur mit der Sol-Holo-Android-App geteilt werden.");
+      return;
+    }
+    showToast(
+      "Samsung Notes öffnen → persönliche Notiz auswählen → Teilen → Sol Holo. " +
+      "Vor dem Speichern fragt Sol noch einmal nach."
+    );
+    void consumeSharedNoteImport();
+  });
+
+  document.getElementById("healthConnectRow").addEventListener("click", () => {
+    void openHealthPermissions();
+  });
+
   document.getElementById("manageServicesButton").addEventListener("click", () => {
     const whatsappText = whatsappStatus.active
       ? "Der WhatsApp-Fahrmodus ist aktiv."
       : "Den WhatsApp-Fahrmodus richtest du direkt über seine Zeile ein.";
     showToast(
       "Jeder Dienst wird einzeln freigegeben. " + whatsappText +
-      " Google-Konto und Telefon richtest du über ihre jeweilige Zeile ein."
+      " Google-Konto, Telefon und Health richtest du über ihre jeweilige Zeile ein. " +
+      "Samsung Notes kommt nur über das Teilen-Menü."
     );
   });
 
@@ -1040,6 +1434,8 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       void loadWhatsAppStatus();
       void loadWakeStatus(true);
       void loadPhoneStatus();
+      void loadHealthStatus();
+      void consumeSharedNoteImport();
     }
   });
 
@@ -1047,6 +1443,8 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     void loadWhatsAppStatus();
     void loadWakeStatus(true);
     void loadPhoneStatus();
+    void loadHealthStatus();
+    void consumeSharedNoteImport();
   });
 
   showView("home");
@@ -1054,4 +1452,8 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   void loadWhatsAppStatus();
   void loadWakeStatus(true);
   void loadPhoneStatus();
+  renderSamsungNotesStatus();
+  void registerSharedNoteListener();
+  void consumeSharedNoteImport();
+  void loadHealthStatus();
 })();

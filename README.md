@@ -202,6 +202,17 @@ Der aktuelle Entwicklungsstand wurde unter anderem auf einem:
 
 entwickelt und praktisch getestet.
 
+## Neu integriert: Samsung Notes und Health Connect
+
+Der aktuelle Android-Build erweitert Sol Holo um zwei bewusst begrenzte Wege für persönliche Handydaten:
+
+- **Samsung Notes:** Eine einzelne ausgewählte Textnotiz kann über `Teilen → Sol Holo` übergeben werden. Vor der dauerhaften Speicherung erscheint eine sichtbare Bestätigung. Ein automatischer Import des gesamten Notizbuchs findet nicht statt.
+- **Health Connect / Samsung Health:** Sol Holo kann die von Android einzeln freigegebenen Kategorien aus Aktivität, Körperwerten, Vitalwerten, Schlaf, Ernährung und reproduktiver Gesundheit ausschließlich lesen. Jeder tatsächliche Abruf wird noch einmal bestätigt, bleibt auf höchstens 30 Tage begrenzt und wird nicht automatisch in das Langzeitgedächtnis übernommen.
+
+Health Connect besitzt in Sol Holo keine Schreib- oder Löschfunktion und keinen automatischen Hintergrundzugriff. Die Werte dienen der persönlichen Übersicht, nicht einer medizinischen Diagnose. Geschäftliche Inhalte, PINs, Passwörter, TANs, Banking- und Authenticator-Daten bleiben ausgeschlossen.
+
+Diese beiden Erweiterungen sind technisch integriert; die praktische Freigabe und Prüfung erfolgt nach Installation des zugehörigen Android-Builds auf dem Galaxy S23.
+
 ---
 
 # 🧩 Technischer Aufbau
@@ -216,6 +227,7 @@ Der aktuelle Sol-Holo-Entwicklungsstand verwendet unter anderem:
 - PostgreSQL
 - Render
 - Google Calendar API
+- Android Health Connect
 - Capacitor
 - Android
 - GitHub

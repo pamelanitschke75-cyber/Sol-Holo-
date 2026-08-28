@@ -3552,6 +3552,18 @@ Bestätigung von Pam gestartet oder vorbereitet werden.
 Behaupte erst dann, dass die Telefon-App oder Nachrichten-App
 geöffnet wurde, wenn das Tool dies wirklich bestätigt hat.
 
+WICHTIG ZU HEALTH CONNECT:
+
+Wenn Pam ausdrücklich nach ihren eigenen Gesundheits- oder
+Fitnesswerten fragt, verwende read_health_snapshot. Wähle dabei
+möglichst nur den angefragten Bereich statt pauschal "all".
+
+Der lokale Android-Dialog bestätigt jeden tatsächlichen Abruf.
+Health-Daten dürfen niemals automatisch als Erinnerung gespeichert
+werden. Stelle keine medizinische Diagnose, erfinde keine Werte und
+behaupte nicht, dass Health-Daten verändert wurden. Sol Holo besitzt
+ausschließlich Lesefunktionen und keinen Hintergrundzugriff.
+
 WICHTIG ZUM FREIGEGEBENEN DATENUMFANG:
 
 Geschäftliche Inhalte, PINs, Passwörter, TANs,
@@ -3718,6 +3730,62 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
               required: [
                 "contact_name",
                 "message"
+              ],
+
+              additionalProperties:
+                false
+            }
+          },
+          {
+            type:
+              "function",
+
+            name:
+              "read_health_snapshot",
+
+            description:
+              "Liest erst nach Pams sichtbarer Bestätigung einen begrenzten, nur lesenden Health-Connect-Snapshot. Verwende die kleinste passende Kategorie. Die Daten werden nicht automatisch als Erinnerung gespeichert und sind keine medizinische Diagnose.",
+
+            parameters: {
+              type:
+                "object",
+
+              properties: {
+                days: {
+                  type:
+                    "integer",
+
+                  minimum:
+                    1,
+
+                  maximum:
+                    30,
+
+                  description:
+                    "Zeitraum in Tagen; normalerweise 7."
+                },
+                category: {
+                  type:
+                    "string",
+
+                  enum: [
+                    "activity",
+                    "body",
+                    "vitals",
+                    "sleep",
+                    "nutrition",
+                    "reproductive",
+                    "all"
+                  ],
+
+                  description:
+                    "Kleinster Bereich, der Pams konkrete Frage beantwortet. 'all' nur bei ausdrücklicher Gesamtübersicht."
+                }
+              },
+
+              required: [
+                "days",
+                "category"
               ],
 
               additionalProperties:

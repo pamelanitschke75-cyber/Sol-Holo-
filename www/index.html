@@ -4209,7 +4209,8 @@ const REALTIME_LOCAL_TOOL_NAMES = new Set([
   "search_personal_memory",
   "search_phone_contact",
   "start_phone_call",
-  "prepare_sms"
+  "prepare_sms",
+  "read_health_snapshot"
 ]);
 
 function getRealtimeMemoryToolCall(
@@ -4266,6 +4267,19 @@ async function handleRealtimeMemoryToolCall(
       output = await searchRealtimePersonalMemory(
         String(parsedArguments?.query || "").trim()
       );
+    }else if(toolCall?.name === "read_health_snapshot"){
+      if(typeof window.executeSolHoloHealthTool === "function"){
+        const result = await window.executeSolHoloHealthTool(
+          toolCall?.name,
+          parsedArguments
+        );
+        output = String(
+          result?.answer ||
+          "Die Health-Funktion hat keine Rückmeldung geliefert."
+        );
+      }else{
+        output = "Health Connect ist nur in der Sol-Holo-Android-App verfügbar.";
+      }
     }else if(
       typeof window.executeSolHoloPhoneTool === "function"
     ){
@@ -4284,7 +4298,9 @@ async function handleRealtimeMemoryToolCall(
     console.error("Realtime Tool Fehler:", error);
     output = toolCall?.name === "search_personal_memory"
       ? "Die persönliche Gedächtnissuche ist gerade technisch fehlgeschlagen. Erfinde keine Erinnerung."
-      : "Die Telefonfunktion ist gerade technisch fehlgeschlagen. Behaupte nicht, dass eine App geöffnet wurde.";
+      : toolCall?.name === "read_health_snapshot"
+        ? "Die Health-Abfrage ist technisch fehlgeschlagen. Erfinde keine Gesundheitswerte und stelle keine Diagnose."
+        : "Die Telefonfunktion ist gerade technisch fehlgeschlagen. Behaupte nicht, dass eine App geöffnet wurde.";
   }
 
   if(!dc || dc.readyState !== "open"){

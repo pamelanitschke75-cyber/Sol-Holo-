@@ -43,6 +43,14 @@ import java.util.Set;
     }
 )
 public class PhoneContactsPlugin extends Plugin {
+    private static final String NOTE_PREFERENCES = "sol_holo_shared_notes";
+    private static final String NOTE_TEXT_KEY = "pending_note_text";
+    private static final String NOTE_TITLE_KEY = "pending_note_title";
+    private static final String NOTE_TRUNCATED_KEY = "pending_note_truncated";
+    private static final int MAX_SHARED_NOTE_LENGTH = 3200;
+    private static final int MAX_SHARED_NOTE_TITLE_LENGTH = 160;
+    private static volatile PhoneContactsPlugin activePlugin;
+
     private TelephonyManager telephonyManager;
     private TelephonyCallback telephonyCallback;
     private PhoneStateListener legacyPhoneStateListener;
@@ -50,6 +58,7 @@ public class PhoneContactsPlugin extends Plugin {
 
     @Override
     public void load() {
+        activePlugin = this;
         registerCallStateListener();
     }
 
@@ -63,7 +72,64 @@ public class PhoneContactsPlugin extends Plugin {
     @Override
     protected void handleOnDestroy() {
         unregisterCallStateListener();
+        if (activePlugin == this) {
+            activePlugin = null;
+        }
         super.handleOnDestroy();
+    }
+
+    public static boolean handleSharedNoteIntent(Context context, Intent intent) {
+        if (
+            context == null
+                || intent == null
+                || !Intent.ACTION_SEND.equals(intent.getAction())
+        ) {
+            return false;
+        }
+
+        String mimeType = intent.getType();
+        if (mimeType != null && !mimeType.startsWith("text/")) {
+            return false;
+        }
+
+        CharSequence sharedText = intent.getCharSequenceExtra(Intent.EXTRA_TEXT);
+        String text = sharedText == null ? "" : sharedText.toString().trim();
+        if (text.isEmpty()) {
+            return false;
+        }
+
+        String title = intent.getStringExtra(Intent.EXTRA_SUBJECT);
+        title = title == null ? "" : title.trim();
+        if (title.length() > MAX_SHARED_NOTE_TITLE_LENGTH) {
+            title = title.substring(0, MAX_SHARED_NOTE_TITLE_LENGTH).trim();
+        }
+
+        boolean truncated = text.length() > MAX_SHARED_NOTE_LENGTH;
+        if (truncated) {
+            text = text.substring(0, MAX_SHARED_NOTE_LENGTH).trim();
+        }
+
+        context
+            .getSharedPreferences(NOTE_PREFERENCES, Context.MODE_PRIVATE)
+            .edit()
+            .putString(NOTE_TEXT_KEY, text)
+            .putString(NOTE_TITLE_KEY, title)
+            .putBoolean(NOTE_TRUNCATED_KEY, truncated)
+            .apply();
+
+        intent.removeExtra(Intent.EXTRA_TEXT);
+        intent.removeExtra(Intent.EXTRA_SUBJECT);
+
+        PhoneContactsPlugin plugin = activePlugin;
+        if (plugin != null) {
+            JSObject event = new JSObject();
+            event.put("available", true);
+            event.put("characterCount", text.length());
+            event.put("truncated", truncated);
+            plugin.notifyListeners("sharedNoteReceived", event, true);
+        }
+
+        return true;
     }
 
     private boolean contactsGranted() {
@@ -106,6 +172,35 @@ public class PhoneContactsPlugin extends Plugin {
     @PluginMethod
     public void getStatus(PluginCall call) {
         call.resolve(status());
+    }
+
+    @PluginMethod
+    public void consumeSharedNote(PluginCall call) {
+        String text = getContext()
+            .getSharedPreferences(NOTE_PREFERENCES, Context.MODE_PRIVATE)
+            .getString(NOTE_TEXT_KEY, "");
+        String title = getContext()
+            .getSharedPreferences(NOTE_PREFERENCES, Context.MODE_PRIVATE)
+            .getString(NOTE_TITLE_KEY, "");
+        boolean truncated = getContext()
+            .getSharedPreferences(NOTE_PREFERENCES, Context.MODE_PRIVATE)
+            .getBoolean(NOTE_TRUNCATED_KEY, false);
+
+        JSObject result = new JSObject();
+        result.put("available", text != null && !text.trim().isEmpty());
+        result.put("text", text == null ? "" : text);
+        result.put("title", title == null ? "" : title);
+        result.put("truncated", truncated);
+
+        getContext()
+            .getSharedPreferences(NOTE_PREFERENCES, Context.MODE_PRIVATE)
+            .edit()
+            .remove(NOTE_TEXT_KEY)
+            .remove(NOTE_TITLE_KEY)
+            .remove(NOTE_TRUNCATED_KEY)
+            .apply();
+
+        call.resolve(result);
     }
 
     @PluginMethod
