@@ -1,9 +1,11 @@
-const CACHE_NAME = "sol-holo-v2-sh-logo";
+const CACHE_NAME = "sol-holo-v3-cosmic-ui";
 
 const APP_FILES = [
   "/",
   "/index.html",
   "/manifest.json",
+  "/sol-holo-ui.css",
+  "/sol-holo-ui.js",
   "/sol-holo-logo.png",
   "/icon-192.png",
   "/icon-512.png"
