@@ -1,6 +1,7 @@
 # Dependencies and generated Android project
 node_modules/
 android/
+www/mediapipe/
 
 # Local environment files
 .env
@@ -11,4 +12,3 @@ android/
 *.jks
 *.keystore
 *.p12
-

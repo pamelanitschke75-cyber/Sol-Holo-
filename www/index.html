@@ -797,6 +797,7 @@ LIP SYNC
 ==========================================================
 */
 
+#faceCanvas,
 #mouthCanvas{
   position:absolute;
 
@@ -809,6 +810,14 @@ LIP SYNC
   image-rendering:auto;
 
   will-change:contents;
+}
+
+#faceCanvas{
+  z-index:8;
+}
+
+#mouthCanvas{
+  z-index:9;
 }
 
 #solCloneWrap.sol-speaking{
@@ -1531,6 +1540,7 @@ Verbindung
   alt="Sol Holo Clone"
 >
 
+<canvas id="faceCanvas" aria-hidden="true"></canvas>
 <canvas id="mouthCanvas" aria-hidden="true"></canvas>
 
 </div>
@@ -1798,6 +1808,9 @@ const solCloneWrap =
 const solImage =
   document.getElementById("solImage");
 
+const faceCanvas =
+  document.getElementById("faceCanvas");
+
 const mouthCanvas =
   document.getElementById("mouthCanvas");
 
@@ -1887,6 +1900,14 @@ window.SolHoloClone = {
       String(source || "").trim();
 
     if(cleanSource){
+      fullFaceRigRequested =
+        true;
+
+      fullFaceRigReady =
+        false;
+
+      fullFaceRig?.clear();
+
       solImage.src = cleanSource;
     }
   },
@@ -1902,6 +1923,8 @@ window.SolHoloClone = {
   },
 
   reset(){
+    disableFullFaceRig();
+
     solImage.src =
       DEFAULT_SOL_CLONE_IMAGE;
 
@@ -1970,6 +1993,227 @@ let lipMouthRenderContext =
 let currentMouthOpen = 0;
 let currentMouthWide = 0;
 let currentMouthRound = 0;
+let fullFaceRig = null;
+let fullFaceRigReady = false;
+let fullFaceRigRequested = false;
+let fullFaceRigLoadPromise = null;
+let fullFaceRigAnalysisGeneration = 0;
+
+
+function reportFullFaceRigStatus(
+  detail
+){
+
+  const state =
+    String(
+      detail?.state ||
+      "off"
+    );
+
+
+  if(
+    state ===
+      "ready"
+  ){
+
+    lipSyncStatus.textContent =
+      "🙂 Gesicht lokal erkannt · Vollgesichtsbewegung bereit.";
+
+  }else if(
+    state ===
+      "analysing"
+  ){
+
+    lipSyncStatus.textContent =
+      "🙂 Gesicht wird nur auf diesem Gerät erkannt …";
+
+  }else if(
+    state ===
+      "fallback"
+  ){
+
+    lipSyncStatus.textContent =
+      "👄 Gesicht nicht eindeutig erkannt · dezenter Lip-Sync bleibt aktiv.";
+  }
+
+
+  window.dispatchEvent(
+    new CustomEvent(
+      "sol-holo-face-rig-status",
+      {
+        detail:{
+          ...detail,
+          state
+        }
+      }
+    )
+  );
+}
+
+
+async function ensureFullFaceRig(){
+
+  if(
+    fullFaceRig
+  ){
+
+    return fullFaceRig;
+  }
+
+
+  if(
+    !fullFaceRigLoadPromise
+  ){
+
+    reportFullFaceRigStatus(
+      {
+        state:"loading"
+      }
+    );
+
+
+    fullFaceRigLoadPromise =
+      import(
+        "./full-face-rig.mjs"
+      )
+        .then(
+          module =>
+            module.createFullFaceRig(
+              {
+                image:solImage,
+                canvas:faceCanvas,
+                wrapper:solCloneWrap,
+                onStatus:reportFullFaceRigStatus
+              }
+            )
+        )
+        .then(
+          rig => {
+
+            fullFaceRig =
+              rig;
+
+
+            return rig;
+          }
+        )
+        .catch(
+          error => {
+
+            console.warn(
+              "Lokaler Vollgesichtsmodus:",
+              error
+            );
+
+
+            reportFullFaceRigStatus(
+              {
+                state:"fallback",
+                reason:"engine-error"
+              }
+            );
+
+
+            return null;
+          }
+        );
+  }
+
+
+  return fullFaceRigLoadPromise;
+}
+
+
+async function analyseFullFaceImage(){
+
+  const generation =
+    ++fullFaceRigAnalysisGeneration;
+
+
+  if(
+    !fullFaceRigRequested
+  ){
+
+    return false;
+  }
+
+
+  fullFaceRigReady =
+    false;
+
+
+  const rig =
+    await ensureFullFaceRig();
+
+
+  if(
+    !rig ||
+    generation !==
+      fullFaceRigAnalysisGeneration ||
+    !fullFaceRigRequested
+  ){
+
+    return false;
+  }
+
+
+  const ready =
+    await rig.setImage();
+
+
+  if(
+    generation !==
+      fullFaceRigAnalysisGeneration ||
+    !fullFaceRigRequested
+  ){
+
+    return false;
+  }
+
+
+  fullFaceRigReady =
+    Boolean(
+      ready
+    );
+
+
+  if(
+    fullFaceRigReady
+  ){
+
+    clearNaturalMouth();
+
+    mouthCanvas.style.display =
+      "none";
+
+  }else{
+
+    updateMouthGeometry();
+  }
+
+
+  return fullFaceRigReady;
+}
+
+
+function disableFullFaceRig(){
+
+  fullFaceRigRequested =
+    false;
+
+  fullFaceRigReady =
+    false;
+
+  fullFaceRigAnalysisGeneration +=
+    1;
+
+
+  fullFaceRig?.disable();
+
+
+  faceCanvas.style.display =
+    "none";
+}
 
 
 /*
@@ -3088,6 +3332,8 @@ function updateMouthGeometry(){
   lipMouthCanvasGeometry = {
     width:canvasWidth,
     height:canvasHeight,
+    imageDisplayWidth:imageRect.width,
+    imageDisplayHeight:imageRect.height,
     seamY:canvasHeight * 0.42,
     mouthWidth,
     mouthHeight,
@@ -3116,7 +3362,14 @@ function updateMouthGeometry(){
 
 
   mouthCanvas.style.display =
-    "block";
+    fullFaceRigReady
+      ?
+      "none"
+      :
+      "block";
+
+
+  fullFaceRig?.resize();
 
 
   clearNaturalMouth();
@@ -3183,7 +3436,7 @@ function renderNaturalMouth(
 
   if(
     open <
-    0.015
+    0.006
   ){
 
     clearNaturalMouth();
@@ -3210,6 +3463,8 @@ function renderNaturalMouth(
   const {
     width,
     height,
+    imageDisplayWidth,
+    imageDisplayHeight,
     seamY,
     mouthWidth,
     mouthHeight,
@@ -3217,6 +3472,7 @@ function renderNaturalMouth(
     sourceY,
     sourceWidth,
     sourceHeight,
+    naturalScaleX,
     naturalScaleY,
     pixelRatio
   } = geometry;
@@ -3261,41 +3517,55 @@ function renderNaturalMouth(
   );
 
 
-  const lipTravel =
-    Math.min(
-      8,
-      mouthHeight *
-      open *
-      0.34
+  const effectiveMouthWidth =
+    clamp(
+      mouthWidth,
+      imageDisplayWidth * 0.06,
+      imageDisplayWidth * 0.22
     );
 
 
-  const cavityWidth =
-    mouthWidth *
+  const lipBandHeight =
     clamp(
-      0.55 +
-      wide * 0.11 -
-      round * 0.16,
-      0.36,
-      0.68
+      Math.min(
+        mouthHeight * 0.42,
+        effectiveMouthWidth * 0.18
+      ),
+      imageDisplayHeight * 0.010,
+      imageDisplayHeight * 0.034
+    );
+
+
+  const lipTravel =
+    Math.min(
+      imageDisplayHeight * 0.0065,
+      lipBandHeight * 0.24
+    ) *
+    open;
+
+
+  const cavityWidth =
+    effectiveMouthWidth *
+    clamp(
+      0.78 +
+      wide * 0.03 -
+      round * 0.05,
+      0.68,
+      0.82
     );
 
 
   const cavityHeight =
     Math.max(
       1,
-      mouthHeight * 0.025 +
-      lipTravel *
-      (
-        0.72 +
-        round * 0.18
-      )
+      0.8 +
+      lipTravel * 0.92
     );
 
 
   const cavityCenterY =
     seamY +
-    lipTravel * 0.34;
+    lipTravel * 0.24;
 
 
   context.save();
@@ -3315,82 +3585,68 @@ function renderNaturalMouth(
   );
 
 
-  const cavityGradient =
-    context.createLinearGradient(
-      0,
-      cavityCenterY -
-        cavityHeight / 2,
-      0,
-      cavityCenterY +
-        cavityHeight / 2
-    );
-
-
-  cavityGradient.addColorStop(
-    0,
-    "rgba(58,12,19,.84)"
-  );
-
-
-  cavityGradient.addColorStop(
-    0.48,
-    "rgba(21,4,9,.96)"
-  );
-
-
-  cavityGradient.addColorStop(
-    1,
-    "rgba(73,13,24,.82)"
-  );
-
-
-  context.fillStyle =
-    cavityGradient;
-
-
-  context.fill();
   context.clip();
 
 
-  if(
-    open >
-    0.32
-  ){
-
-    const teethOpacity =
-      clamp(
-        (
-          open -
-          0.32
-        ) *
-        0.18,
-        0,
-        0.10
-      );
-
-
-    context.fillStyle =
-      `rgba(247,232,216,${teethOpacity})`;
-
-
-    context.fillRect(
-      width / 2 -
-        cavityWidth * 0.33,
-      cavityCenterY -
-        cavityHeight * 0.45,
-      cavityWidth * 0.66,
-      cavityHeight * 0.20
+  context.globalAlpha =
+    clamp(
+      0.72 +
+      open * 0.18,
+      0.72,
+      0.88
     );
-  }
+
+
+  context.drawImage(
+    solImage,
+    sourceX +
+      (
+        width / 2 -
+        cavityWidth / 2
+      ) *
+      naturalScaleX,
+    sourceY +
+      (
+        seamY -
+        0.7
+      ) *
+      naturalScaleY,
+    cavityWidth *
+      naturalScaleX,
+    1.4 *
+      naturalScaleY,
+    width / 2 -
+      cavityWidth / 2,
+    cavityCenterY -
+      cavityHeight / 2,
+    cavityWidth,
+    cavityHeight
+  );
 
 
   context.restore();
 
 
+  const effectWidth =
+    Math.min(
+      width * 0.86,
+      effectiveMouthWidth * 1.08
+    );
+
+
+  const effectLeft =
+    (
+      width -
+      effectWidth
+    ) /
+    2;
+
+
   const warpStart =
     Math.max(
       0,
-      seamY
+      seamY +
+      cavityHeight * 0.18
     );
 
 
@@ -3398,7 +3654,7 @@ function renderNaturalMouth(
     Math.min(
       height,
       seamY +
-      mouthHeight * 1.28
+      lipBandHeight * 1.12
     );
 
 
@@ -3411,8 +3667,29 @@ function renderNaturalMouth(
 
   const shapeScale =
     1 +
-    wide * 0.025 -
-    round * 0.035;
+    wide * 0.012 -
+    round * 0.014;
+
+
+  context.save();
+
+
+  context.beginPath();
+
+
+  context.ellipse(
+    width / 2,
+    seamY +
+      lipBandHeight * 0.12,
+    effectWidth / 2,
+    lipBandHeight * 1.12,
+    0,
+    0,
+    Math.PI * 2
+  );
+
+
+  context.clip();
 
 
   for(
@@ -3441,12 +3718,12 @@ function renderNaturalMouth(
       Math.pow(
         1 -
         distance,
-        1.55
+        1.90
       );
 
 
     const destinationWidth =
-      width *
+      effectWidth *
       (
         1 +
         (
@@ -3467,11 +3744,14 @@ function renderNaturalMouth(
 
     context.drawImage(
       solImage,
-      sourceX,
+      sourceX +
+        effectLeft *
+        naturalScaleX,
       sourceY +
         y *
         naturalScaleY,
-      sourceWidth,
+      effectWidth *
+        naturalScaleX,
       stripHeight *
         naturalScaleY,
       destinationX,
@@ -3480,9 +3760,12 @@ function renderNaturalMouth(
         influence,
       destinationWidth,
       stripHeight +
-        0.8
+        0.45
     );
   }
+
+
+  context.restore();
 
 
   context.globalCompositeOperation =
@@ -3934,11 +4217,32 @@ function animateLipSync(
   }
 
 
-  renderNaturalMouth(
-    currentMouthOpen,
-    currentMouthWide,
-    currentMouthRound
-  );
+  const fullFaceRendered =
+    fullFaceRigReady &&
+    fullFaceRig?.render(
+      {
+        openness:currentMouthOpen,
+        wideness:currentMouthWide,
+        roundness:currentMouthRound,
+        timestamp
+      }
+    );
+
+
+  if(
+    fullFaceRendered
+  ){
+
+    clearNaturalMouth();
+
+  }else{
+
+    renderNaturalMouth(
+      currentMouthOpen,
+      currentMouthWide,
+      currentMouthRound
+    );
+  }
 
 
   lipAnimationFrame =
@@ -4196,6 +4500,9 @@ function stopLipSync(
   clearNaturalMouth();
 
 
+  fullFaceRig?.clear();
+
+
   solCloneWrap.classList.remove(
     "sol-speaking"
   );
@@ -4219,7 +4526,24 @@ GEOMETRIE
 
 solImage.addEventListener(
   "load",
-  updateMouthGeometry
+  () => {
+
+    updateMouthGeometry();
+
+
+    if(
+      fullFaceRigRequested
+    ){
+
+      requestAnimationFrame(
+        analyseFullFaceImage
+      );
+
+    }else{
+
+      disableFullFaceRig();
+    }
+  }
 );
 
 

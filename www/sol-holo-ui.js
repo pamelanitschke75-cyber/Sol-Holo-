@@ -336,6 +336,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       profileCloneImage.src = "sol-holo-logo.png";
       profilePhotoButton.classList.remove("customPhoto", "calibrating");
       profilePhotoActions.hidden = true;
+      profileMouthButton.hidden = false;
       profileMouthControls.hidden = true;
       profileMouthMarker.hidden = true;
       profilePhotoHelp.textContent =
@@ -347,10 +348,11 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     profileCloneImage.src = customClonePhoto;
     profilePhotoButton.classList.add("customPhoto");
     profilePhotoActions.hidden = false;
+    profileMouthButton.hidden = true;
     profileMouthControls.hidden = true;
     profileMouthMarker.hidden = true;
     profilePhotoHelp.textContent =
-      "Mehrere Mundformen folgen der echten Sol-Stimme. Das Bild bleibt nur auf diesem Gerät.";
+      "Dein Gesicht wird lokal auf diesem Gerät erkannt …";
     updateCloneMouthMarker();
     window.SolHoloClone?.setImage(customClonePhoto);
     window.SolHoloClone?.setMouthGeometry(customCloneMouth);
@@ -369,6 +371,34 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       console.error("Sol-Holo-Bild wiederherstellen:", error);
     }
   }
+
+  window.addEventListener("sol-holo-face-rig-status", event => {
+    if (!customClonePhoto || cloneMouthCalibrationActive) {
+      return;
+    }
+
+    const state = String(event.detail?.state || "off");
+
+    if (state === "ready") {
+      profileMouthButton.hidden = true;
+      profilePhotoHelp.textContent =
+        "Gesicht lokal erkannt · Augen, Wangen, Kiefer und Lippen bewegen sich mit Sol.";
+      return;
+    }
+
+    if (state === "loading" || state === "analysing") {
+      profileMouthButton.hidden = true;
+      profilePhotoHelp.textContent =
+        "Dein Gesicht wird lokal auf diesem Gerät erkannt …";
+      return;
+    }
+
+    if (state === "fallback") {
+      profileMouthButton.hidden = false;
+      profilePhotoHelp.textContent =
+        "Gesicht nicht eindeutig erkannt · Mundposition kann manuell festgelegt werden.";
+    }
+  });
 
   function readImageElement(source) {
     return new Promise((resolve, reject) => {

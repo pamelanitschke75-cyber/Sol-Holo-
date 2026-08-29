@@ -14,6 +14,7 @@ on:
       - "www/index.html"
       - "www/headaudio.min.mjs"
       - "www/headworklet.min.mjs"
+      - "www/full-face-rig.mjs"
       - "www/model-en-mixed.b64"
       - "www/media-tools.js"
       - "www/sol-holo-logo.png"
@@ -22,7 +23,9 @@ on:
       - "www/service-worker.js"
       - "www/third-party/**"
       - "package.json"
+      - "package-lock.json"
       - "android-native/**"
+      - "scripts/install-full-face-rig-assets.mjs"
       - "scripts/install-whatsapp-driving-mode.mjs"
 
 jobs:

@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-020-viseme-gallery-smartthings";
+const CACHE_VERSION = "sol-holo-021-private-full-face";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
