@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-024-guaranteed-mouth-motion";
+const CACHE_VERSION = "sol-holo-025-webrtc-mouth-v3";
 
 self.addEventListener("install", () => {
   self.skipWaiting();

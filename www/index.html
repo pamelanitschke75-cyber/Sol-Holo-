@@ -1776,7 +1776,7 @@ Schreiben bereit.
 </div>
 
 <div id="lipSyncStatus">
-👄 Lip-Sync V2 bereit.
+👄 Lip-Sync V3 bereit.
 </div>
 
 </aside>
@@ -2263,14 +2263,21 @@ function startRealtimeSpeechFallback(){
     performance.now();
 
 
-  if(
-    !realtimeSpeechIsActive(
+  const wasActive =
+    realtimeSpeechIsActive(
       now
-    )
+    );
+
+
+  if(
+    !wasActive
   ){
 
     realtimeAssistantSpeechStartedAt =
       now;
+
+
+    updateMouthGeometry();
   }
 
 
@@ -2334,20 +2341,43 @@ function registerRealtimeAudioDelta(
 }
 
 
-function finishRealtimeAudioResponse(){
+function registerRealtimeTranscriptDelta(
+  transcriptDelta
+){
 
   const now =
     performance.now();
 
 
-  realtimeAssistantSpeechUntil =
-    Math.max(
-      realtimeAssistantSpeechUntil,
-      now + 140
+  startRealtimeSpeechFallback();
+
+
+  const characterCount =
+    Array.from(
+      String(
+        transcriptDelta ||
+        ""
+      )
+    ).length;
+
+
+  const estimatedSpeechDuration =
+    clamp(
+      characterCount * 62,
+      45,
+      1400
     );
 
 
-  requestLipSyncFrame();
+  realtimeAssistantSpeechUntil =
+    Math.min(
+      now + 20000,
+      Math.max(
+        realtimeAssistantSpeechUntil,
+        now + 100
+      ) +
+      estimatedSpeechDuration
+    );
 }
 
 
@@ -3888,11 +3918,7 @@ function updateMouthGeometry(){
 
 
   mouthCanvas.style.display =
-    fullFaceRigReady
-      ?
-      "none"
-      :
-      "block";
+    "block";
 
 
   fullFaceRig?.resize();
@@ -3968,6 +3994,10 @@ function renderNaturalMouth(
     clearNaturalMouth();
     return;
   }
+
+
+  mouthCanvas.style.display =
+    "block";
 
 
   const wide =
@@ -4064,10 +4094,13 @@ function renderNaturalMouth(
 
   const lipTravel =
     Math.min(
-      imageDisplayHeight * 0.0065,
-      lipBandHeight * 0.24
+      imageDisplayHeight * 0.014,
+      lipBandHeight * 0.62
     ) *
-    open;
+    Math.pow(
+      open,
+      0.78
+    );
 
 
   const cavityWidth =
@@ -4083,9 +4116,9 @@ function renderNaturalMouth(
 
   const cavityHeight =
     Math.max(
-      1,
-      0.8 +
-      lipTravel * 0.92
+      1.4,
+      1.1 +
+      lipTravel * 1.45
     );
 
 
@@ -4114,33 +4147,40 @@ function renderNaturalMouth(
   context.clip();
 
 
-  context.globalAlpha =
-    clamp(
-      0.72 +
-      open * 0.18,
-      0.72,
-      0.88
+  const cavityGradient =
+    context.createLinearGradient(
+      0,
+      cavityCenterY -
+        cavityHeight / 2,
+      0,
+      cavityCenterY +
+        cavityHeight / 2
     );
 
 
-  context.drawImage(
-    solImage,
-    sourceX +
-      (
-        width / 2 -
-        cavityWidth / 2
-      ) *
-      naturalScaleX,
-    sourceY +
-      (
-        seamY -
-        0.7
-      ) *
-      naturalScaleY,
-    cavityWidth *
-      naturalScaleX,
-    1.4 *
-      naturalScaleY,
+  cavityGradient.addColorStop(
+    0,
+    "rgba(18,4,10,.96)"
+  );
+
+
+  cavityGradient.addColorStop(
+    0.68,
+    "rgba(33,8,17,.94)"
+  );
+
+
+  cavityGradient.addColorStop(
+    1,
+    "rgba(94,31,47,.82)"
+  );
+
+
+  context.fillStyle =
+    cavityGradient;
+
+
+  context.fillRect(
     width / 2 -
       cavityWidth / 2,
     cavityCenterY -
@@ -4833,8 +4873,10 @@ function animateLipSync(
   }
 
 
-  const fullFaceRendered =
-    fullFaceRigReady &&
+  if(
+    fullFaceRigReady
+  ){
+
     fullFaceRig?.render(
       {
         openness:currentMouthOpen,
@@ -4843,22 +4885,14 @@ function animateLipSync(
         timestamp
       }
     );
-
-
-  if(
-    fullFaceRendered
-  ){
-
-    clearNaturalMouth();
-
-  }else{
-
-    renderNaturalMouth(
-      currentMouthOpen,
-      currentMouthWide,
-      currentMouthRound
-    );
   }
+
+
+  renderNaturalMouth(
+    currentMouthOpen,
+    currentMouthWide,
+    currentMouthRound
+  );
 
 
   if(
@@ -5153,7 +5187,7 @@ function stopLipSync(
   ){
 
     lipSyncStatus.textContent =
-      "👄 Lip-Sync V2 zur Stimme bereit.";
+      "👄 Lip-Sync V3 zur Stimme bereit.";
   }
 }
 
@@ -6630,6 +6664,52 @@ async function startLiveConversation(){
           }
 
 
+          if(
+            realtimeEvent.type ===
+              "response.created" ||
+            realtimeEvent.type ===
+              "response.output_audio_transcript.delta" ||
+            realtimeEvent.type ===
+              "response.audio_transcript.delta" ||
+            (
+              realtimeEvent.type ===
+                "response.content_part.added" &&
+              (
+                realtimeEvent.part?.type ===
+                  "audio" ||
+                realtimeEvent.part?.type ===
+                  "output_audio"
+              )
+            )
+          ){
+
+            if(
+              realtimeEvent.type ===
+                "response.output_audio_transcript.delta" ||
+              realtimeEvent.type ===
+                "response.audio_transcript.delta"
+            ){
+
+              registerRealtimeTranscriptDelta(
+                realtimeEvent.delta
+              );
+
+            }else{
+
+              startRealtimeSpeechFallback();
+            }
+
+
+            setLiveStatus(
+              "🌻 Sol spricht ..."
+            );
+
+
+            lipSyncStatus.textContent =
+              "👄 Sol spricht · Mundbewegung aktiv.";
+          }
+
+
 
 
           if(
@@ -6727,7 +6807,7 @@ async function startLiveConversation(){
 
 
             lipSyncStatus.textContent =
-              "👄 Lip-Sync V2 zur Stimme bereit.";
+              "👄 Lip-Sync V3 zur Stimme bereit.";
           }
 
 
@@ -6738,12 +6818,16 @@ async function startLiveConversation(){
             "response.done"
           ){
 
-            finishRealtimeAudioResponse();
+            finishRealtimeSpeechFallback();
 
 
             setLiveStatus(
               "🌻 Ich höre dir zu ..."
             );
+
+
+            lipSyncStatus.textContent =
+              "👄 Lip-Sync V3 zur Stimme bereit.";
           }
 
 
