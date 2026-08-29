@@ -484,16 +484,17 @@ class FullFaceRig {
   applyMotion({ openness, wideness, roundness }, timestamp) {
     this.destinationCoordinates.set(this.sourceCoordinates);
 
-    const open = clamp(openness, 0, 0.9);
+    const open = clamp(openness, 0, 0.92);
     const wide = clamp(wideness, 0, 1);
     const round = clamp(roundness, 0, 1);
     const mouth = this.mouthBounds;
     const face = this.faceBounds;
+    const visibleOpen = Math.pow(open, 0.78);
     const verticalTravel =
-      Math.min(face.height * 0.010, mouth.height * 0.31) * open;
+      Math.min(face.height * 0.018, mouth.height * 0.62) * visibleOpen;
     const upperTravel = verticalTravel * 0.24;
     const lowerTravel = verticalTravel * 0.76;
-    const shapeScale = clamp(1 + wide * 0.028 - round * 0.038, 0.96, 1.03);
+    const shapeScale = clamp(1 + wide * 0.045 - round * 0.055, 0.94, 1.05);
 
     for (const index of this.lipIndices) {
       const sourceX = this.sourceCoordinates[index * 2];

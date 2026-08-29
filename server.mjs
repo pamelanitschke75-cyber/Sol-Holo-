@@ -391,13 +391,46 @@ function decryptSmartThingsToken(value) {
 
   Bis OpenAI Custom Voices / Voice Consents
   für die Organisation freigeschaltet hat,
-  verwendet Sol Holo stabil die OpenAI-Stimme marin.
+  verwendet Sol Holo ausschließlich eine freigegebene
+  OpenAI-Realtime-Stimme. Pam kann sie in der App wählen.
 
   Die persönliche Stimme bleibt vorbereitet
   und wird später wieder aktiviert.
 */
 
-const SOL_HOLO_VOICE = "marin";
+const SOL_HOLO_REALTIME_VOICES =
+  new Set([
+    "alloy",
+    "ash",
+    "ballad",
+    "coral",
+    "echo",
+    "sage",
+    "shimmer",
+    "verse",
+    "marin",
+    "cedar"
+  ]);
+
+const DEFAULT_SOL_HOLO_VOICE =
+  "coral";
+
+function resolveSolHoloVoice(
+  requestedVoice
+) {
+  const voice =
+    String(
+      requestedVoice ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+  return SOL_HOLO_REALTIME_VOICES
+    .has(voice)
+      ? voice
+      : DEFAULT_SOL_HOLO_VOICE;
+}
 
 /*
   Separater API-Key nur für Voice-Setup
@@ -3839,6 +3872,11 @@ app.post("/realtime/token", async (req, res) => {
       });
     }
 
+    const solHoloVoice =
+      resolveSolHoloVoice(
+        req.body?.voice
+      );
+
     const memories =
       await loadRecentMemory();
 
@@ -4275,7 +4313,7 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
 
           output: {
             voice:
-              SOL_HOLO_VOICE
+              solHoloVoice
           }
         }
       }
@@ -4343,6 +4381,9 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
 
     return res.json({
       ...data,
+
+      sol_voice:
+        solHoloVoice,
 
       sol_memory_token:
         memorySearchToken

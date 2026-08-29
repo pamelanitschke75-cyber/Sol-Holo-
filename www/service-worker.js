@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-022-default-face-motion";
+const CACHE_VERSION = "sol-holo-023-lips-and-voice-choice";
 
 self.addEventListener("install", () => {
   self.skipWaiting();

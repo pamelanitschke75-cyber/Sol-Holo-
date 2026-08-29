@@ -1228,6 +1228,58 @@ DRAWER
   cursor:pointer;
 }
 
+.drawerVoiceSettings{
+  margin-top:16px;
+
+  padding:14px;
+
+  border:
+    1px solid rgba(136,73,205,.55);
+
+  border-radius:14px;
+
+  background:
+    rgba(29,15,45,.90);
+}
+
+.drawerVoiceSettings label{
+  display:block;
+
+  margin-bottom:9px;
+
+  color:white;
+
+  font-size:16px;
+  font-weight:700;
+}
+
+#solVoiceSelect{
+  width:100%;
+
+  min-height:46px;
+
+  padding:10px 12px;
+
+  border:
+    1px solid rgba(178,101,255,.78);
+
+  border-radius:12px;
+
+  background:#160a24;
+  color:white;
+
+  font-size:16px;
+}
+
+#solVoiceChoiceStatus{
+  margin-top:9px;
+
+  color:#c9bdd8;
+
+  font-size:12px;
+  line-height:1.4;
+}
+
 #memoryStatus,
 #chatStatus,
 #micStatus,
@@ -1686,6 +1738,31 @@ Mehr
 ← Zurück zu Sol
 </button>
 
+<div class="drawerVoiceSettings">
+
+<label for="solVoiceSelect">
+🔊 Sols Stimme
+</label>
+
+<select id="solVoiceSelect">
+  <option value="coral">Coral</option>
+  <option value="shimmer">Shimmer</option>
+  <option value="sage">Sage</option>
+  <option value="alloy">Alloy</option>
+  <option value="ash">Ash</option>
+  <option value="ballad">Ballad</option>
+  <option value="echo">Echo</option>
+  <option value="verse">Verse</option>
+  <option value="cedar">Cedar</option>
+  <option value="marin">Marin</option>
+</select>
+
+<div id="solVoiceChoiceStatus">
+Coral ist für das nächste Gespräch ausgewählt.
+</div>
+
+</div>
+
 <div id="chatStatus">
 Schreiben bereit.
 </div>
@@ -1763,6 +1840,14 @@ const lipSyncStatus =
 const realtimeAudio =
   document.getElementById("realtimeAudio");
 
+const solVoiceSelect =
+  document.getElementById("solVoiceSelect");
+
+const solVoiceChoiceStatus =
+  document.getElementById(
+    "solVoiceChoiceStatus"
+  );
+
 const menuButton =
   document.getElementById("menuButton");
 
@@ -1822,6 +1907,62 @@ const mouthCanvasContext =
       desynchronized:true
     }
   );
+
+const SOL_VOICE_STORAGE_KEY =
+  "sol-holo-realtime-voice-v1";
+
+const SOL_REALTIME_VOICES =
+  new Set([
+    "alloy",
+    "ash",
+    "ballad",
+    "coral",
+    "echo",
+    "sage",
+    "shimmer",
+    "verse",
+    "marin",
+    "cedar"
+  ]);
+
+function loadSelectedSolVoice(){
+
+  try{
+
+    const savedVoice =
+      String(
+        localStorage.getItem(
+          SOL_VOICE_STORAGE_KEY
+        ) ||
+        ""
+      )
+        .trim()
+        .toLowerCase();
+
+
+    if(
+      SOL_REALTIME_VOICES.has(
+        savedVoice
+      )
+    ){
+
+      return savedVoice;
+    }
+
+  }catch{}
+
+
+  return "coral";
+}
+
+let selectedSolVoice =
+  loadSelectedSolVoice();
+
+solVoiceSelect.value =
+  selectedSolVoice;
+
+solVoiceChoiceStatus.textContent =
+  `${solVoiceSelect.selectedOptions[0].textContent} ist für das nächste Gespräch ausgewählt.`;
 
 
 let selectedImageDataUrl =
@@ -3129,6 +3270,38 @@ function detectedMouthShape(
     );
 
 
+  const visemeActivity =
+    Math.max(
+      aa,
+      e,
+      i,
+      o,
+      u,
+      pp,
+      ss,
+      th,
+      dd,
+      ff,
+      kk,
+      nn,
+      rr,
+      ch
+    );
+
+
+  if(
+    visemeActivity <
+    0.012
+  ){
+
+    return {
+      open:energyOpen,
+      wide:energyWide,
+      round:energyRound
+    };
+  }
+
+
   const closure =
     Math.max(
       pp,
@@ -3141,7 +3314,7 @@ function detectedMouthShape(
       clamp(
         Math.max(
           visemeOpen,
-          energyOpen * 0.30
+          energyOpen * 0.82
         ) *
         (
           1 -
@@ -3157,7 +3330,7 @@ function detectedMouthShape(
           i,
           ss * 0.68,
           ff * 0.42,
-          energyWide * 0.20
+          energyWide * 0.55
         ),
         0,
         1
@@ -3168,7 +3341,7 @@ function detectedMouthShape(
           o * 0.88,
           u,
           rr * 0.36,
-          energyRound * 0.18
+          energyRound * 0.48
         ),
         0,
         1
@@ -4720,6 +4893,59 @@ volumeNormal.addEventListener(
 );
 
 
+solVoiceSelect.addEventListener(
+  "change",
+  () => {
+
+    const requestedVoice =
+      String(
+        solVoiceSelect.value ||
+        ""
+      )
+        .trim()
+        .toLowerCase();
+
+
+    selectedSolVoice =
+      SOL_REALTIME_VOICES.has(
+        requestedVoice
+      )
+        ? requestedVoice
+        : "coral";
+
+
+    solVoiceSelect.value =
+      selectedSolVoice;
+
+
+    try{
+
+      localStorage.setItem(
+        SOL_VOICE_STORAGE_KEY,
+        selectedSolVoice
+      );
+
+    }catch{}
+
+
+    if(pc){
+
+      stopLiveConversation();
+    }
+
+
+    const voiceName =
+      solVoiceSelect
+        .selectedOptions[0]
+        .textContent;
+
+
+    solVoiceChoiceStatus.textContent =
+      `${voiceName} ist ausgewählt. Starte das nächste Gespräch, um die Stimme zu hören.`;
+  }
+);
+
+
 /*
 ==========================================================
 CHAT
@@ -5719,6 +5945,17 @@ async function startLiveConversation(){
 
           method:"POST",
 
+          headers:{
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+              voice:
+                selectedSolVoice
+            }),
+
           cache:"no-store"
         }
       );
@@ -5769,6 +6006,28 @@ async function startLiveConversation(){
         tokenData?.sol_memory_token ||
         ""
       ).trim();
+
+    const confirmedVoice =
+      String(
+        tokenData?.sol_voice ||
+        ""
+      )
+        .trim()
+        .toLowerCase();
+
+
+    if(
+      SOL_REALTIME_VOICES.has(
+        confirmedVoice
+      )
+    ){
+
+      selectedSolVoice =
+        confirmedVoice;
+
+      solVoiceSelect.value =
+        confirmedVoice;
+    }
 
 
     if(
