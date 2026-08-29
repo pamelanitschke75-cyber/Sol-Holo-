@@ -42,9 +42,10 @@ if ! gh_user auth status --hostname github.com >/dev/null 2>&1; then
   printf '%s\n' \
     "GitHub benötigt einmalig deine persönliche Freigabe für die geschützten Signaturwerte." \
     "Es wird kein GitHub-Passwort und kein Zugangsschlüssel im Terminal eingegeben." \
-    "Bitte bestätige gleich nur die offizielle GitHub-Webseite."
+    "Für Codespaces auf dem Handy wird der Browser nicht automatisch geöffnet." \
+    "Bitte verwende nur die offizielle GitHub-Geräteaktivierung und gib den angezeigten Einmalcode dort selbst ein."
 
-  gh_user auth login \
+  GH_BROWSER=echo gh_user auth login \
     --hostname github.com \
     --git-protocol https \
     --web \
