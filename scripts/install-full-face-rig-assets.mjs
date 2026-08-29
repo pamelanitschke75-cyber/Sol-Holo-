@@ -22,6 +22,10 @@ const packageDirectory = path.join(
 const targetDirectory = path.join(projectDirectory, "www", "mediapipe");
 const wasmDirectory = path.join(targetDirectory, "wasm");
 
+const mediaPipePackage = JSON.parse(
+  await readFile(path.join(packageDirectory, "package.json"), "utf8")
+);
+
 const modelUrl =
   "https://storage.googleapis.com/mediapipe-models/face_landmarker/" +
   "face_landmarker/float16/latest/face_landmarker.task";
@@ -109,9 +113,56 @@ if (!visionBundle.includes(telemetryEndpoint)) {
   );
 }
 
+const modificationHeader = [
+  "// SOL HOLO MODIFICATION NOTICE",
+  `// Original package: @mediapipe/tasks-vision ${mediaPipePackage.version} (Apache-2.0).`,
+  "// This build modifies the copied vision_bundle.mjs by replacing only the",
+  "// Google telemetry/logging endpoint with a local data: URL so that this",
+  "// copied browser asset does not send that telemetry request.",
+  "// See /THIRD_PARTY_LICENSES.txt and /mediapipe/MODIFICATION_NOTICE.txt.",
+  ""
+].join("\n");
+
 await writeFile(
   visionBundlePath,
-  visionBundle.replaceAll(telemetryEndpoint, localNoNetworkEndpoint),
+  modificationHeader +
+    visionBundle.replaceAll(telemetryEndpoint, localNoNetworkEndpoint),
+  "utf8"
+);
+
+const modificationNotice = `SOL HOLO / PAM'S HOLO - MEDIAPIPE MODIFICATION NOTICE
+
+Original package:
+@mediapipe/tasks-vision ${mediaPipePackage.version}
+Declared license: ${mediaPipePackage.license || "Apache-2.0"}
+
+Modified file:
+vision_bundle.mjs
+
+Modification performed by the Sol Holo build process:
+The endpoint
+${telemetryEndpoint}
+
+is replaced with
+${localNoNetworkEndpoint}
+
+for the copied browser asset. The purpose is to prevent that copied asset
+from sending the corresponding telemetry/logging request. The package is
+first copied from node_modules and this replacement is then applied by
+scripts/install-full-face-rig-assets.mjs.
+
+The full third-party license texts distributed with this app are available
+in /THIRD_PARTY_LICENSES.txt.
+
+Face Landmarker model bundle:
+${modelUrl}
+Pinned SHA-256: ${modelSha256}
+The downloaded model binary is stored without modification by this script.
+`;
+
+await writeFile(
+  path.join(targetDirectory, "MODIFICATION_NOTICE.txt"),
+  modificationNotice,
   "utf8"
 );
 
@@ -120,4 +171,6 @@ if (!(await fileHasExpectedHash(modelPath, modelSha256))) {
   await downloadModel(modelPath);
 }
 
-console.log("Lokale MediaPipe-Vollgesichtsdateien sind bereit.");
+console.log(
+  "Lokale MediaPipe-Vollgesichtsdateien inklusive Lizenz- und Änderungsvermerk sind bereit."
+);
