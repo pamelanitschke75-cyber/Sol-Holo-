@@ -50,7 +50,7 @@ Persönliche Erinnerungen, Erfahrungen und Daten verschiedener Nutzer dürfen ni
 
 **Sol Holo · SH♾️** bleibt die Bezeichnung des übergeordneten Projekts und der technischen Grundlage.
 
-Die persönliche, ausschließlich Pamela Nitschke zugeordnete Instanz heißt **Pam Holo**. Pam Holo ist kein getrenntes neues Projekt, sondern Pams eigener Sol-Holo-Clone innerhalb dieser Grundlage.
+Die persönliche, ausschließlich Pamela Nitschke zugeordnete Instanz heißt endgültig **Pam’s Holo** – Pams persönlicher Klon und persönliches digitales Ich. Pam’s Holo ist kein getrenntes neues Projekt, sondern Pams eigene, klar getrennte Sol-Holo-Instanz innerhalb dieser Grundlage.
 
 ---
 

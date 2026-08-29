@@ -1,4 +1,4 @@
-name: Pam Holo Android APK · Sol Holo
+name: Pam’s Holo Android APK · Sol Holo
 
 on:
   workflow_dispatch:
@@ -91,7 +91,7 @@ jobs:
             --splashBackgroundColor "#020714" \
             --splashBackgroundColorDark "#020714"
 
-      - name: Pam Holo App nach Android synchronisieren
+      - name: Pam’s Holo App nach Android synchronisieren
         run: npx cap sync android
 
       - name: Sicheren Fahr- und Weckmodus einbinden
@@ -134,7 +134,7 @@ jobs:
       - name: Gradle ausführbar machen
         run: chmod +x android/gradlew
 
-      - name: Pam Holo Release-APK bauen
+      - name: Pam’s Holo Release-APK bauen
         working-directory: android
         run: ./gradlew assembleRelease
 
@@ -161,7 +161,7 @@ jobs:
             echo "Dauerhafte Signatur fehlt noch: APK wird eindeutig als Neuinstallation gebaut."
           fi
 
-      - name: Pam Holo APK dauerhaft signieren und prüfen
+      - name: Pam’s Holo APK dauerhaft signieren und prüfen
         if: steps.signing_mode.outputs.mode == 'update'
         env:
           SOL_HOLO_KEYSTORE_BASE64: ${{ secrets.SOL_HOLO_KEYSTORE_BASE64 }}
@@ -174,7 +174,7 @@ jobs:
           unsigned_apk="android/app/build/outputs/apk/release/app-release-unsigned.apk"
           aligned_apk="$RUNNER_TEMP/Sol-Holo-aligned.apk"
           keystore_file="$RUNNER_TEMP/Sol-Holo-Update-Key.jks"
-          signed_apk="android/app/build/outputs/apk/release/Pam-Holo-Update.apk"
+          signed_apk="android/app/build/outputs/apk/release/Pams-Holo-Update.apk"
           android_sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
           test -n "$android_sdk"
           build_tools="$(find "$android_sdk/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
@@ -216,7 +216,7 @@ jobs:
 
           "$build_tools/apksigner" verify --verbose --print-certs "$signed_apk"
 
-      - name: Pam Holo APK eindeutig für Neuinstallation signieren
+      - name: Pam’s Holo APK eindeutig für Neuinstallation signieren
         if: steps.signing_mode.outputs.mode == 'neuinstallation'
         run: |
           set -Eeuo pipefail
@@ -224,7 +224,7 @@ jobs:
           unsigned_apk="android/app/build/outputs/apk/release/app-release-unsigned.apk"
           aligned_apk="$RUNNER_TEMP/Sol-Holo-aligned.apk"
           keystore_file="$RUNNER_TEMP/Sol-Holo-Neuinstallation.p12"
-          signed_apk="android/app/build/outputs/apk/release/Pam-Holo-Neuinstallation.apk"
+          signed_apk="android/app/build/outputs/apk/release/Pams-Holo-Neuinstallation.apk"
           key_alias="sol-holo-neuinstallation"
           SOL_HOLO_BUILD_PASSWORD="$(openssl rand -hex 24)"
           export SOL_HOLO_BUILD_PASSWORD
@@ -251,7 +251,7 @@ jobs:
             -keyalg RSA \
             -keysize 4096 \
             -validity 10000 \
-            -dname "CN=Pam Holo Neuinstallation, O=Sol Holo, C=DE" \
+            -dname "CN=Pams Holo Neuinstallation, O=Sol Holo, C=DE" \
             >/dev/null 2>&1
 
           "$build_tools/zipalign" -p -f 4 "$unsigned_apk" "$aligned_apk"
@@ -267,8 +267,8 @@ jobs:
 
           "$build_tools/apksigner" verify --verbose --print-certs "$signed_apk"
 
-      - name: Pam Holo Android APK bereitstellen
+      - name: Pam’s Holo Android APK bereitstellen
         uses: actions/upload-artifact@v4
         with:
-          name: Pam-Holo-Android-${{ steps.signing_mode.outputs.mode }}
-          path: android/app/build/outputs/apk/release/Pam-Holo-*.apk
+          name: Pams-Holo-Android-${{ steps.signing_mode.outputs.mode }}
+          path: android/app/build/outputs/apk/release/Pams-Holo-*.apk

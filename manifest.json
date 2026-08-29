@@ -1,7 +1,7 @@
 {
-  "name": "Pam Holo",
-  "short_name": "Pam Holo",
-  "description": "Pam Holo – Pams persönliches digitales Ich im Projekt Sol Holo",
+  "name": "Pam’s Holo",
+  "short_name": "Pam’s Holo",
+  "description": "Pam’s Holo – Pams persönlicher Klon und persönliches digitales Ich im Projekt Sol Holo",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#020714",

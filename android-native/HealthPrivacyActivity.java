@@ -21,7 +21,7 @@ public class HealthPrivacyActivity extends Activity {
         content.setBackgroundColor(Color.rgb(5, 3, 11));
 
         TextView title = new TextView(this);
-        title.setText("Pam Holo · Health-Datenschutz");
+        title.setText("Pam’s Holo · Health-Datenschutz");
         title.setTextColor(Color.rgb(189, 114, 255));
         title.setTextSize(24);
         title.setPadding(0, 0, 0, padding / 2);
@@ -29,17 +29,17 @@ public class HealthPrivacyActivity extends Activity {
 
         TextView policy = new TextView(this);
         policy.setText(
-            "Pam Holo verwendet Health Connect ausschließlich lesend und nur, " +
+            "Pam’s Holo verwendet Health Connect ausschließlich lesend und nur, " +
             "wenn Pam eine konkrete Health-Abfrage bestätigt.\n\n" +
             "Mögliche Kategorien sind Aktivität, Körperwerte, Vitalwerte, Schlaf, " +
             "Ernährung und reproduktive Gesundheit. Android zeigt jede Freigabe " +
             "sichtbar an; einzelne Kategorien können abgewählt oder später entzogen " +
             "werden.\n\n" +
-            "Pam Holo schreibt, verändert oder löscht keine Health-Daten. Es gibt " +
+            "Pam’s Holo schreibt, verändert oder löscht keine Health-Daten. Es gibt " +
             "keinen automatischen Hintergrundzugriff und keinen automatischen Import " +
             "in das Langzeitgedächtnis. Für eine Antwort freigegebene Werte werden nur " +
             "für diese konkrete Sol-Anfrage verarbeitet.\n\n" +
-            "Gesundheitswerte dienen der persönlichen Übersicht. Pam Holo stellt " +
+            "Gesundheitswerte dienen der persönlichen Übersicht. Pam’s Holo stellt " +
             "keine medizinische Diagnose und ersetzt keine Ärztin oder keinen Arzt.\n\n" +
             "Geschäftliche Inhalte, PINs, Passwörter, TANs, Banking- und " +
             "Authenticator-Daten bleiben ausgeschlossen."

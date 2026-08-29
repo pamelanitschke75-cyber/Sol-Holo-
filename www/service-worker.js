@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-028-pam-holo";
+const CACHE_VERSION = "sol-holo-029-pams-holo-final";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -19,7 +19,7 @@ self.addEventListener("activate", event => {
 /*
   Absichtlich kein Fetch-Cache.
 
-  Dadurch lädt Pam Holo index.html,
+  Dadurch lädt Pam’s Holo index.html,
   das Holo-Bild und alle anderen Dateien
   direkt vom aktuellen Stand.
 */

@@ -327,7 +327,7 @@ if (!manifest.includes(".WhatsAppNotificationListener")) {
     applicationEnd,
     `        <service
             android:name=".WhatsAppNotificationListener"
-            android:label="Pam Holo WhatsApp-Fahrmodus"
+            android:label="Pam’s Holo WhatsApp-Fahrmodus"
             android:exported="false"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>
