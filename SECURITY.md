@@ -1,537 +1,250 @@
-SOL HOLO – SECURITY
+# SOL HOLO / PAM’S HOLO – SECURITY POLICY
 
-Version: 1.0
-Stand: 13.08.2026
-Status: Sicherheitskonzept
+**Version:** 2.0  
+**Stand:** 29.08.2026  
+**Projektverantwortung:** Pamela Nitschke  
+**Status:** Sicherheitsrichtlinie für einen persönlichen Entwicklungsprototyp – keine Sicherheitszertifizierung
 
-1. Sicherheitsziel
+Diese Datei beschreibt die Sicherheitsgrundsätze, bereits vorhandene Schutzmaßnahmen und noch offene Sicherheitsaufgaben von Sol Holo / Pam’s Holo.
 
-Sol Holo wird als digitales Abbild von Pam entwickelt.
-
-Die grundlegende Struktur lautet:
-
-PAM
-Original / Referenz
-       ↕
-SOL HOLO
-Digitales Abbild von Pam
-       ↕
-SOL CONTROL
-       ↕
-KI / GERÄTE / DIENSTE / SCHNITTSTELLEN
-
-Pam besitzt die oberste Kontrolle über Sol Holo.
-
-Sol Holo darf externe Systeme nur innerhalb der von Pam festgelegten Regeln und Berechtigungen verwenden.
+Sie darf nicht so verstanden werden, als sei das Projekt bereits unabhängig sicherheitsgeprüft, für einen öffentlichen Mehrnutzerbetrieb freigegeben oder gegen sämtliche Angriffe geschützt.
 
 ---
 
-2. PAM UND SOL HOLO
+## 1. Geltungsbereich
 
-Pam und Sol Holo gehören konzeptionell zusammen, müssen technisch jedoch unterscheidbar bleiben.
+Diese Richtlinie gilt für den jeweils aktuellen Entwicklungsstand im Branch `main` und die daraus erstellten Android-Entwicklungsfassungen.
 
-PAM
- │
- │  Referenz
- ▼
-SOL HOLO
- │
- │  digitale Repräsentation
- ▼
-DIGITALER PAM-KLON
+Ältere Builds und historische Commits können überholte oder unvollständige Schutzmaßnahmen enthalten und werden nicht als unterstützte Sicherheitsversionen behandelt.
 
-Pam bestimmt:
-
-- welche persönlichen Merkmale übernommen werden
-- welche Erinnerungen gespeichert werden
-- welche Daten verwendet werden
-- welche Geräte verbunden werden
-- welche externen Dienste verwendet werden
-- welche Berechtigungen bestehen
-- welche Daten gelöscht werden
-
-Sol Holo darf diese grundlegenden Entscheidungen nicht eigenständig außer Kraft setzen.
+Der derzeitige Stand ist eine persönliche Entwicklungsinstanz für Pamela Nitschke. Er ist noch kein allgemein freigegebener öffentlicher Mehrnutzer-Dienst.
 
 ---
 
-3. IDENTITÄTSMODELL
+## 2. Sicherheitsziel
 
-Technisch werden vier Ebenen unterschieden:
+Sol Holo soll nur solche Daten, Funktionen, Geräte und externen Dienste verwenden, die für den jeweiligen Zweck erforderlich und von der berechtigten Person freigegeben sind.
 
-PAM
-│
-├── Original und Referenz
-│
-SOL HOLO
-│
-├── digitales Abbild von Pam
-│
-KI
-│
-├── technische Intelligenz / Verarbeitung
-│
-EXTERNE SYSTEME
-│
-└── APIs / Cloud / Geräte / Dienste
+Dabei gelten insbesondere folgende Grundsätze:
 
-Das verhindert, dass externe Systeme automatisch dieselben Rechte erhalten wie Sol Holo.
+- Geheimnisse bleiben außerhalb des öffentlichen Quellcodes.
+- Persönliche Daten verschiedener Menschen dürfen nicht zu einer gemeinsamen Identität vermischt werden.
+- Sensible Aktionen benötigen eine erkennbare Berechtigung und gegebenenfalls eine zusätzliche Bestätigung.
+- Externe Dienste erhalten nur die für eine konkrete Funktion erforderlichen Informationen.
+- Nicht belegte oder noch nicht implementierte Sicherheitsfunktionen werden nicht als abgeschlossen dargestellt.
+- Ein Fehler in einer Funktion soll nicht automatisch weitere Rechte eröffnen.
+
+Der Begriff **Sol Control** bezeichnet in den Projektunterlagen dieses Berechtigungs- und Kontrollprinzip. Er ist keine Behauptung über ein unabhängig zertifiziertes Sicherheitsprodukt.
 
 ---
 
-4. SOL CONTROL
+## 3. Aktuell vorhandene Schutzmaßnahmen
 
-"SOL CONTROL" ist die zentrale Sicherheits- und Steuerungsschicht.
+Im derzeitigen Quellcode sind unter anderem folgende Maßnahmen vorhanden:
 
-                     PAM
-                      ↕
-                  SOL HOLO
-                      │
-                      ▼
-                 SOL CONTROL
-                      │
-       ┌──────────────┼──────────────┐
-       ▼              ▼              ▼
-      KI           ANDROID         GERÄTE
-       │              │              │
-       ▼              ▼              ▼
-     APIs           DATEN         DIENSTE
+### Server-Geheimnisse
 
-Sol Control prüft vor sensiblen Aktionen:
+API-Schlüssel, Datenbank-Zugangsdaten, OAuth-Client-Secrets und vergleichbare Geheimnisse werden über Server-Umgebungsvariablen erwartet und nicht fest in den öffentlichen App-Code geschrieben.
 
-1. Was möchte Pam?
-2. Welche Funktion wird benötigt?
-3. Welche Schnittstelle wird benötigt?
-4. Ist diese Schnittstelle freigegeben?
-5. Welche Daten werden benötigt?
-6. Bleiben die Daten lokal?
-7. Falls nicht: Wohin werden sie übertragen?
-8. Ist die Übertragung erlaubt?
-9. Ist eine zusätzliche Bestätigung durch Pam erforderlich?
+Die `.gitignore` schließt insbesondere folgende lokale Inhalte aus:
 
-Erst danach darf die Aktion ausgeführt werden.
+- `.env` und `.env.*`
+- Android-Signaturdateien wie `*.jks`, `*.keystore` und `*.p12`
+- den privaten Ordner `.sol-holo-private/`
 
----
+### OAuth-Schutz
 
-5. BERECHTIGUNGEN
+Für Google und SmartThings werden zufällige, einmalig verwendbare und zeitlich begrenzte OAuth-Statuswerte erzeugt. Ein fehlender, fremder, bereits verwendeter oder abgelaufener Statuswert wird abgelehnt.
 
-Grundprinzip:
+### SmartThings-Tokens
 
-PAM
- ↓
-FREIGABE
- ↓
-SOL HOLO
- ↓
-SOL CONTROL
- ↓
-BERECHTIGUNGSPRÜFUNG
- ↓
-SCHNITTSTELLE
- ↓
-AKTION
+SmartThings-Zugriffs- und Refresh-Tokens werden vor der Speicherung auf Anwendungsebene mit AES-256-GCM verschlüsselt. Der dafür verwendete Schlüssel wird aus einer Server-Umgebungsvariable abgeleitet und gehört nicht in das Repository.
 
-Ohne erforderliche Freigabe:
+### Begrenzte Google-Berechtigungen
 
-STOP
+Der aktuelle Entwicklungsstand fordert für Gmail, Google Kontakte und Google Drive nur Lesezugriffe an. Für den Kalender wird der Zugriff auf Kalenderereignisse verwendet.
 
-Eine nicht freigegebene Funktion soll andere unabhängige Funktionen von Sol Holo möglichst nicht blockieren.
+### Voice Setup
+
+Die Endpunkte zur Einrichtung einer persönlichen Stimme besitzen eine getrennte serverseitige Zugriffskontrolle über ein nicht öffentlich gespeichertes Setup-Geheimnis. Eine Veröffentlichung einer normalen Sprachaufnahme ist keine automatische Einwilligung zur Erstellung eines synthetischen Stimmprofils.
+
+### Android-Bestätigungen
+
+Telefonanrufe und SMS werden nicht still im Hintergrund ausgeführt. Die App öffnet nach einer sichtbaren Bestätigung die dafür vorgesehene Android-App; der tatsächliche Anruf oder Versand wird dort von der Nutzerin ausgelöst.
+
+### Health Connect
+
+Die aktuelle Health-Connect-Integration ist ausschließlich lesend ausgelegt. Abrufe sind auf einen bestätigten Zweck und einen begrenzten Zeitraum ausgerichtet. Health-Daten werden nicht automatisch als Langzeiterinnerung gespeichert.
 
 ---
 
-6. EXTERNE KI
+## 4. Noch offene Sicherheitsaufgaben
 
-Eine externe KI ist ein Werkzeug von Sol Holo.
+Folgende Bereiche gelten ausdrücklich **nicht** als abgeschlossen:
 
-Sie erhält dadurch nicht automatisch Zugriff auf Pams Daten oder Geräte.
+- vollständige Authentifizierung und Autorisierung jeder sensiblen Backend-Anfrage,
+- sichere Geräte- oder Nutzerbindung der persönlichen Sol-Holo-Instanz,
+- Anwendungsebene-Verschlüsselung und geregelte Rotation aller gespeicherten OAuth-Tokens,
+- eng begrenzte Herkunftsfreigaben für Webanfragen,
+- systematisches Rate-Limiting gegen automatisierten Missbrauch,
+- vollständige Trennung mehrerer zukünftiger Nutzerinstanzen,
+- wiederholbare Prüfung der ausgelieferten APK auf enthaltene Geheimnisse und unnötige Berechtigungen,
+- automatisierte Secret- und Abhängigkeitsprüfungen für neue Commits,
+- unabhängiger Penetrationstest oder ein externes Sicherheitsaudit.
 
-PAM
- ↓
-SOL HOLO
- ↓
-SOL CONTROL
- ↓
-ausgewählte Information
- ↓
-KI
-
-Nicht:
-
-KI
- ↓
-ungeprüfter Zugriff
- ↓
-PAM-DATEN
-
-Sol Control entscheidet technisch, welche Informationen für eine konkrete Aufgabe weitergegeben werden dürfen.
+Solange diese Punkte nicht umgesetzt und getestet sind, darf Sol Holo nicht als sicherheitszertifiziert oder als fertig abgesicherter öffentlicher Mehrnutzer-Dienst bezeichnet werden.
 
 ---
 
-7. FUNKTIONS- UND TOOLAUFRUFE
+## 5. Besonders geschützte Daten
 
-Eine KI darf Sol eine Aktion vorschlagen oder einen definierten Funktionsaufruf erzeugen.
+Nicht in das öffentliche Repository gehören insbesondere:
 
-Beispiel:
+- API-Schlüssel, Passwörter, Tokens und Zugangsdaten,
+- Android-Signaturschlüssel und deren Passwörter,
+- private Erinnerungen und vollständige Gesprächsverläufe,
+- nicht ausdrücklich freigegebene Fotos, Videos oder Sprachaufnahmen,
+- Kontakte, E-Mails und persönliche Dokumente,
+- Gesundheits-, Fitness- und sonstige sensible persönliche Daten,
+- Datenbanken, Datenbankexporte und Backups des persönlichen Profils,
+- Authenticator-, Banking-, PIN-, TAN- oder Wiederherstellungsdaten.
 
-KI
- ↓
-"Kalender verwenden"
- ↓
-SOL CONTROL
- ↓
-Berechtigung vorhanden?
- ↙             ↘
-JA              NEIN
-↓                ↓
-Aktion           STOP
-
-Eine KI darf keine Android-Berechtigung eigenständig aktivieren oder umgehen.
+Persönliche Bilder, Videos, Namen oder Sprachaufnahmen dürfen nur dann öffentlich dokumentiert werden, wenn die betroffene Person dies selbst erlaubt hat und die Veröffentlichung dem vereinbarten Umfang entspricht.
 
 ---
 
-8. API-SCHLÜSSEL
+## 6. Persönliches Gedächtnis und Identität
 
-API-Schlüssel, Passwörter und Tokens dürfen niemals:
+Das persönliche Gedächtnis gehört ausschließlich zur jeweils berechtigten persönlichen Instanz.
 
-- im öffentlich sichtbaren Quellcode stehen
-- in "README.md" stehen
-- in GitHub-Commits gespeichert werden
-- in Screenshots veröffentlicht werden
-- als Klartext im digitalen Pam-Profil gespeichert werden
-- fest in einer veröffentlichten App hinterlegt werden
+Für zukünftige Mehrnutzerfassungen müssen mindestens folgende Bedingungen technisch erfüllt sein:
 
-Geplante Struktur:
+- eindeutige Nutzer- und Instanzzuordnung,
+- authentifizierter Zugriff,
+- getrennte Speicherung und Abfrage,
+- keine Übernahme fremder Erinnerungen,
+- nachvollziehbare Berichtigung und Löschung,
+- Schutz vor unbefugtem Export,
+- keine Freigabe persönlicher Daten allein aufgrund einer technischen Code-Nutzungserlaubnis.
 
-SOL HOLO
-   ↓
-GESICHERTE VERBINDUNG
-   ↓
-GESCHÜTZTES BACKEND
-   ↓
-API
-
-Geheime Zugangsdaten bleiben außerhalb des öffentlich ausgelieferten App-Codes.
+Eine technische Sol-Holo-Lizenz oder ein Fork des Repositorys ist niemals automatisch eine Freigabe von Pamela Nitschkes persönlicher Identität, Stimme, ihrem Abbild oder ihren Erinnerungen.
 
 ---
 
-9. GITHUB-SICHERHEIT
+## 7. Kamera, Mikrofon, Stimme, Fotos und Videos
 
-Nicht ins Repository gehören:
+Kamera und Mikrofon dürfen nur für eine erkennbare Funktion und im Rahmen der jeweiligen Geräteberechtigung verwendet werden.
 
-- API-Schlüssel
-- Passwörter
-- Tokens
-- private Zugangsdaten
-- persönliche Gesundheitsdaten
-- private Erinnerungen
-- private Fotos
-- persönliche Dokumente
-- Backups des Pam-Profils
-- geheime Konfigurationsdateien
+Für andere erkennbare Personen gilt:
 
-Entsprechende lokale Entwicklungsdateien werden später über ".gitignore" ausgeschlossen.
+- Veröffentlichung nur im vereinbarten Umfang,
+- keine Stimmnachbildung ohne gesonderte ausdrückliche Einwilligung,
+- keine automatische Verwendung für einen digitalen Klon,
+- keine Übertragung einer Freigabe auf fremde Projekte,
+- ein Widerruf wird für zukünftige Verwendungen berücksichtigt.
+
+Ein bereits öffentlich verbreiteter Inhalt kann technisch von Dritten kopiert worden sein. Ein späterer Widerruf kann daher vor allem die weitere eigene Nutzung und Veröffentlichung beenden, aber nicht jede bereits entstandene Kopie bei Dritten technisch zurückholen.
 
 ---
 
-10. DIGITALER PAM-KLON
+## 8. Externe Dienste und Datenübertragung
 
-Besonders geschützt werden die Daten, die den digitalen Pam-Klon bilden.
+Sol Holo kann externe Anbieter, APIs, Cloud-Dienste und Geräteplattformen verwenden.
 
-Dazu können gehören:
+Vor einer Übertragung sensibler Inhalte soll geklärt sein:
 
-- Aussehen
-- Stimme
-- Sprechweise
-- Wortwahl
-- Erinnerungen
-- Wissen
-- Präferenzen
-- Kommunikationsweise
-- Gestik
-- Bewegungsmuster
-- persönlicher Kontext
+1. welcher Dienst verwendet wird,
+2. welche Daten tatsächlich erforderlich sind,
+3. welche Berechtigung besteht,
+4. ob die Aktion nur lesend oder auch schreibend ist,
+5. ob eine sichtbare Bestätigung erforderlich ist,
+6. wie die Verbindung widerrufen werden kann,
+7. ob Daten gespeichert oder protokolliert werden.
 
-Diese Daten bilden gemeinsam das digitale Pam-Modell.
-
-Sie dürfen nicht automatisch anderen Profilen, Nutzern oder Identitäten zugeordnet werden.
+Die Verwendung eines Anbieters bedeutet keine Partnerschaft, Unterstützung, Zertifizierung oder Mitentwicklung durch diesen Anbieter.
 
 ---
 
-11. MEMORY
+## 9. Protokollierung
 
-Sol Holo benötigt langfristiges Memory, damit sich das digitale Abbild entwickeln kann.
+Technische Protokolle sollen nur die für Fehlersuche und Betrieb erforderlichen Informationen enthalten.
 
-Pam behält die Kontrolle darüber.
+Nicht unnötig protokolliert werden sollen insbesondere:
 
-Pam muss gespeicherte Informationen:
+- vollständige private Gespräche,
+- vollständige Erinnerungsbestände,
+- Gesundheitsdaten,
+- API-Schlüssel oder Tokens,
+- Passwörter und Setup-Geheimnisse,
+- vollständige private Bilder oder Dokumente.
 
-- ansehen
-- korrigieren
-- ergänzen
-- löschen
-- deaktivieren
-
-können.
-
-PAM
- ↕
-MEMORY CONTROL
- ↕
-SOL MEMORY
- ↕
-SOL HOLO
-
-Gelöschte oder deaktivierte Erinnerungen dürfen nicht weiterhin als aktives Sol-Memory verwendet werden.
+Fehlermeldungen an die App sollen keine internen Geheimnisse oder vollständigen Antworten externer Dienste offenlegen.
 
 ---
 
-12. LOKALE DATEN
+## 10. Sicherheitsvorfall
 
-Persönliche Daten sollen nach Möglichkeit lokal verarbeitet und gespeichert werden.
+Bei einem möglichen Sicherheitsvorfall gilt grundsätzlich:
 
-Dazu können gehören:
+1. betroffene Funktion oder Verbindung stoppen,
+2. kompromittierte Schlüssel und Tokens widerrufen oder rotieren,
+3. unbefugte Datenübertragung begrenzen,
+4. die Ursache dokumentieren,
+5. betroffene Daten und Personen bestimmen,
+6. aktuelle Dateien korrigieren,
+7. bei veröffentlichten Geheimnissen zusätzlich die Git-Historie prüfen,
+8. erst nach einer Prüfung wieder freigeben.
 
-- digitales Pam-Profil
-- Einstellungen
-- Memory
-- persönliche Präferenzen
-- Gerätekonfiguration
-- Sicherheitsregeln
-
-Sensible lokale Daten sollen verschlüsselt gespeichert werden.
-
----
-
-13. VERSCHLÜSSELUNG
-
-Für sensible lokale Schlüssel kann unter Android beispielsweise der Android Keystore verwendet werden.
-
-Grundprinzip:
-
-ANDROID KEYSTORE
-       ↓
-GESCHÜTZTER SCHLÜSSEL
-       ↓
-VERSCHLÜSSELTE SOL-DATEN
-
-Schlüssel und geschützte Daten sollen nicht gemeinsam ungesichert gespeichert werden.
+Das bloße Löschen eines Geheimnisses aus der aktuellen Datei genügt nicht, wenn es bereits in einem Commit veröffentlicht wurde. Ein veröffentlichtes Geheimnis muss grundsätzlich als kompromittiert behandelt und ersetzt werden.
 
 ---
 
-14. KAMERA UND MIKROFON
+## 11. Sicherheitslücken melden
 
-Kamera und Mikrofon werden nur verwendet, wenn eine entsprechende Sol-Funktion aktiv ist.
+Sicherheitslücken, vermutete Datenlecks und gefundene Zugangsdaten sollen **nicht mit vollständigen technischen Details in einem öffentlichen Issue** veröffentlicht werden.
 
-Sol Holo soll erkennbar machen, wenn Aufnahmefunktionen verwendet werden.
+Bevorzugt wird – soweit im Repository verfügbar – GitHubs private Funktion **„Report a vulnerability“** verwendet.
 
-Nach Ende der Funktion wird der benötigte Zugriff beendet, soweit dies technisch möglich ist.
+Ist keine private Meldemöglichkeit sichtbar, kann ein öffentliches Issue mit dem Titel
 
----
+`[SECURITY] Bitte privaten Kontakt herstellen`
 
-15. STANDORT
-
-Standortdaten werden nur verwendet, wenn eine Funktion sie benötigt.
-
-Beispiele:
-
-- Navigation
-- ortsbezogene Informationen
-- Wetter am aktuellen Standort
-
-Wenn Pam einen Ort manuell angibt, muss nicht automatisch der aktuelle Gerätestandort abgefragt werden.
+erstellt werden. Dieses Issue darf keine Passwörter, Tokens, persönlichen Daten, Exploit-Schritte oder vertraulichen Anhänge enthalten. Die weiteren Einzelheiten werden anschließend über einen privaten Kontaktweg geklärt.
 
 ---
 
-16. HEALTH CONNECT
+## 12. Sicherheitsstatus
 
-Gesundheits- und Fitnessdaten werden als besonders sensibel behandelt.
-
-GESUNDHEITS-APP
-       ↓
-HEALTH CONNECT
-       ↓
-PAMS FREIGABE
-       ↓
-SOL CONTROL
-       ↓
-SOL HOLO
-
-Sol Holo darf nur freigegebene Datentypen verwenden.
-
-Eine Health-Connect-Freigabe bedeutet nicht automatisch, dass diese Daten an eine externe KI oder einen anderen Dienst übertragen werden dürfen.
+| Bereich | Stand am 29.08.2026 |
+|---|---|
+| Geheimnisse über Server-Umgebungsvariablen | 🟩 vorhanden |
+| `.gitignore` für Umgebungs- und Signaturdateien | 🟩 vorhanden |
+| Zeitlich begrenzte OAuth-Statuswerte | 🟩 vorhanden |
+| SmartThings-Tokenverschlüsselung | 🟩 vorhanden |
+| Sichtbare Bestätigung bei Telefon/SMS | 🟩 vorhanden |
+| Health Connect ausschließlich lesend | 🟩 technisch integriert; praktischer Gerätetest fortlaufend |
+| Vollständige Backend-Zugriffskontrolle | 🟨 noch nicht abgeschlossen |
+| Verschlüsselung aller gespeicherten OAuth-Tokens | 🟨 noch nicht abgeschlossen |
+| Mehrnutzer- und Clone-Trennung | 🟨 Architekturziel; noch kein freigegebener Mehrnutzerbetrieb |
+| Unabhängiger Sicherheitstest | ⬜ noch nicht durchgeführt |
+| Sicherheitszertifizierung | ⬜ nicht vorhanden |
 
 ---
 
-17. SMARTWATCH UND WEITERE GERÄTE
+## 13. Zugehörige Dokumente
 
-Ein verbundenes Gerät erhält nicht automatisch Zugriff auf alle Sol-Daten.
+Diese Sicherheitsrichtlinie wird ergänzt durch:
 
-Jede Geräteverbindung wird separat behandelt.
+- `Datenschutz.md`
+- `Berechtigungen.md`
+- `ANONYMISIERUNGSREGEL.md`
+- `RECHTLICHER_HINWEIS.md`
+- `THIRD_PARTY_NOTICES.md`
+- `LICENSE`
 
-PAM
- ↓
-SOL HOLO
- ↓
-SOL CONTROL
- ↓
-FREIGEGEBENES GERÄT
-
----
-
-18. SMART HOME
-
-Bei Smart-Home-Aktionen wird zwischen Informationsabfrage und tatsächlicher Steuerung unterschieden.
-
-Eine sensible oder sicherheitsrelevante Aktion kann eine zusätzliche Bestätigung durch Pam verlangen.
+Bei Widersprüchen zwischen einer geplanten Beschreibung und dem tatsächlich implementierten Code darf die Planung nicht als bereits vorhandene Schutzmaßnahme ausgegeben werden.
 
 ---
 
-19. KRITISCHE AKTIONEN
-
-Für besonders wichtige Aktionen wird eine zusätzliche Bestätigung vorgesehen.
-
-Dazu können gehören:
-
-- Daten dauerhaft löschen
-- Memory vollständig löschen
-- Sicherheitsregeln ändern
-- neue Konten verbinden
-- sensible Daten exportieren
-- neue externe Dienste verbinden
-- wichtige Smart-Home-Aktionen
-- Identitätsdaten des digitalen Pam-Modells verändern
-
-Prinzip:
-
-AKTION
- ↓
-KRITISCH?
- ↙       ↘
-NEIN      JA
- ↓         ↓
-WEITER   PAM BESTÄTIGT
-             ↓
-           WEITER
-
----
-
-20. NETZWERK
-
-Externe Kommunikation soll ausschließlich über sichere, verschlüsselte Verbindungen erfolgen.
-
-Kann eine sensible Verbindung nicht sicher hergestellt werden, wird die entsprechende Übertragung gestoppt.
-
----
-
-21. PROTOKOLLIERUNG
-
-Technische Fehler und Systemzustände können protokolliert werden.
-
-Protokolle sollen nicht unnötig enthalten:
-
-- komplette private Gespräche
-- Gesundheitsdaten
-- Passwörter
-- API-Schlüssel
-- private Bilder
-- private Dokumente
-- vollständige Memory-Daten
-- vollständiges digitales Pam-Profil
-
----
-
-22. FEHLERFALL
-
-Bei einem sicherheitsrelevanten Fehler:
-
-FEHLER
- ↓
-BETROFFENE FUNKTION STOPPEN
- ↓
-DATENÜBERTRAGUNG STOPPEN
- ↓
-SICHEREN ZUSTAND HERSTELLEN
- ↓
-PAM INFORMIEREN
-
-Andere unabhängige Funktionen von Sol Holo sollen möglichst weiter funktionieren.
-
----
-
-23. WIDERRUF
-
-Pam kann Berechtigungen und Verbindungen wieder entziehen.
-
-Nach dem Widerruf darf Sol Holo die betreffende Schnittstelle nicht weiter verwenden.
-
-Dies betrifft insbesondere:
-
-- Kamera
-- Mikrofon
-- Standort
-- Kontakte
-- Kalender
-- Health Connect
-- Geräte
-- Cloud-Dienste
-- externe APIs
-
----
-
-24. SICHERHEIT BEI WEITERENTWICKLUNG
-
-Jede neue Sol-Funktion wird vor Aktivierung geprüft auf:
-
-1. benötigte Daten
-2. benötigte Berechtigungen
-3. lokale Speicherung
-4. externe Datenübertragung
-5. verwendete APIs
-6. Auswirkungen auf Memory
-7. Auswirkungen auf das digitale Pam-Modell
-8. Gerätezugriffe
-9. Fehlerverhalten
-10. Widerrufsmöglichkeit
-
----
-
-25. OBERSTE REGEL
-
-PAM
- ↓
-KONTROLLE
- ↓
-SOL HOLO
- ↓
-SOL CONTROL
- ↓
-FREIGEGEBENE TECHNIK
-
-Pam ist Original und Referenz.
-
-Sol Holo ist das digitale Abbild von Pam.
-
-KI, APIs, Cloud-Dienste und Geräte sind technische Werkzeuge und erhalten nur die jeweils erforderlichen freigegebenen Zugriffe.
-
----
-
-SICHERHEITSSTATUS
-
-Status| Bedeutung
-⬜| geplant
-🟨| Umsetzung
-🧪| Sicherheitstest
-🟩| geprüft
-🟥| Sicherheitsproblem
-
-Aktueller Stand
-
-🟨 Sicherheitsarchitektur dokumentiert
-
-Die konkreten Schutzmaßnahmen werden zusammen mit den jeweiligen Schnittstellen implementiert und getestet.
-
-Diese Datei ergänzt:
-
-- "ENDZIEL.md"
-- "SCHNITTSTELLEN.md"
-- "Berechtigungen.md"
-- "ENTWICKLUNGSPROTOKOLL.md"
+**Pamela Nitschke**  
+Sol Holo · Pam’s Holo · SH♾️
