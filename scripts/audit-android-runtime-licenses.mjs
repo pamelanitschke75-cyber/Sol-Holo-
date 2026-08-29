@@ -78,6 +78,18 @@ for (const dependency of [...coordinates.values()].sort((a, b) =>
   } else if (dependency.group === "com.google.android.material") {
     license = "Apache-2.0";
     basis = "Material Components for Android license";
+  } else if (
+    dependency.group === "com.google.guava" &&
+    dependency.artifact === "listenablefuture"
+  ) {
+    license = "Apache-2.0";
+    basis = "Google Guava project LICENSE";
+  } else if (
+    dependency.group === "org.apache.cordova" &&
+    dependency.artifact === "framework"
+  ) {
+    license = "Apache-2.0";
+    basis = "Apache Cordova Android LICENSE";
   }
 
   if (!license) {
@@ -125,11 +137,14 @@ MIT License
 ${capacitorMitLicense.trim()}
 
 ============================================================
-AndroidX / reviewed Apache-2.0 Android libraries
+Reviewed Apache-2.0 Android libraries
 ============================================================
 
-The AndroidX libraries and other entries explicitly labelled Apache-2.0 in the
-inventory above are distributed under the Apache License, Version 2.0.
+The AndroidX libraries and the other entries explicitly labelled Apache-2.0
+in the inventory above are distributed under the Apache License, Version 2.0.
+This currently includes the resolved Guava listenablefuture compatibility
+artifact and Apache Cordova framework dependency where present in the exact
+releaseRuntimeClasspath.
 
 ${apacheLicense.trim()}
 `;
