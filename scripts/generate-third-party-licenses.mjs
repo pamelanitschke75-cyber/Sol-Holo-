@@ -38,7 +38,6 @@ const licenseNamePatterns = [
   /^copying(?:\..+)?$/i,
   /^copyright(?:\..+)?$/i
 ];
-
 const noticeNamePatterns = [
   /^notice(?:\..+)?$/i,
   /^third[-_ ]party(?:[-_ ]notices?)?(?:\..+)?$/i
@@ -58,6 +57,43 @@ const reviewedNpmLicenseExpressions = new Set([
   "MIT",
   "Unlicense",
   "(BSD-2-Clause OR MIT OR Apache-2.0)"
+]);
+
+// Diese vier Pakete verwenden im Lockfile keine eindeutige SPDX-Bezeichnung.
+// Sie wurden deshalb anhand ihrer veröffentlichten Upstream-Lizenz geprüft.
+const reviewedNpmPackageOverrides = new Map([
+  [
+    "@trapezedev/gradle-parse",
+    {
+      declared: "SEE LICENSE",
+      reviewed: "MIT",
+      evidence: "ionic-team/trapeze LICENSE; Copyright 2015-present Drifty Co."
+    }
+  ],
+  [
+    "@trapezedev/project",
+    {
+      declared: "SEE LICENSE",
+      reviewed: "MIT",
+      evidence: "ionic-team/trapeze LICENSE; Copyright 2015-present Drifty Co."
+    }
+  ],
+  [
+    "expand-template",
+    {
+      declared: "(MIT OR WTFPL)",
+      reviewed: "MIT",
+      evidence: "ralphtheninja/expand-template LICENSE; Copyright (c) 2018 Lars-Magnus Skog"
+    }
+  ],
+  [
+    "url-template",
+    {
+      declared: "BSD",
+      reviewed: "BSD-3-Clause",
+      evidence: "bramstein/url-template LICENSE; Copyright (c) 2012-2014 Bram Stein"
+    }
+  ]
 ]);
 
 const headAudioUpstream = {
@@ -94,31 +130,20 @@ function packageDirectory(packageName) {
 
 async function findFileByPatterns(directory, patterns) {
   const entries = await readdir(directory, { withFileTypes: true });
-
   for (const pattern of patterns) {
     const match = entries
       .filter(entry => entry.isFile())
       .map(entry => entry.name)
       .sort()
       .find(name => pattern.test(name));
-
-    if (match) {
-      return path.join(directory, match);
-    }
+    if (match) return path.join(directory, match);
   }
-
   return null;
 }
 
 function formatDeclaredLicense(value) {
-  if (typeof value === "string" && value.trim()) {
-    return value.trim();
-  }
-
-  if (value) {
-    return JSON.stringify(value);
-  }
-
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (value) return JSON.stringify(value);
   return "not declared in package.json";
 }
 
@@ -131,21 +156,18 @@ async function resolveLicenseText(name, packageJson, directory) {
   if (packageLicenseFile) {
     return {
       text: (await readFile(packageLicenseFile, "utf8")).trim(),
-      source: path.relative(projectDirectory, packageLicenseFile),
-      fallback: false
+      source: path.relative(projectDirectory, packageLicenseFile)
     };
   }
 
   const declaredLicense = formatDeclaredLicense(packageJson.license);
   const fallbackFile = knownLicenseFallbacks.get(declaredLicense);
-
   if (fallbackFile) {
     return {
       text: (await readFile(fallbackFile, "utf8")).trim(),
       source:
         path.relative(projectDirectory, fallbackFile) +
-        " (canonical fallback; installed npm package ships no standalone license file)",
-      fallback: true
+        " (canonical fallback; installed npm package ships no standalone license file)"
     };
   }
 
@@ -157,22 +179,17 @@ async function resolveLicenseText(name, packageJson, directory) {
 function gitBlobSha(bytes) {
   const body = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes);
   const prefix = Buffer.from(`blob ${body.length}\0`, "utf8");
-  return createHash("sha1")
-    .update(prefix)
-    .update(body)
-    .digest("hex");
+  return createHash("sha1").update(prefix).update(body).digest("hex");
 }
 
 async function verifyHeadAudioAssets() {
   const rows = [];
-
   for (const asset of headAudioAssets) {
     const absolutePath = path.join(projectDirectory, asset.path);
     let bytes;
 
     if (asset.encoding === "base64") {
-      const encoded = (await readFile(absolutePath, "utf8"))
-        .replace(/\s+/g, "");
+      const encoded = (await readFile(absolutePath, "utf8")).replace(/\s+/g, "");
       bytes = Buffer.from(encoded, "base64");
     } else {
       const text = await readFile(absolutePath, "utf8");
@@ -184,7 +201,7 @@ async function verifyHeadAudioAssets() {
       throw new Error(
         `HeadAudio-Datei ${asset.path} weicht vom geprüften Upstream-Stand ab. ` +
         `Erwartet ${asset.upstreamGitBlobSha}, erhalten ${actualGitBlobSha}. ` +
-        "Vor einer Distribution muss die Abweichung erneut lizenzrechtlich geprüft werden."
+        "Vor einer Distribution muss die Abweichung erneut geprüft werden."
       );
     }
 
@@ -192,7 +209,6 @@ async function verifyHeadAudioAssets() {
       `${asset.path} -> ${asset.upstreamPath} | git blob ${actualGitBlobSha}`
     );
   }
-
   return rows;
 }
 
@@ -202,21 +218,33 @@ function buildNpmLicenseInventory() {
   const missing = [];
 
   for (const [packagePath, metadata] of Object.entries(lockFile.packages || {})) {
-    if (!packagePath || !metadata?.version) {
+    if (!packagePath || !metadata?.version) continue;
+
+    const name = packagePath.replace(/^node_modules\//, "");
+    const declared = formatDeclaredLicense(metadata.license);
+    const scope = metadata.dev ? "dev" : "runtime/transitive";
+    const override = reviewedNpmPackageOverrides.get(name);
+
+    if (override) {
+      if (declared !== override.declared) {
+        unknown.push(
+          `${name}@${metadata.version}: erwartete Deklaration ${override.declared}, gefunden ${declared}`
+        );
+      }
+      rows.push(
+        `${name}@${metadata.version} | declared: ${declared} | reviewed: ${override.reviewed} | ` +
+        `${scope} | evidence: ${override.evidence}`
+      );
       continue;
     }
 
-    const name = packagePath.replace(/^node_modules\//, "");
-    const license = formatDeclaredLicense(metadata.license);
-    const scope = metadata.dev ? "dev" : "runtime/transitive";
-
-    if (license === "not declared in package.json") {
+    if (declared === "not declared in package.json") {
       missing.push(`${name}@${metadata.version}`);
-    } else if (!reviewedNpmLicenseExpressions.has(license)) {
-      unknown.push(`${name}@${metadata.version}: ${license}`);
+    } else if (!reviewedNpmLicenseExpressions.has(declared)) {
+      unknown.push(`${name}@${metadata.version}: ${declared}`);
     }
 
-    rows.push(`${name}@${metadata.version} | ${license} | ${scope}`);
+    rows.push(`${name}@${metadata.version} | ${declared} | ${scope}`);
   }
 
   if (missing.length) {
@@ -225,10 +253,9 @@ function buildNpmLicenseInventory() {
       missing.join("\n")
     );
   }
-
   if (unknown.length) {
     throw new Error(
-      "Noch nicht manuell freigegebene NPM-Lizenzausdrücke gefunden:\n" +
+      "Noch nicht manuell freigegebene NPM-Lizenzen gefunden:\n" +
       unknown.join("\n")
     );
   }
@@ -237,16 +264,12 @@ function buildNpmLicenseInventory() {
 }
 
 const sections = [];
-
 for (const group of groups) {
-  if (!group.names.length) {
-    continue;
-  }
-
+  if (!group.names.length) continue;
   sections.push(
     "============================================================\n" +
-      `${group.title}\n` +
-      "============================================================\n"
+    `${group.title}\n` +
+    "============================================================\n"
   );
 
   for (const name of group.names) {
@@ -262,29 +285,50 @@ for (const group of groups) {
 
     sections.push(
       "------------------------------------------------------------\n" +
-        `${name}@${packageJson.version}\n` +
-        `Declared license: ${formatDeclaredLicense(packageJson.license)}\n` +
-        `License source: ${license.source}\n` +
-        "------------------------------------------------------------\n\n" +
-        license.text +
-        (noticeText
-          ? "\n\nNOTICE / attribution text from installed package:\n\n" +
-            noticeText
-          : "") +
-        "\n"
+      `${name}@${packageJson.version}\n` +
+      `Declared license: ${formatDeclaredLicense(packageJson.license)}\n` +
+      `License source: ${license.source}\n` +
+      "------------------------------------------------------------\n\n" +
+      license.text +
+      (noticeText
+        ? "\n\nNOTICE / attribution text from installed package:\n\n" + noticeText
+        : "") +
+      "\n"
     );
   }
 }
 
 const npmInventoryRows = buildNpmLicenseInventory();
 const headAudioVerificationRows = await verifyHeadAudioAssets();
-const headAudioLicensePath = path.join(
-  thirdPartyWebDirectory,
-  "HeadAudio-LICENSE.txt"
-);
 const headAudioLicenseText = (
-  await readFile(headAudioLicensePath, "utf8")
+  await readFile(
+    path.join(thirdPartyWebDirectory, "HeadAudio-LICENSE.txt"),
+    "utf8"
+  )
 ).trim();
+
+const specialNpmNotice = `
+============================================================
+Reviewed non-standard npm license declarations
+============================================================
+
+@trapezedev/gradle-parse and @trapezedev/project
+Declared in lockfile: SEE LICENSE
+Reviewed license: MIT
+Upstream evidence: ionic-team/trapeze LICENSE, Copyright 2015-present Drifty Co.
+
+expand-template
+Declared in lockfile: (MIT OR WTFPL)
+Chosen license for this project: MIT
+Upstream evidence: ralphtheninja/expand-template LICENSE,
+Copyright (c) 2018 Lars-Magnus Skog.
+
+url-template
+Declared in lockfile: BSD
+Reviewed license: BSD-3-Clause
+Upstream evidence: bramstein/url-template LICENSE,
+Copyright (c) 2012-2014 Bram Stein.
+`;
 
 const headAudioNotice = `
 ============================================================
@@ -306,9 +350,8 @@ of the upstream binary model. Decoding it must reproduce the pinned upstream
 Git blob exactly.
 
 Legacy repository copies under dist/ and modules/ may contain earlier local
-experiments or modifications. They remain subject to the same HeadAudio MIT
-license where they derive from HeadAudio. The upstream author is not
-responsible for Sol Holo-specific modifications.
+experiments or modifications. Where they derive from HeadAudio, the HeadAudio
+MIT license remains applicable and its copyright notice must be retained.
 
 Full HeadAudio MIT license:
 
@@ -331,11 +374,6 @@ FaceMesh-V2 and Blendshape models. Google's published model cards identify
 these model components as licensed under the Apache License, Version 2.0.
 The Sol Holo build stores the downloaded model bundle without modifying its
 binary contents. A full Apache-2.0 license text is included in this file.
-
-Model-card references:
-https://storage.googleapis.com/mediapipe-assets/MediaPipe%20BlazeFace%20Model%20Card%20%28Short%20Range%29.pdf
-https://storage.googleapis.com/mediapipe-assets/Model%20Card%20MediaPipe%20Face%20Mesh%20V2.pdf
-https://storage.googleapis.com/mediapipe-assets/Model%20Card%20Blendshape%20V2.pdf
 `;
 
 const npmInventory = `
@@ -347,7 +385,7 @@ Every package entry with an installed version in package-lock.json is checked.
 The build fails when a package has no declared license or when a license
 expression has not been explicitly reviewed for this project.
 
-Reviewed license expressions in the current lockfile:
+Reviewed standard license expressions in the current lockfile:
 ${[...reviewedNpmLicenseExpressions].sort().join("\n")}
 
 Installed package inventory:
@@ -363,26 +401,20 @@ trademarks or other rights to Pamela Nitschke or Sol Holo. Each component
 remains subject to its own license and the rights of its respective rights
 holders.
 
-The file includes the license text found inside each direct npm dependency.
-If a package declares Apache-2.0 but does not ship a standalone license file,
-the build uses the canonical Apache-2.0 text stored in licenses/APACHE-2.0.txt.
-Any NOTICE/attribution file shipped at the top level of a direct package is
-included as well. Development-only packages are identified separately.
-
-The complete package-lock is additionally audited for declared licenses, and
-bundled non-npm third-party assets such as HeadAudio are verified separately.
+Direct npm license texts and NOTICE files are collected from the actually
+installed packages. The complete package-lock is additionally audited for
+license declarations. Bundled non-npm third-party assets such as HeadAudio
+are verified separately against a pinned upstream state.
 
 `;
 
 const output =
   header +
   sections.join("\n") +
-  "\n" +
-  headAudioNotice.trim() +
-  "\n\n" +
-  mediaPipeModelNotice.trim() +
-  "\n\n" +
-  npmInventory.trim() +
+  "\n" + specialNpmNotice.trim() +
+  "\n\n" + headAudioNotice.trim() +
+  "\n\n" + mediaPipeModelNotice.trim() +
+  "\n\n" + npmInventory.trim() +
   "\n";
 
 await mkdir(webDirectory, { recursive: true });
@@ -392,7 +424,6 @@ const apacheLicenseText = await readFile(
   path.join(licenseFallbackDirectory, "APACHE-2.0.txt"),
   "utf8"
 );
-
 await writeFile(
   path.join(thirdPartyWebDirectory, "APACHE-2.0.txt"),
   apacheLicenseText,
