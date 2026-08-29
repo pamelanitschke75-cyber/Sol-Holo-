@@ -3,7 +3,9 @@
 **Datum:** 27.08.2026  
 **Projekt:** Sol Holo  
 **Initiatorin / Entwicklerin:** Pamela Nitschke  
-**Entwicklung gemeinsam mit:** ChatGPT / OpenAI
+**KI-gestützte Entwicklung:** Pamela Nitschke unter Nutzung von ChatGPT und OpenAI-Technologien
+
+> **Hinweis zur Zuschreibung:** Die Nennung von ChatGPT/OpenAI beschreibt verwendete KI-Werkzeuge und Technologien. Sie behauptet keine offizielle Partnerschaft, Mitentwicklung, Unterstützung oder Mitinhaberschaft durch OpenAI.
 
 ## ✅ Aktueller Entwicklungsstand
 
@@ -95,5 +97,5 @@ Neue Funktionen sollen von diesem Punkt aus einzeln entwickelt, getestet und dok
 ---
 
 **Sol Holo 🌻**  
-**Pamela Nitschke × ChatGPT / OpenAI**  
+**Pamela Nitschke · KI-gestützte Entwicklung unter Nutzung von ChatGPT/OpenAI-Technologien**  
 **✨️🌎♾️**
