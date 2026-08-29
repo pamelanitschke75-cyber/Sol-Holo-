@@ -98,7 +98,7 @@ Sol Holo soll nicht dadurch sicher sein, dass ein Mensch einen technischen Fehle
 
 Für Pam’s Holo gilt deshalb eindeutig:
 
-# **Eine Pam. Eine Pam’s Holo. Eine persönliche Identität.**
+# **Eine Pam, eine Pam Holo!**
 
 Nicht zwei. Nicht zehn. Nicht hundert.
 
