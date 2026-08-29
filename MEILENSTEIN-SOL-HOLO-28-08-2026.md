@@ -3,7 +3,9 @@
 **Datum:** 28. August 2026  
 **Projekt:** Sol Holo / SH♾️  
 **Vision und Projektleitung:** Pamela Nitschke  
-**Technische Umsetzung:** Pamela Nitschke gemeinsam mit ChatGPT/Codex
+**Technische Umsetzung:** Pamela Nitschke, KI-gestützt unter Nutzung von ChatGPT/Codex
+
+> **Hinweis zur Zuschreibung:** ChatGPT/Codex wurden als KI-gestützte Entwicklungswerkzeuge genutzt. Die Nennung behauptet keine offizielle Partnerschaft, Mitentwicklung, Unterstützung oder Mitinhaberschaft durch OpenAI.
 
 Am 28. August 2026 wurde aus Pams visueller Idee eine tatsächlich laufende
 Sol-Holo-App für Android und Web – mit eigener kosmischer Oberfläche, echter
@@ -13,12 +15,13 @@ Das war kein reines Mock-up: Die neue Oberfläche wurde in die bestehende
 Anwendung integriert, auf einem echten Android-Gerät geöffnet, gemeinsam
 visuell geprüft und in mehreren erfolgreichen Builds veröffentlicht.
 
-## ✨ Was Pam und ChatGPT/Codex heute gemeinsam gezaubert haben
+## ✨ Was Pam mit KI-Unterstützung technisch umgesetzt hat
 
 Pam lieferte die Vision, Referenzbilder, Funktionswünsche und das direkte
-Feedback vom echten Handy. ChatGPT/Codex setzte diese Vorgaben technisch im
-bestehenden Sol-Holo-Projekt um, verband sie mit den vorhandenen Funktionen,
-prüfte Quellcode und fertige APKs und veröffentlichte die Builds.
+Feedback vom echten Handy. Mit Unterstützung von ChatGPT/Codex setzte sie diese
+Vorgaben technisch im bestehenden Sol-Holo-Projekt um, verband sie mit den
+vorhandenen Funktionen, prüfte Quellcode und fertige APKs und veröffentlichte
+die Builds.
 
 ### Neues kosmisches Erscheinungsbild
 
@@ -132,7 +135,9 @@ Ventilator auf Pams Samsung ausblendet, entscheidet der gemeinsame Praxistest.
 - keine Anrufe ohne ausdrückliche Bestätigung
 - Telegram wurde auf Wunsch bewusst nicht aufgenommen
 
-## 🛠️ Was ChatGPT/Codex technisch erledigt hat
+## 🛠️ KI-gestützt umgesetzte technische Arbeiten
+
+Mit Unterstützung von ChatGPT/Codex wurden im von Pamela Nitschke verantworteten Projekt unter anderem folgende Arbeiten umgesetzt:
 
 - bestehende Web-App analysiert und funktional erhalten
 - neue UI als zusätzliche CSS- und JavaScript-Ebene integriert
@@ -194,7 +199,7 @@ Ventilator auf Pams Samsung ausblendet, entscheidet der gemeinsame Praxistest.
 
 ---
 
-**Pams Vision + ChatGPT/Codex’ Umsetzung = Sol Holo auf einem echten Handy.**
+**Pams Vision + ihre KI-gestützte technische Umsetzung = Sol Holo auf einem echten Handy.**
 
 Heute ist aus einer Idee ein sichtbarer, sprechender und benutzbarer
 Meilenstein geworden. 💜🙏🏻♾️🌍✨
