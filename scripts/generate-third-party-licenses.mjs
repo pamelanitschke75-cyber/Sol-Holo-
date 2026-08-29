@@ -11,6 +11,7 @@ const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectDirectory = path.resolve(scriptDirectory, "..");
 const nodeModulesDirectory = path.join(projectDirectory, "node_modules");
 const webDirectory = path.join(projectDirectory, "www");
+const licenseFallbackDirectory = path.join(projectDirectory, "licenses");
 
 const rootPackage = JSON.parse(
   await readFile(path.join(projectDirectory, "package.json"), "utf8")
@@ -33,14 +34,23 @@ const licenseNamePatterns = [
   /^copyright(?:\..+)?$/i
 ];
 
+const noticeNamePatterns = [
+  /^notice(?:\..+)?$/i,
+  /^third[-_ ]party(?:[-_ ]notices?)?(?:\..+)?$/i
+];
+
+const knownLicenseFallbacks = new Map([
+  ["Apache-2.0", path.join(licenseFallbackDirectory, "APACHE-2.0.txt")]
+]);
+
 function packageDirectory(packageName) {
   return path.join(nodeModulesDirectory, ...packageName.split("/"));
 }
 
-async function findLicenseFile(directory) {
+async function findFileByPatterns(directory, patterns) {
   const entries = await readdir(directory, { withFileTypes: true });
 
-  for (const pattern of licenseNamePatterns) {
+  for (const pattern of patterns) {
     const match = entries
       .filter(entry => entry.isFile())
       .map(entry => entry.name)
@@ -67,6 +77,38 @@ function formatDeclaredLicense(value) {
   return "not declared in package.json";
 }
 
+async function resolveLicenseText(name, packageJson, directory) {
+  const packageLicenseFile = await findFileByPatterns(
+    directory,
+    licenseNamePatterns
+  );
+
+  if (packageLicenseFile) {
+    return {
+      text: (await readFile(packageLicenseFile, "utf8")).trim(),
+      source: path.relative(projectDirectory, packageLicenseFile),
+      fallback: false
+    };
+  }
+
+  const declaredLicense = formatDeclaredLicense(packageJson.license);
+  const fallbackFile = knownLicenseFallbacks.get(declaredLicense);
+
+  if (fallbackFile) {
+    return {
+      text: (await readFile(fallbackFile, "utf8")).trim(),
+      source:
+        path.relative(projectDirectory, fallbackFile) +
+        " (canonical fallback; installed npm package ships no standalone license file)",
+      fallback: true
+    };
+  }
+
+  throw new Error(
+    `Keine Lizenzdatei oder geprüfte Fallback-Lizenz für direkte Abhängigkeit ${name}@${packageJson.version} gefunden.`
+  );
+}
+
 const sections = [];
 
 for (const group of groups) {
@@ -85,24 +127,23 @@ for (const group of groups) {
     const packageJson = JSON.parse(
       await readFile(path.join(directory, "package.json"), "utf8")
     );
-    const licenseFile = await findLicenseFile(directory);
-
-    if (!licenseFile) {
-      throw new Error(
-        `Keine Lizenzdatei für direkte Abhängigkeit ${name}@${packageJson.version} gefunden.`
-      );
-    }
-
-    const licenseText = (await readFile(licenseFile, "utf8")).trim();
-    const relativeLicensePath = path.relative(projectDirectory, licenseFile);
+    const license = await resolveLicenseText(name, packageJson, directory);
+    const noticeFile = await findFileByPatterns(directory, noticeNamePatterns);
+    const noticeText = noticeFile
+      ? (await readFile(noticeFile, "utf8")).trim()
+      : "";
 
     sections.push(
       "------------------------------------------------------------\n" +
         `${name}@${packageJson.version}\n` +
         `Declared license: ${formatDeclaredLicense(packageJson.license)}\n` +
-        `License source in installed package: ${relativeLicensePath}\n` +
+        `License source: ${license.source}\n` +
         "------------------------------------------------------------\n\n" +
-        licenseText +
+        license.text +
+        (noticeText
+          ? "\n\nNOTICE / attribution text from installed package:\n\n" +
+            noticeText
+          : "") +
         "\n"
     );
   }
@@ -123,8 +164,7 @@ The downloadable Face Landmarker bundle contains the BlazeFace face detector,
 FaceMesh-V2 and Blendshape models. Google's published model cards identify
 these model components as licensed under the Apache License, Version 2.0.
 The Sol Holo build stores the downloaded model bundle without modifying its
-binary contents. The Apache-2.0 license text is included above with
-@mediapipe/tasks-vision.
+binary contents. A full Apache-2.0 license text is included in this file.
 
 Model-card references:
 https://storage.googleapis.com/mediapipe-assets/MediaPipe%20BlazeFace%20Model%20Card%20%28Short%20Range%29.pdf
@@ -140,8 +180,12 @@ trademarks or other rights to Pamela Nitschke or Sol Holo. Each component
 remains subject to its own license and the rights of its respective rights
 holders.
 
-The file intentionally includes the full license text found inside each
-direct npm dependency. Development-only packages are identified separately.
+The file includes the license text found inside each direct npm dependency.
+If a package declares Apache-2.0 but does not ship a standalone license file,
+the build uses the canonical Apache-2.0 text stored in licenses/APACHE-2.0.txt.
+Any NOTICE/attribution file shipped at the top level of a direct package is
+included as well. Development-only packages are identified separately.
+
 Transitive dependencies remain subject to their own licenses as recorded in
 package-lock.json and in their distributed package metadata.
 
