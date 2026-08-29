@@ -1776,7 +1776,7 @@ Schreiben bereit.
 </div>
 
 <div id="lipSyncStatus">
-👄 Lip-Sync bereit.
+👄 Lip-Sync V2 bereit.
 </div>
 
 </aside>
@@ -2147,6 +2147,10 @@ let lipHeadAudioReady = false;
 let lipHeadAudioInitPromise = null;
 let lipAnimationLastAt = 0;
 let lipVisemeValues = Object.create(null);
+let realtimeAssistantSpeechUntil = 0;
+let realtimeAssistantSpeechStartedAt = 0;
+let realtimeOutputBufferPlaying = false;
+let lastLipAudioSignalAt = 0;
 let lipMouthCanvasGeometry = null;
 let lipMouthRenderLayer =
   document.createElement("canvas");
@@ -2167,6 +2171,322 @@ let fullFaceRigReady = false;
 let fullFaceRigRequested = true;
 let fullFaceRigLoadPromise = null;
 let fullFaceRigAnalysisGeneration = 0;
+
+
+function decodedPcmDurationMilliseconds(
+  base64Audio
+){
+
+  const value =
+    String(
+      base64Audio ||
+      ""
+    )
+      .replace(
+        /\s/g,
+        ""
+      );
+
+
+  if(
+    !value
+  ){
+
+    return 0;
+  }
+
+
+  const padding =
+    value.endsWith("==")
+      ?
+      2
+      :
+      value.endsWith("=")
+        ?
+        1
+        :
+        0;
+
+
+  const byteLength =
+    Math.max(
+      0,
+      Math.floor(
+        value.length *
+        3 /
+        4
+      ) -
+      padding
+    );
+
+
+  // OpenAI Realtime liefert PCM16, mono, 24 kHz:
+  // 48 Audio-Bytes entsprechen einer Millisekunde.
+  return byteLength /
+    48;
+}
+
+
+function realtimeSpeechIsActive(
+  timestamp = performance.now()
+){
+
+  return (
+    realtimeOutputBufferPlaying ||
+    timestamp <
+      realtimeAssistantSpeechUntil
+  );
+}
+
+
+function requestLipSyncFrame(){
+
+  if(
+    lipAnimationFrame !==
+    null
+  ){
+
+    return;
+  }
+
+
+  lipAnimationFrame =
+    requestAnimationFrame(
+      animateLipSync
+    );
+}
+
+
+function startRealtimeSpeechFallback(){
+
+  const now =
+    performance.now();
+
+
+  if(
+    !realtimeSpeechIsActive(
+      now
+    )
+  ){
+
+    realtimeAssistantSpeechStartedAt =
+      now;
+  }
+
+
+  realtimeOutputBufferPlaying =
+    true;
+
+
+  realtimeAssistantSpeechUntil =
+    Math.max(
+      realtimeAssistantSpeechUntil,
+      now + 220
+    );
+
+
+  requestLipSyncFrame();
+}
+
+
+function registerRealtimeAudioDelta(
+  base64Audio
+){
+
+  const now =
+    performance.now();
+
+
+  if(
+    !realtimeSpeechIsActive(
+      now
+    )
+  ){
+
+    realtimeAssistantSpeechStartedAt =
+      now;
+  }
+
+
+  const duration =
+    clamp(
+      decodedPcmDurationMilliseconds(
+        base64Audio
+      ) ||
+      80,
+      12,
+      650
+    );
+
+
+  realtimeAssistantSpeechUntil =
+    Math.min(
+      now + 12000,
+      Math.max(
+        realtimeAssistantSpeechUntil,
+        now + 100
+      ) +
+      duration
+    );
+
+
+  requestLipSyncFrame();
+}
+
+
+function finishRealtimeAudioResponse(){
+
+  const now =
+    performance.now();
+
+
+  realtimeAssistantSpeechUntil =
+    Math.max(
+      realtimeAssistantSpeechUntil,
+      now + 140
+    );
+
+
+  requestLipSyncFrame();
+}
+
+
+function finishRealtimeSpeechFallback(
+  immediately = false
+){
+
+  const now =
+    performance.now();
+
+
+  realtimeOutputBufferPlaying =
+    false;
+
+
+  realtimeAssistantSpeechUntil =
+    immediately
+      ?
+      0
+      :
+      Math.max(
+        realtimeAssistantSpeechUntil,
+        now + 140
+      );
+
+
+  requestLipSyncFrame();
+}
+
+
+function realtimeFallbackMouthShape(
+  timestamp
+){
+
+  const elapsed =
+    Math.max(
+      0,
+      timestamp -
+        realtimeAssistantSpeechStartedAt
+    );
+
+
+  const syllable =
+    0.5 +
+    0.5 *
+    Math.sin(
+      elapsed * 0.019 +
+      Math.sin(
+        elapsed * 0.0037
+      ) *
+      0.82
+    );
+
+
+  const consonant =
+    0.5 +
+    0.5 *
+    Math.sin(
+      elapsed * 0.043 +
+      1.65
+    );
+
+
+  const phrase =
+    0.5 +
+    0.5 *
+    Math.sin(
+      elapsed * 0.0061 -
+      0.55
+    );
+
+
+  const closure =
+    Math.pow(
+      0.5 +
+      0.5 *
+      Math.sin(
+        elapsed * 0.029 +
+        2.1
+      ),
+      8
+    );
+
+
+  const vowelBlend =
+    0.5 +
+    0.5 *
+    Math.sin(
+      elapsed * 0.0083 +
+      Math.sin(
+        elapsed * 0.0029
+      ) *
+      0.7
+    );
+
+
+  return {
+    open:
+      clamp(
+        0.11 +
+        (
+          syllable * 0.68 +
+          consonant * 0.32
+        ) *
+        (
+          0.38 +
+          phrase * 0.34
+        ) -
+        closure * 0.30,
+        0.035,
+        0.76
+      ),
+    wide:
+      clamp(
+        0.08 +
+        vowelBlend *
+        (
+          0.22 +
+          syllable * 0.24
+        ),
+        0,
+        0.56
+      ),
+    round:
+      clamp(
+        0.08 +
+        (
+          1 -
+          vowelBlend
+        ) *
+        (
+          0.24 +
+          consonant * 0.23
+        ),
+        0,
+        0.56
+      )
+  };
+}
 
 
 function reportFullFaceRigStatus(
@@ -4192,10 +4512,28 @@ function animateLipSync(
   timestamp = performance.now()
 ){
 
+  lipAnimationFrame =
+    null;
+
+
+  const realtimeSpeechActive =
+    realtimeSpeechIsActive(
+      timestamp
+    );
+
+
   if(
-    !lipSyncRunning ||
-    !lipAnalyser
+    !lipSyncRunning &&
+    !realtimeSpeechActive &&
+    currentMouthOpen < 0.006 &&
+    currentMouthWide < 0.006 &&
+    currentMouthRound < 0.006
   ){
+
+    solCloneWrap.classList.remove(
+      "sol-speaking"
+    );
+
 
     return;
   }
@@ -4219,6 +4557,7 @@ function animateLipSync(
 
 
   if(
+    lipSyncRunning &&
     lipHeadAudioReady &&
     lipHeadAudioNode
   ){
@@ -4229,44 +4568,56 @@ function animateLipSync(
   }
 
 
-  lipAnalyser.getByteTimeDomainData(
-    lipTimeData
-  );
-
-
-  lipAnalyser.getByteFrequencyData(
-    lipFrequencyData
-  );
-
-
   let sum = 0;
 
 
-  for(
-    let i = 0;
-    i < lipTimeData.length;
-    i++
+  if(
+    lipSyncRunning &&
+    lipAnalyser &&
+    lipTimeData &&
+    lipFrequencyData
   ){
 
-    const sample =
-      (
-        lipTimeData[i] -
-        128
-      ) /
-      128;
+    lipAnalyser.getByteTimeDomainData(
+      lipTimeData
+    );
 
 
-    sum +=
-      sample *
-      sample;
+    lipAnalyser.getByteFrequencyData(
+      lipFrequencyData
+    );
+
+
+    for(
+      let i = 0;
+      i < lipTimeData.length;
+      i++
+    ){
+
+      const sample =
+        (
+          lipTimeData[i] -
+          128
+        ) /
+        128;
+
+
+      sum +=
+        sample *
+        sample;
+    }
   }
 
 
   const rms =
-    Math.sqrt(
-      sum /
-      lipTimeData.length
-    );
+    lipTimeData?.length
+      ?
+      Math.sqrt(
+        sum /
+        lipTimeData.length
+      )
+      :
+      0;
 
 
   const low =
@@ -4337,16 +4688,75 @@ function animateLipSync(
     );
 
 
+  const audioSignalActive =
+    rawOpen > 0.070 ||
+    Math.max(
+      low,
+      middle,
+      high
+    ) > 0.100;
+
+
+  if(
+    audioSignalActive
+  ){
+
+    lastLipAudioSignalAt =
+      timestamp;
+  }
+
+
+  const useRealtimeFallback =
+    realtimeSpeechActive &&
+    (
+      !lastLipAudioSignalAt ||
+      timestamp -
+        lastLipAudioSignalAt >
+        120
+    );
+
+
+  const fallbackShape =
+    useRealtimeFallback
+      ?
+      realtimeFallbackMouthShape(
+        timestamp
+      )
+      :
+      null;
+
+
   const targetOpen =
-    detectedShape.open;
+    fallbackShape
+      ?
+      Math.max(
+        detectedShape.open,
+        fallbackShape.open
+      )
+      :
+      detectedShape.open;
 
 
   const targetWide =
-    detectedShape.wide;
+    fallbackShape
+      ?
+      Math.max(
+        detectedShape.wide,
+        fallbackShape.wide
+      )
+      :
+      detectedShape.wide;
 
 
   const targetRound =
-    detectedShape.round;
+    fallbackShape
+      ?
+      Math.max(
+        detectedShape.round,
+        fallbackShape.round
+      )
+      :
+      detectedShape.round;
 
 
   const openSpeed =
@@ -4451,10 +4861,18 @@ function animateLipSync(
   }
 
 
-  lipAnimationFrame =
-    requestAnimationFrame(
-      animateLipSync
-    );
+  if(
+    lipSyncRunning ||
+    realtimeSpeechIsActive(
+      timestamp
+    ) ||
+    currentMouthOpen > 0.006 ||
+    currentMouthWide > 0.006 ||
+    currentMouthRound > 0.006
+  ){
+
+    requestLipSyncFrame();
+  }
 }
 
 
@@ -4591,7 +5009,7 @@ async function startLipSync(
         "👄 Natürliche Mundformen folgen Sols Stimme.";
 
 
-    animateLipSync();
+    requestLipSyncFrame();
 
   }catch(
     error
@@ -4612,6 +5030,22 @@ async function startLipSync(
 function stopLipSync(
   resetStatus = true
 ){
+
+  realtimeAssistantSpeechUntil =
+    0;
+
+
+  realtimeAssistantSpeechStartedAt =
+    0;
+
+
+  realtimeOutputBufferPlaying =
+    false;
+
+
+  lastLipAudioSignalAt =
+    0;
+
 
   lipSyncRunning =
     false;
@@ -4719,7 +5153,7 @@ function stopLipSync(
   ){
 
     lipSyncStatus.textContent =
-      "👄 Lip-Sync zur Stimme bereit.";
+      "👄 Lip-Sync V2 zur Stimme bereit.";
   }
 }
 
@@ -6203,6 +6637,11 @@ async function startLiveConversation(){
             "input_audio_buffer.speech_started"
           ){
 
+            finishRealtimeSpeechFallback(
+              true
+            );
+
+
             setLiveStatus(
               "🎙️ Ich höre dir zu ..."
             );
@@ -6250,9 +6689,45 @@ async function startLiveConversation(){
             "response.audio.delta"
           ){
 
+            registerRealtimeAudioDelta(
+              realtimeEvent.delta
+            );
+
+
             setLiveStatus(
               "🌻 Sol spricht ..."
             );
+          }
+
+
+          if(
+            realtimeEvent.type ===
+            "output_audio_buffer.started"
+          ){
+
+            startRealtimeSpeechFallback();
+
+
+            lipSyncStatus.textContent =
+              "👄 Sol spricht · Mundbewegung aktiv.";
+          }
+
+
+          if(
+            realtimeEvent.type ===
+              "output_audio_buffer.stopped" ||
+            realtimeEvent.type ===
+              "output_audio_buffer.cleared"
+          ){
+
+            finishRealtimeSpeechFallback(
+              realtimeEvent.type ===
+                "output_audio_buffer.cleared"
+            );
+
+
+            lipSyncStatus.textContent =
+              "👄 Lip-Sync V2 zur Stimme bereit.";
           }
 
 
@@ -6262,6 +6737,9 @@ async function startLiveConversation(){
             realtimeEvent.type ===
             "response.done"
           ){
+
+            finishRealtimeAudioResponse();
+
 
             setLiveStatus(
               "🌻 Ich höre dir zu ..."
@@ -6273,6 +6751,11 @@ async function startLiveConversation(){
             realtimeEvent.type ===
             "error"
           ){
+
+            finishRealtimeSpeechFallback(
+              true
+            );
+
 
             console.error(
               "Realtime Fehler:",
