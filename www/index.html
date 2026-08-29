@@ -1776,7 +1776,7 @@ Schreiben bereit.
 </div>
 
 <div id="lipSyncStatus">
-👄 Lip-Sync V3.1 bereit.
+👄 Lip-Sync V4 bereit.
 </div>
 
 </aside>
@@ -1788,6 +1788,7 @@ Schreiben bereit.
 </audio>
 
 
+<script src="./sol-motion-profile.js"></script>
 <script src="./media-tools.js"></script>
 <script>
 
@@ -1993,7 +1994,19 @@ const LIP_SYNC_FACE = {
 };
 
 const FULL_FACE_RIG_ENABLED =
-  false;
+  true;
+
+const SOL_MOTION_PROFILE =
+  window.SolHoloMotionProfile ||
+  {};
+
+const SOL_SPEECH_MOTION =
+  SOL_MOTION_PROFILE.speech ||
+  {};
+
+const SOL_FALLBACK_MOTION =
+  SOL_MOTION_PROFILE.fallback ||
+  {};
 
 
 function applyLipSyncFace(
@@ -2170,6 +2183,7 @@ let lipSyncRunning = false;
 let lipHeadAudioNode = null;
 let lipHeadAudioReady = false;
 let lipHeadAudioInitPromise = null;
+let lipStreamGeneration = 0;
 let lipAnimationLastAt = 0;
 let lipVisemeValues = Object.create(null);
 let realtimeAssistantSpeechUntil = 0;
@@ -2450,7 +2464,11 @@ function realtimeFallbackMouthShape(
     0.5 +
     0.5 *
     Math.sin(
-      elapsed * 0.019 +
+      elapsed *
+        (
+          SOL_FALLBACK_MOTION.syllableRate ||
+          0.019
+        ) +
       Math.sin(
         elapsed * 0.0037
       ) *
@@ -2462,7 +2480,11 @@ function realtimeFallbackMouthShape(
     0.5 +
     0.5 *
     Math.sin(
-      elapsed * 0.043 +
+      elapsed *
+        (
+          SOL_FALLBACK_MOTION.consonantRate ||
+          0.043
+        ) +
       1.65
     );
 
@@ -2471,7 +2493,11 @@ function realtimeFallbackMouthShape(
     0.5 +
     0.5 *
     Math.sin(
-      elapsed * 0.0061 -
+      elapsed *
+        (
+          SOL_FALLBACK_MOTION.phraseRate ||
+          0.0061
+        ) -
       0.55
     );
 
@@ -2503,18 +2529,27 @@ function realtimeFallbackMouthShape(
   return {
     open:
       clamp(
-        0.11 +
         (
-          syllable * 0.68 +
-          consonant * 0.32
+          SOL_FALLBACK_MOTION.baseOpen ||
+          0.055
+        ) +
+        (
+          syllable * 0.72 +
+          consonant * 0.28
         ) *
         (
-          0.38 +
-          phrase * 0.34
+          0.31 +
+          phrase * 0.31
         ) -
-        closure * 0.30,
-        0.035,
-        0.76
+        closure *
+          (
+            SOL_FALLBACK_MOTION.closureDepth ||
+            0.36
+          ),
+        SOL_FALLBACK_MOTION.minimumOpen ||
+          0.018,
+        SOL_FALLBACK_MOTION.maximumOpen ||
+          0.60
       ),
     wide:
       clamp(
@@ -2525,7 +2560,8 @@ function realtimeFallbackMouthShape(
           syllable * 0.24
         ),
         0,
-        0.56
+        SOL_SPEECH_MOTION.wideMaximum ||
+          0.48
       ),
     round:
       clamp(
@@ -2539,7 +2575,8 @@ function realtimeFallbackMouthShape(
           consonant * 0.23
         ),
         0,
-        0.56
+        SOL_SPEECH_MOTION.roundMaximum ||
+          0.46
       )
   };
 }
@@ -2725,6 +2762,19 @@ async function analyseFullFaceImage(){
   if(
     fullFaceRigReady
   ){
+
+    const detectedMouth =
+      rig.getMouthGeometry?.();
+
+
+    if(
+      detectedMouth
+    ){
+
+      applyLipSyncFace(
+        detectedMouth
+      );
+    }
 
     clearNaturalMouth();
 
@@ -4008,7 +4058,8 @@ function renderNaturalMouth(
     clamp(
       openness,
       0,
-      1
+      SOL_SPEECH_MOTION.maximumOpen ||
+        0.60
     );
 
 
@@ -4030,7 +4081,8 @@ function renderNaturalMouth(
     clamp(
       wideness,
       0,
-      1
+      SOL_SPEECH_MOTION.wideMaximum ||
+        0.48
     );
 
 
@@ -4038,7 +4090,8 @@ function renderNaturalMouth(
     clamp(
       roundness,
       0,
-      1
+      SOL_SPEECH_MOTION.roundMaximum ||
+        0.46
     );
 
 
@@ -4120,8 +4173,8 @@ function renderNaturalMouth(
 
   const lipTravel =
     Math.min(
-      imageDisplayHeight * 0.014,
-      lipBandHeight * 0.62
+      imageDisplayHeight * 0.0125,
+      lipBandHeight * 0.58
     ) *
     Math.pow(
       open,
@@ -4217,6 +4270,87 @@ function renderNaturalMouth(
 
 
   context.restore();
+
+
+  const toothVisibility =
+    clamp(
+      (
+        open -
+          0.26
+      ) *
+        2.4 *
+        (
+          0.30 +
+          wide * 1.25
+        ),
+      0,
+      0.48
+    );
+
+
+  if(
+    toothVisibility >
+      0.015
+  ){
+
+    context.save();
+
+
+    context.beginPath();
+
+
+    context.ellipse(
+      width / 2,
+      cavityCenterY,
+      cavityWidth / 2,
+      cavityHeight / 2,
+      0,
+      0,
+      Math.PI * 2
+    );
+
+
+    context.clip();
+
+
+    const toothGradient =
+      context.createLinearGradient(
+        0,
+        cavityCenterY -
+          cavityHeight / 2,
+        0,
+        cavityCenterY
+      );
+
+
+    toothGradient.addColorStop(
+      0,
+      `rgba(244,232,220,${toothVisibility})`
+    );
+
+
+    toothGradient.addColorStop(
+      1,
+      "rgba(226,207,198,0)"
+    );
+
+
+    context.fillStyle =
+      toothGradient;
+
+
+    context.fillRect(
+      width / 2 -
+        cavityWidth * 0.37,
+      cavityCenterY -
+        cavityHeight * 0.47,
+      cavityWidth * 0.74,
+      cavityHeight * 0.48
+    );
+
+
+    context.restore();
+  }
 
 
   const effectWidth =
@@ -4793,36 +4927,51 @@ function animateLipSync(
 
 
   const targetOpen =
-    fallbackShape
-      ?
-      Math.max(
+    clamp(
+      fallbackShape
+        ?
+        Math.max(
+          detectedShape.open,
+          fallbackShape.open
+        )
+        :
         detectedShape.open,
-        fallbackShape.open
-      )
-      :
-      detectedShape.open;
+      0,
+      SOL_SPEECH_MOTION.maximumOpen ||
+        0.60
+    );
 
 
   const targetWide =
-    fallbackShape
-      ?
-      Math.max(
+    clamp(
+      fallbackShape
+        ?
+        Math.max(
+          detectedShape.wide,
+          fallbackShape.wide
+        )
+        :
         detectedShape.wide,
-        fallbackShape.wide
-      )
-      :
-      detectedShape.wide;
+      0,
+      SOL_SPEECH_MOTION.wideMaximum ||
+        0.48
+    );
 
 
   const targetRound =
-    fallbackShape
-      ?
-      Math.max(
+    clamp(
+      fallbackShape
+        ?
+        Math.max(
+          detectedShape.round,
+          fallbackShape.round
+        )
+        :
         detectedShape.round,
-        fallbackShape.round
-      )
-      :
-      detectedShape.round;
+      0,
+      SOL_SPEECH_MOTION.roundMaximum ||
+        0.46
+    );
 
 
   const openSpeed =
@@ -4831,14 +4980,16 @@ function animateLipSync(
       ?
       1 -
         Math.pow(
-          0.69,
+          SOL_SPEECH_MOTION.attackRetention ||
+            0.66,
           frameMilliseconds /
             16.67
         )
       :
       1 -
         Math.pow(
-          0.82,
+          SOL_SPEECH_MOTION.releaseRetention ||
+            0.83,
           frameMilliseconds /
             16.67
         );
@@ -4942,6 +5093,62 @@ LIP SYNC START
 ==========================================================
 */
 
+async function attachHeadAudioVisemes(
+  sourceNode,
+  streamGeneration
+){
+
+  const visemesReady =
+    await ensureHeadAudioVisemes();
+
+
+  if(
+    !visemesReady ||
+    !lipSyncRunning ||
+    streamGeneration !==
+      lipStreamGeneration ||
+    sourceNode !==
+      lipSourceNode ||
+    !lipHeadAudioNode
+  ){
+
+    return false;
+  }
+
+
+  try{
+
+    resetLipVisemeValues();
+
+
+    lipHeadAudioNode.start();
+
+
+    sourceNode.connect(
+      lipHeadAudioNode
+    );
+
+
+    lipSyncStatus.textContent =
+      "👄 Echte Sprachlaute steuern Sols natürliche Mundbewegung.";
+
+
+    return true;
+
+  }catch(
+    error
+  ){
+
+    console.warn(
+      "Visem-Verbindung:",
+      error
+    );
+
+
+    return false;
+  }
+}
+
 async function startLipSync(
   stream
 ){
@@ -4982,12 +5189,10 @@ async function startLipSync(
     startRealtimeSpeechFallback();
   }
 
-
-  const visemesReady =
-    await ensureHeadAudioVisemes();
-
-
   try{
+
+    const streamGeneration =
+      ++lipStreamGeneration;
 
     lipSourceNode =
       lipAudioContext
@@ -5035,23 +5240,6 @@ async function startLipSync(
     );
 
 
-    if(
-      visemesReady &&
-      lipHeadAudioNode
-    ){
-
-      resetLipVisemeValues();
-
-
-      lipHeadAudioNode.start();
-
-
-      lipSourceNode.connect(
-        lipHeadAudioNode
-      );
-    }
-
-
     lipAnalyser.connect(
       lipSilentGain
     );
@@ -5074,14 +5262,16 @@ async function startLipSync(
 
 
     lipSyncStatus.textContent =
-      visemesReady
-        ?
-        "👄 Echte Sprachlaute steuern Lippen und Kiefer."
-        :
-        "👄 Natürliche Mundformen folgen Sols Stimme.";
+      "👄 Sols Mund folgt der Stimme.";
 
 
     requestLipSyncFrame();
+
+
+    void attachHeadAudioVisemes(
+      lipSourceNode,
+      streamGeneration
+    );
 
   }catch(
     error
@@ -5102,6 +5292,9 @@ async function startLipSync(
 function stopLipSync(
   resetStatus = true
 ){
+
+  lipStreamGeneration +=
+    1;
 
   realtimeAssistantSpeechUntil =
     0;
@@ -5225,7 +5418,7 @@ function stopLipSync(
   ){
 
     lipSyncStatus.textContent =
-      "👄 Lip-Sync V3.1 zur Stimme bereit.";
+      "👄 Lip-Sync V4 zur Stimme bereit.";
   }
 }
 
@@ -6822,6 +7015,12 @@ async function startLiveConversation(){
           if(
             realtimeEvent.type ===
               "response.created" ||
+            (
+              realtimeEvent.type ===
+                "response.output_item.added" &&
+              realtimeEvent.item?.role ===
+                "assistant"
+            ) ||
             realtimeEvent.type ===
               "response.output_audio_transcript.delta" ||
             realtimeEvent.type ===
@@ -6932,6 +7131,10 @@ async function startLiveConversation(){
             setLiveStatus(
               "🌻 Sol spricht ..."
             );
+
+
+            lipSyncStatus.textContent =
+              "👄 Sol spricht · natürliche Bewegung aktiv.";
           }
 
 
@@ -6962,7 +7165,7 @@ async function startLiveConversation(){
 
 
             lipSyncStatus.textContent =
-              "👄 Lip-Sync V3.1 zur Stimme bereit.";
+              "👄 Lip-Sync V4 zur Stimme bereit.";
           }
 
 
@@ -6982,7 +7185,7 @@ async function startLiveConversation(){
 
 
             lipSyncStatus.textContent =
-              "👄 Lip-Sync V3.1 zur Stimme bereit.";
+              "👄 Lip-Sync V4 zur Stimme bereit.";
           }
 
 

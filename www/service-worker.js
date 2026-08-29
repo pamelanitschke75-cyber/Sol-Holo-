@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-026-samsung-lip-sync-v3-1";
+const CACHE_VERSION = "sol-holo-027-video-motion-lip-sync-v4";
 
 self.addEventListener("install", () => {
   self.skipWaiting();

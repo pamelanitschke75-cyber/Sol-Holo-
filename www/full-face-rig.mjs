@@ -3,6 +3,23 @@ import {
   FilesetResolver
 } from "./mediapipe/vision_bundle.mjs";
 
+const MOTION_PROFILE =
+  globalThis.SolHoloMotionProfile ||
+  {};
+
+const SPEECH_MOTION =
+  MOTION_PROFILE.speech ||
+  {};
+
+const BLINK_MOTION =
+  MOTION_PROFILE.blink ||
+  {};
+
+function profileNumber(section, key, fallback) {
+  const value = Number(section?.[key]);
+  return Number.isFinite(value) ? value : fallback;
+}
+
 const MOUTH_INNER_LOOP = [
   78, 191, 80, 81, 82, 13, 312, 311, 310, 415,
   308, 324, 318, 402, 317, 14, 87, 178, 88, 95
@@ -321,7 +338,12 @@ class FullFaceRig {
       this.resize();
       this.ready = true;
       this.lastFrameAt = 0;
-      this.nextBlinkAt = performance.now() + 1400 + Math.random() * 1200;
+      const firstMinimumDelay =
+        profileNumber(BLINK_MOTION, "firstMinimumDelayMs", 1450);
+      const firstMaximumDelay =
+        profileNumber(BLINK_MOTION, "firstMaximumDelayMs", 2700);
+      this.nextBlinkAt = performance.now() + firstMinimumDelay +
+        Math.random() * Math.max(0, firstMaximumDelay - firstMinimumDelay);
       this.canvas.style.display = "block";
       this.render({ openness: 0, wideness: 0, roundness: 0 }, true);
       this.onStatus({ state: "ready" });
@@ -391,7 +413,10 @@ class FullFaceRig {
     const gl = this.gl;
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    // Bildquellen beginnen oben links, WebGL-Texturen unten links.
+    // Ohne dieses Flip lag zuvor die vertikal falsche Bildhälfte auf dem
+    // Gesichtsgitter; dadurch verschwanden Augen oder wirkten verzerrt.
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -433,10 +458,27 @@ class FullFaceRig {
     }
   }
 
+  getMouthGeometry() {
+    const mouth = this.mouthBounds;
+    if (!mouth) return null;
+
+    return {
+      x: clamp(mouth.centerX, 0.08, 0.92),
+      y: clamp(mouth.centerY, 0.08, 0.92),
+      width: clamp(mouth.width * 1.06, 0.06, 0.32),
+      height: clamp(mouth.height * 1.45, 0.035, 0.18)
+    };
+  }
+
   blinkValue(timestamp) {
     if (!this.blinkStartedAt && timestamp >= this.nextBlinkAt) {
       this.blinkStartedAt = timestamp;
-      this.blinkDuration = 165 + Math.random() * 45;
+      const minimumDuration =
+        profileNumber(BLINK_MOTION, "minimumDurationMs", 170);
+      const maximumDuration =
+        profileNumber(BLINK_MOTION, "maximumDurationMs", 215);
+      this.blinkDuration = minimumDuration +
+        Math.random() * Math.max(0, maximumDuration - minimumDuration);
     }
 
     if (!this.blinkStartedAt) return 0;
@@ -444,7 +486,12 @@ class FullFaceRig {
     const progress = (timestamp - this.blinkStartedAt) / this.blinkDuration;
     if (progress >= 1) {
       this.blinkStartedAt = 0;
-      this.nextBlinkAt = timestamp + 3200 + Math.random() * 3000;
+      const minimumDelay =
+        profileNumber(BLINK_MOTION, "minimumDelayMs", 3100);
+      const maximumDelay =
+        profileNumber(BLINK_MOTION, "maximumDelayMs", 6100);
+      this.nextBlinkAt = timestamp + minimumDelay +
+        Math.random() * Math.max(0, maximumDelay - minimumDelay);
       return 0;
     }
 
@@ -460,7 +507,8 @@ class FullFaceRig {
   }
 
   animateEye(loop, bounds, blink) {
-    const amount = blink * 0.58;
+    const amount = blink *
+      profileNumber(BLINK_MOTION, "closureAmount", 0.62);
     for (const index of loop) {
       const sourceY = this.sourceCoordinates[index * 2 + 1];
       this.destinationCoordinates[index * 2 + 1] +=
@@ -484,17 +532,42 @@ class FullFaceRig {
   applyMotion({ openness, wideness, roundness }, timestamp) {
     this.destinationCoordinates.set(this.sourceCoordinates);
 
-    const open = clamp(openness, 0, 0.92);
-    const wide = clamp(wideness, 0, 1);
-    const round = clamp(roundness, 0, 1);
+    const open = clamp(
+      openness,
+      0,
+      profileNumber(SPEECH_MOTION, "maximumOpen", 0.60)
+    );
+    const wide = clamp(
+      wideness,
+      0,
+      profileNumber(SPEECH_MOTION, "wideMaximum", 0.48)
+    );
+    const round = clamp(
+      roundness,
+      0,
+      profileNumber(SPEECH_MOTION, "roundMaximum", 0.46)
+    );
     const mouth = this.mouthBounds;
     const face = this.faceBounds;
     const visibleOpen = Math.pow(open, 0.78);
     const verticalTravel =
-      Math.min(face.height * 0.018, mouth.height * 0.62) * visibleOpen;
-    const upperTravel = verticalTravel * 0.24;
-    const lowerTravel = verticalTravel * 0.76;
-    const shapeScale = clamp(1 + wide * 0.045 - round * 0.055, 0.94, 1.05);
+      Math.min(
+        face.height *
+          profileNumber(SPEECH_MOTION, "travelByFace", 0.020),
+        mouth.height *
+          profileNumber(SPEECH_MOTION, "travelByMouth", 0.68)
+      ) * visibleOpen;
+    const upperTravel = verticalTravel *
+      profileNumber(SPEECH_MOTION, "upperLipShare", 0.18);
+    const lowerTravel = verticalTravel *
+      profileNumber(SPEECH_MOTION, "lowerLipShare", 0.82);
+    const shapeScale = clamp(
+      1 +
+        wide * profileNumber(SPEECH_MOTION, "wideScale", 0.036) -
+        round * profileNumber(SPEECH_MOTION, "roundScale", 0.046),
+      0.95,
+      1.04
+    );
 
     for (const index of this.lipIndices) {
       const sourceX = this.sourceCoordinates[index * 2];
@@ -536,8 +609,10 @@ class FullFaceRig {
 
       this.movePoint(
         index,
-        direction * verticalTravel * wide * 0.035 * cheekInfluence,
-        verticalTravel * 0.028 * cheekInfluence
+        direction * verticalTravel * wide *
+          profileNumber(SPEECH_MOTION, "cheekShare", 0.030) *
+          cheekInfluence,
+        verticalTravel * 0.022 * cheekInfluence
       );
     }
 
@@ -548,7 +623,13 @@ class FullFaceRig {
         0,
         1
       );
-      this.movePoint(index, 0, verticalTravel * 0.045 * lowerFaceWeight);
+      this.movePoint(
+        index,
+        0,
+        verticalTravel *
+          profileNumber(SPEECH_MOTION, "jawShare", 0.028) *
+          lowerFaceWeight
+      );
     }
 
     const blink = this.blinkValue(timestamp);

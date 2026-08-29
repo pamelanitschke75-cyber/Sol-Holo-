@@ -18,6 +18,7 @@ on:
       - "www/model-en-mixed.b64"
       - "www/media-tools.js"
       - "www/sol-holo-logo.png"
+      - "www/sol-motion-profile.js"
       - "www/sol-holo-ui.css"
       - "www/sol-holo-ui.js"
       - "www/service-worker.js"
