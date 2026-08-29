@@ -26,6 +26,7 @@ on:
       - "package.json"
       - "package-lock.json"
       - "android-native/**"
+      - "scripts/generate-third-party-licenses.mjs"
       - "scripts/install-full-face-rig-assets.mjs"
       - "scripts/install-whatsapp-driving-mode.mjs"
 
@@ -50,6 +51,16 @@ jobs:
 
       - name: Node-Abhängigkeiten installieren
         run: npm install
+
+      - name: Erzeugte Drittanbieter-Lizenzdateien prüfen
+        run: |
+          set -Eeuo pipefail
+          test -s THIRD_PARTY_LICENSES.txt
+          test -s www/THIRD_PARTY_LICENSES.txt
+          test -s www/mediapipe/MODIFICATION_NOTICE.txt
+          grep -q "SOL HOLO MODIFICATION NOTICE" www/mediapipe/vision_bundle.mjs
+          grep -q "@mediapipe/tasks-vision" www/THIRD_PARTY_LICENSES.txt
+          grep -q "@capacitor/android" www/THIRD_PARTY_LICENSES.txt
 
       - name: Android-Projekt erzeugen
         run: npx cap add android
@@ -94,6 +105,14 @@ jobs:
       - name: Pam’s Holo App nach Android synchronisieren
         run: npx cap sync android
 
+      - name: Drittanbieter-Lizenzen in Android-Assets prüfen
+        run: |
+          set -Eeuo pipefail
+          test -s android/app/src/main/assets/public/THIRD_PARTY_LICENSES.txt
+          test -s android/app/src/main/assets/public/mediapipe/MODIFICATION_NOTICE.txt
+          grep -q "SOL HOLO MODIFICATION NOTICE" \
+            android/app/src/main/assets/public/mediapipe/vision_bundle.mjs
+
       - name: Sicheren Fahr- und Weckmodus einbinden
         run: node scripts/install-whatsapp-driving-mode.mjs
 
@@ -137,6 +156,18 @@ jobs:
       - name: Pam’s Holo Release-APK bauen
         working-directory: android
         run: ./gradlew assembleRelease
+
+      - name: Lizenzhinweise im gebauten APK verifizieren
+        run: |
+          set -Eeuo pipefail
+          apk="android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          test -f "$apk"
+          unzip -l "$apk" | grep -F "assets/public/THIRD_PARTY_LICENSES.txt"
+          unzip -l "$apk" | grep -F "assets/public/mediapipe/MODIFICATION_NOTICE.txt"
+          unzip -p "$apk" assets/public/mediapipe/vision_bundle.mjs \
+            | grep -q "SOL HOLO MODIFICATION NOTICE"
+          unzip -p "$apk" assets/public/THIRD_PARTY_LICENSES.txt \
+            | grep -q "@mediapipe/tasks-vision"
 
       - name: Signaturmodus sicher bestimmen
         id: signing_mode
