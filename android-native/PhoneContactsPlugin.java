@@ -233,7 +233,7 @@ public class PhoneContactsPlugin extends Plugin {
     public void searchContacts(PluginCall call) {
         if (!contactsGranted()) {
             call.reject(
-                "Ohne Kontaktfreigabe kann Sol Holo keine Telefonnummer suchen.",
+                "Ohne Kontaktfreigabe kann Pam Holo keine Telefonnummer suchen.",
                 "CONTACTS_PERMISSION_REQUIRED"
             );
             return;

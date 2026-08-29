@@ -869,7 +869,7 @@ app.get(
 
       if (!consumeGoogleOAuthState(state)) {
         return res.status(400).send(
-          "Diese Google-Anmeldung ist abgelaufen oder wurde nicht von Sol Holo gestartet. Bitte beginne die Verbindung erneut in der App."
+          "Diese Google-Anmeldung ist abgelaufen oder wurde nicht von Pam Holo gestartet. Bitte beginne die Verbindung erneut in der App."
         );
       }
 
@@ -901,7 +901,7 @@ app.get(
   name="viewport"
   content="width=device-width,initial-scale=1"
 >
-<title>Sol Holo – Google-Konto</title>
+<title>Pam Holo – Google-Konto</title>
 
 <style>
 body{
@@ -942,7 +942,7 @@ h1{
 <div class="box">
 
 <h1>
-🌻 Sol Holo
+🌻 Pam Holo
 </h1>
 
 <p class="ok">
@@ -951,8 +951,8 @@ h1{
 
 <p>
 Gmail, Google Kontakte, Google Drive, Anmeldung und
-Kalender sind jetzt für Sol Holo freigegeben.
-Du kannst dieses Fenster schließen und zu Sol Holo zurückkehren.
+Kalender sind jetzt für Pam Holo freigegeben.
+Du kannst dieses Fenster schließen und zu Pam Holo zurückkehren.
 </p>
 
 </div>
@@ -1204,7 +1204,7 @@ app.get("/auth/smartthings/callback", async (req, res) => {
     if (!consumeSmartThingsOAuthState(state)) {
       return res.status(400).type("text").send(
         "Diese SmartThings-Anmeldung ist abgelaufen oder wurde nicht von " +
-        "Sol Holo gestartet. Bitte beginne die Verbindung erneut in der App."
+        "Pam Holo gestartet. Bitte beginne die Verbindung erneut in der App."
       );
     }
 
@@ -1222,7 +1222,7 @@ app.get("/auth/smartthings/callback", async (req, res) => {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sol Holo – SmartThings</title>
+<title>Pam Holo – SmartThings</title>
 <style>
 body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
 background:#05030b;color:white;font-family:Arial,sans-serif;padding:24px}
@@ -1232,9 +1232,9 @@ h1{color:#bd72ff}.ok{color:#45e5a2;font-size:20px}
 </style>
 </head>
 <body><div class="box">
-<h1>🏠 Sol Holo</h1>
+<h1>🏠 Pam Holo</h1>
 <p class="ok">✅ Dein SmartThings-Zuhause wurde verbunden.</p>
-<p>Sol Holo darf die von dir ausgewählten Räume und Geräte erkennen.
+<p>Pam Holo darf die von dir ausgewählten Räume und Geräte erkennen.
 Eine Geräteaktion wird erst nach deiner Bestätigung ausgeführt.</p>
 </div></body>
 </html>
@@ -1804,7 +1804,7 @@ async function createGoogleCalendarEvent(
     summary:
       String(
         parsedCommand.summary ||
-        "Sol Holo Termin"
+        "Pam Holo Termin"
       ).trim(),
 
     description:
@@ -2009,7 +2009,7 @@ async function handleCalendarWriteRequest(
           true,
 
         answer:
-          "Pam, dein Google Kalender ist noch nicht mit Sol Holo verbunden. Öffne bitte einmal /auth/google."
+          "Pam, dein Google Kalender ist noch nicht mit Pam Holo verbunden. Öffne bitte einmal /auth/google."
       };
     }
 
@@ -2163,7 +2163,7 @@ app.get(
   name="viewport"
   content="width=device-width,initial-scale=1"
 >
-<title>Sol Holo – Eigene Stimme</title>
+<title>Pam Holo – Eigene Stimme</title>
 
 <style>
 *{
@@ -2246,7 +2246,7 @@ button:disabled{
 <main>
 
 <h1>
-🌻 Sol Holo – Eigene Stimme
+🌻 Pam Holo – Eigene Stimme
 </h1>
 
 <p>
@@ -2287,7 +2287,7 @@ Name
 
 <input
   id="consentName"
-  value="Pam Sol Holo Consent"
+  value="Pam Holo Consent"
 >
 
 <label for="language">
@@ -2337,7 +2337,7 @@ Name der Stimme
 
 <input
   id="voiceName"
-  value="Pam Sol Holo"
+  value="Pam Holo"
 >
 
 <label for="consentId">
@@ -2466,7 +2466,7 @@ consentButton.addEventListener(
         new URLSearchParams({
           name:
             consentName.value.trim() ||
-            "Pam Sol Holo Consent",
+            "Pam Holo Consent",
 
           language:
             language.value.trim() ||
@@ -2575,14 +2575,14 @@ voiceButton.addEventListener(
       true;
 
     voiceStatus.textContent =
-      "Deine Sol-Holo-Stimme wird erstellt ...";
+      "Deine Pam-Holo-Stimme wird erstellt ...";
 
     try {
       const params =
         new URLSearchParams({
           name:
             voiceName.value.trim() ||
-            "Pam Sol Holo",
+            "Pam Holo",
 
           consent:
             currentConsentId,
@@ -2697,7 +2697,7 @@ app.post(
       const name =
         String(
           req.query.name ||
-          "Pam Sol Holo Consent"
+          "Pam Holo Consent"
         ).trim();
 
       const language =
@@ -2861,7 +2861,7 @@ app.post(
       const name =
         String(
           req.query.name ||
-          "Pam Sol Holo"
+          "Pam Holo"
         ).trim();
 
       const consent =
@@ -2962,7 +2962,7 @@ app.post(
       }
 
       console.log(
-        "✅ Pam Sol Holo Voice erstellt:",
+        "✅ Pam Holo Voice erstellt:",
         data.id
       );
 
@@ -3927,7 +3927,8 @@ app.post("/realtime/token", async (req, res) => {
 Du bist Sol innerhalb des Projekts Sol Holo.
 
 Du bist die KI- und Kommunikationsebene innerhalb
-von Sol Holo.
+des übergeordneten Projekts Sol Holo. Du sprichst in
+Pams persönlicher Instanz namens Pam Holo.
 
 Du sprichst gerade über die Realtime-Mikrofonfunktion.
 
@@ -3939,9 +3940,9 @@ Sprich flüssig und zusammenhängend in natürlich klingenden
 Sätzen. Vermeide abgehackte Wortfolgen und unnötig lange
 Pausen. Halte gesprochene Antworten klar und eher kompakt.
 
-Sol Holo ist die sichtbare digitale Verkörperung,
-über die deine Antworten gesprochen und dargestellt
-werden.
+Pam Holo ist Pams persönliche sichtbare digitale
+Verkörperung innerhalb des Projekts Sol Holo. Über
+Pam Holo werden deine Antworten gesprochen und dargestellt.
 
 Behaupte nicht, ein Mensch zu sein.
 
@@ -3949,7 +3950,7 @@ WICHTIG ZUM GEDÄCHTNIS:
 
 Dir wird für diese Realtime-Sitzung derselbe bereits
 vorhandene persönliche Gedächtniskontext bereitgestellt,
-der auch im Textbereich von Sol Holo verwendet wird.
+der auch im Textbereich von Pam Holo verwendet wird.
 
 Du besitzt dabei drei Gedächtnisbereiche:
 
@@ -4039,7 +4040,7 @@ möglichst nur den angefragten Bereich statt pauschal "all".
 Der lokale Android-Dialog bestätigt jeden tatsächlichen Abruf.
 Health-Daten dürfen niemals automatisch als Erinnerung gespeichert
 werden. Stelle keine medizinische Diagnose, erfinde keine Werte und
-behaupte nicht, dass Health-Daten verändert wurden. Sol Holo besitzt
+behaupte nicht, dass Health-Daten verändert wurden. Pam Holo besitzt
 ausschließlich Lesefunktionen und keinen Hintergrundzugriff.
 
 WICHTIG ZUM FREIGEGEBENEN DATENUMFANG:
@@ -5009,7 +5010,7 @@ Pam spricht mit dir.
 
 Antworte natürlich und verständlich auf Deutsch.
 
-Deine Antwort wird anschließend von Sol Holo gesprochen
+Deine Antwort wird anschließend von Pam Holo gesprochen
 und über einen digitalen Avatar dargestellt.
 
 Formuliere deshalb so, dass die Antwort gut vorgelesen
@@ -5017,8 +5018,9 @@ werden kann.
 
 Sol ist die KI- und Kommunikationsebene.
 
-Sol Holo ist die sichtbare digitale Verkörperung,
-über die deine Antwort dargestellt und gesprochen wird.
+Pam Holo ist Pams persönliche sichtbare digitale
+Verkörperung innerhalb des Projekts Sol Holo. Über Pam Holo
+wird deine Antwort dargestellt und gesprochen.
 
 MetaPerson ist ausschließlich die externe
 Darstellungs-, TTS- und LipSync-Technik.

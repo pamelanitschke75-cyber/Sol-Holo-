@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-027-video-motion-lip-sync-v4";
+const CACHE_VERSION = "sol-holo-028-pam-holo";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -19,7 +19,7 @@ self.addEventListener("activate", event => {
 /*
   Absichtlich kein Fetch-Cache.
 
-  Dadurch lädt Sol Holo index.html,
+  Dadurch lädt Pam Holo index.html,
   das Holo-Bild und alle anderen Dateien
   direkt vom aktuellen Stand.
 */

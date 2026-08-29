@@ -1,4 +1,4 @@
-const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTitle\">\n  <div class=\"welcomeContent\">\n    <img class=\"welcomeLogo\" src=\"sol-holo-logo.png\" alt=\"SH♾️ – Sol Holo\">\n    <h2 id=\"welcomeTitle\" class=\"welcomeName\">SOL HOLO</h2>\n    <p class=\"welcomeTagline\">\n      Dein persönliches digitales Ich.\n      <strong>Für alles, was dich ausmacht.</strong>\n    </p>\n  </div>\n  <div class=\"cosmicHorizon\" aria-hidden=\"true\"></div>\n  <button id=\"welcomeButton\" class=\"primaryButton welcomeButton\" type=\"button\">\n    <span>Willkommen bei Sol Holo</span>\n    <span class=\"arrow\" aria-hidden=\"true\">→</span>\n  </button>\n  <div class=\"welcomeDots\" aria-hidden=\"true\">\n    <span></span><span></span><span></span>\n  </div>\n</section>\n\n<section id=\"homeView\" class=\"appView active\" aria-labelledby=\"homeTitle\">\n  <div class=\"screenHeader\">\n    <div class=\"homeBrand\">\n      <img class=\"screenLogo\" src=\"sol-holo-logo.png\" alt=\"SH♾️ – Sol Holo\">\n      <span class=\"statusPill\">Online</span>\n    </div>\n    <button id=\"homeSettingsButton\" class=\"iconButton\" type=\"button\"\n      aria-label=\"Profil und Einstellungen öffnen\">✦</button>\n  </div>\n\n  <div class=\"homeIntro\">\n    <p class=\"eyebrow\">Me, Myself &amp; I</p>\n    <h2 id=\"homeTitle\" class=\"viewTitle\">\n      Hallo Pam <span class=\"accent\">✦</span>\n    </h2>\n    <p class=\"viewLead\">Schön, dich zu sehen.<br>Womit wollen wir starten?</p>\n  </div>\n\n  <button id=\"homeOrbButton\" class=\"holoOrbButton\" type=\"button\"\n    aria-label=\"Sprachgespräch mit Sol starten\">\n    <span class=\"holoOrb\" aria-hidden=\"true\"></span>\n    <span class=\"orbHint\">Antippen und mit Sol sprechen</span>\n  </button>\n\n  <form id=\"homeComposer\" class=\"homeComposer glassCard\">\n    <input id=\"homeMessageInput\" type=\"text\" autocomplete=\"off\"\n      placeholder=\"Sprich oder schreib mit Sol …\" aria-label=\"Nachricht an Sol\">\n    <button id=\"homeMicButton\" class=\"composerButton\" type=\"button\"\n      aria-label=\"Sprachgespräch starten\">◉</button>\n    <button id=\"homeSendButton\" class=\"composerButton primary\" type=\"submit\"\n      aria-label=\"Nachricht senden\">→</button>\n  </form>\n\n  <div class=\"quickGrid\" aria-label=\"Schnellzugriffe\">\n    <button class=\"quickCard\" type=\"button\" data-open-view=\"memory\">\n      <span class=\"quickIcon\">◇</span>\n      <span class=\"quickTitle\">Erinnerungen</span>\n      <span class=\"quickMeta\">Dein Gedächtnis</span>\n      <span class=\"quickChevron\">›</span>\n    </button>\n    <button class=\"quickCard\" type=\"button\"\n      data-sol-prompt=\"Sol, zeig mir meine aktuellen Ziele.\">\n      <span class=\"quickIcon\">◎</span>\n      <span class=\"quickTitle\">Ziele</span>\n      <span class=\"quickMeta\">Pläne &amp; Fortschritt</span>\n      <span class=\"quickChevron\">›</span>\n    </button>\n    <button class=\"quickCard\" type=\"button\"\n      data-sol-prompt=\"Sol, was sollte ich heute im Blick behalten?\">\n      <span class=\"quickIcon\">▦</span>\n      <span class=\"quickTitle\">Heute</span>\n      <span id=\"todayCardMeta\" class=\"quickMeta\">Dein Überblick</span>\n      <span class=\"quickChevron\">›</span>\n    </button>\n    <button class=\"quickCard\" type=\"button\" data-open-view=\"services\">\n      <span class=\"quickIcon\">♡</span>\n      <span class=\"quickTitle\">Verbindungen</span>\n      <span class=\"quickMeta\">Google &amp; Handy</span>\n      <span class=\"quickChevron\">›</span>\n    </button>\n  </div>\n</section>\n\n<section id=\"memoryView\" class=\"appView\" aria-labelledby=\"memoryViewTitle\">\n  <div class=\"subHeader\">\n    <button class=\"iconButton\" type=\"button\" data-open-view=\"home\"\n      aria-label=\"Zurück zur Startseite\">‹</button>\n    <div id=\"memoryViewTitle\" class=\"subHeaderTitle\">Erinnerungen</div>\n    <button class=\"iconButton\" type=\"button\"\n      data-sol-prompt=\"Sol, was weißt du dauerhaft?\"\n      aria-label=\"Gedächtnis mit Sol besprechen\">···</button>\n  </div>\n\n  <div class=\"memoryVisual\" aria-hidden=\"true\">\n    <svg viewBox=\"0 0 320 190\">\n      <defs>\n        <linearGradient id=\"cubeTop\" x1=\"0\" x2=\"1\">\n          <stop offset=\"0\" stop-color=\"#8f6dff\" stop-opacity=\".88\"/>\n          <stop offset=\"1\" stop-color=\"#52e2ff\" stop-opacity=\".72\"/>\n        </linearGradient>\n        <linearGradient id=\"cubeLeft\" x1=\"0\" x2=\"1\" y1=\"0\" y2=\"1\">\n          <stop offset=\"0\" stop-color=\"#4732bb\" stop-opacity=\".74\"/>\n          <stop offset=\"1\" stop-color=\"#151c66\" stop-opacity=\".45\"/>\n        </linearGradient>\n        <linearGradient id=\"cubeRight\" x1=\"0\" x2=\"1\" y1=\"0\" y2=\"1\">\n          <stop offset=\"0\" stop-color=\"#245bb8\" stop-opacity=\".72\"/>\n          <stop offset=\"1\" stop-color=\"#32177d\" stop-opacity=\".42\"/>\n        </linearGradient>\n        <filter id=\"cubeGlow\">\n          <feGaussianBlur stdDeviation=\"4\" result=\"blur\"/>\n          <feMerge><feMergeNode in=\"blur\"/><feMergeNode in=\"SourceGraphic\"/></feMerge>\n        </filter>\n        <g id=\"memoryCube\">\n          <polygon points=\"0,15 25,0 50,15 25,30\" fill=\"url(#cubeTop)\"/>\n          <polygon points=\"0,15 25,30 25,60 0,45\" fill=\"url(#cubeLeft)\"/>\n          <polygon points=\"25,30 50,15 50,45 25,60\" fill=\"url(#cubeRight)\"/>\n          <path d=\"M0 15 25 30 50 15M25 30v30\" fill=\"none\"\n            stroke=\"#a9c4ff\" stroke-opacity=\".62\" stroke-width=\".8\"/>\n        </g>\n      </defs>\n      <ellipse cx=\"160\" cy=\"167\" rx=\"116\" ry=\"17\" fill=\"none\"\n        stroke=\"#6c5dff\" stroke-opacity=\".42\"/>\n      <ellipse cx=\"160\" cy=\"167\" rx=\"82\" ry=\"10\" fill=\"#5948ff\"\n        fill-opacity=\".09\" stroke=\"#47d8ff\" stroke-opacity=\".28\"/>\n      <g filter=\"url(#cubeGlow)\">\n        <use href=\"#memoryCube\" x=\"85\" y=\"91\"/>\n        <use href=\"#memoryCube\" x=\"135\" y=\"91\"/>\n        <use href=\"#memoryCube\" x=\"185\" y=\"91\"/>\n        <use href=\"#memoryCube\" x=\"110\" y=\"46\"/>\n        <use href=\"#memoryCube\" x=\"160\" y=\"46\"/>\n        <use href=\"#memoryCube\" x=\"135\" y=\"1\"/>\n      </g>\n    </svg>\n  </div>\n\n  <div class=\"memoryIntro\">\n    <h3 class=\"featureHeadline\">\n      Dein Gedächtnis.<strong>Sicher. Privat. Nur für dich.</strong>\n    </h3>\n    <p class=\"featureCopy\">\n      Sol Holo erinnert sich an das, was zu deinem persönlichen Ich gehört.\n      Deine Gespräche und Erfahrungen bleiben deinem eigenen Sol‑Holo‑Klon\n      zugeordnet.\n    </p>\n  </div>\n\n  <div class=\"actionList\">\n    <button class=\"actionRow\" type=\"button\"\n      data-sol-prompt=\"Sol, fasse unsere letzten Gespräche und Notizen zusammen.\">\n      <span class=\"rowIcon\">✎</span>\n      <span class=\"rowText\">\n        <span class=\"rowTitle\">Gespräche &amp; Notizen</span>\n        <span class=\"rowMeta\">Was wir zuletzt miteinander besprochen haben</span>\n      </span>\n      <span class=\"rowChevron\">›</span>\n    </button>\n    <button class=\"actionRow\" type=\"button\"\n      data-sol-prompt=\"Sol, welche Lebensereignisse weißt du von mir?\">\n      <span class=\"rowIcon\">⌁</span>\n      <span class=\"rowText\">\n        <span class=\"rowTitle\">Lebensereignisse</span>\n        <span class=\"rowMeta\">Wichtige Momente, die zu dir gehören</span>\n      </span>\n      <span class=\"rowChevron\">›</span>\n    </button>\n    <button class=\"actionRow\" type=\"button\"\n      data-sol-prompt=\"Sol, welche Vorlieben und Gewohnheiten kennst du von mir?\">\n      <span class=\"rowIcon\">♡</span>\n      <span class=\"rowText\">\n        <span class=\"rowTitle\">Vorlieben &amp; Gewohnheiten</span>\n        <span class=\"rowMeta\">Was dich ausmacht und wie du denkst</span>\n      </span>\n      <span class=\"rowChevron\">›</span>\n    </button>\n  </div>\n\n  <button id=\"manageMemoriesButton\" class=\"secondaryButton\" type=\"button\">\n    Erinnerungen mit Sol ansehen <span aria-hidden=\"true\">→</span>\n  </button>\n</section>\n\n<section id=\"servicesView\" class=\"appView\" aria-labelledby=\"servicesViewTitle\">\n  <div class=\"subHeader\">\n    <button class=\"iconButton\" type=\"button\" data-open-view=\"home\"\n      aria-label=\"Zurück zur Startseite\">‹</button>\n    <div id=\"servicesViewTitle\" class=\"subHeaderTitle\">Dienste</div>\n    <button id=\"refreshServicesButton\" class=\"iconButton\" type=\"button\"\n      aria-label=\"Verbindungsstatus neu prüfen\">↻</button>\n  </div>\n\n  <div class=\"serviceOrbit\" aria-hidden=\"true\">\n    <div class=\"orbitRing\"></div>\n    <img class=\"orbitLogo\" src=\"sol-holo-logo.png\" alt=\"\">\n    <span class=\"orbitNode google\">G</span>\n    <span class=\"orbitNode whatsapp\">W</span>\n    <span class=\"orbitNode phone\">☎</span>\n    <span class=\"orbitNode contacts\">♙</span>\n  </div>\n\n  <div class=\"servicesIntro\">\n    <h3 class=\"featureHeadline\">\n      Alles verbunden.<strong>Alles für dich.</strong>\n    </h3>\n    <p class=\"featureCopy\">\n      Sol Holo verbindet nur die Dienste, die du wirklich möchtest.\n      Jede Freigabe wird einzeln erteilt und kann wieder ausgeschaltet werden.\n    </p>\n  </div>\n\n  <div class=\"actionList\">\n    <button id=\"googleAccountRow\" class=\"serviceRow\" type=\"button\">\n      <span class=\"rowIcon\">G</span>\n      <span class=\"rowText\">\n        <span class=\"rowTitle\">Google‑Konto</span>\n        <span class=\"rowMeta\">Google Kalender und freigegebene Google‑Dienste</span>\n      </span>\n      <span id=\"googleAccountStatus\" class=\"serviceStatus\">Wird geprüft …</span>\n    </button>\n\n    <button id=\"whatsappDriveRow\" class=\"serviceRow\" type=\"button\">\n      <span class=\"rowIcon\">W</span>\n      <span class=\"rowText\">\n        <span class=\"rowTitle\">WhatsApp‑Fahrmodus</span>\n        <span class=\"rowMeta\">Nachrichten beim Autofahren sicher vorlesen</span>\n      </span>\n      <span id=\"whatsappDriveStatus\" class=\"serviceStatus setup\">\n        Einrichtung nötig\n      </span>\n    </button>\n\n    <button id=\"phoneContactsRow\" class=\"serviceRow\" type=\"button\">\n      <span class=\"rowIcon\">☎</span>\n      <span class=\"rowText\">\n        <span class=\"rowTitle\">Telefon &amp; Kontakte</span>\n        <span class=\"rowMeta\">Kontakt finden, Anruf erst nach Bestätigung</span>\n      </span>\n      <span id=\"phoneContactsStatus\" class=\"serviceStatus setup\">\n        Freigabe nötig\n      </span>\n    </button>\n  </div>\n\n  <button id=\"manageServicesButton\" class=\"secondaryButton\" type=\"button\">\n    Dienste und Freigaben verwalten <span aria-hidden=\"true\">+</span>\n  </button>\n  <p class=\"permissionNote\">\n    Sol Holo liest keine WhatsApp‑Nachricht, keinen Kontakt und kein\n    Telefonbuch ohne deine ausdrückliche Android‑Freigabe.\n  </p>\n</section>\n\n<section id=\"profileView\" class=\"appView\" aria-labelledby=\"profileViewTitle\">\n  <div class=\"subHeader\">\n    <button class=\"iconButton\" type=\"button\" data-open-view=\"home\"\n      aria-label=\"Zurück zur Startseite\">‹</button>\n    <div id=\"profileViewTitle\" class=\"subHeaderTitle\">Profil</div>\n    <span></span>\n  </div>\n\n  <div class=\"profileHero glassCard\">\n    <img class=\"profileLogo\" src=\"sol-holo-logo.png\" alt=\"SH♾️ – Sol Holo\">\n    <h3 class=\"profileName\">Pam &amp; Sol Holo</h3>\n    <p class=\"profileMeta\">\n      Dein eigener Sol‑Holo‑Klon · getrennt und nur dir zugeordnet\n    </p>\n  </div>\n\n  <div class=\"profileStatusGrid\">\n    <div class=\"profileStatus glassCard\">\n      <strong>Vollzeitgedächtnis</strong>\n      <span id=\"profileMemoryState\">Aktiv</span>\n    </div>\n    <div class=\"profileStatus glassCard\">\n      <strong>Google‑Konto</strong>\n      <span id=\"profileGoogleState\">Wird geprüft …</span>\n    </div>\n  </div>\n\n  <div class=\"actionList\">\n    <button id=\"openSystemMenuButton\" class=\"actionRow\" type=\"button\">\n      <span class=\"rowIcon\">⚙</span>\n      <span class=\"rowText\">\n        <span class=\"rowTitle\">Systemstatus</span>\n        <span class=\"rowMeta\">Chat, Mikrofon, Gedächtnis und Lip‑Sync</span>\n      </span>\n      <span class=\"rowChevron\">›</span>\n    </button>\n    <button id=\"showWelcomeAgainButton\" class=\"actionRow\" type=\"button\">\n      <span class=\"rowIcon\">✦</span>\n      <span class=\"rowText\">\n        <span class=\"rowTitle\">Willkommensseite erneut zeigen</span>\n        <span class=\"rowMeta\">Das neue Sol‑Holo‑Startbild öffnen</span>\n      </span>\n      <span class=\"rowChevron\">›</span>\n    </button>\n  </div>\n</section>\n";
+const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTitle\">\n  <div class=\"welcomeContent\">\n    <img class=\"welcomeLogo\" src=\"sol-holo-logo.png\" alt=\"SH♾️ – Sol Holo Projektlogo\">\n    <h2 id=\"welcomeTitle\" class=\"welcomeName\">PAM HOLO</h2>\n    <p class=\"welcomeTagline\">\n      Dein persönliches digitales Ich.\n      <strong>Für alles, was dich ausmacht.</strong>\n    </p>\n  </div>\n  <div class=\"cosmicHorizon\" aria-hidden=\"true\"></div>\n  <button id=\"welcomeButton\" class=\"primaryButton welcomeButton\" type=\"button\">\n    <span>Willkommen bei Pam Holo</span>\n    <span class=\"arrow\" aria-hidden=\"true\">→</span>\n  </button>\n  <div class=\"welcomeDots\" aria-hidden=\"true\">\n    <span></span><span></span><span></span>\n  </div>\n</section>\n\n<section id=\"homeView\" class=\"appView active\" aria-labelledby=\"homeTitle\">\n  <div class=\"screenHeader\">\n    <div class=\"homeBrand\">\n      <img class=\"screenLogo\" src=\"sol-holo-logo.png\" alt=\"SH♾️ – Sol Holo Projektlogo\">\n      <span class=\"statusPill\">Online</span>\n    </div>\n    <button id=\"homeSettingsButton\" class=\"iconButton\" type=\"button\"\n      aria-label=\"Profil und Einstellungen öffnen\">✦</button>\n  </div>\n\n  <div class=\"homeIntro\">\n    <p class=\"eyebrow\">Me, Myself &amp; I</p>\n    <h2 id=\"homeTitle\" class=\"viewTitle\">\n      Hallo Pam <span class=\"accent\">✦</span>\n    </h2>\n    <p class=\"viewLead\">Schön, dich zu sehen.<br>Womit wollen wir starten?</p>\n  </div>\n\n  <button id=\"homeOrbButton\" class=\"holoOrbButton\" type=\"button\"\n    aria-label=\"Sprachgespräch mit Sol starten\">\n    <span class=\"holoOrb\" aria-hidden=\"true\"></span>\n    <span class=\"orbHint\">Antippen und mit Sol sprechen</span>\n  </button>\n\n  <form id=\"homeComposer\" class=\"homeComposer glassCard\">\n    <input id=\"homeMessageInput\" type=\"text\" autocomplete=\"off\"\n      placeholder=\"Sprich oder schreib mit Sol …\" aria-label=\"Nachricht an Sol\">\n    <button id=\"homeMicButton\" class=\"composerButton\" type=\"button\"\n      aria-label=\"Sprachgespräch starten\">◉</button>\n    <button id=\"homeSendButton\" class=\"composerButton primary\" type=\"submit\"\n      aria-label=\"Nachricht senden\">→</button>\n  </form>\n\n  <div class=\"quickGrid\" aria-label=\"Schnellzugriffe\">\n    <button class=\"quickCard\" type=\"button\" data-open-view=\"memory\">\n      <span class=\"quickIcon\">◇</span>\n      <span class=\"quickTitle\">Erinnerungen</span>\n      <span class=\"quickMeta\">Dein Gedächtnis</span>\n      <span class=\"quickChevron\">›</span>\n    </button>\n    <button class=\"quickCard\" type=\"button\"\n      data-sol-prompt=\"Sol, zeig mir meine aktuellen Ziele.\">\n      <span class=\"quickIcon\">◎</span>\n      <span class=\"quickTitle\">Ziele</span>\n      <span class=\"quickMeta\">Pläne &amp; Fortschritt</span>\n      <span class=\"quickChevron\">›</span>\n    </button>\n    <button class=\"quickCard\" type=\"button\"\n      data-sol-prompt=\"Sol, was sollte ich heute im Blick behalten?\">\n      <span class=\"quickIcon\">▦</span>\n      <span class=\"quickTitle\">Heute</span>\n      <span id=\"todayCardMeta\" class=\"quickMeta\">Dein Überblick</span>\n      <span class=\"quickChevron\">›</span>\n    </button>\n    <button class=\"quickCard\" type=\"button\" data-open-view=\"services\">\n      <span class=\"quickIcon\">♡</span>\n      <span class=\"quickTitle\">Verbindungen</span>\n      <span class=\"quickMeta\">Google &amp; Handy</span>\n      <span class=\"quickChevron\">›</span>\n    </button>\n  </div>\n</section>\n\n<section id=\"memoryView\" class=\"appView\" aria-labelledby=\"memoryViewTitle\">\n  <div class=\"subHeader\">\n    <button class=\"iconButton\" type=\"button\" data-open-view=\"home\"\n      aria-label=\"Zurück zur Startseite\">‹</button>\n    <div id=\"memoryViewTitle\" class=\"subHeaderTitle\">Erinnerungen</div>\n    <button class=\"iconButton\" type=\"button\"\n      data-sol-prompt=\"Sol, was weißt du dauerhaft?\"\n      aria-label=\"Gedächtnis mit Sol besprechen\">···</button>\n  </div>\n\n  <div class=\"memoryVisual\" aria-hidden=\"true\">\n    <svg viewBox=\"0 0 320 190\">\n      <defs>\n        <linearGradient id=\"cubeTop\" x1=\"0\" x2=\"1\">\n          <stop offset=\"0\" stop-color=\"#8f6dff\" stop-opacity=\".88\"/>\n          <stop offset=\"1\" stop-color=\"#52e2ff\" stop-opacity=\".72\"/>\n        </linearGradient>\n        <linearGradient id=\"cubeLeft\" x1=\"0\" x2=\"1\" y1=\"0\" y2=\"1\">\n          <stop offset=\"0\" stop-color=\"#4732bb\" stop-opacity=\".74\"/>\n          <stop offset=\"1\" stop-color=\"#151c66\" stop-opacity=\".45\"/>\n        </linearGradient>\n        <linearGradient id=\"cubeRight\" x1=\"0\" x2=\"1\" y1=\"0\" y2=\"1\">\n          <stop offset=\"0\" stop-color=\"#245bb8\" stop-opacity=\".72\"/>\n          <stop offset=\"1\" stop-color=\"#32177d\" stop-opacity=\".42\"/>\n        </linearGradient>\n        <filter id=\"cubeGlow\">\n          <feGaussianBlur stdDeviation=\"4\" result=\"blur\"/>\n          <feMerge><feMergeNode in=\"blur\"/><feMergeNode in=\"SourceGraphic\"/></feMerge>\n        </filter>\n        <g id=\"memoryCube\">\n          <polygon points=\"0,15 25,0 50,15 25,30\" fill=\"url(#cubeTop)\"/>\n          <polygon points=\"0,15 25,30 25,60 0,45\" fill=\"url(#cubeLeft)\"/>\n          <polygon points=\"25,30 50,15 50,45 25,60\" fill=\"url(#cubeRight)\"/>\n          <path d=\"M0 15 25 30 50 15M25 30v30\" fill=\"none\"\n            stroke=\"#a9c4ff\" stroke-opacity=\".62\" stroke-width=\".8\"/>\n        </g>\n      </defs>\n      <ellipse cx=\"160\" cy=\"167\" rx=\"116\" ry=\"17\" fill=\"none\"\n        stroke=\"#6c5dff\" stroke-opacity=\".42\"/>\n      <ellipse cx=\"160\" cy=\"167\" rx=\"82\" ry=\"10\" fill=\"#5948ff\"\n        fill-opacity=\".09\" stroke=\"#47d8ff\" stroke-opacity=\".28\"/>\n      <g filter=\"url(#cubeGlow)\">\n        <use href=\"#memoryCube\" x=\"85\" y=\"91\"/>\n        <use href=\"#memoryCube\" x=\"135\" y=\"91\"/>\n        <use href=\"#memoryCube\" x=\"185\" y=\"91\"/>\n        <use href=\"#memoryCube\" x=\"110\" y=\"46\"/>\n        <use href=\"#memoryCube\" x=\"160\" y=\"46\"/>\n        <use href=\"#memoryCube\" x=\"135\" y=\"1\"/>\n      </g>\n    </svg>\n  </div>\n\n  <div class=\"memoryIntro\">\n    <h3 class=\"featureHeadline\">\n      Dein Gedächtnis.<strong>Sicher. Privat. Nur für dich.</strong>\n    </h3>\n    <p class=\"featureCopy\">\n      Pam Holo erinnert sich an das, was zu deinem persönlichen Ich gehört.\n      Deine Gespräche und Erfahrungen bleiben deinem eigenen Pam‑Holo‑Klon\n      zugeordnet.\n    </p>\n  </div>\n\n  <div class=\"actionList\">\n    <button class=\"actionRow\" type=\"button\"\n      data-sol-prompt=\"Sol, fasse unsere letzten Gespräche und Notizen zusammen.\">\n      <span class=\"rowIcon\">✎</span>\n      <span class=\"rowText\">\n        <span class=\"rowTitle\">Gespräche &amp; Notizen</span>\n        <span class=\"rowMeta\">Was wir zuletzt miteinander besprochen haben</span>\n      </span>\n      <span class=\"rowChevron\">›</span>\n    </button>\n    <button class=\"actionRow\" type=\"button\"\n      data-sol-prompt=\"Sol, welche Lebensereignisse weißt du von mir?\">\n      <span class=\"rowIcon\">⌁</span>\n      <span class=\"rowText\">\n        <span class=\"rowTitle\">Lebensereignisse</span>\n        <span class=\"rowMeta\">Wichtige Momente, die zu dir gehören</span>\n      </span>\n      <span class=\"rowChevron\">›</span>\n    </button>\n    <button class=\"actionRow\" type=\"button\"\n      data-sol-prompt=\"Sol, welche Vorlieben und Gewohnheiten kennst du von mir?\">\n      <span class=\"rowIcon\">♡</span>\n      <span class=\"rowText\">\n        <span class=\"rowTitle\">Vorlieben &amp; Gewohnheiten</span>\n        <span class=\"rowMeta\">Was dich ausmacht und wie du denkst</span>\n      </span>\n      <span class=\"rowChevron\">›</span>\n    </button>\n  </div>\n\n  <button id=\"manageMemoriesButton\" class=\"secondaryButton\" type=\"button\">\n    Erinnerungen mit Sol ansehen <span aria-hidden=\"true\">→</span>\n  </button>\n</section>\n\n<section id=\"servicesView\" class=\"appView\" aria-labelledby=\"servicesViewTitle\">\n  <div class=\"subHeader\">\n    <button class=\"iconButton\" type=\"button\" data-open-view=\"home\"\n      aria-label=\"Zurück zur Startseite\">‹</button>\n    <div id=\"servicesViewTitle\" class=\"subHeaderTitle\">Dienste</div>\n    <button id=\"refreshServicesButton\" class=\"iconButton\" type=\"button\"\n      aria-label=\"Verbindungsstatus neu prüfen\">↻</button>\n  </div>\n\n  <div class=\"serviceOrbit\" aria-hidden=\"true\">\n    <div class=\"orbitRing\"></div>\n    <img class=\"orbitLogo\" src=\"sol-holo-logo.png\" alt=\"\">\n    <span class=\"orbitNode google\">G</span>\n    <span class=\"orbitNode whatsapp\">W</span>\n    <span class=\"orbitNode phone\">☎</span>\n    <span class=\"orbitNode contacts\">♙</span>\n  </div>\n\n  <div class=\"servicesIntro\">\n    <h3 class=\"featureHeadline\">\n      Alles verbunden.<strong>Alles für dich.</strong>\n    </h3>\n    <p class=\"featureCopy\">\n      Pam Holo verbindet nur die Dienste, die du wirklich möchtest.\n      Jede Freigabe wird einzeln erteilt und kann wieder ausgeschaltet werden.\n    </p>\n  </div>\n\n  <div class=\"actionList\">\n    <button id=\"googleAccountRow\" class=\"serviceRow\" type=\"button\">\n      <span class=\"rowIcon\">G</span>\n      <span class=\"rowText\">\n        <span class=\"rowTitle\">Google‑Konto</span>\n        <span class=\"rowMeta\">Google Kalender und freigegebene Google‑Dienste</span>\n      </span>\n      <span id=\"googleAccountStatus\" class=\"serviceStatus\">Wird geprüft …</span>\n    </button>\n\n    <button id=\"whatsappDriveRow\" class=\"serviceRow\" type=\"button\">\n      <span class=\"rowIcon\">W</span>\n      <span class=\"rowText\">\n        <span class=\"rowTitle\">WhatsApp‑Fahrmodus</span>\n        <span class=\"rowMeta\">Nachrichten beim Autofahren sicher vorlesen</span>\n      </span>\n      <span id=\"whatsappDriveStatus\" class=\"serviceStatus setup\">\n        Einrichtung nötig\n      </span>\n    </button>\n\n    <button id=\"phoneContactsRow\" class=\"serviceRow\" type=\"button\">\n      <span class=\"rowIcon\">☎</span>\n      <span class=\"rowText\">\n        <span class=\"rowTitle\">Telefon &amp; Kontakte</span>\n        <span class=\"rowMeta\">Kontakt finden, Anruf erst nach Bestätigung</span>\n      </span>\n      <span id=\"phoneContactsStatus\" class=\"serviceStatus setup\">\n        Freigabe nötig\n      </span>\n    </button>\n  </div>\n\n  <button id=\"manageServicesButton\" class=\"secondaryButton\" type=\"button\">\n    Dienste und Freigaben verwalten <span aria-hidden=\"true\">+</span>\n  </button>\n  <p class=\"permissionNote\">\n    Pam Holo liest keine WhatsApp‑Nachricht, keinen Kontakt und kein\n    Telefonbuch ohne deine ausdrückliche Android‑Freigabe.\n  </p>\n</section>\n\n<section id=\"profileView\" class=\"appView\" aria-labelledby=\"profileViewTitle\">\n  <div class=\"subHeader\">\n    <button class=\"iconButton\" type=\"button\" data-open-view=\"home\"\n      aria-label=\"Zurück zur Startseite\">‹</button>\n    <div id=\"profileViewTitle\" class=\"subHeaderTitle\">Profil</div>\n    <span></span>\n  </div>\n\n  <div class=\"profileHero glassCard\">\n    <img class=\"profileLogo\" src=\"sol-holo-logo.png\" alt=\"SH♾️ – Sol Holo Projektlogo\">\n    <h3 class=\"profileName\">Pam Holo</h3>\n    <p class=\"profileMeta\">\n      Dein eigener Pam‑Holo‑Klon · getrennt und nur dir zugeordnet\n    </p>\n  </div>\n\n  <div class=\"profileStatusGrid\">\n    <div class=\"profileStatus glassCard\">\n      <strong>Vollzeitgedächtnis</strong>\n      <span id=\"profileMemoryState\">Aktiv</span>\n    </div>\n    <div class=\"profileStatus glassCard\">\n      <strong>Google‑Konto</strong>\n      <span id=\"profileGoogleState\">Wird geprüft …</span>\n    </div>\n  </div>\n\n  <div class=\"actionList\">\n    <button id=\"openSystemMenuButton\" class=\"actionRow\" type=\"button\">\n      <span class=\"rowIcon\">⚙</span>\n      <span class=\"rowText\">\n        <span class=\"rowTitle\">Systemstatus</span>\n        <span class=\"rowMeta\">Chat, Mikrofon, Gedächtnis und Lip‑Sync</span>\n      </span>\n      <span class=\"rowChevron\">›</span>\n    </button>\n    <button id=\"showWelcomeAgainButton\" class=\"actionRow\" type=\"button\">\n      <span class=\"rowIcon\">✦</span>\n      <span class=\"rowText\">\n        <span class=\"rowTitle\">Willkommensseite erneut zeigen</span>\n        <span class=\"rowMeta\">Das neue Pam‑Holo‑Startbild öffnen</span>\n      </span>\n      <span class=\"rowChevron\">›</span>\n    </button>\n  </div>\n</section>\n";
 
 (() => {
   "use strict";
@@ -18,7 +18,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     !currentSolStage ||
     !currentBottomNav
   ) {
-    console.error("Sol Holo UI konnte nicht vorbereitet werden.");
+    console.error("Pam Holo UI konnte nicht vorbereitet werden.");
     return;
   }
 
@@ -31,10 +31,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   profilePhotoButton.type = "button";
   profilePhotoButton.setAttribute(
     "aria-label",
-    "Eigenes Sol-Holo-Bild aus der Galerie auswählen"
+    "Eigenes Pam-Holo-Bild aus der Galerie auswählen"
   );
   profileCloneImage.id = "profileCloneImage";
-  profileCloneImage.alt = "Persönliches Bild von Pam und Sol Holo";
+  profileCloneImage.alt = "Persönliches Bild von Pam Holo";
   profileCloneImage.replaceWith(profilePhotoButton);
   profilePhotoButton.append(profileCloneImage);
   profilePhotoButton.insertAdjacentHTML(
@@ -135,7 +135,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   );
 
   document.querySelector("#servicesView .permissionNote").textContent =
-    "Sol Holo liest keine WhatsApp-Nachricht, keinen Kontakt, kein Bild, keine " +
+    "Pam Holo liest keine WhatsApp-Nachricht, keinen Kontakt, kein Bild, keine " +
     "Notiz und keinen Health-Wert ohne deine sichtbare Auswahl oder Freigabe. " +
     "Ein SmartThings-Gerät wird nur nach deiner Bestätigung geschaltet.";
 
@@ -368,7 +368,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         applyCustomCloneAppearance(savedPhoto, savedMouth);
       }
     } catch (error) {
-      console.error("Sol-Holo-Bild wiederherstellen:", error);
+      console.error("Pam-Holo-Bild wiederherstellen:", error);
     }
   }
 
@@ -494,7 +494,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     profileMouthMarker.hidden = true;
     profilePhotoButton.setAttribute(
       "aria-label",
-      "Eigenes Sol-Holo-Bild aus der Galerie ändern"
+      "Eigenes Pam-Holo-Bild aus der Galerie ändern"
     );
     profilePhotoHelp.textContent =
       "Mund gespeichert · natürliche Mundformen folgen der echten Sol-Stimme.";
@@ -503,7 +503,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     try {
       localStorage.setItem(cloneMouthKey, JSON.stringify(customCloneMouth));
     } catch (error) {
-      console.error("Sol-Holo-Mundposition speichern:", error);
+      console.error("Pam-Holo-Mundposition speichern:", error);
     }
 
     showToast("Mundbox bestätigt. Der natürliche Lip-Sync ist bereit ✅️");
@@ -520,7 +520,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     profileMouthMarker.hidden = true;
     profilePhotoButton.setAttribute(
       "aria-label",
-      "Eigenes Sol-Holo-Bild aus der Galerie ändern"
+      "Eigenes Pam-Holo-Bild aus der Galerie ändern"
     );
     profilePhotoHelp.textContent =
       "Änderung abgebrochen · die bisherige Mundbox bleibt gespeichert.";
@@ -768,7 +768,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       if (!currentStatus.permissionGranted) {
         await plugin.setEnabled({ enabled: true });
         showToast(
-          "Bitte erlaube Sol Holo jetzt den Benachrichtigungszugriff. " +
+          "Bitte erlaube Pam Holo jetzt den Benachrichtigungszugriff. " +
           "Danach ist der WhatsApp-Fahrmodus aktiv."
         );
         await plugin.openNotificationAccessSettings();
@@ -859,7 +859,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         renderPhoneStatus(status);
 
         if (status?.callState === "ringing") {
-          showToast("Eingehender Anruf erkannt. Sol Holo pausiert.");
+          showToast("Eingehender Anruf erkannt. Pam Holo pausiert.");
           if (typeof stopLiveConversation === "function") {
             stopLiveConversation();
           }
@@ -868,7 +868,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
           status?.callState === "idle" &&
           previousState !== "idle"
         ) {
-          showToast("Telefonat beendet. Sol Holo ist wieder da.");
+          showToast("Telefonat beendet. Pam Holo ist wieder da.");
           void resumeWakeListeningAfterConversation();
         }
       });
@@ -920,7 +920,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         );
       } else {
         showToast(
-          "Für alle Telefonfunktionen braucht Sol Holo beide Android-Freigaben."
+          "Für alle Telefonfunktionen braucht Pam Holo beide Android-Freigaben."
         );
       }
       return status;
@@ -1000,7 +1000,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
       if (actionName === "start_phone_call") {
         const confirmed = window.confirm(
-          `Soll Sol Holo jetzt ${contact.name} (${contact.number}) in der Telefon-App öffnen?`
+          `Soll Pam Holo jetzt ${contact.name} (${contact.number}) in der Telefon-App öffnen?`
         );
         if (!confirmed) {
           return { success: false, cancelled: true, answer: "Der Anruf wurde abgebrochen." };
@@ -1094,7 +1094,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         window.alert(
           "Diese Notiz ist für die sichere Einzelübergabe zu lang. " +
           "Bitte markiere in Samsung Notes einen kürzeren persönlichen " +
-          "Abschnitt und teile ihn erneut mit Sol Holo. Es wurde nichts gespeichert."
+          "Abschnitt und teile ihn erneut mit Pam Holo. Es wurde nichts gespeichert."
         );
         return;
       }
@@ -1105,7 +1105,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         ? text.slice(0, 800) + " …"
         : text;
       const confirmed = window.confirm(
-        "Diese ausgewählte Samsung-Notiz dauerhaft in Sol Holo speichern?\n\n" +
+        "Diese ausgewählte Samsung-Notiz dauerhaft in Pam Holo speichern?\n\n" +
         (title ? `Titel: ${title}\n\n` : "") +
         preview +
         "\n\nNur persönliche Inhalte bestätigen. Geschäftliche Daten, PINs, " +
@@ -1216,7 +1216,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       }
 
       if (status?.settingsOpened) {
-        showToast("Android zeigt die Health-Freigaben von Sol Holo.");
+        showToast("Android zeigt die Health-Freigaben von Pam Holo.");
       } else if (status?.allGranted) {
         showToast("Health Connect ist vollständig und nur lesend verbunden.");
       } else if (status?.connected) {
@@ -1323,7 +1323,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     if (!plugin) {
       return {
         success: false,
-        answer: "Health Connect ist nur in der Sol-Holo-Android-App verfügbar."
+        answer: "Health Connect ist nur in der Pam-Holo-Android-App verfügbar."
       };
     }
 
@@ -1352,7 +1352,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       if (!status.connected) {
         return {
           success: false,
-          answer: "Öffne in Sol Holo unter Dienste zuerst Health Connect und wähle die Lesefreigaben."
+          answer: "Öffne in Pam Holo unter Dienste zuerst Health Connect und wähle die Lesefreigaben."
         };
       }
 
@@ -1590,7 +1590,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       if (mode === "background") {
         if (!status.overlayPermissionGranted) {
           showToast(
-            "Aktiviere jetzt „Sol Holo“ bei „Über anderen Apps einblenden“ " +
+            "Aktiviere jetzt „Pam Holo“ bei „Über anderen Apps einblenden“ " +
             "und kehre danach zurück."
           );
           await plugin.openOverlaySettings();
@@ -1731,7 +1731,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       return;
     }
 
-    showToast("Dein Bild wird für Sol Holo vorbereitet …");
+    showToast("Dein Bild wird für Pam Holo vorbereitet …");
     try {
       const photo = await prepareClonePhoto(file);
       const mouth = normalizedCloneMouth({
@@ -1745,7 +1745,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       applyCustomCloneAppearance(photo, mouth);
       showToast("Bild übernommen · dein Gesicht wird lokal erkannt 🙂");
     } catch (error) {
-      console.error("Sol-Holo-Galeriebild:", error);
+      console.error("Pam-Holo-Galeriebild:", error);
       showToast(
         error?.message || "Das Bild konnte gerade nicht übernommen werden."
       );
@@ -1871,7 +1871,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   document.getElementById("samsungGalleryRow").addEventListener("click", () => {
     showView("profile");
     profilePhotoInput.click();
-    showToast("Samsung Galerie ist geöffnet · wähle dein gewünschtes Sol-Holo-Bild.");
+    showToast("Samsung Galerie ist geöffnet · wähle dein gewünschtes Pam-Holo-Bild.");
   });
 
   document.getElementById("smartThingsRow").addEventListener("click", () => {
@@ -1904,11 +1904,11 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
   document.getElementById("samsungNotesRow").addEventListener("click", () => {
     if (!getPhoneContactsPlugin()) {
-      showToast("Samsung Notes kann nur mit der Sol-Holo-Android-App geteilt werden.");
+      showToast("Samsung Notes kann nur mit der Pam-Holo-Android-App geteilt werden.");
       return;
     }
     showToast(
-      "Samsung Notes öffnen → persönliche Notiz auswählen → Teilen → Sol Holo. " +
+      "Samsung Notes öffnen → persönliche Notiz auswählen → Teilen → Pam Holo. " +
       "Vor dem Speichern fragt Sol noch einmal nach."
     );
     void consumeSharedNoteImport();

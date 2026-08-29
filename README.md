@@ -6,7 +6,7 @@
 
 ## Persönliches digitales Ich · Individueller KI-Clone
 
-**Aktueller Entwicklungsstand:** 28.08.2026  
+**Aktueller Entwicklungsstand:** 29.08.2026<br>
 **Projekt / Idee / Entwicklung:** Pamela Nitschke  
 **KI-Technologie:** OpenAI · ChatGPT · OpenAI API  
 **Status:** FUNKTIONSFÄHIGER ENTWICKLUNGSSTAND ✅
@@ -45,6 +45,12 @@ Dadurch entsteht für jeden Menschen eine eigene persönliche Sol-Holo-Identitä
 **Jeder Nutzer besitzt seinen eigenen, getrennten persönlichen Clone.**
 
 Persönliche Erinnerungen, Erfahrungen und Daten verschiedener Nutzer dürfen nicht zu einer gemeinsamen Identität vermischt werden.
+
+## Projektname und persönliche Instanz
+
+**Sol Holo · SH♾️** bleibt die Bezeichnung des übergeordneten Projekts und der technischen Grundlage.
+
+Die persönliche, ausschließlich Pamela Nitschke zugeordnete Instanz heißt **Pam Holo**. Pam Holo ist kein getrenntes neues Projekt, sondern Pams eigener Sol-Holo-Clone innerhalb dieser Grundlage.
 
 ---
 
