@@ -54,6 +54,56 @@ jobs:
       - name: Node-Abhängigkeiten installieren
         run: npm install
 
+      - name: NPM-Sicherheitsbericht ausgeben
+        continue-on-error: true
+        run: |
+          npm audit --json > npm-audit-all.json || true
+          npm audit --omit=dev --json > npm-audit-runtime.json || true
+          node - <<'NODE'
+          const fs = require('fs');
+
+          function printReport(label, file) {
+            const report = JSON.parse(fs.readFileSync(file, 'utf8'));
+            const counts = report.metadata?.vulnerabilities || {};
+            console.log(`\n===== ${label} =====`);
+            console.log(
+              `low=${counts.low || 0}, moderate=${counts.moderate || 0}, ` +
+              `high=${counts.high || 0}, critical=${counts.critical || 0}, ` +
+              `total=${counts.total || 0}`
+            );
+
+            const vulnerabilities = Object.values(report.vulnerabilities || {})
+              .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+
+            for (const vulnerability of vulnerabilities) {
+              console.log(
+                `\n${vulnerability.name} | severity=${vulnerability.severity} | ` +
+                `direct=${Boolean(vulnerability.isDirect)} | range=${vulnerability.range || ''}`
+              );
+
+              for (const cause of vulnerability.via || []) {
+                if (typeof cause === 'string') {
+                  console.log(`  via package: ${cause}`);
+                  continue;
+                }
+                console.log(
+                  `  advisory: ${cause.title || ''} | ` +
+                  `severity=${cause.severity || ''} | range=${cause.range || ''}`
+                );
+                if (cause.url) console.log(`  ${cause.url}`);
+              }
+
+              if (vulnerability.effects?.length) {
+                console.log(`  effects: ${vulnerability.effects.join(', ')}`);
+              }
+              console.log(`  fixAvailable: ${JSON.stringify(vulnerability.fixAvailable)}`);
+            }
+          }
+
+          printReport('ALLE NPM-ABHÄNGIGKEITEN', 'npm-audit-all.json');
+          printReport('NUR RUNTIME / OHNE DEV-ABHÄNGIGKEITEN', 'npm-audit-runtime.json');
+          NODE
+
       - name: Erzeugte Drittanbieter-Lizenzdateien prüfen
         run: |
           set -Eeuo pipefail
