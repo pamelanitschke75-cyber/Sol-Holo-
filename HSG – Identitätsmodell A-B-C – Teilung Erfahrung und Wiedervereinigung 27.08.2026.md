@@ -4,7 +4,9 @@
 **Datum:** 27.08.2026  
 **Projekt:** HSG – Human Second Generation  
 **Idee / Gedankenmodell:** Pamela Nitschke  
-**Ausarbeitung im Dialog mit:** ChatGPT / OpenAI
+**Ausarbeitung mit KI-Unterstützung:** ChatGPT (OpenAI-Technologie)
+
+> **Hinweis zur Zuschreibung:** Die Nennung von ChatGPT/OpenAI beschreibt die Nutzung eines KI-Werkzeugs bei der Ausarbeitung. Sie behauptet keine offizielle Partnerschaft, Mitentwicklung, Unterstützung oder Mitinhaberschaft durch OpenAI.
 
 ---
 
