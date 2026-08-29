@@ -413,10 +413,10 @@ class FullFaceRig {
     const gl = this.gl;
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
-    // Bildquellen beginnen oben links, WebGL-Texturen unten links.
-    // Ohne dieses Flip lag zuvor die vertikal falsche Bildhälfte auf dem
-    // Gesichtsgitter; dadurch verschwanden Augen oder wirkten verzerrt.
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    // Die Landmark- und Texturkoordinaten verwenden beide den Ursprung oben
+    // links. Ein zusätzlicher WebGL-Flip würde dunkle Bildbereiche von unten
+    // über Augen und Mund legen.
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);

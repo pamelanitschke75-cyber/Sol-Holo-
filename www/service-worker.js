@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-029-pams-holo-final";
+const CACHE_VERSION = "sol-holo-030-safe-lip-sync";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
