@@ -12,25 +12,77 @@ Maßgeblich sind immer die Original-Lizenztexte, Nutzungsbedingungen, Markenrich
 
 ## Direkte JavaScript-/Node.js-Abhängigkeiten
 
-Laut aktuellem `package.json` werden direkt eingebunden:
+Der aktuelle `package-lock.json` weist für die direkten Abhängigkeiten folgenden installierten Stand aus:
 
-- `@capacitor/android`
-- `@capacitor/core`
-- `@mediapipe/tasks-vision`
-- `cors`
-- `express`
-- `googleapis`
-- `openai`
-- `pg`
+| Paket | Installierte Version | Lizenz laut Paketmetadaten |
+| --- | ---: | --- |
+| `@capacitor/android` | 7.6.8 | MIT |
+| `@capacitor/core` | 7.6.8 | MIT |
+| `@mediapipe/tasks-vision` | 1.0.1 | Apache-2.0 |
+| `cors` | 2.8.6 | MIT |
+| `express` | 5.2.1 | MIT |
+| `googleapis` | 175.0.0 | Apache-2.0 |
+| `openai` | 5.23.2 | Apache-2.0 |
+| `pg` | 8.23.0 | MIT |
 
-Entwicklungsabhängigkeiten:
+Direkte Entwicklungsabhängigkeiten:
 
-- `@capacitor/assets`
-- `@capacitor/cli`
+| Paket | Installierte Version | Lizenz laut Paketmetadaten |
+| --- | ---: | --- |
+| `@capacitor/assets` | 3.0.5 | MIT |
+| `@capacitor/cli` | 7.6.8 | MIT |
 
-Die konkret installierten Versionen und – soweit vom Paket bereitgestellt – Lizenzkennzeichnungen sind in `package-lock.json` dokumentiert.
+Die Versionsangaben beziehen sich auf den am 29.08.2026 dokumentierten Lockfile-Stand. Bei einer späteren Aktualisierung sind die dann tatsächlich installierten Versionen und Lizenzen maßgeblich.
 
-Auch deren transitive Abhängigkeiten unterliegen ihren jeweiligen eigenen Lizenzen.
+Auch transitive Abhängigkeiten unterliegen ihren jeweiligen eigenen Lizenzen.
+
+---
+
+## Lizenztexte im Build und in der Android-App
+
+Der Build erzeugt mit `scripts/generate-third-party-licenses.mjs` automatisch die Datei:
+
+- `THIRD_PARTY_LICENSES.txt` im Repository-Arbeitsverzeichnis und
+- `www/THIRD_PARTY_LICENSES.txt` für das App-Bundle.
+
+Der Generator liest für jede direkte npm-Abhängigkeit die **tatsächlich installierte Version**, die deklarierte Lizenz und die im jeweiligen npm-Paket enthaltene Lizenzdatei aus `node_modules` aus. Fehlt bei einer direkten Abhängigkeit eine solche Lizenzdatei, schlägt der Build absichtlich fehl, statt eine unvollständige Lizenzsammlung auszuliefern.
+
+Da `www` in `capacitor.config.json` als `webDir` festgelegt ist, wird `www/THIRD_PARTY_LICENSES.txt` beim Capacitor-Sync in das Android-App-Paket übernommen. Der GitHub-Actions-Build kontrolliert zusätzlich vor dem APK-Bau, dass diese Datei im synchronisierten Android-Asset-Verzeichnis vorhanden ist.
+
+Diese Sol-Holo-eigene Sammeldatei ändert keine Drittanbieter-Lizenz. Sie dient ausschließlich dazu, die jeweiligen Original-Lizenztexte zusammen mit der ausgelieferten App bereitzustellen.
+
+---
+
+## MediaPipe Tasks Vision und Face Landmarker
+
+Sol Holo verwendet `@mediapipe/tasks-vision` 1.0.1. Die Paketmetadaten weisen hierfür **Apache License 2.0** aus.
+
+Der Build kopiert für die lokale Gesichtsanimation bestimmte MediaPipe-Browserdateien nach `www/mediapipe/`. Die kopierte Datei `vision_bundle.mjs` wird anschließend gezielt verändert: Die im Original enthaltene Telemetrie-/Logging-Adresse
+
+`https://odml.pa.googleapis.com/v1/log`
+
+wird im lokalen Sol-Holo-Build durch eine lokale `data:`-Adresse ersetzt, damit diese kopierte Browserdatei die entsprechende Telemetrieanfrage nicht sendet.
+
+Diese Änderung wird nun zweifach kenntlich gemacht:
+
+1. durch einen ausdrücklichen Änderungsvermerk direkt am Anfang der erzeugten `www/mediapipe/vision_bundle.mjs`, und
+2. durch `www/mediapipe/MODIFICATION_NOTICE.txt`.
+
+Der vollständige Apache-2.0-Lizenztext des installierten MediaPipe-Pakets wird außerdem über `www/THIRD_PARTY_LICENSES.txt` mit der App ausgeliefert.
+
+### Face-Landmarker-Modell
+
+Der Build lädt das von Google bereitgestellte Face-Landmarker-Modellbundle von:
+
+`https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task`
+
+Für den verwendeten Stand ist im Build die SHA-256-Prüfsumme
+
+`64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff`
+
+fest hinterlegt. Eine Datei mit einer anderen Prüfsumme wird nicht übernommen.
+
+Das heruntergeladene Modellbundle wird durch das Sol-Holo-Installationsskript **nicht binär verändert**. Die von Google veröffentlichten Model Cards für BlazeFace, FaceMesh-V2 und das Blendshape-Modell weisen diese Modellkomponenten als unter der **Apache License, Version 2.0** lizenziert aus.
 
 ---
 
@@ -56,6 +108,7 @@ Verwendung unter anderem für:
 
 - Google Calendar API
 - OAuth-/Autorisierungsfunktionen für den vom Nutzer freigegebenen Kalenderzugriff
+- MediaPipe / Face Landmarker
 
 Google und Google Calendar sind Marken bzw. Produktnamen ihrer jeweiligen Rechteinhaber.
 
@@ -91,11 +144,11 @@ Diese und weitere Frameworks, Laufzeitumgebungen, Bibliotheken und Entwicklungsw
 
 ## Lizenzhinweis
 
-Diese Übersicht ist **kein Ersatz für die vollständigen Original-Lizenztexte**.
+Die Sol-Holo-eigene Lizenz in `LICENSE` gilt ausschließlich für Bestandteile, an denen Pamela Nitschke entsprechende Rechte besitzt oder rechtlich darüber verfügen darf.
 
-Bei Distribution, Veröffentlichung oder kommerzieller Nutzung muss geprüft werden, welche Lizenz-, Copyright-, NOTICE- oder Attributionshinweise zusammen mit der jeweiligen ausgelieferten Softwarefassung bereitgestellt werden müssen.
+Sie ersetzt, beschränkt oder überschreibt **keine** anwendbare Drittanbieter- oder Open-Source-Lizenz.
 
-Insbesondere dürfen Hinweise, die von einer Drittanbieter-Lizenz zwingend vorgeschrieben werden, nicht durch die Sol-Holo-eigenen Lizenzbedingungen entfernt oder eingeschränkt werden.
+Erforderliche Copyright-, Lizenz-, NOTICE- und Attributionshinweise Dritter müssen erhalten bleiben. Für eine spätere kommerzielle oder breitere Distribution muss zusätzlich geprüft werden, ob durch neue Abhängigkeiten, native Android-Komponenten oder andere ausgelieferte Bestandteile weitere Pflichten hinzukommen.
 
 ---
 
