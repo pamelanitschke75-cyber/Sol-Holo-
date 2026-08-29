@@ -1909,6 +1909,17 @@ window.SolHoloClone = {
       fullFaceRig?.clear();
 
       solImage.src = cleanSource;
+
+
+      if(
+        solImage.complete &&
+        solImage.naturalWidth > 0
+      ){
+
+        requestAnimationFrame(
+          analyseFullFaceImage
+        );
+      }
     }
   },
 
@@ -1923,10 +1934,27 @@ window.SolHoloClone = {
   },
 
   reset(){
-    disableFullFaceRig();
+    fullFaceRigRequested =
+      true;
+
+    fullFaceRigReady =
+      false;
+
+    fullFaceRig?.clear();
 
     solImage.src =
       DEFAULT_SOL_CLONE_IMAGE;
+
+
+    if(
+      solImage.complete &&
+      solImage.naturalWidth > 0
+    ){
+
+      requestAnimationFrame(
+        analyseFullFaceImage
+      );
+    }
 
     applyLipSyncFace(
       DEFAULT_LIP_SYNC_FACE
@@ -1995,7 +2023,7 @@ let currentMouthWide = 0;
 let currentMouthRound = 0;
 let fullFaceRig = null;
 let fullFaceRigReady = false;
-let fullFaceRigRequested = false;
+let fullFaceRigRequested = true;
 let fullFaceRigLoadPromise = null;
 let fullFaceRigAnalysisGeneration = 0;
 
@@ -2281,6 +2309,11 @@ function enterVoiceMode(){
 
   requestAnimationFrame(
     updateMouthGeometry
+  );
+
+
+  requestAnimationFrame(
+    analyseFullFaceImage
   );
 }
 

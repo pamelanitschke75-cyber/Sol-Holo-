@@ -1743,7 +1743,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       localStorage.setItem(clonePhotoKey, photo);
       localStorage.setItem(cloneMouthKey, JSON.stringify(mouth));
       applyCustomCloneAppearance(photo, mouth);
-      beginCloneMouthCalibration();
+      showToast("Bild übernommen · dein Gesicht wird lokal erkannt 🙂");
     } catch (error) {
       console.error("Sol-Holo-Galeriebild:", error);
       showToast(
