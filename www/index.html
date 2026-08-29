@@ -1776,7 +1776,7 @@ Schreiben bereit.
 </div>
 
 <div id="lipSyncStatus">
-👄 Lip-Sync V3 bereit.
+👄 Lip-Sync V3.1 bereit.
 </div>
 
 </aside>
@@ -1992,6 +1992,9 @@ const LIP_SYNC_FACE = {
   ...DEFAULT_LIP_SYNC_FACE
 };
 
+const FULL_FACE_RIG_ENABLED =
+  false;
+
 
 function applyLipSyncFace(
   nextFace
@@ -2042,17 +2045,27 @@ window.SolHoloClone = {
 
     if(cleanSource){
       fullFaceRigRequested =
-        true;
+        FULL_FACE_RIG_ENABLED;
 
       fullFaceRigReady =
         false;
 
-      fullFaceRig?.clear();
+      if(
+        fullFaceRigRequested
+      ){
+
+        fullFaceRig?.clear();
+
+      }else{
+
+        disableFullFaceRig();
+      }
 
       solImage.src = cleanSource;
 
 
       if(
+        fullFaceRigRequested &&
         solImage.complete &&
         solImage.naturalWidth > 0
       ){
@@ -2076,18 +2089,28 @@ window.SolHoloClone = {
 
   reset(){
     fullFaceRigRequested =
-      true;
+      FULL_FACE_RIG_ENABLED;
 
     fullFaceRigReady =
       false;
 
-    fullFaceRig?.clear();
+    if(
+      fullFaceRigRequested
+    ){
+
+      fullFaceRig?.clear();
+
+    }else{
+
+      disableFullFaceRig();
+    }
 
     solImage.src =
       DEFAULT_SOL_CLONE_IMAGE;
 
 
     if(
+      fullFaceRigRequested &&
       solImage.complete &&
       solImage.naturalWidth > 0
     ){
@@ -2112,6 +2135,8 @@ WEBRTC
 
 let pc = null;
 let dc = null;
+let liveConnectionAttempt =
+  0;
 let microphoneStream =
   null;
 
@@ -2168,7 +2193,8 @@ let currentMouthWide = 0;
 let currentMouthRound = 0;
 let fullFaceRig = null;
 let fullFaceRigReady = false;
-let fullFaceRigRequested = true;
+let fullFaceRigRequested =
+  FULL_FACE_RIG_ENABLED;
 let fullFaceRigLoadPromise = null;
 let fullFaceRigAnalysisGeneration = 0;
 
@@ -4940,9 +4966,21 @@ async function startLipSync(
   }
 
 
+  const keepRealtimeSpeechMoving =
+    realtimeSpeechIsActive();
+
+
   stopLipSync(
     false
   );
+
+
+  if(
+    keepRealtimeSpeechMoving
+  ){
+
+    startRealtimeSpeechFallback();
+  }
 
 
   const visemesReady =
@@ -5187,7 +5225,7 @@ function stopLipSync(
   ){
 
     lipSyncStatus.textContent =
-      "👄 Lip-Sync V3 zur Stimme bereit.";
+      "👄 Lip-Sync V3.1 zur Stimme bereit.";
   }
 }
 
@@ -6084,6 +6122,9 @@ LIVE STOP
 
 function stopLiveConversation(){
 
+  liveConnectionAttempt +=
+    1;
+
   realtimeMemoryToken =
     "";
 
@@ -6393,10 +6434,47 @@ async function startLiveConversation(){
   }
 
 
+  const currentAttempt =
+    ++liveConnectionAttempt;
+
+  let activePeerConnection =
+    null;
+
+  let activeDataChannel =
+    null;
+
+
+  const connectionIsCurrent =
+    () =>
+      currentAttempt ===
+        liveConnectionAttempt &&
+      (
+        !activePeerConnection ||
+        pc ===
+          activePeerConnection
+      );
+
+
   await routeSolAudioToSpeaker();
 
 
+  if(
+    !connectionIsCurrent()
+  ){
+
+    return;
+  }
+
+
   await ensureLipAudioContext();
+
+
+  if(
+    !connectionIsCurrent()
+  ){
+
+    return;
+  }
 
 
   setLiveStatus(
@@ -6429,8 +6507,24 @@ async function startLiveConversation(){
       );
 
 
+    if(
+      !connectionIsCurrent()
+    ){
+
+      return;
+    }
+
+
     const responseText =
       await tokenResponse.text();
+
+
+    if(
+      !connectionIsCurrent()
+    ){
+
+      return;
+    }
 
 
     let tokenData;
@@ -6508,12 +6602,23 @@ async function startLiveConversation(){
     }
 
 
-    pc =
+    activePeerConnection =
       new RTCPeerConnection();
 
 
-    pc.ontrack =
+    pc =
+      activePeerConnection;
+
+
+    activePeerConnection.ontrack =
       event => {
+
+        if(
+          !connectionIsCurrent()
+        ){
+
+          return;
+        }
 
         const stream =
           event.streams?.[0];
@@ -6551,11 +6656,39 @@ async function startLiveConversation(){
       };
 
 
-    microphoneStream =
+    const nextMicrophoneStream =
       await openFilteredMicrophone();
 
 
+    if(
+      !connectionIsCurrent()
+    ){
+
+      nextMicrophoneStream
+        .getTracks()
+        .forEach(
+          track =>
+            track.stop()
+        );
+
+
+      return;
+    }
+
+
+    microphoneStream =
+      nextMicrophoneStream;
+
+
     await routeSolAudioToSpeaker();
+
+
+    if(
+      !connectionIsCurrent()
+    ){
+
+      return;
+    }
 
 
     const audioTrack =
@@ -6573,21 +6706,34 @@ async function startLiveConversation(){
     }
 
 
-    pc.addTrack(
+    activePeerConnection.addTrack(
       audioTrack,
       microphoneStream
     );
 
 
-    dc =
-      pc.createDataChannel(
+    activeDataChannel =
+      activePeerConnection.createDataChannel(
         "oai-events"
       );
 
 
-    dc.addEventListener(
+    dc =
+      activeDataChannel;
+
+
+    activeDataChannel.addEventListener(
       "open",
       () => {
+
+        if(
+          !connectionIsCurrent() ||
+          dc !==
+            activeDataChannel
+        ){
+
+          return;
+        }
 
         liveButton.classList.add(
           "listening"
@@ -6609,7 +6755,7 @@ async function startLiveConversation(){
 
           if(wakePrompt){
 
-            dc.send(
+            activeDataChannel.send(
               JSON.stringify({
                 type:"conversation.item.create",
                 item:{
@@ -6624,7 +6770,7 @@ async function startLiveConversation(){
             );
 
 
-            dc.send(
+            activeDataChannel.send(
               JSON.stringify({
                 type:"response.create"
               })
@@ -6635,9 +6781,18 @@ async function startLiveConversation(){
     );
 
 
-    dc.addEventListener(
+    activeDataChannel.addEventListener(
       "message",
       event => {
+
+        if(
+          !connectionIsCurrent() ||
+          dc !==
+            activeDataChannel
+        ){
+
+          return;
+        }
 
         try{
 
@@ -6807,7 +6962,7 @@ async function startLiveConversation(){
 
 
             lipSyncStatus.textContent =
-              "👄 Lip-Sync V3 zur Stimme bereit.";
+              "👄 Lip-Sync V3.1 zur Stimme bereit.";
           }
 
 
@@ -6827,7 +6982,7 @@ async function startLiveConversation(){
 
 
             lipSyncStatus.textContent =
-              "👄 Lip-Sync V3 zur Stimme bereit.";
+              "👄 Lip-Sync V3.1 zur Stimme bereit.";
           }
 
 
@@ -6865,12 +7020,12 @@ async function startLiveConversation(){
     );
 
 
-    pc.addEventListener(
+    activePeerConnection.addEventListener(
       "connectionstatechange",
       () => {
 
         if(
-          !pc
+          !connectionIsCurrent()
         ){
 
           return;
@@ -6878,7 +7033,7 @@ async function startLiveConversation(){
 
 
         if(
-          pc.connectionState ===
+          activePeerConnection.connectionState ===
           "connected"
         ){
 
@@ -6894,7 +7049,7 @@ async function startLiveConversation(){
 
 
         if(
-          pc.connectionState ===
+          activePeerConnection.connectionState ===
           "failed"
         ){
 
@@ -6910,12 +7065,30 @@ async function startLiveConversation(){
 
 
     const offer =
-      await pc.createOffer();
+      await activePeerConnection
+        .createOffer();
 
 
-    await pc.setLocalDescription(
+    if(
+      !connectionIsCurrent()
+    ){
+
+      return;
+    }
+
+
+    await activePeerConnection
+      .setLocalDescription(
       offer
     );
+
+
+    if(
+      !connectionIsCurrent()
+    ){
+
+      return;
+    }
 
 
     const sdpResponse =
@@ -6940,8 +7113,24 @@ async function startLiveConversation(){
       );
 
 
+    if(
+      !connectionIsCurrent()
+    ){
+
+      return;
+    }
+
+
     const answerSdp =
       await sdpResponse.text();
+
+
+    if(
+      !connectionIsCurrent()
+    ){
+
+      return;
+    }
 
 
     if(
@@ -6966,7 +7155,8 @@ async function startLiveConversation(){
     }
 
 
-    await pc.setRemoteDescription({
+    await activePeerConnection
+      .setRemoteDescription({
 
       type:"answer",
 
@@ -6977,6 +7167,13 @@ async function startLiveConversation(){
   }catch(
     error
   ){
+
+    if(
+      !connectionIsCurrent()
+    ){
+
+      return;
+    }
 
     console.error(
       "Sol Live Fehler:",

@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-025-webrtc-mouth-v3";
+const CACHE_VERSION = "sol-holo-026-samsung-lip-sync-v3-1";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
