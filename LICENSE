@@ -1,247 +1,199 @@
 SOL HOLO – LICENSE AND USAGE TERMS
 
-Version: 1.1
+Version: 2.1
 Stand: 29.08.2026
-Vorherige Fassung: Version 1.0 vom 13.08.2026 (über die Git-Historie nachvollziehbar)
+Aktuelle konsolidierte Fassung. Frühere Fassungen bleiben über die Git-Historie nachvollziehbar.
 
 Copyright © 2026 Pamela Nitschke
 All rights reserved, soweit gesetzlich zulässig.
 
 ---
 
-1. Grundgedanke
+1. Grundgedanke und Geltungsbereich
 
-Teile der Entwicklung von Sol Holo werden öffentlich dokumentiert, um den Entwicklungsweg transparent und nachvollziehbar darzustellen.
+Sol Holo / SH♾️ ist ein eigenständig dokumentiertes Projekt von Pamela Nitschke, das unter Nutzung verschiedener technischer Werkzeuge, Dienste und Drittanbieter-Technologien entwickelt wird.
 
-Eine öffentliche Dokumentation bedeutet keine Freigabe geschützter Inhalte, Codes, Konzepte oder sonstiger Rechte zur freien Nutzung.
+Teile der Entwicklung werden öffentlich dokumentiert, um den Entwicklungsweg transparent und nachvollziehbar darzustellen.
 
-Das Projekt soll Zusammenarbeit, Weiterentwicklung und die sinnvolle Nutzung technischer Möglichkeiten ermöglichen.
+Die öffentliche Dokumentation oder öffentliche Bereitstellung des Repositorys bedeutet keine allgemeine Freigabe geschützter Projektbestandteile zur freien Nutzung und insbesondere keine automatische Open-Source-Lizenzierung des gesamten Projekts.
 
-Dabei gilt:
+Diese Bedingungen gelten ausschließlich für diejenigen Inhalte und Bestandteile von Sol Holo, an denen Pamela Nitschke die entsprechenden Rechte besitzt oder über die sie rechtlich verfügen darf.
 
-Was bereits vor Sol Holo existierte, wird durch Sol Holo nicht als eigene Entwicklung beansprucht.
-
-Eigene geschützte Entwicklungen und eigener geschützter Code bleiben bei ihren jeweiligen Rechteinhabern.
-
-Andere können geschützte Bestandteile von Sol Holo nach vorheriger Abstimmung und Genehmigung für eigene oder andere Projekte verwenden und weiterentwickeln.
+Gesetzlich erlaubte Nutzungen, zwingende Rechte aus Plattformbedingungen sowie Rechte aus anwendbaren Drittanbieter- oder Open-Source-Lizenzen bleiben unberührt.
 
 ---
 
-2. Geltungsbereich
+2. Bestehende Technologien und Rechte Dritter
 
-Diese Bedingungen gelten für Inhalte des Projekts Sol Holo, soweit Pam daran die entsprechenden Rechte besitzt.
+Sol Holo verwendet, verbindet oder dokumentiert möglicherweise bereits bestehende Technologien und Bestandteile, darunter insbesondere:
 
-Sol Holo verwendet oder verbindet möglicherweise bereits bestehende:
-
-- Technologien
 - Programmiersprachen
 - Standards
 - APIs
 - Bibliotheken
 - Frameworks
 - Betriebssystemfunktionen
-- KI-Systeme
+- KI-Systeme und KI-Dienste
 - Entwicklungswerkzeuge
 - Geräteplattformen
 - Protokolle
+- Open-Source-Software
+- Cloud- und Hosting-Dienste
 
-An diesen bereits vorhandenen Bestandteilen werden keine eigenen Rechte beansprucht.
+An solchen bereits bestehenden Technologien, Werken, Marken, Softwarebestandteilen oder sonstigen Rechten Dritter werden durch Sol Holo keine zusätzlichen eigenen Rechte beansprucht.
 
-Die Rechte und Lizenzbedingungen ihrer jeweiligen Rechteinhaber bleiben vollständig bestehen.
+Maßgeblich bleiben die jeweiligen Lizenzen, Nutzungsbedingungen, Markenrichtlinien und sonstigen Rechte der jeweiligen Rechteinhaber.
 
 ---
 
-3. Eigene Entwicklungen von Pam
+3. OpenAI und andere Technologieanbieter
 
-Von Pam selbst geschaffene und rechtlich geschützte Bestandteile von Sol Holo bleiben – soweit Pam die entsprechenden Rechte daran besitzt – unter ihrer Kontrolle.
+Im Entwicklungsprozess können unter anderem OpenAI API, ChatGPT, Codex sowie Technologien und Dienste weiterer Anbieter genutzt werden.
+
+Die Nennung oder Nutzung eines Unternehmens, Produkts, Dienstes, einer API oder Technologie beschreibt ausschließlich die tatsächliche technische Nutzung oder Entwicklungsunterstützung.
+
+Sie bedeutet ohne eine gesonderte ausdrückliche Vereinbarung insbesondere nicht, dass der jeweilige Anbieter:
+
+- Mitentwickler oder Mitinhaber von Sol Holo / SH♾️ ist,
+- Geschäftspartner oder Vertragspartner des Projekts ist,
+- Sponsor oder Investor ist,
+- das Projekt zertifiziert, unterstützt oder empfohlen hat,
+- Verantwortung für Aussagen, Ziele oder Inhalte des Projekts übernimmt.
+
+Alle Marken, Produktnamen und Kennzeichen verbleiben bei ihren jeweiligen Rechteinhabern.
+
+---
+
+4. Eigene geschützte Projektbestandteile
+
+Von Pamela Nitschke selbst geschaffene und rechtlich geschützte Bestandteile von Sol Holo verbleiben – soweit entsprechende Rechte bestehen – bei Pamela Nitschke.
 
 Dazu können insbesondere gehören:
 
 - eigener Quellcode
 - eigene technische Implementierungen
-- eigene Projektstrukturen
-- eigene Dokumentationen
-- eigene Texte
+- eigene Projekt- und Modulstrukturen
+- eigene Dokumentationen und Texte
 - eigene Grafiken und Gestaltungselemente
 - eigene technische Ausarbeitungen
-- eigene Kombinationen und Anordnungen von Projektbestandteilen, soweit diese rechtlich geschützt sind
+- eigene Daten- und Organisationsstrukturen
+- eigene Auswahl, Strukturierung und Anordnung von Projektbestandteilen, soweit diese rechtlich geschützt sind
 
-Allgemeine Ideen, mathematische Prinzipien, technische Standards, allgemein bekannte Verfahren oder andere rechtlich frei verwendbare Konzepte werden dadurch nicht als exklusives Eigentum beansprucht.
-
----
-
-4. Eigener Quellcode von Sol Holo
-
-Der für Sol Holo eigenständig entwickelte Quellcode ist ein eigener Bestandteil des Projekts.
-
-Soweit Pam an diesem Code Urheberrechte oder andere Schutzrechte zustehen, verbleiben diese Rechte bei Pam.
-
-Dies kann insbesondere umfassen:
-
-- von Pam selbst geschriebenen Code
-- von Pam entworfene und implementierte Funktionen
-- eigene technische Lösungen
-- eigene Programmstrukturen
-- eigene Verknüpfungen verschiedener Sol-Holo-Module
-- von Pam wesentlich bearbeiteten oder weiterentwickelten Code
-- eigene Auswahl, Strukturierung und Integration von Codebestandteilen, soweit diese rechtlich geschützt sind
-
-Die Veröffentlichung dieses Codes in einem öffentlichen Repository stellt allein keine Übertragung dieser Rechte dar.
+Allgemeine Ideen, mathematische Prinzipien, technische Standards, allgemein bekannte Verfahren, gemeinfreie Inhalte oder andere rechtlich frei verwendbare Konzepte werden dadurch nicht als ausschließliches Eigentum beansprucht.
 
 ---
 
-5. KI-unterstützter Code und KI-Unterstützung
+5. KI-Unterstützung und KI-generierte Inhalte
 
-Bei der Entwicklung von Sol Holo können ChatGPT und andere KI-Systeme als Werkzeuge zur Unterstützung eingesetzt werden.
+Bei der Entwicklung von Sol Holo können KI-Systeme als Werkzeuge zur Unterstützung eingesetzt werden, beispielsweise für Planung, Architektur, Programmierung, Codeanalyse, Fehlersuche, Dokumentation, Überarbeitung und technische Lösungswege.
 
-Dies kann beispielsweise betreffen:
+Für KI-unterstützt oder KI-generiert entstandene Inhalte werden ausschließlich diejenigen Rechte beansprucht, die Pamela Nitschke nach dem jeweils anwendbaren Recht tatsächlich zustehen oder wirksam übertragen wurden.
 
-- Planung
-- Architektur
-- Programmierung
-- Fehlersuche
-- Dokumentation
-- Überarbeitung von Code
-- Entwicklung technischer Lösungswege
+Die Nutzung eines KI-Systems führt nicht dazu, dass bereits bestehender fremder Code, fremde Werke, Marken oder Technologien Eigentum von Pamela Nitschke werden.
 
-Für KI-unterstützt entstandenen Code oder andere KI-unterstützte Inhalte werden nur diejenigen Rechte beansprucht, die Pam nach dem jeweils anwendbaren Recht tatsächlich zustehen.
-
-Die Verwendung eines KI-Systems führt insbesondere nicht dazu, dass bereits bestehender fremder Code, fremde Werke oder Technologien Dritter zu Pams Eigentum werden.
+Soweit KI-Ausgaben Bestandteile enthalten, für die Rechte oder Lizenzbedingungen Dritter relevant sind, bleiben diese Rechte und Bedingungen unberührt.
 
 ---
 
-6. Fremder Code
+6. Fremder Code und Open Source
 
 Fremder Code bleibt hinsichtlich seiner Rechte fremder Code.
 
-Wird in Sol Holo Code aus:
+Wird Code aus Open-Source-Projekten, Bibliotheken, Frameworks, SDKs, Beispielprojekten, externen Repositories oder anderen Quellen verwendet, gelten hierfür weiterhin die jeweils anwendbaren Lizenzbedingungen.
 
-- Open-Source-Projekten
-- Bibliotheken
-- Frameworks
-- SDKs
-- Beispielprojekten
-- externen Repositories
-- oder anderen Quellen
-
-verwendet, gelten dafür weiterhin die jeweiligen Lizenzbedingungen.
-
-EIGENER SOL-HOLO-CODE
-→ Rechte bei Pam, soweit sie Pam rechtlich zustehen
+EIGENER GESCHÜTZTER SOL-HOLO-CODE
+→ Rechte bei Pamela Nitschke, soweit sie ihr rechtlich zustehen.
 
 FREMDER CODE
-→ Rechte beim jeweiligen Rechteinhaber
+→ Rechte beim jeweiligen Rechteinhaber.
 
 OPEN-SOURCE-CODE
-→ jeweilige Open-Source-Lizenz gilt
+→ Die jeweilige Open-Source-Lizenz gilt.
 
-KI-UNTERSTÜTZTER CODE
-→ Rechte werden nur beansprucht,
-  soweit sie Pam rechtlich zustehen
+KI-UNTERSTÜTZTER ODER KI-GENERIERTER CODE
+→ Rechte werden nur beansprucht, soweit sie Pamela Nitschke tatsächlich zustehen; Rechte und Lizenzen Dritter bleiben unberührt.
 
----
-
-7. Öffentliche Einsicht
-
-Das Sol-Holo-Repository darf öffentlich eingesehen werden.
-
-Die öffentliche Sichtbarkeit bedeutet jedoch nicht automatisch, dass sämtliche geschützten Bestandteile ohne weitere Erlaubnis:
-
-- kopiert
-- übernommen
-- verändert
-- veröffentlicht
-- weitergegeben
-- verkauft
-- oder kommerziell genutzt
-
-werden dürfen.
-
-Gesetzlich ohnehin erlaubte Nutzungen bleiben davon unberührt.
+Bei einem Widerspruch zwischen diesen Sol-Holo-Bedingungen und einer zwingend anzuwendenden Fremdlizenz gelten für den betreffenden fremden Bestandteil die Bedingungen der Fremdlizenz.
 
 ---
 
-8. Nutzung für andere Projekte
+7. Öffentliche GitHub-Veröffentlichung und keine allgemeine Open-Source-Freigabe
+
+Soweit Sol Holo über GitHub öffentlich bereitgestellt wird, gelten zusätzlich die jeweils anwendbaren GitHub-Nutzungsbedingungen.
+
+Die öffentliche Sichtbarkeit kann innerhalb der von GitHub vorgesehenen Funktionen insbesondere das Anzeigen, Abrufen oder Forken des Repositorys ermöglichen.
+
+Diese plattformbedingten Möglichkeiten stellen keine darüber hinausgehende allgemeine Lizenz zur freien kommerziellen oder sonstigen Nutzung geschützter Sol-Holo-Bestandteile dar.
+
+Soweit einzelne Sol-Holo-Bestandteile ausdrücklich unter einer gesonderten Open-Source-Lizenz veröffentlicht werden, wird dies gesondert kenntlich gemacht.
+
+---
+
+8. Nutzung geschützter Sol-Holo-Bestandteile für andere Projekte
 
 Zusammenarbeit und Weiterentwicklung sind ausdrücklich erwünscht.
 
-Wer geschützte Bestandteile von Sol Holo für ein eigenes oder anderes Projekt verwenden möchte, kann dafür eine Genehmigung von Pam erhalten.
+Wer geschützte Sol-Holo-Bestandteile außerhalb einer ohnehin gesetzlich, vertraglich oder durch eine Fremdlizenz erlaubten Nutzung für ein eigenes oder anderes Projekt verwenden möchte, kann hierfür eine Genehmigung von Pamela Nitschke erhalten.
 
-Dies kann insbesondere betreffen:
+Eine solche Genehmigung kann insbesondere festlegen:
 
-- Quellcode
-- einzelne Funktionen
-- technische Implementierungen
-- Dokumentationen
-- Projektstrukturen
-- andere geschützte Sol-Holo-Bestandteile
+- welcher Bestandteil verwendet werden darf
+- für welches Projekt die Genehmigung gilt
+- ob Änderungen und Weiterentwicklungen zulässig sind
+- ob Veröffentlichung oder Weitergabe zulässig ist
+- ob kommerzielle Nutzung zulässig ist
+- ob eine Namensnennung erforderlich ist
+- ob Weiterentwicklungen geteilt werden sollen
+- für welchen Zeitraum die Genehmigung gilt
 
-Voraussetzung ist eine vorherige Abstimmung und entsprechende Genehmigung durch Pam, soweit für die betreffende Nutzung eine Genehmigung erforderlich ist.
+Eine Genehmigung für ein bestimmtes Projekt bedeutet keine automatische Genehmigung für andere Projekte.
 
----
-
-9. Individuelle Genehmigung
-
-Eine Genehmigung kann abhängig vom jeweiligen Projekt individuell festgelegt werden.
-
-Dabei kann beispielsweise vereinbart werden:
-
-- welcher Code oder Bestandteil verwendet werden darf
-- für welches Projekt die Nutzung erfolgt
-- ob Änderungen erlaubt sind
-- ob Weiterentwicklung erlaubt ist
-- ob Veröffentlichung erlaubt ist
-- ob Weitergabe erlaubt ist
-- ob kommerzielle Nutzung erlaubt ist
-- ob eine Namensnennung erfolgen soll
-- ob Weiterentwicklungen mit Sol Holo geteilt werden sollen
-
-Eine Genehmigung für ein bestimmtes Projekt bedeutet nicht automatisch eine Genehmigung für andere Projekte.
+Eine Genehmigung sollte zu Nachweiszwecken möglichst in Textform dokumentiert werden.
 
 ---
 
-10. Rechte am ursprünglichen Code
+9. Keine automatische Rechteübertragung
 
-Eine Genehmigung zur Nutzung oder Veränderung eines geschützten Sol-Holo-Codebestandteils überträgt nicht automatisch die Rechte am ursprünglichen Code.
+Allein durch:
 
-SOL-HOLO-CODE
-      ↓
-Genehmigung für Projekt X
-      ↓
-Projekt X darf vereinbarten Code nutzen
-      ↓
-ursprüngliche Rechte bleiben bestehen
+- das Lesen oder Abrufen des Repositorys
+- einen Download
+- einen Fork
+- das Erstellen einer technisch zulässigen Kopie
+- das Beobachten der Entwicklung
+- einen Beitrag zum Projekt
+- die öffentliche Verfügbarkeit
+- oder eine Genehmigung zur Nutzung einzelner Bestandteile
 
-Andere Vereinbarungen können ausdrücklich getroffen werden.
+werden keine darüber hinausgehenden Rechte übertragen, die nicht bereits gesetzlich bestehen, sich aus anwendbaren Plattform- oder Drittanbieterbedingungen ergeben oder ausdrücklich eingeräumt wurden.
+
+Eine Genehmigung zur Nutzung oder Veränderung eines geschützten Sol-Holo-Bestandteils überträgt insbesondere nicht automatisch bestehende Rechte am ursprünglichen Bestandteil.
 
 ---
 
-11. Beiträge anderer Entwickler
+10. Beiträge anderer Personen
 
 Andere Personen können zukünftig an Sol Holo mitarbeiten.
 
-Dabei soll vor der dauerhaften Aufnahme größerer fremder Beiträge geklärt werden, unter welchen Bedingungen diese verwendet werden dürfen.
+Vor der dauerhaften Aufnahme wesentlicher fremder Beiträge soll geklärt und möglichst dokumentiert werden, unter welchen Bedingungen diese Beiträge verwendet, verändert und weitergegeben werden dürfen.
 
-Die Mitarbeit an Sol Holo bedeutet nicht automatisch, dass sämtliche Rechte eines Beitragenden auf Pam übertragen werden.
+Die Mitarbeit an Sol Holo führt nicht automatisch zu einer Übertragung sämtlicher Rechte der beitragenden Person auf Pamela Nitschke.
 
-Ebenso erhält ein Beitragender nicht automatisch Rechte an allen übrigen Bestandteilen von Sol Holo.
+Umgekehrt erhält eine beitragende Person durch ihre Mitarbeit nicht automatisch Rechte an allen übrigen Bestandteilen von Sol Holo.
 
 ---
 
-12. Persönliche digitale Identität von Pam
+11. Persönliche digitale Identität von Pamela Nitschke
 
-Von der Software- und Projektnutzung vollständig getrennt wird Pams persönliche digitale Identität behandelt.
+Die persönliche digitale Identität von Pamela Nitschke wird von der Softwarelizenz und der technischen Nutzung von Sol Holo ausdrücklich getrennt behandelt.
 
-Diese Nutzungsregel erteilt keine Erlaubnis, Pams persönliche oder identitätsbezogene Daten für einen eigenen Avatar, digitalen Klon, ein KI-Profil oder eine andere digitale Identität zu verwenden.
+Diese Nutzungsbedingungen erteilen keine Erlaubnis, personenbezogene oder identitätsbezogene Daten von Pamela Nitschke als Grundlage für einen fremden digitalen Klon, Sprachklon, KI-Agenten, KI-Charakter, digitalen Zwilling, Identitätssimulator oder ein vergleichbares digitales Profil zu verwenden.
 
-Dazu gehören insbesondere:
+Dies betrifft insbesondere:
 
-- Pams Stimme
-- Stimmprofil
-- Gesicht
-- Abbild
-- persönliche Fotos
-- persönliche Videos
+- Stimme und Stimmprofil
+- Gesicht und Abbild
+- persönliche Fotos und Videos
 - biometrische Merkmale
 - Bewegungs- und Gestikdaten
 - persönliche Erinnerungen
@@ -249,133 +201,74 @@ Dazu gehören insbesondere:
 - persönliche Kommunikationsinhalte
 - persönliches Sol-Memory
 - digitales Pam-Profil
+- sonstige personenbezogene oder identitätsbezogene Daten
+
+Gesetzlich bestehende Datenschutz-, Persönlichkeits-, Bild-, Stimm- und sonstige Rechte bleiben unberührt.
 
 ---
 
-13. Code-Nutzung ist keine Identitätsfreigabe
+12. Code-Nutzung ist keine Identitätsfreigabe
 
-Eine Genehmigung zur Verwendung von Sol-Holo-Code bedeutet ausdrücklich nicht:
+Eine Genehmigung zur Verwendung technischer Bestandteile von Sol Holo bedeutet ausdrücklich nicht:
 
 CODE DARF VERWENDET WERDEN
           ≠
-PAMS IDENTITÄT DARF VERWENDET WERDEN
+PAMELA NITSCHKES IDENTITÄT DARF VERWENDET WERDEN
 
-Andere Projekte können nach entsprechender Genehmigung technische Bestandteile von Sol Holo verwenden, ohne dadurch irgendeine Berechtigung zur Nutzung von Pams persönlicher digitaler Identität zu erhalten.
+Eine technische Nutzungsgenehmigung beinhaltet insbesondere keine automatische Genehmigung zur Verwendung von Stimme, Gesicht, Abbild, Biometrie, Erinnerungen, persönlichen Daten, Kommunikationsinhalten, Sol-Memory oder digitalem Pam-Profil.
 
----
-
-14. Eigene digitale Klone anderer Personen
-
-Die technische Grundlage von Sol Holo kann nach vorheriger Abstimmung und Genehmigung gegebenenfalls auch für andere Projekte verwendet werden.
-
-Wenn damit ein digitales Abbild einer anderen Person entwickelt wird, müssen die erforderlichen Rechte, Einwilligungen und Datenschutzregeln für diese Person unabhängig von Pam und ihrem digitalen Profil geklärt werden.
-
-Pams persönliche Daten dürfen dafür nicht als Identitätsgrundlage verwendet werden.
+Eine hierfür erforderliche Einwilligung oder sonstige Rechtsgrundlage muss unabhängig davon bestehen.
 
 ---
 
-15. Drittanbieter und externe Dienste
+13. Digitale Repräsentationen anderer Personen
 
-Sol Holo kann Dienste und Technologien Dritter verwenden.
+Technische Bestandteile von Sol Holo können nach entsprechender Genehmigung gegebenenfalls für Projekte verwendet werden, die eine digitale Repräsentation einer anderen Person entwickeln.
 
-Dazu können beispielsweise gehören:
+Die hierfür erforderlichen Einwilligungen, Persönlichkeitsrechte, Datenschutzvorgaben, Nutzungsrechte, Bildrechte, Stimmrechte und sonstigen gesetzlichen Voraussetzungen müssen für die betreffende Person eigenständig geklärt werden.
 
-- Android
-- KI-Anbieter
-- APIs
-- Cloud-Dienste
-- Entwicklungsplattformen
-- Smart-Home-Systeme
-- Wearables
-- Open-Source-Bibliotheken
+Eine Genehmigung zur Nutzung von Sol-Holo-Technologie ersetzt diese Voraussetzungen nicht.
 
-Für diese Bestandteile gelten die Bedingungen ihrer jeweiligen Anbieter und Rechteinhaber.
-
-Diese Sol-Holo-Nutzungsbedingungen ersetzen diese fremden Lizenzen nicht.
+Daten von Pamela Nitschke dürfen dafür nicht automatisch als Identitätsgrundlage verwendet werden.
 
 ---
 
-16. Keine automatische Rechteübertragung
+14. Drittanbieter-Hinweise
 
-Allein durch:
+Ergänzende technische Zuordnungen und Hinweise zu verwendeten Drittanbieter-Technologien enthält `THIRD_PARTY_NOTICES.md`.
 
-- das Lesen des Repositorys
-- einen Download
-- einen Fork
-- das Erstellen einer Kopie
-- das Beobachten der Entwicklung
-- einen Beitrag zum Projekt
-- oder die öffentliche Verfügbarkeit
+Allgemeine rechtliche Abgrenzungen enthält `RECHTLICHER_HINWEIS.md`.
 
-werden keine zusätzlichen Rechte übertragen, die nicht bereits gesetzlich bestehen oder ausdrücklich eingeräumt wurden.
+Diese Dokumente ersetzen keine Original-Lizenztexte oder Nutzungsbedingungen fremder Software, Plattformen oder Dienste.
+
+Erforderliche Copyright-, Lizenz-, NOTICE- oder Attributionshinweise Dritter sind entsprechend der jeweils anwendbaren Lizenz zu erhalten und bereitzustellen.
 
 ---
 
-17. Weiterentwicklung ausdrücklich erwünscht
+15. Änderungen und frühere Fassungen
 
-Sol Holo soll keine technische Sackgasse sein.
+Sol Holo wird weiterentwickelt. Diese Bedingungen können für zukünftige Fassungen ergänzt oder verändert werden.
 
-Wenn Bestandteile des Projekts für eine sinnvolle andere Entwicklung hilfreich sind, ist eine entsprechende Nutzung grundsätzlich willkommen.
+Frühere Fassungen bleiben über die Git-Historie nachvollziehbar.
 
-Das Prinzip lautet:
-
-INTERESSE
-   ↓
-ABSTIMMUNG
-   ↓
-GENEHMIGUNG
-   ↓
-NUTZUNG / WEITERENTWICKLUNG
-
-Dadurch soll Zusammenarbeit möglich sein, ohne Rechte an eigenen geschützten Entwicklungen pauschal aufzugeben.
+Bereits ausdrücklich erteilte Nutzungsgenehmigungen werden durch eine spätere Fassung nicht automatisch rückwirkend aufgehoben oder erweitert; maßgeblich bleibt die jeweilige Vereinbarung und das anwendbare Recht.
 
 ---
 
-18. Verhältnis zu anderen Sol-Holo-Dokumenten
-
-Diese Nutzungsbedingungen regeln die Nutzung der geschützten Projektbestandteile.
-
-Weitere Bereiche werden getrennt dokumentiert:
-
-- "ENDZIEL.md" – Ziel von Sol Holo
-- "SCHNITTSTELLEN.md" – technische Verbindungen
-- "BERECHTIGUNGEN.md" – Zugriffsregeln
-- "SECURITY.md" – technische Sicherheit
-- "DATENSCHUTZ.md" – Umgang mit persönlichen Daten
-- "VERTRAUENSPERSONEN.md" – festgelegte Vertrauens- und Entscheidungsrollen
-
-Diese Dokumente ersetzen keine Lizenzen fremder Softwarebestandteile.
-
----
-
-19. Änderungen und zukünftige Versionen
-
-Sol Holo wird weiterentwickelt.
-
-Für zukünftige Versionen können diese Nutzungsbedingungen ergänzt oder verändert werden.
-
-Bereits ausdrücklich erteilte Nutzungsgenehmigungen sollen dadurch nicht rückwirkend aufgehoben werden, soweit für die jeweilige Genehmigung nichts anderes vereinbart wurde.
-
----
-
-20. Grundsatz
-
-Sol Holo verfolgt folgenden Grundgedanken:
+16. Grundsatz
 
 Bestehendes bleibt bei seinen bisherigen Rechteinhabern.
 
 Fremder Code bleibt unter seiner jeweiligen Lizenz.
 
-Eigener geschützter Sol-Holo-Code bleibt bei seinem Rechteinhaber.
+Eigene rechtlich geschützte Sol-Holo-Bestandteile verbleiben bei ihrem jeweiligen Rechteinhaber.
 
-KI-Unterstützung wird transparent berücksichtigt.
+KI-Unterstützung wird transparent berücksichtigt, ohne daraus Rechte an fremden Inhalten abzuleiten.
 
-Zusammenarbeit ist ausdrücklich erwünscht.
+Öffentliche Dokumentation bedeutet keine pauschale Freigabe.
 
-Weiterentwicklung ist ausdrücklich erwünscht.
+Die Nennung oder Nutzung fremder Technologien bedeutet keine behauptete Partnerschaft oder Mitentwicklung.
 
-Geschützte Sol-Holo-Bestandteile können nach vorheriger Abstimmung und Genehmigung auch für andere Projekte genutzt werden.
+Zusammenarbeit und Weiterentwicklung sind willkommen, soweit dafür erforderliche Rechte und Genehmigungen vorliegen.
 
-Eine Codefreigabe ist niemals automatisch eine Freigabe von Pams persönlicher digitaler Identität.
-
-Pams persönliche digitale Identität bleibt getrennt geschützt.
+Eine Codefreigabe ist niemals automatisch eine Freigabe der persönlichen digitalen Identität von Pamela Nitschke.
