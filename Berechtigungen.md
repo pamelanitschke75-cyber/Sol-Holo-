@@ -1,7 +1,7 @@
 SOL HOLO – BERECHTIGUNGEN
 
-Version: 1.0
-Stand: 13.08.2026
+Version: 1.1
+Stand: 30.08.2026
 Status: Technische Planung
 
 Grundregel
@@ -45,6 +45,7 @@ Bereich| Zugriff| Warum benötigt?| Wann?| Ohne Freigabe
 📍 Standort| Standortdaten| Ortsbezogene Funktionen| Nur wenn benötigt| Keine Standortfunktionen
 🧭 Navigation| Karten-/Navigations-App| Ziel übergeben| Bei Navigationsauftrag| Keine Navigation
 📡 Bluetooth| Geräte in der Nähe| Watch und andere Geräte| Beim Verbinden| Keine Bluetooth-Verbindung
+📶 NFC| kryptografisch geschützter Sicherheitsschlüssel| zusätzlicher unabhängiger Identitätsnachweis| bei Einrichtung oder erhöhter Sicherheitsprüfung| andere sichere Nachweise bleiben möglich
 ⌚ Wear OS| Smartwatch-Daten| Sol mit Watch verbinden| Wenn Watch-Funktion aktiv| Sol bleibt auf Smartphone
 📱 Sensoren| benötigte Sensorwerte| Bewegung/Lage/AR| Bei entsprechender Funktion| Funktion eingeschränkt
 ❤️ Health Connect| ausgewählte Datentypen| Freigegebene Health-Daten| Nach separater Zustimmung| Keine Health-Daten
@@ -187,6 +188,43 @@ Stimme, Bilder, Erinnerungen, persönliche Daten und andere Merkmale werden als 
 
 ---
 
+Identitätsschutz und NFC-Sicherheitsnachweis
+
+Sol Holo soll sich nicht auf ein einzelnes körperliches Merkmal als Identitätsnachweis verlassen.
+
+Gesicht, Auge/Iris, Fingerabdruck und Stimme können durch Alltag, Alter, Krankheit, Unfall, Operation oder andere körperliche Veränderungen zeitweise oder dauerhaft anders erkannt werden. Ähnliche Stimmen verschiedener Personen dürfen ebenfalls nicht als verlässlicher alleiniger Identitätsnachweis gelten.
+
+Grundsatz:
+
+Eine Veränderung des menschlichen Körpers darf nicht dazu führen, dass die berechtigte Person dauerhaft aus ihrem eigenen Sol Holo ausgesperrt wird.
+
+Deshalb soll der Identitätsschutz mehrere voneinander unabhängige Kategorien kombinieren:
+
+- Wissen: z. B. PIN oder Passwort,
+- Besitz: z. B. registriertes Gerät oder kryptografisch geschützter Sicherheitsschlüssel,
+- Biometrie: z. B. Fingerabdruck als zusätzlicher möglicher Nachweis,
+- gesonderter sicherer Wiederherstellungsweg für Notfälle.
+
+Für die Zukunft wird ein kryptografisch geschützter NFC-Sicherheitsschlüssel als zusätzlicher unabhängiger Identitätsnachweis vorgesehen.
+
+Ein einfacher NFC-Tag oder NFC-Aufkleber reicht dafür ausdrücklich nicht aus. Der NFC-Nachweis darf Sol Holo nicht allein freischalten, sondern wird mit mindestens einem weiteren unabhängigen Sicherheitsfaktor kombiniert.
+
+Beispiel:
+
+NFC-SICHERHEITSSCHLÜSSEL
+        +
+PIN / anderer starker Nachweis
+        ↓
+SOL CONTROL
+        ↓
+IDENTITÄTSPRÜFUNG
+        ↓
+ZUGANG ODER STOP
+
+Die NFC-Erkennung wurde am verwendeten Testgerät bereits mehrfach praktisch ausgelöst. Dies bestätigt die grundsätzliche NFC-Erkennung des Geräts. Die Nutzung eines kryptografisch geschützten NFC-Sicherheitsschlüssels als Sol-Holo-Identitätsnachweis ist davon getrennt und wird als zukünftige Sicherheitsfunktion technisch umgesetzt und getestet.
+
+---
+
 SOL CONTROL
 
 "SOL CONTROL" ist die zentrale technische Kontrollschicht.
@@ -227,6 +265,7 @@ Erst danach wird die Funktion technisch angebunden.
 Status
 
 🟨 Berechtigungskonzept angelegt
+🟨 NFC-Sicherheitsnachweis als zukünftige Mehrfaktor-Funktion ergänzt
 
 Die konkreten Android-Berechtigungen werden während der Implementierung der jeweiligen Schnittstellen ergänzt und technisch getestet.
 
