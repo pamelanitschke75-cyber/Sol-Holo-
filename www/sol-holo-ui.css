@@ -2,20 +2,22 @@
 
 /*
 ==========================================================
-CHAT-SCHREIBFELD UNTEN
-Das Schreibfeld bleibt im Chat direkt über der unteren Navigation.
+CHAT-SCHREIBFELD ÜBER DEM HOLO-KOPF
+Das Schreibfeld sitzt im Chat sichtbar direkt oberhalb des
+Kopfes und bleibt von der unteren Navigation getrennt.
 ==========================================================
 */
 
 #chatView{
-  padding-bottom:210px;
+  padding-bottom:110px;
 }
 
 #chatView #controls{
   position:fixed;
   z-index:690;
   left:50%;
-  bottom:calc(84px + env(safe-area-inset-bottom));
+  top:clamp(320px,44svh,390px);
+  bottom:auto;
   transform:translateX(-50%);
   width:min(100%,480px);
   margin:0;
@@ -36,12 +38,13 @@ Das Schreibfeld bleibt im Chat direkt über der unteren Navigation.
 
 @media(max-width:520px){
   #chatView{
-    padding-bottom:205px;
+    padding-bottom:105px;
   }
 
   #chatView #controls{
     width:100%;
-    bottom:calc(82px + env(safe-area-inset-bottom));
+    top:clamp(310px,43svh,370px);
+    bottom:auto;
     padding-left:10px;
     padding-right:10px;
   }
