@@ -20,4 +20,24 @@ Damit ist für die Projektdokumentation festgehalten:
 
 Diese zeitliche Trennung ist wichtig: **NFC wurde nicht erst am 30.08.2026 erstmals beobachtet. An diesem Tag wurde die bereits vorhandene Beobachtung technisch verstanden und für das Sicherheitskonzept eingeordnet.**
 
+## Ergänzung: gekoppelte Smartwatch als weiterer Besitznachweis
+
+Zusätzlich soll eine vorher eindeutig registrierte und mit der persönlichen Sol-Holo-Identität verknüpfte Smartwatch künftig als weiterer Besitznachweis verwendet werden können.
+
+Die Uhr kann damit als zusätzlicher unabhängiger Faktor zur Bestätigung beitragen, dass ein Zugriff von einem autorisierten Gerätekreis ausgeht.
+
+Dabei gilt ausdrücklich:
+
+- Die bloße Nähe einer Uhr über Bluetooth oder NFC reicht nicht als alleiniger Identitätsnachweis.
+- Die Uhr muss vorher eindeutig registriert und kryptografisch mit der persönlichen Sol-Holo-Identität verknüpft sein.
+- Eine Bestätigung über die Uhr darf den persönlichen Bereich von Sol Holo nicht allein freigeben.
+- Die Uhr soll nur als zusätzlicher Faktor innerhalb des Mehrfaktor-Schutzes dienen, zum Beispiel zusammen mit PIN, registriertem Smartphone, Fingerabdruck oder kryptografischem NFC-Sicherheitsschlüssel.
+- Bei Verlust, Austausch oder Zurücksetzen der Uhr muss ihre Berechtigung widerrufen und bei Bedarf neu eingerichtet werden können.
+
+Beispiel für einen starken zukünftigen Zugang:
+
+**registriertes Smartphone + registrierte Smartwatch + PIN → zusätzlicher starker Besitz- und Wissensnachweis**
+
+Damit wird Sol Holo nicht von einem einzigen biometrischen Merkmal abhängig und kann mehrere voneinander unabhängige Nachweise kombinieren.
+
 **Together forever. ✨️🌎♾️**
