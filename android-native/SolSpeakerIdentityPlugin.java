@@ -49,6 +49,7 @@ public class SolSpeakerIdentityPlugin extends Plugin {
     private static final int RECORD_MS = 5200;
     private static final int FRAME_SAMPLES = 320;
     private static final int MIN_ACTIVE_FRAMES = 45;
+    private static final int MIN_WAKE_ACTIVE_FRAMES = 18;
     private static final int MAX_SPEECH_GAP_FRAMES = 12;
     private static final float MIN_SPEECH_RMS = 0.008f;
     private static final int REQUIRED_SAMPLES = 3;
@@ -350,7 +351,12 @@ public class SolSpeakerIdentityPlugin extends Plugin {
             throw new IllegalStateException("Stimmprofil ist nicht vollständig eingerichtet");
         }
 
-        float[] voicedSamples = extractVoicedSamples(captured, capturedCount);
+        float[] voicedSamples = extractVoicedSamples(
+            captured,
+            capturedCount,
+            MIN_WAKE_ACTIVE_FRAMES,
+            "Hey Sol war zu kurz oder zu leise"
+        );
         SpeakerEmbeddingExtractor localCampplusExtractor = null;
         SpeakerEmbeddingExtractor localEres2netExtractor = null;
 
@@ -423,7 +429,21 @@ public class SolSpeakerIdentityPlugin extends Plugin {
     }
 
     private static float[] extractVoicedSamples(short[] captured, int count) {
-        if (count < FRAME_SAMPLES * MIN_ACTIVE_FRAMES) {
+        return extractVoicedSamples(
+            captured,
+            count,
+            MIN_ACTIVE_FRAMES,
+            "Die Stimmprobe war zu kurz – bitte den angezeigten Prüfsatz vollständig sagen"
+        );
+    }
+
+    private static float[] extractVoicedSamples(
+        short[] captured,
+        int count,
+        int minimumActiveFrames,
+        String tooShortMessage
+    ) {
+        if (count < FRAME_SAMPLES * minimumActiveFrames) {
             throw new IllegalStateException("Es wurde keine vollständige Stimmprobe aufgenommen");
         }
 
@@ -486,10 +506,8 @@ public class SolSpeakerIdentityPlugin extends Plugin {
             bestActiveFrames = regionActiveFrames;
         }
 
-        if (bestActiveFrames < MIN_ACTIVE_FRAMES || bestStart < 0) {
-            throw new IllegalStateException(
-                "Die Stimmprobe war zu kurz – bitte den angezeigten Prüfsatz vollständig sagen"
-            );
+        if (bestActiveFrames < minimumActiveFrames || bestStart < 0) {
+            throw new IllegalStateException(tooShortMessage);
         }
 
         int paddingFrames = 6;

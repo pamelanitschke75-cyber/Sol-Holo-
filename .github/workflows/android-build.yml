@@ -225,6 +225,10 @@ jobs:
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q "SolSpeakerIdentityPlugin.verifyWakeAudio" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          grep -q 'SECURE_WAKE_PHRASE = "Hey Sol"' \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          grep -q "MIN_WAKE_ACTIVE_FRAMES = 18" \
+            android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
           grep -q "Partial text never authorizes a wake" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q "speakerGateReady" \

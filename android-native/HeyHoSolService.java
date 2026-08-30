@@ -57,11 +57,10 @@ public class HeyHoSolService extends Service implements RecognitionListener {
     private static final String CHANNEL_ID = "hey_ho_sol_background";
     private static final int NOTIFICATION_ID = 2408;
     private static final int SECURE_SAMPLE_RATE = 16000;
-    private static final int SECURE_CAPTURE_MS = 5600;
+    private static final int SECURE_CAPTURE_MS = 3200;
     private static final int MIN_SECURE_CAPTURE_BYTES =
-        SECURE_SAMPLE_RATE * 2 * 4500 / 1000;
-    private static final String SECURE_WAKE_SENTENCE =
-        "Hey Sol. Bitte prüfe jetzt genau meine Stimme.";
+        SECURE_SAMPLE_RATE * 2 * 2400 / 1000;
+    private static final String SECURE_WAKE_PHRASE = "Hey Sol";
 
     private static volatile boolean running;
     private static volatile boolean listening;
@@ -409,7 +408,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
             Locale.GERMANY.toLanguageTag()
         );
         ArrayList<String> biasingPhrases = new ArrayList<>();
-        biasingPhrases.add(SECURE_WAKE_SENTENCE);
+        biasingPhrases.add(SECURE_WAKE_PHRASE);
         recognizerIntent.putStringArrayListExtra(
             RecognizerIntent.EXTRA_BIASING_STRINGS,
             biasingPhrases
@@ -523,10 +522,15 @@ public class HeyHoSolService extends Service implements RecognitionListener {
         }
 
         for (String phrase : phrases) {
-            String candidate = segmentedTranscript.length() == 0
-                ? phrase
-                : segmentedTranscript + " " + phrase;
-            String canonicalPhrase = matchingWakePhrase(candidate);
+            String canonicalPhrase = matchingWakePhrase(phrase);
+            if (
+                canonicalPhrase.isEmpty()
+                    && segmentedTranscript.length() > 0
+            ) {
+                canonicalPhrase = matchingWakePhrase(
+                    segmentedTranscript + " " + phrase
+                );
+            }
             if (!canonicalPhrase.isEmpty()) {
                 wakeHandled = true;
                 verifySpeakerBeforeWake(
@@ -564,16 +568,9 @@ public class HeyHoSolService extends Service implements RecognitionListener {
             .trim();
 
         String solName = "(sol|soll|soul|sohl)";
-        String secureSentence =
-            ".*\\bhey\\s+" + solName + "\\b"
-                + ".*\\bbitte\\b"
-                + ".*\\bpr(?:u|ue)f(?:e|t|en)?\\b"
-                + ".*\\bjetzt\\b"
-                + ".*\\bgenau\\b"
-                + ".*\\bmeine\\b"
-                + ".*\\bstimme\\b.*";
+        String secureWakePhrase = "^hey\\s+" + solName + "$";
 
-        if (normalized.matches(secureSentence)) {
+        if (normalized.matches(secureWakePhrase)) {
             return "Hey Sol";
         }
 
@@ -586,7 +583,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
         listening = false;
         speakerVerificationPending = true;
         HeyHoSolPlugin.publishStatusEvent();
-        updateBackgroundNotification("Prüfsatz erkannt · Stimme wird abgeglichen");
+        updateBackgroundNotification("Hey Sol erkannt · Stimme wird abgeglichen");
 
         speakerExecutor.execute(() -> {
             boolean accepted = false;
@@ -907,7 +904,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
         listening = true;
         HeyHoSolPlugin.publishStatusEvent();
         updateBackgroundNotification(
-            "Sag: „" + SECURE_WAKE_SENTENCE + "“"
+            "Sag: „" + SECURE_WAKE_PHRASE + "“"
         );
     }
 
@@ -968,16 +965,16 @@ public class HeyHoSolService extends Service implements RecognitionListener {
         if (speakerVerificationPending || wakeHandled) {
             return;
         }
+        long generation = recognitionGeneration;
         if (segmentedTranscript.length() > 0) {
-            ArrayList<String> phrases = results == null
-                ? null
-                : results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-            if (phrases != null && !phrases.isEmpty()) {
-                segmentedTranscript.append(' ').append(phrases.get(0));
+            if (
+                !handleSegmentedRecognitionResults()
+                    && !handleRecognitionResults(results)
+            ) {
+                discardAudioAndRestart(generation, 350L);
             }
             return;
         }
-        long generation = recognitionGeneration;
         if (!handleRecognitionResults(results)) {
             discardAudioAndRestart(generation, 350L);
         }

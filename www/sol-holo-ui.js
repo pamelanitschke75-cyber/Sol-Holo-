@@ -85,7 +85,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       '<span class="rowIcon">✦</span>' +
       '<span class="rowText">' +
         '<span class="rowTitle">Sol-Weckruf</span>' +
-        '<span class="rowMeta">„Hey Sol. Bitte prüfe jetzt genau meine Stimme.“</span>' +
+        '<span class="rowMeta">„Hey Sol“</span>' +
       '</span>' +
       '<span id="heyHoSolStatus" class="serviceStatus setup">Wird geprüft …</span>' +
     '</button>' +
