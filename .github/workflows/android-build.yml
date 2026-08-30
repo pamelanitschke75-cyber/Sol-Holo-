@@ -262,7 +262,8 @@ jobs:
           unzip -l "$apk" | grep -F "assets/public/third-party/HeadAudio-LICENSE.txt"
           unzip -l "$apk" | grep -F "assets/public/third-party/APACHE-2.0.txt"
           unzip -l "$apk" | grep -F "assets/public/mediapipe/MODIFICATION_NOTICE.txt"
-          unzip -l "$apk" | grep -F "assets/sol-speaker-model.onnx"
+          unzip -l "$apk" | grep -F "assets/sol-speaker-campplus.onnx"
+          unzip -l "$apk" | grep -F "assets/sol-speaker-eres2net.onnx"
           unzip -l "$apk" | grep -F "assets/public/SPEAKER_IDENTITY_SOURCES.txt"
           unzip -p "$apk" assets/public/mediapipe/vision_bundle.mjs \
             | grep -q "SOL HOLO MODIFICATION NOTICE"
@@ -274,6 +275,8 @@ jobs:
             | grep -q "Capacitor Android"
           unzip -p "$apk" assets/public/SPEAKER_IDENTITY_SOURCES.txt \
             | grep -q "357a834f702b80161e5b981182c038e18553c1f2ca752ed6cec2052365d4129b"
+          unzip -p "$apk" assets/public/SPEAKER_IDENTITY_SOURCES.txt \
+            | grep -q "c59158379255ad66e161679cca6af8d52d51e389e3224ab7d7a7baae295c2db5"
 
       - name: Signaturmodus sicher bestimmen
         id: signing_mode
