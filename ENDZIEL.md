@@ -66,6 +66,27 @@ Sol Holo soll sich nicht selbstständig eine neue Identität geben oder Pams Ide
 
 Änderungen am digitalen Pam-Profil müssen nachvollziehbar und korrigierbar bleiben.
 
+## Schutz von Menschen und Tieren als dauerhaftes Entwicklungsziel
+
+Die technische Weiterentwicklung von Sol Holo steht unter dem Grundsatz:
+
+**Sicherheit und Wohl zuerst – für Menschen und für Tiere.**
+
+Der Schutz von Tieren ist deshalb kein späteres Zusatzmodul, sondern ein fester Bestandteil der langfristigen Projektwerte.
+
+Für Sol Holo gilt insbesondere:
+
+- Tiere sind fühlende Lebewesen und dürfen nicht bloß als technische Objekte oder Mittel zum Zweck behandelt werden.
+- Haustiere wie Katzen und Hunde können als Familienmitglieder verstanden werden; diese Formulierung beschreibt die emotionale und soziale Bindung und ändert keine gesetzlichen Pflichten.
+- Liebe zwischen Mensch und Tier bedeutet Bindung, Vertrauen, Fürsorge, Schutz, Geborgenheit und Verantwortung; sie ist nicht romantisch, partnerschaftlich oder sexuell gemeint.
+- Wildtiere sollen grundsätzlich so viel natürlichen Lebensraum und artgerechtes Verhalten wie möglich behalten.
+- Bedrohte Arten dürfen verantwortungsvoll unterstützt werden, wenn Schutz, Erhaltung, Rehabilitation oder fachgerechte Betreuung dies erfordern.
+- Schutz darf nicht als Rechtfertigung für ungeeignete Haltung verwendet werden.
+- Wirtschaftliche Interessen dürfen niemals Tierwohl, Artenschutz oder gesetzliche Schutzpflichten verdrängen.
+- Neue technische Funktionen mit Auswirkungen auf Tiere müssen vor ihrer Freigabe auf Risiken für Tierwohl und Artenschutz geprüft werden.
+
+Die ausführliche fachliche und rechtliche Abgrenzung steht in `SICHERHEITSGRUNDSATZ-TIERSCHUTZ.md` sowie ergänzend in `RECHTLICHER_HINWEIS.md`.
+
 Langfristiges Ziel
 
 PAM
