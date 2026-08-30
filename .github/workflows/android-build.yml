@@ -30,6 +30,7 @@ on:
       - "scripts/generate-third-party-licenses.mjs"
       - "scripts/audit-android-runtime-licenses.mjs"
       - "scripts/install-full-face-rig-assets.mjs"
+      - "scripts/install-speaker-identity.mjs"
       - "scripts/install-whatsapp-driving-mode.mjs"
 
 jobs:
@@ -195,6 +196,21 @@ jobs:
       - name: Sicheren Fahr- und Weckmodus einbinden
         run: node scripts/install-whatsapp-driving-mode.mjs
 
+      - name: Lokale Sprechererkennung in Pam’s Holo einbinden
+        run: node scripts/install-speaker-identity.mjs
+
+      - name: Sprechererkennung in der Original-App prüfen
+        run: |
+          set -Eeuo pipefail
+          test -s android/app/libs/sherpa-onnx-1.13.4.aar
+          test -s android/app/src/main/assets/sol-speaker-model.onnx
+          test -s android/app/src/main/assets/public/SPEAKER_IDENTITY_SOURCES.txt
+          grep -q "registerPlugin(SolSpeakerIdentityPlugin.class)" \
+            android/app/src/main/java/com/solholo/app/MainActivity.java
+          grep -q "sherpa-onnx-1.13.4.aar" android/app/build.gradle
+          grep -q "357a834f702b80161e5b981182c038e18553c1f2ca752ed6cec2052365d4129b" \
+            android/app/src/main/assets/public/SPEAKER_IDENTITY_SOURCES.txt
+
       - name: Mikrofon-Berechtigungen setzen
         run: |
           python - <<'PY'
@@ -241,6 +257,8 @@ jobs:
           unzip -l "$apk" | grep -F "assets/public/third-party/HeadAudio-LICENSE.txt"
           unzip -l "$apk" | grep -F "assets/public/third-party/APACHE-2.0.txt"
           unzip -l "$apk" | grep -F "assets/public/mediapipe/MODIFICATION_NOTICE.txt"
+          unzip -l "$apk" | grep -F "assets/sol-speaker-model.onnx"
+          unzip -l "$apk" | grep -F "assets/public/SPEAKER_IDENTITY_SOURCES.txt"
           unzip -p "$apk" assets/public/mediapipe/vision_bundle.mjs \
             | grep -q "SOL HOLO MODIFICATION NOTICE"
           unzip -p "$apk" assets/public/THIRD_PARTY_LICENSES.txt \
@@ -249,6 +267,8 @@ jobs:
             | grep -q "HeadAudio browser lip-sync components"
           unzip -p "$apk" assets/public/ANDROID_RUNTIME_LICENSES.txt \
             | grep -q "Capacitor Android"
+          unzip -p "$apk" assets/public/SPEAKER_IDENTITY_SOURCES.txt \
+            | grep -q "357a834f702b80161e5b981182c038e18553c1f2ca752ed6cec2052365d4129b"
 
       - name: Signaturmodus sicher bestimmen
         id: signing_mode

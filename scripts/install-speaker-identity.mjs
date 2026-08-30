@@ -16,6 +16,7 @@ const uiFile = join(publicAssets, "sol-holo-ui.js");
 const AAR_URL = "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.4/sherpa-onnx-1.13.4.aar";
 const AAR_SHA256 = "03f9c4df965f21c71269365a7951a7f23b5696fddd093fa318c80d65550ab780";
 const MODEL_URL = "https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/3dspeaker_speech_campplus_sv_en_voxceleb_16k.onnx";
+const MODEL_SHA256 = "357a834f702b80161e5b981182c038e18553c1f2ca752ed6cec2052365d4129b";
 
 async function download(url, target) {
   const response = await fetch(url, { redirect: "follow" });
@@ -43,10 +44,10 @@ if (aarDigest !== AAR_SHA256) {
 
 const modelPath = join(assets, "sol-speaker-model.onnx");
 const modelBytes = await download(MODEL_URL, modelPath);
-if (modelBytes.length < 20_000_000) {
-  throw new Error(`Sprecher-Modell ist unerwartet klein: ${modelBytes.length} Bytes`);
-}
 const modelDigest = sha256(modelBytes);
+if (modelDigest !== MODEL_SHA256) {
+  throw new Error(`Sprecher-Modell Hash stimmt nicht: ${modelDigest}`);
+}
 
 copyFileSync(
   join(root, "android-native", "SolSpeakerIdentityPlugin.java"),
@@ -76,7 +77,7 @@ const sourceText = `SOL HOLO / PAM'S HOLO – LOKALE SPRECHERERKENNUNG\n\n` +
 `sherpa-onnx 1.13.4\nQuelle: ${AAR_URL}\nLizenz: Apache License 2.0\nSHA-256 AAR: ${AAR_SHA256}\n\n` +
 `Speaker-Embedding-Modell: 3dspeaker_speech_campplus_sv_en_voxceleb_16k.onnx\n` +
 `Quelle: ${MODEL_URL}\nModellfamilie: 3D-Speaker / CAMPPlus\nLizenzbasis des 3D-Speaker-Projekts: Apache License 2.0\n` +
-`SHA-256 des in diesem Build geladenen Modells: ${modelDigest}\n\n` +
+`Erwartete und geprüfte SHA-256: ${MODEL_SHA256}\n\n` +
 `Datenschutz: Die Rohaufnahme wird nur im Arbeitsspeicher verarbeitet und nicht als Audiodatei gespeichert.\n` +
 `Das abgeleitete Stimmprofil wird im privaten App-Speicher des Geräts abgelegt. Android-Backup ist für Sol Holo deaktiviert.\n` +
 `Keine Verbindung, Partnerschaft oder Billigung durch Google, Xiaomi, k2-fsa oder ModelScope wird behauptet.\n`;
