@@ -12,3 +12,11 @@ www/mediapipe/
 *.jks
 *.keystore
 *.p12
+
+# Voice recordings and biometric reference audio must stay local/private
+*.m4a
+*.wav
+*.mp3
+*.flac
+*.aac
+*.ogg
