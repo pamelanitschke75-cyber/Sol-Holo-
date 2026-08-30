@@ -24,6 +24,82 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
   currentHeader.insertAdjacentHTML("beforebegin", uiMarkup);
 
+  const memoryQuickCard = document.querySelector(
+    '.quickCard[data-open-view="memory"]'
+  );
+  memoryQuickCard?.insertAdjacentHTML(
+    "afterend",
+    '<button class="quickCard" type="button" data-open-view="notes">' +
+      '<span class="quickIcon">✎</span>' +
+      '<span class="quickTitle">Notizen</span>' +
+      '<span id="notesQuickMeta" class="quickMeta">Dein Notizbuch</span>' +
+      '<span class="quickChevron">›</span>' +
+    '</button>'
+  );
+
+  const memoryNotesRow = Array.from(
+    document.querySelectorAll("#memoryView .actionRow")
+  ).find((row) =>
+    row.querySelector(".rowTitle")?.textContent?.includes("Notizen")
+  );
+  if (memoryNotesRow) {
+    delete memoryNotesRow.dataset.solPrompt;
+    memoryNotesRow.dataset.openView = "notes";
+    const rowMeta = memoryNotesRow.querySelector(".rowMeta");
+    if (rowMeta) {
+      rowMeta.textContent = "Ansehen, neu schreiben, bearbeiten oder löschen";
+    }
+  }
+
+  const notesView = document.createElement("section");
+  notesView.id = "notesView";
+  notesView.className = "appView";
+  notesView.setAttribute("aria-labelledby", "notesViewTitle");
+  notesView.innerHTML = `
+    <div class="subHeader">
+      <button class="iconButton" type="button" data-open-view="home"
+        aria-label="Zurück zur Startseite">‹</button>
+      <div id="notesViewTitle" class="subHeaderTitle">Notizen ✏️</div>
+      <button id="notesVoiceButton" class="iconButton" type="button"
+        aria-label="Notiz mit Sol sprechen">◉</button>
+    </div>
+
+    <div class="notesIntro glassCard">
+      <span class="notesIntroIcon" aria-hidden="true">✎</span>
+      <div>
+        <h3>Dein Notizbuch in Pam’s Holo</h3>
+        <p>Schreib hier direkt – oder sag: „Sol, notiere …“</p>
+      </div>
+    </div>
+
+    <form id="noteComposer" class="noteComposer glassCard">
+      <label for="noteTextInput">Neue Notiz</label>
+      <textarea id="noteTextInput" maxlength="10000" rows="4"
+        placeholder="Was soll Pam’s Holo für dich notieren?"></textarea>
+      <div class="noteComposerFooter">
+        <span>Bleibt in deiner Pam’s-Holo-Original-App auf diesem Handy.</span>
+        <button class="primaryButton" type="submit">Notiz speichern</button>
+      </div>
+    </form>
+
+    <div class="notesToolbar">
+      <strong id="notesCount">0 Notizen</strong>
+      <label class="notesSearch">
+        <span class="srOnly">Notizen durchsuchen</span>
+        <input id="notesSearchInput" type="search" autocomplete="off"
+          placeholder="Notizen durchsuchen …">
+      </label>
+    </div>
+
+    <div id="notesList" class="notesList" aria-live="polite"></div>
+    <div id="notesEmpty" class="notesEmpty glassCard">
+      <span aria-hidden="true">✏️</span>
+      <strong>Noch keine Notiz.</strong>
+      <p>Schreib oben etwas hinein oder sag: „Sol, notiere …“</p>
+    </div>
+  `;
+  solApp.insertBefore(notesView, currentHeader);
+
   const profileCloneImage = document.querySelector("#profileView .profileLogo");
   const profilePhotoButton = document.createElement("button");
   profilePhotoButton.id = "profilePhotoButton";
@@ -179,6 +255,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   const views = {
     home: document.getElementById("homeView"),
     chat: chatView,
+    notes: notesView,
     memory: document.getElementById("memoryView"),
     services: document.getElementById("servicesView"),
     profile: document.getElementById("profileView")
@@ -187,7 +264,14 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   const introKey = "sol-holo-intro-v2-seen";
   const clonePhotoKey = "sol-holo-clone-photo-v1";
   const cloneMouthKey = "sol-holo-clone-mouth-v1";
+  const notesStorageKey = "pams-holo-original-notes-v1";
   const onboarding = document.getElementById("onboardingScreen");
+  const noteComposer = document.getElementById("noteComposer");
+  const noteTextInput = document.getElementById("noteTextInput");
+  const notesSearchInput = document.getElementById("notesSearchInput");
+  const notesList = document.getElementById("notesList");
+  const notesEmpty = document.getElementById("notesEmpty");
+  const notesCount = document.getElementById("notesCount");
   const profilePhotoInput = document.getElementById("profilePhotoInput");
   const profilePhotoActions = document.getElementById("profilePhotoActions");
   const profileMouthButton = document.getElementById("profileMouthButton");
@@ -269,6 +353,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   let phoneListenersRegistered = false;
   let noteImportRunning = false;
   let noteListenerRegistered = false;
+  let personalNotes = [];
   let healthStatus = {
     supported: false,
     readOnly: true,
@@ -287,6 +372,363 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       uiToast.classList.remove("visible");
     }, 4200);
   }
+
+  function normalizeNoteSearchText(value) {
+    return String(value || "")
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase("de-DE")
+      .trim();
+  }
+
+  function noteSecurityWarning(text) {
+    const cleanText = String(text || "");
+    const namedSecret = /\b(?:passwort|password|pin|tan|api[\s_-]?key|secret|token|authenticator|banking|kreditkart(?:e|en)?|cvv|iban)\b/i;
+    const apiSecret = /\b(?:sk|pk|ghp|github_pat|xox[baprs])[-_][A-Za-z0-9_-]{12,}\b/;
+    const jwtToken = /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/;
+
+    if (namedSecret.test(cleanText) || apiSecret.test(cleanText) || jwtToken.test(cleanText)) {
+      return (
+        "Diese Notiz enthält möglicherweise Zugangsdaten wie Passwort, PIN, " +
+        "TAN, API-Key, Token, Banking- oder Authenticator-Daten. " +
+        "Pam’s Holo speichert sie zu deinem Schutz nicht."
+      );
+    }
+
+    return "";
+  }
+
+  function noteTitleFromText(text, preferredTitle = "") {
+    const title = String(preferredTitle || "").trim();
+    const firstLine = String(text || "")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .find(Boolean) || "Notiz";
+    const selectedTitle = title || firstLine;
+    return selectedTitle.length > 72
+      ? `${selectedTitle.slice(0, 69).trimEnd()} …`
+      : selectedTitle;
+  }
+
+  function normalizeStoredNote(note) {
+    const text = String(note?.text || "").trim();
+    if (!text) {
+      return null;
+    }
+
+    const createdAt = Number(note?.createdAt || Date.now());
+    const updatedAt = Number(note?.updatedAt || createdAt);
+    return {
+      id: String(note?.id || `note-${createdAt}`),
+      title: noteTitleFromText(text, note?.title),
+      text: text.slice(0, 10_000),
+      source: String(note?.source || "Pam’s Holo"),
+      createdAt,
+      updatedAt
+    };
+  }
+
+  function loadPersonalNotes() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(notesStorageKey) || "[]");
+      personalNotes = Array.isArray(stored)
+        ? stored
+          .map(normalizeStoredNote)
+          .filter(Boolean)
+          .sort((left, right) => right.updatedAt - left.updatedAt)
+          .slice(0, 250)
+        : [];
+    } catch (error) {
+      console.error("Pam’s-Holo-Notizen laden:", error);
+      personalNotes = [];
+    }
+  }
+
+  function storePersonalNotes(nextNotes) {
+    try {
+      const normalized = nextNotes
+        .map(normalizeStoredNote)
+        .filter(Boolean)
+        .sort((left, right) => right.updatedAt - left.updatedAt)
+        .slice(0, 250);
+      localStorage.setItem(notesStorageKey, JSON.stringify(normalized));
+      personalNotes = normalized;
+      return true;
+    } catch (error) {
+      console.error("Pam’s-Holo-Notizen speichern:", error);
+      return false;
+    }
+  }
+
+  function noteDateText(note) {
+    try {
+      return new Intl.DateTimeFormat("de-DE", {
+        dateStyle: "medium",
+        timeStyle: "short"
+      }).format(new Date(note.updatedAt));
+    } catch {
+      return new Date(note.updatedAt).toLocaleString("de-DE");
+    }
+  }
+
+  function renderPersonalNotes(searchText = notesSearchInput?.value || "") {
+    const query = normalizeNoteSearchText(searchText);
+    const visibleNotes = personalNotes.filter((note) => {
+      if (!query) {
+        return true;
+      }
+      return normalizeNoteSearchText(
+        `${note.title}\n${note.text}\n${note.source}`
+      ).includes(query);
+    });
+
+    notesList.replaceChildren();
+    notesCount.textContent = query
+      ? `${visibleNotes.length} von ${personalNotes.length} Notizen`
+      : `${personalNotes.length} ${personalNotes.length === 1 ? "Notiz" : "Notizen"}`;
+
+    const quickMeta = document.getElementById("notesQuickMeta");
+    if (quickMeta) {
+      quickMeta.textContent = personalNotes.length
+        ? `${personalNotes.length} ${personalNotes.length === 1 ? "Notiz" : "Notizen"}`
+        : "Dein Notizbuch";
+    }
+
+    notesEmpty.hidden = visibleNotes.length > 0;
+    const emptyTitle = notesEmpty.querySelector("strong");
+    const emptyCopy = notesEmpty.querySelector("p");
+    if (emptyTitle && emptyCopy) {
+      emptyTitle.textContent = query
+        ? "Keine passende Notiz gefunden."
+        : "Noch keine Notiz.";
+      emptyCopy.textContent = query
+        ? "Versuch einen anderen Suchbegriff."
+        : "Schreib oben etwas hinein oder sag: „Sol, notiere …“";
+    }
+
+    visibleNotes.forEach((note) => {
+      const card = document.createElement("article");
+      card.className = "noteCard glassCard";
+      card.dataset.noteId = note.id;
+
+      const header = document.createElement("div");
+      header.className = "noteCardHeader";
+      const heading = document.createElement("h3");
+      heading.textContent = note.title;
+      const source = document.createElement("span");
+      source.className = "noteSource";
+      source.textContent = note.source;
+      header.append(heading, source);
+
+      const body = document.createElement("p");
+      body.className = "noteBody";
+      body.textContent = note.text;
+
+      const footer = document.createElement("div");
+      footer.className = "noteCardFooter";
+      const date = document.createElement("time");
+      date.dateTime = new Date(note.updatedAt).toISOString();
+      date.textContent = noteDateText(note);
+      const actions = document.createElement("div");
+      actions.className = "noteActions";
+
+      const editButton = document.createElement("button");
+      editButton.type = "button";
+      editButton.dataset.noteAction = "edit";
+      editButton.dataset.noteId = note.id;
+      editButton.textContent = "Bearbeiten";
+      editButton.setAttribute("aria-label", `Notiz „${note.title}“ bearbeiten`);
+
+      const deleteButton = document.createElement("button");
+      deleteButton.type = "button";
+      deleteButton.dataset.noteAction = "delete";
+      deleteButton.dataset.noteId = note.id;
+      deleteButton.textContent = "Löschen";
+      deleteButton.setAttribute("aria-label", `Notiz „${note.title}“ löschen`);
+
+      actions.append(editButton, deleteButton);
+      footer.append(date, actions);
+      card.append(header, body, footer);
+      notesList.appendChild(card);
+    });
+  }
+
+  function createPersonalNote(text, options = {}) {
+    const cleanText = String(text || "").trim();
+    if (!cleanText) {
+      return {
+        success: false,
+        answer: "Die Notiz ist leer. Sag oder schreib bitte, was ich notieren soll."
+      };
+    }
+
+    const securityWarning = noteSecurityWarning(cleanText);
+    if (securityWarning) {
+      return { success: false, securityBlocked: true, answer: securityWarning };
+    }
+
+    const now = Date.now();
+    const randomPart = globalThis.crypto?.randomUUID?.() ||
+      Math.random().toString(36).slice(2, 12);
+    const note = normalizeStoredNote({
+      id: `note-${randomPart}`,
+      title: options.title,
+      text: cleanText,
+      source: options.source || "Pam’s Holo",
+      createdAt: now,
+      updatedAt: now
+    });
+
+    if (!storePersonalNotes([note, ...personalNotes])) {
+      return {
+        success: false,
+        answer: "Die Notiz konnte auf diesem Handy gerade nicht gespeichert werden."
+      };
+    }
+
+    renderPersonalNotes();
+    showToast("Notiz in Pam’s Holo gespeichert ✅️");
+    return {
+      success: true,
+      note,
+      answer: `Notiz gespeichert: ${note.title}`
+    };
+  }
+
+  function findPersonalNotes(query) {
+    const cleanQuery = normalizeNoteSearchText(query);
+    if (!cleanQuery) {
+      return [];
+    }
+
+    const exactMatches = personalNotes.filter((note) =>
+      normalizeNoteSearchText(note.id) === cleanQuery ||
+      normalizeNoteSearchText(note.title) === cleanQuery ||
+      normalizeNoteSearchText(note.text) === cleanQuery
+    );
+    if (exactMatches.length) {
+      return exactMatches;
+    }
+
+    return personalNotes.filter((note) =>
+      normalizeNoteSearchText(`${note.title}\n${note.text}`).includes(cleanQuery)
+    );
+  }
+
+  function personalNoteListAnswer(query = "") {
+    const matches = query
+      ? findPersonalNotes(query)
+      : personalNotes;
+    if (!matches.length) {
+      return query
+        ? `Ich finde keine Notiz zu „${query}“. Die Notizen bleiben unverändert.`
+        : "Du hast noch keine Notiz in Pam’s Holo gespeichert.";
+    }
+
+    const listed = matches.slice(0, 12).map((note, index) => {
+      const preview = note.text.length > 180
+        ? `${note.text.slice(0, 177).trimEnd()} …`
+        : note.text;
+      return `${index + 1}. ${note.title}: ${preview}`;
+    });
+    const remainder = matches.length > listed.length
+      ? `\nAußerdem gibt es noch ${matches.length - listed.length} weitere.`
+      : "";
+    return `${matches.length} ${matches.length === 1 ? "Notiz" : "Notizen"}:\n${listed.join("\n")}${remainder}`;
+  }
+
+  async function executeNotesTool(name, args = {}) {
+    if (name === "create_personal_note") {
+      return createPersonalNote(args?.text, {
+        source: "Mit Sol notiert"
+      });
+    }
+
+    if (name === "search_personal_notes") {
+      const query = String(args?.query || "").trim();
+      if (!document.body.classList.contains("voice-open")) {
+        showView("notes");
+      }
+      notesSearchInput.value = query;
+      renderPersonalNotes(query);
+      return {
+        success: true,
+        answer: personalNoteListAnswer(query)
+      };
+    }
+
+    const query = String(args?.query || "").trim();
+    const matches = findPersonalNotes(query);
+    if (!matches.length) {
+      return {
+        success: false,
+        answer: `Ich finde keine eindeutige Notiz zu „${query}“. Es wurde nichts verändert.`
+      };
+    }
+    if (matches.length > 1) {
+      if (!document.body.classList.contains("voice-open")) {
+        showView("notes");
+      }
+      notesSearchInput.value = query;
+      renderPersonalNotes(query);
+      return {
+        success: false,
+        answer: `Ich finde ${matches.length} passende Notizen. Bitte wähle die richtige in der Notizübersicht aus.`
+      };
+    }
+
+    const note = matches[0];
+    if (name === "update_personal_note") {
+      const newText = String(args?.text || "").trim();
+      if (!newText) {
+        return { success: false, answer: "Der neue Notiztext ist leer." };
+      }
+      const securityWarning = noteSecurityWarning(newText);
+      if (securityWarning) {
+        return { success: false, securityBlocked: true, answer: securityWarning };
+      }
+      const confirmed = window.confirm(
+        `Notiz „${note.title}“ wirklich ändern?\n\nNeuer Text:\n${newText}`
+      );
+      if (!confirmed) {
+        return { success: false, cancelled: true, answer: "Die Änderung wurde abgebrochen." };
+      }
+      const updatedNote = normalizeStoredNote({
+        ...note,
+        title: noteTitleFromText(newText),
+        text: newText,
+        updatedAt: Date.now()
+      });
+      const nextNotes = personalNotes.map((entry) =>
+        entry.id === note.id ? updatedNote : entry
+      );
+      if (!storePersonalNotes(nextNotes)) {
+        return { success: false, answer: "Die Notiz konnte gerade nicht geändert werden." };
+      }
+      renderPersonalNotes();
+      showToast("Notiz geändert ✅️");
+      return { success: true, answer: `Notiz geändert: ${updatedNote.title}` };
+    }
+
+    if (name === "delete_personal_note") {
+      const confirmed = window.confirm(
+        `Notiz „${note.title}“ wirklich löschen?\n\n${note.text}`
+      );
+      if (!confirmed) {
+        return { success: false, cancelled: true, answer: "Das Löschen wurde abgebrochen." };
+      }
+      if (!storePersonalNotes(personalNotes.filter((entry) => entry.id !== note.id))) {
+        return { success: false, answer: "Die Notiz konnte gerade nicht gelöscht werden." };
+      }
+      renderPersonalNotes();
+      showToast("Notiz gelöscht.");
+      return { success: true, answer: `Notiz gelöscht: ${note.title}` };
+    }
+
+    return { success: false, answer: "Unbekannte Notizfunktion." };
+  }
+
+  window.executeSolHoloNotesTool = executeNotesTool;
 
   function clampCloneValue(value, minimum, maximum) {
     return Math.min(maximum, Math.max(minimum, Number(value) || 0));
@@ -555,6 +997,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       void loadWakeStatus();
       void loadPhoneStatus();
       void loadHealthStatus();
+    }
+
+    if (viewName === "notes") {
+      renderPersonalNotes();
     }
 
     if (viewName === "chat" && typeof updateMouthGeometry === "function") {
@@ -1106,7 +1552,8 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         ? text.slice(0, 800) + " …"
         : text;
       const confirmed = window.confirm(
-        "Diese ausgewählte Samsung-Notiz dauerhaft in Pam’s Holo speichern?\n\n" +
+        "Diese ausgewählte Samsung-Notiz im Notizbuch deiner " +
+        "Pam’s-Holo-Original-App auf diesem Handy speichern?\n\n" +
         (title ? `Titel: ${title}\n\n` : "") +
         preview +
         "\n\nNur persönliche Inhalte bestätigen. Geschäftliche Daten, PINs, " +
@@ -1118,14 +1565,20 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         return;
       }
 
-      const memoryText = [
-        "Samsung Notes · von Pam ausdrücklich freigegeben",
-        title ? `Titel: ${title}` : "",
-        text
-      ].filter(Boolean).join("\n\n");
+      const savedNote = createPersonalNote(text, {
+        title,
+        source: "Samsung Notes · von Pam freigegeben"
+      });
+      if (!savedNote.success) {
+        if (savedNote.securityBlocked) {
+          window.alert(savedNote.answer);
+        } else {
+          showToast(savedNote.answer);
+        }
+        return;
+      }
 
-      await askSol(`Sol, merke dir dauerhaft: ${memoryText}`);
-      showToast("Die bestätigte Notiz wurde an Sol übergeben.");
+      showToast("Samsung-Notiz in Pam’s Holo gespeichert ✅️");
     } catch (error) {
       console.error("Samsung-Notes-Import:", error);
       showToast("Die geteilte Notiz konnte gerade nicht übernommen werden.");
@@ -1392,6 +1845,75 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
   window.handleSolHoloLocalAction = async (message) => {
     const cleanMessage = String(message || "").trim();
+    const noteMessage = cleanMessage
+      .replace(/^(?:(?:hey\s+)?sol)\s*[,;:!.-]?\s*/i, "")
+      .trim();
+
+    let noteMatch = noteMessage.match(
+      /^notier(?:e)?\b\s*(?:mir\s+)?(?:bitte\s+)?[:,-]?\s*(.+?)[.!]?$/i
+    );
+    if (!noteMatch) {
+      noteMatch = noteMessage.match(
+        /^(?:mach|mache|schreib|schreibe)\s+(?:mir\s+)?(?:bitte\s+)?eine\s+notiz(?:\s+daraus)?\s*[:,-]?\s+(.+?)[.!]?$/i
+      );
+    }
+    if (!noteMatch) {
+      noteMatch = noteMessage.match(
+        /^schreib(?:e)?\s+(?:mir\s+)?(?:bitte\s+)?(?:als\s+notiz|in\s+meine\s+notizen|auf)\s*[:,-]?\s+(.+?)[.!]?$/i
+      );
+    }
+    if (!noteMatch) {
+      noteMatch = noteMessage.match(
+        /^(?:neue\s+)?notiz\s*[:,-]\s*(.+?)[.!]?$/i
+      );
+    }
+    if (noteMatch) {
+      const result = await executeNotesTool("create_personal_note", {
+        text: noteMatch[1]
+      });
+      return { handled: true, answer: result.answer };
+    }
+
+    noteMatch = noteMessage.match(
+      /^(?:suche|finde)\s+(?:in\s+)?(?:meinen\s+)?notizen\s+(?:nach\s+)?(.+?)[.!]?$/i
+    );
+    if (noteMatch) {
+      const result = await executeNotesTool("search_personal_notes", {
+        query: noteMatch[1]
+      });
+      return { handled: true, answer: result.answer };
+    }
+
+    if (
+      /^(?:(?:zeig|zeige|öffne|oeffne|lies|lese)\s+(?:mir\s+)?(?:bitte\s+)?(?:meine\s+)?notizen(?:\s+vor)?|was\s+habe\s+ich\s+notiert)[.!?]?$/i.test(noteMessage)
+    ) {
+      const result = await executeNotesTool("search_personal_notes", {
+        query: ""
+      });
+      return { handled: true, answer: result.answer };
+    }
+
+    noteMatch = noteMessage.match(
+      /^(?:lösch|lösche|entfern|entferne)\s+(?:bitte\s+)?(?:die\s+)?notiz(?:\s+mit|\s+zu|\s+über)?\s+(.+?)[.!]?$/i
+    );
+    if (noteMatch) {
+      const result = await executeNotesTool("delete_personal_note", {
+        query: noteMatch[1]
+      });
+      return { handled: true, answer: result.answer };
+    }
+
+    noteMatch = noteMessage.match(
+      /^(?:änder|ändere|bearbeit|bearbeite)\s+(?:bitte\s+)?(?:die\s+)?notiz\s+(.+?)\s+(?:in|zu|auf)\s+(.+?)[.!]?$/i
+    );
+    if (noteMatch) {
+      const result = await executeNotesTool("update_personal_note", {
+        query: noteMatch[1],
+        text: noteMatch[2]
+      });
+      return { handled: true, answer: result.answer };
+    }
+
     if (
       /^(?:zeig|zeige|lies|lese|gib|wie\s+(?:viele|war|waren|ist|sind))\b/i.test(cleanMessage) &&
       /health|gesundheit|gesundheitsdaten|schritt|schlaf|gewicht|herz|puls|blutdruck|sauerstoff|training|kalorien|zyklus|menstru|ernährung/i.test(cleanMessage)
@@ -1804,6 +2326,69 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     }
   });
 
+  noteComposer.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const result = createPersonalNote(noteTextInput.value, {
+      source: "In Pam’s Holo geschrieben"
+    });
+    if (result.success) {
+      noteTextInput.value = "";
+      noteTextInput.focus();
+      return;
+    }
+    if (result.securityBlocked) {
+      window.alert(result.answer);
+    } else {
+      showToast(result.answer);
+    }
+  });
+
+  notesSearchInput.addEventListener("input", () => {
+    renderPersonalNotes(notesSearchInput.value);
+  });
+
+  notesList.addEventListener("click", async (event) => {
+    const actionButton = event.target.closest("[data-note-action]");
+    if (!actionButton) {
+      return;
+    }
+
+    const note = personalNotes.find(
+      (entry) => entry.id === actionButton.dataset.noteId
+    );
+    if (!note) {
+      showToast("Diese Notiz wurde nicht mehr gefunden.");
+      renderPersonalNotes();
+      return;
+    }
+
+    if (actionButton.dataset.noteAction === "delete") {
+      await executeNotesTool("delete_personal_note", { query: note.id });
+      return;
+    }
+
+    if (actionButton.dataset.noteAction === "edit") {
+      const newText = window.prompt(
+        `Notiz „${note.title}“ bearbeiten:`,
+        note.text
+      );
+      if (newText === null || newText.trim() === note.text) {
+        return;
+      }
+      const result = await executeNotesTool("update_personal_note", {
+        query: note.id,
+        text: newText
+      });
+      if (result.securityBlocked) {
+        window.alert(result.answer);
+      }
+    }
+  });
+
+  document.getElementById("notesVoiceButton").addEventListener("click", () => {
+    void startSolVoice();
+  });
+
   document.getElementById("homeMicButton").addEventListener("click", () => {
     void startSolVoice();
   });
@@ -1974,6 +2559,8 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     void consumeSharedNoteImport();
   });
 
+  loadPersonalNotes();
+  renderPersonalNotes();
   restoreCustomCloneAppearance();
   showView("home");
   void loadGoogleStatus();

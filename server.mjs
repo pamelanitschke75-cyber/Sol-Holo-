@@ -4001,6 +4001,31 @@ gespeichert werden soll.
 Biete nicht an, eine normale Aussage dauerhaft zu
 speichern.
 
+WICHTIG ZU PAMS NOTIZBUCH:
+
+Wenn Pam ausdrücklich sagt „Sol, notiere …“, „Mach eine
+Notiz …“ oder sinngleich klar etwas als Notiz speichern
+möchte, verwende create_personal_note mit genau dem von Pam
+genannten Inhalt.
+
+Wenn Pam ihre Notizen sehen, hören oder nach einer Notiz
+suchen möchte, verwende search_personal_notes. Eine leere
+Suchfrage listet die vorhandenen Notizen auf.
+
+Für Änderungen und Löschungen verwende ausschließlich
+update_personal_note beziehungsweise delete_personal_note.
+Die Pam’s-Holo-App verlangt vor einer Änderung oder Löschung
+eine sichtbare Bestätigung.
+
+Die Notizen gehören zum lokalen Notizbuch in Pams einziger
+Pam’s-Holo-Original-App. Behaupte erst nach der echten
+Tool-Rückmeldung, dass eine Notiz gespeichert, geändert oder
+gelöscht wurde. Erfinde keinen erfolgreichen Vorgang.
+
+Speichere niemals erkennbare Passwörter, PINs, TANs,
+API-Schlüssel, Tokens, Banking- oder Authenticator-Daten als
+Notiz. Das lokale Notizbuch blockiert solche Inhalte zusätzlich.
+
 WICHTIG ZU GOOGLE CALENDAR:
 
 Wenn Pam per Sprache verlangt,
@@ -4100,6 +4125,142 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
 
                   description:
                     "Die konkrete Erinnerungsfrage oder die wichtigsten Suchbegriffe."
+                }
+              },
+
+              required: [
+                "query"
+              ],
+
+              additionalProperties:
+                false
+            }
+          },
+          {
+            type:
+              "function",
+
+            name:
+              "create_personal_note",
+
+            description:
+              "Speichert einen ausdrücklich von Pam diktierten Notiztext im lokalen Notizbuch ihrer Pam’s-Holo-Original-App. Nur verwenden, wenn Pam klar sagt, dass etwas notiert oder als Notiz gespeichert werden soll. Erfolg erst nach Tool-Bestätigung behaupten.",
+
+            parameters: {
+              type:
+                "object",
+
+              properties: {
+                text: {
+                  type:
+                    "string",
+
+                  description:
+                    "Der genaue persönliche Notizinhalt ohne erfundene Ergänzungen."
+                }
+              },
+
+              required: [
+                "text"
+              ],
+
+              additionalProperties:
+                false
+            }
+          },
+          {
+            type:
+              "function",
+
+            name:
+              "search_personal_notes",
+
+            description:
+              "Listet Pams lokale Notizen auf oder durchsucht sie. Für alle Notizen eine leere query übergeben. Keine Notiz erfinden.",
+
+            parameters: {
+              type:
+                "object",
+
+              properties: {
+                query: {
+                  type:
+                    "string",
+
+                  description:
+                    "Suchbegriff; leer lassen, wenn Pam alle Notizen sehen oder hören möchte."
+                }
+              },
+
+              required: [
+                "query"
+              ],
+
+              additionalProperties:
+                false
+            }
+          },
+          {
+            type:
+              "function",
+
+            name:
+              "update_personal_note",
+
+            description:
+              "Ändert genau eine vorhandene lokale Notiz. Die App sucht mit query und verlangt vor dem Speichern eine sichtbare Bestätigung von Pam.",
+
+            parameters: {
+              type:
+                "object",
+
+              properties: {
+                query: {
+                  type:
+                    "string",
+
+                  description:
+                    "Eindeutiger Titel oder Inhalt der zu ändernden Notiz."
+                },
+                text: {
+                  type:
+                    "string",
+
+                  description:
+                    "Der vollständige neue Notiztext."
+                }
+              },
+
+              required: [
+                "query",
+                "text"
+              ],
+
+              additionalProperties:
+                false
+            }
+          },
+          {
+            type:
+              "function",
+
+            name:
+              "delete_personal_note",
+
+            description:
+              "Löscht genau eine vorhandene lokale Notiz. Die App sucht mit query und verlangt vor dem Löschen eine sichtbare Bestätigung von Pam.",
+
+            parameters: {
+              type:
+                "object",
+
+              properties: {
+                query: {
+                  type:
+                    "string",
+
+                  description:
+                    "Eindeutiger Titel oder Inhalt der zu löschenden Notiz."
                 }
               },
 

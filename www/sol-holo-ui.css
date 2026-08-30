@@ -1375,6 +1375,258 @@ body{
   transform:translate(-50%,0);
 }
 
+/* Persönliches Notizbuch in der einen Pam’s-Holo-Original-App */
+.srOnly{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  padding:0!important;
+  margin:-1px!important;
+  overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;
+  white-space:nowrap!important;
+  border:0!important;
+}
+
+.notesIntro{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin:14px 0 12px;
+  padding:16px;
+}
+
+.notesIntroIcon{
+  display:grid;
+  flex:0 0 46px;
+  width:46px;
+  height:46px;
+  place-items:center;
+  border:1px solid rgba(128,111,255,.38);
+  border-radius:16px;
+  color:#cabfff;
+  background:linear-gradient(145deg,rgba(109,78,255,.23),rgba(38,148,215,.12));
+  box-shadow:0 0 26px rgba(94,69,233,.18);
+  font-size:23px;
+}
+
+.notesIntro h3{
+  margin:0 0 4px;
+  color:#f1efff;
+  font-size:16px;
+}
+
+.notesIntro p{
+  margin:0;
+  color:#9ba7c3;
+  font-size:11px;
+  line-height:1.45;
+}
+
+.noteComposer{
+  display:grid;
+  gap:10px;
+  padding:15px;
+}
+
+.noteComposer>label{
+  color:#c8c1ff;
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:.02em;
+}
+
+.noteComposer textarea{
+  width:100%;
+  min-height:104px;
+  resize:vertical;
+  padding:13px 14px;
+  border:1px solid rgba(112,130,199,.25);
+  border-radius:16px;
+  outline:none;
+  color:#f1f3ff;
+  background:rgba(3,8,18,.63);
+  box-shadow:inset 0 0 22px rgba(45,55,113,.08);
+  font:inherit;
+  font-size:14px;
+  line-height:1.5;
+}
+
+.noteComposer textarea:focus,
+.notesSearch input:focus{
+  border-color:rgba(143,111,255,.68);
+  box-shadow:0 0 0 3px rgba(113,81,236,.13);
+}
+
+.noteComposer textarea::placeholder,
+.notesSearch input::placeholder{
+  color:#6f7891;
+}
+
+.noteComposerFooter{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.noteComposerFooter>span{
+  max-width:53%;
+  color:#758099;
+  font-size:9px;
+  line-height:1.4;
+}
+
+.noteComposerFooter .primaryButton{
+  width:auto;
+  min-height:40px;
+  margin:0;
+  padding:0 15px;
+  border-radius:14px;
+  font-size:11px;
+}
+
+.notesToolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:18px 2px 10px;
+}
+
+.notesToolbar>strong{
+  flex:0 0 auto;
+  color:#d5d0ff;
+  font-size:12px;
+}
+
+.notesSearch{
+  flex:1 1 auto;
+  max-width:230px;
+}
+
+.notesSearch input{
+  width:100%;
+  min-height:38px;
+  padding:0 12px;
+  border:1px solid rgba(112,130,199,.2);
+  border-radius:13px;
+  outline:none;
+  color:#eef1ff;
+  background:rgba(4,9,20,.66);
+  font:inherit;
+  font-size:11px;
+}
+
+.notesList{
+  display:grid;
+  gap:11px;
+  padding-bottom:8px;
+}
+
+.noteCard{
+  display:grid;
+  gap:10px;
+  padding:15px;
+}
+
+.noteCardHeader,
+.noteCardFooter{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.noteCardHeader h3{
+  min-width:0;
+  margin:0;
+  overflow-wrap:anywhere;
+  color:#f0eeff;
+  font-size:14px;
+}
+
+.noteSource{
+  flex:0 0 auto;
+  max-width:48%;
+  padding:4px 7px;
+  overflow:hidden;
+  border:1px solid rgba(113,137,211,.22);
+  border-radius:999px;
+  color:#8fa1c9;
+  background:rgba(22,34,62,.52);
+  font-size:8px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.noteBody{
+  max-height:220px;
+  margin:0;
+  overflow:auto;
+  color:#c7cede;
+  font-size:12px;
+  line-height:1.55;
+  overflow-wrap:anywhere;
+  white-space:pre-wrap;
+}
+
+.noteCardFooter time{
+  color:#6f7a94;
+  font-size:9px;
+}
+
+.noteActions{
+  display:flex;
+  gap:7px;
+}
+
+.noteActions button{
+  min-height:32px;
+  padding:0 9px;
+  border:1px solid rgba(116,135,205,.22);
+  border-radius:10px;
+  color:#aeb9d8;
+  background:rgba(17,27,49,.66);
+  font:inherit;
+  font-size:9px;
+}
+
+.noteActions button[data-note-action="delete"]{
+  color:#e9aab4;
+  border-color:rgba(204,91,116,.24);
+}
+
+.notesEmpty{
+  display:grid;
+  min-height:145px;
+  place-items:center;
+  align-content:center;
+  gap:6px;
+  padding:24px;
+  text-align:center;
+}
+
+.notesEmpty[hidden]{
+  display:none!important;
+}
+
+.notesEmpty>span{
+  color:#a89cff;
+  font-size:28px;
+}
+
+.notesEmpty strong{
+  color:#e5e2ff;
+  font-size:13px;
+}
+
+.notesEmpty p{
+  margin:0;
+  color:#7e89a3;
+  font-size:10px;
+}
+
 #app.voice-mode{
   padding-bottom:0;
 }
@@ -1417,6 +1669,25 @@ body.voice-open #onboardingScreen{
 
   .featureHeadline{
     font-size:19px;
+  }
+
+  .noteComposerFooter{
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .noteComposerFooter>span{
+    max-width:none;
+  }
+
+  .noteComposerFooter .primaryButton{
+    width:100%;
+  }
+
+  .noteCardHeader,
+  .noteCardFooter{
+    align-items:flex-start;
+    flex-direction:column;
   }
 }
 

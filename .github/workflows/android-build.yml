@@ -23,6 +23,7 @@ on:
       - "www/sol-holo-ui.js"
       - "www/service-worker.js"
       - "www/third-party/**"
+      - "server.mjs"
       - "licenses/**"
       - "package.json"
       - "package-lock.json"
@@ -195,6 +196,21 @@ jobs:
 
       - name: Sicheren Fahr- und Weckmodus einbinden
         run: node scripts/install-whatsapp-driving-mode.mjs
+
+      - name: Notizbuch der Pam’s-Holo-Original-App prüfen
+        run: |
+          set -Eeuo pipefail
+          notes_js="android/app/src/main/assets/public/sol-holo-ui.js"
+          app_html="android/app/src/main/assets/public/index.html"
+          test -s "$notes_js"
+          test -s "$app_html"
+          grep -q 'pams-holo-original-notes-v1' "$notes_js"
+          grep -q 'Notizen ✏️' "$notes_js"
+          grep -q 'create_personal_note' "$notes_js"
+          grep -q 'delete_personal_note' "$notes_js"
+          grep -q 'REALTIME_NOTE_TOOL_NAMES' "$app_html"
+          grep -q 'create_personal_note' server.mjs
+          grep -q 'Pam’s-Holo-Original-App' server.mjs
 
       - name: Lokale Sprechererkennung in Pam’s Holo einbinden
         run: node scripts/install-speaker-identity.mjs
