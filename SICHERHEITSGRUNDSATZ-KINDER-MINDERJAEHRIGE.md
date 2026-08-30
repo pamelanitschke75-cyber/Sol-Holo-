@@ -8,6 +8,26 @@
 
 ---
 
+## Oberster Sicherheitsgrundsatz
+
+**Bei Sol Holo für Kinder und Minderjährige stehen Sicherheit, Schutz und Wohlergehen des Kindes immer an erster Stelle.**
+
+Dieser Grundsatz steht über allen nachfolgenden Design- und Sicherheitsentscheidungen und muss bei jeder zukünftigen technischen, organisatorischen und rechtlichen Ausgestaltung berücksichtigt werden.
+
+Dabei gilt ebenso ausdrücklich:
+
+# **Ein Kind soll Kind sein dürfen.**
+
+Sol Holo soll Kinder nicht mit Verantwortung belasten, die ihrem Alter oder Entwicklungsstand nicht entspricht. Schutz darf nicht bedeuten, dass ein Kind ständig Sicherheitsentscheidungen treffen, technische Risiken verstehen oder sich permanent selbst überwachen muss.
+
+Sol Holo soll unterstützen, erklären, schützen und mitwachsen – ohne Kindheit durch unnötige Kontrolle, Leistungsdruck oder Erwachsenenverantwortung zu ersetzen.
+
+Wenn unterschiedliche Interessen miteinander in Konflikt geraten, sollen Sicherheit und Wohlergehen des Kindes besonders berücksichtigt werden. Privatsphäre, altersgerechte Selbstbestimmung sowie notwendige Schutz- und Fürsorgerechte der Sorgeberechtigten müssen dabei im Rahmen der geltenden Rechtslage sorgfältig gegeneinander abgewogen werden.
+
+Keine Funktion soll so gestaltet werden, dass sie dem Schutz oder dem Wohlergehen des Kindes entgegensteht.
+
+---
+
 ## Grundsatz
 
 Kinder und Minderjährige gehören bei Sol Holo zu den besonders zu schützenden Nutzergruppen.
@@ -149,12 +169,14 @@ Der Schutz soll verhindern, dass andere ihre Identität, ihre Daten oder ihre pe
 
 Kurzform:
 
-**Besonders schützen. Altersgerecht erklären. Privatsphäre respektieren. Kritische Änderungen stärker absichern.**
+**Sicherheit und Wohl zuerst. Kind sein dürfen. Besonders schützen. Altersgerecht erklären. Privatsphäre respektieren. Kritische Änderungen stärker absichern.**
 
 ---
 
 ## Aktueller Status
 
+✅ Sicherheit, Schutz und Wohlergehen des Kindes als oberster Sicherheitsgrundsatz festgelegt  
+✅ „Ein Kind soll Kind sein dürfen“ als eigener Leitgrundsatz festgelegt  
 ✅ besonderer Schutz für Kinder und Minderjährige als Grundsatz dokumentiert  
 ✅ Schutz und altersgerechte Selbstbestimmung ausdrücklich getrennt von Totalüberwachung  
 ✅ Mehrfaktor- und Besitznachweise als mögliche Sicherheitswege aufgenommen  
