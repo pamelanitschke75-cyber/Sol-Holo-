@@ -80,6 +80,92 @@ Für solche Vorgänge sollen zusätzliche unabhängige Bestätigungen erforderli
 
 ---
 
+## Vorläufige Alters- und Freigabeplanung
+
+**Planungsstand: 30.08.2026 – ausdrücklich noch keine endgültige rechtliche oder App-Store-Altersfreigabe.**
+
+Sol Holo soll nicht nur nach einer einzigen Alterszahl unterscheiden. Für die weitere Entwicklung werden vorläufig mehrere Alters- und Schutzstufen getrennt betrachtet:
+
+- bis 5 Jahre,
+- 6 bis 8 Jahre,
+- 9 bis 12 Jahre,
+- 13 bis 15 Jahre,
+- 16 bis 17 Jahre,
+- ab 18 Jahren.
+
+Diese Einteilung orientiert sich unter anderem an den Zielaltersgruppen, die Google Play für die Zielgruppenplanung vorsieht. Sie bedeutet **nicht**, dass Sol Holo bereits für jede dieser Altersgruppen freigegeben ist.
+
+### Bis 5 Jahre
+
+Für diese Altersgruppe soll Sol Holo nur in einer besonders stark geschützten, sehr einfachen und altersgerechten Form gedacht werden.
+
+Ein Kind in diesem Alter soll weder komplexe Sicherheitsentscheidungen treffen noch eigenständig Verantwortung für Konten, Datenfreigaben oder Wiederherstellung tragen müssen.
+
+### 6 bis 8 Jahre
+
+Die Bedienung soll sehr einfach, verständlich und mit möglichst wenig notwendigem Text funktionieren.
+
+Schutz-, Einrichtungs- und Wiederherstellungsaufgaben sollen weitgehend bei den dafür verantwortlichen Erwachsenen liegen, ohne daraus eine pauschale Überwachung sämtlicher persönlicher Inhalte des Kindes abzuleiten.
+
+### 9 bis 12 Jahre
+
+Sol Holo kann mehr altersgerechte Selbstständigkeit ermöglichen, muss aber weiterhin besonders stark vor Fremdzugriff, Manipulation, unerwünschter Kontaktaufnahme und unkontrollierter Datenweitergabe schützen.
+
+Direkte eigenständige Nutzung von OpenAI-/ChatGPT-Diensten wird für diese Altersgruppe **nicht als freigegebene Funktion vorausgesetzt**. Nach dem am 30.08.2026 veröffentlichten OpenAI-Hinweis ist ChatGPT nicht für Kinder unter 13 Jahren gedacht; im Bildungskontext muss die tatsächliche Interaktion für Kinder unter 13 von einem Erwachsenen durchgeführt werden.
+
+### 13 bis 15 Jahre
+
+Eine direkte Nutzung von OpenAI-/ChatGPT-Funktionen soll nur im Rahmen der jeweils geltenden OpenAI-Regeln und mit erforderlicher Zustimmung bzw. Altersprüfung vorgesehen werden.
+
+Nach dem Stand vom 30.08.2026 verlangt OpenAI für Nutzerinnen und Nutzer zwischen 13 und 17 Jahren die Zustimmung eines Elternteils oder einer erziehungsberechtigten Person.
+
+Für Sol Holo bleiben in dieser Altersstufe besonders starke Schutz-, Datenschutz- und Sicherheitsmechanismen vorgesehen.
+
+### 16 bis 17 Jahre
+
+Mit zunehmendem Alter soll Sol Holo deutlich mehr Selbstständigkeit ermöglichen.
+
+Der Minderjährigenschutz bleibt jedoch bestehen. Nach dem Stand vom 30.08.2026 verlangt OpenAI auch für 16- und 17-Jährige weiterhin die Zustimmung eines Elternteils oder einer erziehungsberechtigten Person.
+
+Für Deutschland ist zusätzlich zu beachten: Soweit eine Verarbeitung personenbezogener Daten auf **Einwilligung** nach Art. 6 Abs. 1 Buchst. a DSGVO beruht und ein Dienst der Informationsgesellschaft einem Kind direkt angeboten wird, sieht Art. 8 DSGVO grundsätzlich das vollendete 16. Lebensjahr vor. Unter 16 ist in diesem Fall die Einwilligung des Trägers der elterlichen Verantwortung bzw. dessen Zustimmung erforderlich. Diese Regel ist **keine pauschale Aussage, dass jede Nutzung unter 16 verboten wäre**; die konkrete Rechtsgrundlage der jeweiligen Verarbeitung muss separat geprüft werden.
+
+### Ab 18 Jahren
+
+Ab 18 ist das Erwachsenenprofil vorgesehen. Die Person erhält grundsätzlich die vollständige eigene Entscheidungsgewalt über ihre persönliche Sol-Holo-Identität und die von ihr eingerichteten Sicherheits-, Datenschutz- und Wiederherstellungsmechanismen, soweit keine anderen rechtlichen Einschränkungen gelten.
+
+---
+
+## App-Store-Altersfreigabe ist etwas anderes als das Nutzungsalter
+
+Die Altersfreigabe im App Store oder bei Google Play darf nicht mit dem tatsächlichen Mindestalter für eine bestimmte Sol-Holo-Funktion gleichgesetzt werden.
+
+Für Google Play wird die konkrete Altersfreigabe abhängig von Inhalt und Zielgruppe über das jeweilige Altersfreigabesystem ermittelt; in Deutschland werden Altersfreigaben unter anderem über die USK-/IARC-Systematik dargestellt.
+
+Apple verwendet aktuell die Altersstufen **4+, 9+, 13+, 16+ und 18+**. Die konkrete Einstufung wird anhand der tatsächlichen Inhalte und Fähigkeiten der App bestimmt.
+
+Deshalb gilt für Sol Holo:
+
+**Die endgültige Store-Altersfreigabe wird erst festgelegt, wenn die tatsächlich enthaltenen Kinder-, Kommunikations-, KI-, Sicherheits- und Datenfunktionen feststehen und die jeweiligen Store- sowie gesetzlichen Anforderungen geprüft wurden.**
+
+---
+
+## Quellen für die vorläufige Planung – Stand 30.08.2026
+
+- OpenAI Help Center: „Ist ChatGPT für alle Altersgruppen sicher?“ – ChatGPT ist nicht für Kinder unter 13 gedacht; 13- bis 17-Jährige benötigen nach aktuellem Stand die Zustimmung der Eltern bzw. Erziehungsberechtigten.  
+  https://help.openai.com/de-de/articles/8313401-is-chatgpt-safe-for-all-ages
+- OpenAI Help Center: Altersverifizierung – bei 13- bis 17-Jährigen muss nach aktuellem Stand ein Elternteil bzw. Erziehungsberechtigter die Altersüberprüfung durchführen.  
+  https://help.openai.com/de-de/articles/8411987-why-am-i-being-asked-to-verify-my-age
+- Google Play Console-Hilfe: Zielaltersgruppen bis 5, 6–8, 9–12, 13–15, 16–17 und 18+.  
+  https://support.google.com/googleplay/android-developer/answer/9867159?hl=de
+- Apple Developer: App-Altersfreigaben 4+, 9+, 13+, 16+ und 18+.  
+  https://developer.apple.com/help/app-store-connect/reference/app-information/age-ratings-values-and-definitions
+- DSGVO, Art. 8 – Bedingungen für die Einwilligung eines Kindes in Bezug auf Dienste der Informationsgesellschaft.  
+  https://eur-lex.europa.eu/legal-content/DE-EN/TXT/?from=de&uri=CELEX%3A32016R0679
+
+Diese Quellen dokumentieren den aktuellen Planungsstand. Vor einer Veröffentlichung für Minderjährige müssen Änderungen der Plattformregeln und der geltenden Rechtslage erneut geprüft werden.
+
+---
+
 ## Rolle von Eltern und Sorgeberechtigten
 
 Sorgeberechtigte können – abhängig von Alter, Reife, Rechtslage und konkreter Funktion – besondere Schutz-, Einrichtungs- oder Wiederherstellungsrechte erhalten.
@@ -182,8 +268,11 @@ Kurzform:
 ✅ Mehrfaktor- und Besitznachweise als mögliche Sicherheitswege aufgenommen  
 ✅ Rolle von Sorgeberechtigten als abgestuftes Rechtemodell vorgesehen  
 ✅ Wiederherstellung und Inhaltszugriff als getrennte Rechte festgelegt  
-🟨 konkrete Altersstufen und Berechtigungsmodelle rechtlich und technisch ausarbeiten  
+✅ vorläufige Alters- und Schutzstufen bis 5 / 6–8 / 9–12 / 13–15 / 16–17 / 18+ dokumentiert  
+✅ OpenAI-, Google-Play-, Apple- und DSGVO-Grundlagen für den Planungsstand vom 30.08.2026 vermerkt  
+🟨 endgültiges Mindestalter und konkrete Funktionsfreigaben je Altersstufe rechtlich und technisch ausarbeiten  
 🟨 konkrete Mehrfaktorlogik je Altersstufe definieren  
+🟨 endgültige App-Store-Altersfreigabe erst anhand der fertigen Funktionen bestimmen  
 🟨 Kinderschutz-, Datenschutz- und Jugendschutzanforderungen vor öffentlichem Einsatz rechtlich prüfen  
 🟨 Benutzeroberfläche und Erklärungen altersgerecht gestalten und testen
 
