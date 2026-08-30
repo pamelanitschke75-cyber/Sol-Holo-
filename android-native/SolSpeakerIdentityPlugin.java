@@ -26,6 +26,7 @@ import com.k2fsa.sherpa.onnx.SpeakerEmbeddingExtractorConfig;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -38,25 +39,69 @@ import java.util.concurrent.Executors;
 )
 public class SolSpeakerIdentityPlugin extends Plugin {
     private static final String PREFS = "sol_holo_speaker_identity";
-    private static final String SAMPLE_PREFIX = "owner_embedding_";
-    private static final String MODEL_ASSET = "sol-speaker-model.onnx";
+    private static final String CAMPPLUS_SAMPLE_PREFIX = "owner_campplus_embedding_";
+    private static final String ERES2NET_SAMPLE_PREFIX = "owner_eres2net_embedding_";
+    private static final String PROFILE_VERSION_KEY = "profile_version";
+    private static final String CAMPPLUS_MODEL_ASSET = "sol-speaker-campplus.onnx";
+    private static final String ERES2NET_MODEL_ASSET = "sol-speaker-eres2net.onnx";
+    private static final int PROFILE_VERSION = 3;
     private static final int SAMPLE_RATE = 16000;
-    private static final int RECORD_MS = 3200;
+    private static final int RECORD_MS = 5200;
+    private static final int FRAME_SAMPLES = 320;
+    private static final int MIN_ACTIVE_FRAMES = 45;
+    private static final int MAX_SPEECH_GAP_FRAMES = 12;
+    private static final float MIN_SPEECH_RMS = 0.008f;
     private static final int REQUIRED_SAMPLES = 3;
-    private static final float TEST_THRESHOLD = 0.68f;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
-    private SpeakerEmbeddingExtractor extractor;
+    private SpeakerEmbeddingExtractor campplusExtractor;
+    private SpeakerEmbeddingExtractor eres2netExtractor;
+
+    private static final class DualEmbedding {
+        final float[] campplus;
+        final float[] eres2net;
+
+        DualEmbedding(float[] campplus, float[] eres2net) {
+            this.campplus = campplus;
+            this.eres2net = eres2net;
+        }
+    }
+
+    private static final class ProfileScore {
+        final float median;
+        final float minimum;
+
+        ProfileScore(float median, float minimum) {
+            this.median = median;
+            this.minimum = minimum;
+        }
+    }
 
     private SharedPreferences prefs() {
         return getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
+    private void ensureProfileVersion() {
+        if (prefs().getInt(PROFILE_VERSION_KEY, 0) == PROFILE_VERSION) {
+            return;
+        }
+        prefs().edit()
+            .clear()
+            .putInt(PROFILE_VERSION_KEY, PROFILE_VERSION)
+            .apply();
+    }
+
     private int sampleCount() {
+        ensureProfileVersion();
         int count = 0;
         for (int i = 1; i <= REQUIRED_SAMPLES; i++) {
-            if (prefs().contains(SAMPLE_PREFIX + i)) count++;
+            if (
+                prefs().contains(CAMPPLUS_SAMPLE_PREFIX + i)
+                    && prefs().contains(ERES2NET_SAMPLE_PREFIX + i)
+            ) {
+                count++;
+            }
         }
         return count;
     }
@@ -67,9 +112,11 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         out.put("sampleCount", count);
         out.put("requiredSamples", REQUIRED_SAMPLES);
         out.put("profileReady", count >= REQUIRED_SAMPLES);
-        out.put("threshold", TEST_THRESHOLD);
+        out.put("profileVersion", PROFILE_VERSION);
         out.put("localOnly", true);
         out.put("rawAudioStored", false);
+        out.put("testOnly", true);
+        out.put("securityGateEnabled", false);
         return out;
     }
 
@@ -80,7 +127,10 @@ public class SolSpeakerIdentityPlugin extends Plugin {
 
     @PluginMethod
     public void clearProfile(PluginCall call) {
-        prefs().edit().clear().apply();
+        prefs().edit()
+            .clear()
+            .putInt(PROFILE_VERSION_KEY, PROFILE_VERSION)
+            .apply();
         call.resolve(status());
     }
 
@@ -128,9 +178,13 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         executor.execute(() -> {
             try {
                 pauseWakeService();
-                float[] embedding = captureEmbedding();
+                DualEmbedding embedding = captureEmbedding();
                 int next = Math.min(sampleCount() + 1, REQUIRED_SAMPLES);
-                prefs().edit().putString(SAMPLE_PREFIX + next, encode(embedding)).apply();
+                prefs().edit()
+                    .putInt(PROFILE_VERSION_KEY, PROFILE_VERSION)
+                    .putString(CAMPPLUS_SAMPLE_PREFIX + next, encode(embedding.campplus))
+                    .putString(ERES2NET_SAMPLE_PREFIX + next, encode(embedding.eres2net))
+                    .apply();
                 JSObject out = status();
                 out.put("savedSample", next);
                 resolveOnMain(call, out);
@@ -146,12 +200,23 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         executor.execute(() -> {
             try {
                 pauseWakeService();
-                float[] current = captureEmbedding();
-                float[] owner = ownerMeanEmbedding();
-                float score = cosine(owner, current);
+                DualEmbedding current = captureEmbedding();
+                ProfileScore campplus = scoreAgainstProfile(
+                    CAMPPLUS_SAMPLE_PREFIX,
+                    current.campplus
+                );
+                ProfileScore eres2net = scoreAgainstProfile(
+                    ERES2NET_SAMPLE_PREFIX,
+                    current.eres2net
+                );
                 JSObject out = status();
-                out.put("score", score);
-                out.put("accepted", score >= TEST_THRESHOLD);
+                out.put("campplusScore", campplus.median);
+                out.put("campplusMinimum", campplus.minimum);
+                out.put("eres2netScore", eres2net.median);
+                out.put("eres2netMinimum", eres2net.minimum);
+                out.put("score", Math.min(campplus.median, eres2net.median));
+                out.put("accepted", false);
+                out.put("decision", "measurement_only");
                 resolveOnMain(call, out);
             } catch (Exception error) {
                 rejectOnMain(call, "Stimmtest konnte nicht verarbeitet werden: " + error.getMessage(), error);
@@ -161,13 +226,14 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         });
     }
 
-    private float[] captureEmbedding() throws Exception {
+    private DualEmbedding captureEmbedding() throws Exception {
         if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.RECORD_AUDIO)
             != PackageManager.PERMISSION_GRANTED) {
             throw new IllegalStateException("Mikrofonfreigabe fehlt");
         }
 
-        SpeakerEmbeddingExtractor localExtractor = extractor();
+        SpeakerEmbeddingExtractor localCampplusExtractor = campplusExtractor();
+        SpeakerEmbeddingExtractor localEres2netExtractor = eres2netExtractor();
         int minBuffer = AudioRecord.getMinBufferSize(
             SAMPLE_RATE,
             AudioFormat.CHANNEL_IN_MONO,
@@ -183,60 +249,189 @@ public class SolSpeakerIdentityPlugin extends Plugin {
             Math.max(minBuffer * 2, SAMPLE_RATE)
         );
 
-        OnlineStream stream = null;
         try {
-            stream = localExtractor.createStream();
+            if (recorder.getState() != AudioRecord.STATE_INITIALIZED) {
+                throw new IllegalStateException("Mikrofon konnte nicht vorbereitet werden");
+            }
+
             recorder.startRecording();
+            JSObject ready = new JSObject();
+            ready.put("ready", true);
+            notifyListeners("speakerRecordingReady", ready);
             long deadline = System.currentTimeMillis() + RECORD_MS;
             short[] buffer = new short[1600];
-            while (System.currentTimeMillis() < deadline) {
+            short[] captured = new short[SAMPLE_RATE * RECORD_MS / 1000];
+            int capturedCount = 0;
+
+            while (
+                System.currentTimeMillis() < deadline
+                    && capturedCount < captured.length
+            ) {
                 int n = recorder.read(buffer, 0, buffer.length);
                 if (n <= 0) continue;
-                float[] samples = new float[n];
-                for (int i = 0; i < n; i++) samples[i] = buffer[i] / 32768.0f;
-                stream.acceptWaveform(samples, SAMPLE_RATE);
+                int copyCount = Math.min(n, captured.length - capturedCount);
+                System.arraycopy(buffer, 0, captured, capturedCount, copyCount);
+                capturedCount += copyCount;
             }
-            stream.inputFinished();
-            if (!localExtractor.isReady(stream)) {
-                throw new IllegalStateException("Die Stimmprobe war zu kurz oder zu leise");
-            }
-            return localExtractor.compute(stream);
+
+            float[] voicedSamples = extractVoicedSamples(captured, capturedCount);
+            return new DualEmbedding(
+                computeEmbedding(localCampplusExtractor, voicedSamples),
+                computeEmbedding(localEres2netExtractor, voicedSamples)
+            );
         } finally {
             try { recorder.stop(); } catch (Exception ignored) {}
             recorder.release();
-            if (stream != null) stream.release();
         }
     }
 
-    private synchronized SpeakerEmbeddingExtractor extractor() {
-        if (extractor != null) return extractor;
+    private float[] computeEmbedding(
+        SpeakerEmbeddingExtractor localExtractor,
+        float[] voicedSamples
+    ) {
+        OnlineStream stream = localExtractor.createStream();
+        try {
+            stream.acceptWaveform(voicedSamples, SAMPLE_RATE);
+            stream.inputFinished();
+            if (!localExtractor.isReady(stream)) {
+                throw new IllegalStateException(
+                    "Die gesprochene Stimmprobe war noch zu kurz oder zu leise"
+                );
+            }
+            return localExtractor.compute(stream);
+        } finally {
+            stream.release();
+        }
+    }
+
+    private float[] extractVoicedSamples(short[] captured, int count) {
+        if (count < FRAME_SAMPLES * MIN_ACTIVE_FRAMES) {
+            throw new IllegalStateException("Es wurde keine vollständige Stimmprobe aufgenommen");
+        }
+
+        int frameCount = count / FRAME_SAMPLES;
+        float[] frameRms = new float[frameCount];
+
+        for (int frame = 0; frame < frameCount; frame++) {
+            double sum = 0;
+            int offset = frame * FRAME_SAMPLES;
+            for (int index = 0; index < FRAME_SAMPLES; index++) {
+                double sample = captured[offset + index] / 32768.0;
+                sum += sample * sample;
+            }
+            frameRms[frame] = (float)Math.sqrt(sum / FRAME_SAMPLES);
+        }
+
+        float[] sortedRms = frameRms.clone();
+        Arrays.sort(sortedRms);
+        float noiseFloor = sortedRms[(int)Math.floor((sortedRms.length - 1) * 0.20)];
+        float speechLevel = sortedRms[(int)Math.floor((sortedRms.length - 1) * 0.90)];
+
+        if (speechLevel < MIN_SPEECH_RMS) {
+            throw new IllegalStateException(
+                "Keine ausreichend deutliche Stimme erkannt – bitte erst bei JETZT sprechen"
+            );
+        }
+
+        float activityThreshold = Math.max(
+            MIN_SPEECH_RMS,
+            noiseFloor + (speechLevel - noiseFloor) * 0.24f
+        );
+        int regionStart = -1;
+        int regionLastActive = -1;
+        int regionActiveFrames = 0;
+        int bestStart = -1;
+        int bestLastActive = -1;
+        int bestActiveFrames = 0;
+
+        for (int frame = 0; frame < frameCount; frame++) {
+            if (frameRms[frame] < activityThreshold) continue;
+            if (
+                regionStart < 0
+                    || frame - regionLastActive - 1 > MAX_SPEECH_GAP_FRAMES
+            ) {
+                if (regionActiveFrames > bestActiveFrames) {
+                    bestStart = regionStart;
+                    bestLastActive = regionLastActive;
+                    bestActiveFrames = regionActiveFrames;
+                }
+                regionStart = frame;
+                regionActiveFrames = 0;
+            }
+            regionLastActive = frame;
+            regionActiveFrames++;
+        }
+
+        if (regionActiveFrames > bestActiveFrames) {
+            bestStart = regionStart;
+            bestLastActive = regionLastActive;
+            bestActiveFrames = regionActiveFrames;
+        }
+
+        if (bestActiveFrames < MIN_ACTIVE_FRAMES || bestStart < 0) {
+            throw new IllegalStateException(
+                "Die Stimmprobe war zu kurz – bitte den angezeigten Prüfsatz vollständig sagen"
+            );
+        }
+
+        int paddingFrames = 6;
+        int startSample = Math.max(
+            0,
+            (bestStart - paddingFrames) * FRAME_SAMPLES
+        );
+        int endSample = Math.min(
+            count,
+            (bestLastActive + paddingFrames + 1) * FRAME_SAMPLES
+        );
+        float[] voiced = new float[endSample - startSample];
+
+        for (int index = startSample; index < endSample; index++) {
+            voiced[index - startSample] = captured[index] / 32768.0f;
+        }
+
+        return voiced;
+    }
+
+    private synchronized SpeakerEmbeddingExtractor campplusExtractor() {
+        if (campplusExtractor != null) return campplusExtractor;
         SpeakerEmbeddingExtractorConfig config = new SpeakerEmbeddingExtractorConfig(
-            MODEL_ASSET,
+            CAMPPLUS_MODEL_ASSET,
             2,
             false,
             "cpu"
         );
-        extractor = new SpeakerEmbeddingExtractor(getContext().getAssets(), config);
-        return extractor;
+        campplusExtractor = new SpeakerEmbeddingExtractor(getContext().getAssets(), config);
+        return campplusExtractor;
     }
 
-    private float[] ownerMeanEmbedding() {
-        float[][] all = new float[REQUIRED_SAMPLES][];
+    private synchronized SpeakerEmbeddingExtractor eres2netExtractor() {
+        if (eres2netExtractor != null) return eres2netExtractor;
+        SpeakerEmbeddingExtractorConfig config = new SpeakerEmbeddingExtractorConfig(
+            ERES2NET_MODEL_ASSET,
+            2,
+            false,
+            "cpu"
+        );
+        eres2netExtractor = new SpeakerEmbeddingExtractor(getContext().getAssets(), config);
+        return eres2netExtractor;
+    }
+
+    private ProfileScore scoreAgainstProfile(String prefix, float[] current) {
+        ensureProfileVersion();
+        float[] scores = new float[REQUIRED_SAMPLES];
         for (int i = 0; i < REQUIRED_SAMPLES; i++) {
-            String encoded = prefs().getString(SAMPLE_PREFIX + (i + 1), "");
+            String encoded = prefs().getString(prefix + (i + 1), "");
             if (encoded == null || encoded.isEmpty()) {
                 throw new IllegalStateException("Stimmprofil ist unvollständig");
             }
-            all[i] = decode(encoded);
+            float[] saved = decode(encoded);
+            if (saved.length != current.length) {
+                throw new IllegalStateException("Stimmprofil ist beschädigt");
+            }
+            scores[i] = cosine(saved, current);
         }
-        int dim = all[0].length;
-        float[] mean = new float[dim];
-        for (float[] embedding : all) {
-            if (embedding.length != dim) throw new IllegalStateException("Stimmprofil ist beschädigt");
-            for (int i = 0; i < dim; i++) mean[i] += embedding[i];
-        }
-        for (int i = 0; i < dim; i++) mean[i] /= REQUIRED_SAMPLES;
-        return mean;
+        Arrays.sort(scores);
+        return new ProfileScore(scores[1], scores[0]);
     }
 
     private static float cosine(float[] a, float[] b) {
@@ -288,9 +483,13 @@ public class SolSpeakerIdentityPlugin extends Plugin {
     @Override
     protected void handleOnDestroy() {
         executor.shutdownNow();
-        if (extractor != null) {
-            extractor.release();
-            extractor = null;
+        if (campplusExtractor != null) {
+            campplusExtractor.release();
+            campplusExtractor = null;
+        }
+        if (eres2netExtractor != null) {
+            eres2netExtractor.release();
+            eres2netExtractor = null;
         }
         super.handleOnDestroy();
     }
