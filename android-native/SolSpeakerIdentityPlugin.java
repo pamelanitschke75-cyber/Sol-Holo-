@@ -24,9 +24,6 @@ import com.k2fsa.sherpa.onnx.OnlineStream;
 import com.k2fsa.sherpa.onnx.SpeakerEmbeddingExtractor;
 import com.k2fsa.sherpa.onnx.SpeakerEmbeddingExtractorConfig;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Base64;
@@ -43,7 +40,6 @@ public class SolSpeakerIdentityPlugin extends Plugin {
     private static final String PREFS = "sol_holo_speaker_identity";
     private static final String SAMPLE_PREFIX = "owner_embedding_";
     private static final String MODEL_ASSET = "sol-speaker-model.onnx";
-    private static final String MODEL_FILE = "sol-speaker-model.onnx";
     private static final int SAMPLE_RATE = 16000;
     private static final int RECORD_MS = 3200;
     private static final int REQUIRED_SAMPLES = 3;
@@ -212,24 +208,15 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         }
     }
 
-    private synchronized SpeakerEmbeddingExtractor extractor() throws Exception {
+    private synchronized SpeakerEmbeddingExtractor extractor() {
         if (extractor != null) return extractor;
-        File model = new File(getContext().getFilesDir(), MODEL_FILE);
-        if (!model.exists() || model.length() == 0) {
-            try (InputStream in = getContext().getAssets().open(MODEL_ASSET);
-                 FileOutputStream out = new FileOutputStream(model)) {
-                byte[] buffer = new byte[8192];
-                int n;
-                while ((n = in.read(buffer)) > 0) out.write(buffer, 0, n);
-            }
-        }
-        SpeakerEmbeddingExtractorConfig config = SpeakerEmbeddingExtractorConfig.builder()
-            .setModel(model.getAbsolutePath())
-            .setNumThreads(2)
-            .setDebug(false)
-            .setProvider("cpu")
-            .build();
-        extractor = new SpeakerEmbeddingExtractor(config);
+        SpeakerEmbeddingExtractorConfig config = new SpeakerEmbeddingExtractorConfig(
+            MODEL_ASSET,
+            2,
+            false,
+            "cpu"
+        );
+        extractor = new SpeakerEmbeddingExtractor(getContext().getAssets(), config);
         return extractor;
     }
 
