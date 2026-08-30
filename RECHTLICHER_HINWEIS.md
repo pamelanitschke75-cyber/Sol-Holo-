@@ -1,6 +1,6 @@
 # SOL HOLO / SH♾️ – Rechtlicher Hinweis und Abgrenzung
 
-**Stand:** 29.08.2026  
+**Stand:** 30.08.2026  
 **Projektverantwortung:** Pamela Nitschke
 
 Dieses Dokument gilt als allgemeiner Klarstellungshinweis für die öffentlich zugänglichen Projektunterlagen dieses Repositorys.
@@ -100,6 +100,33 @@ Drittanbieter-Marken dürfen nur sachlich, korrekt und entsprechend den jeweils 
 Nutzungsbedingungen, API-Bedingungen, Markenrichtlinien und Softwarelizenzen externer Anbieter können sich ändern.
 
 Vor einer öffentlichen oder kommerziellen Veröffentlichung eines neuen Entwicklungsstands müssen die dann geltenden Bedingungen der tatsächlich eingesetzten Dienste und Komponenten erneut geprüft werden.
+
+---
+
+## 8. Tier- und Artenschutz
+
+Der in `SICHERHEITSGRUNDSATZ-TIERSCHUTZ.md` dokumentierte Tierschutz ist ein eigener Projektgrundsatz von Sol Holo.
+
+Dieser Grundsatz ergänzt die geltenden gesetzlichen Anforderungen, ersetzt sie aber nicht.
+
+Für Deutschland sind je nach Sachverhalt insbesondere das **Tierschutzgesetz (TierSchG)**, das **Bundesnaturschutzgesetz (BNatSchG)** und ergänzend **§ 90a BGB** relevant. Weitere nationale, landesrechtliche, unionsrechtliche oder internationale Vorschriften können hinzukommen.
+
+Wichtig für die rechtliche Einordnung:
+
+- Die Bezeichnung eines Haustieres als **Familienmitglied** beschreibt innerhalb des Projekts die emotionale und soziale Bindung. Sie ändert keine gesetzlichen Halter-, Betreuungs-, Eigentums-, Aufsichts- oder Schutzpflichten.
+- Die von Sol Holo beschriebene **Liebe zwischen Mensch und Tier** meint Bindung, Vertrauen, Fürsorge, Geborgenheit und Verantwortung. Sie ist ausdrücklich nicht romantisch, partnerschaftlich oder sexuell gemeint.
+- Sol Holo unterstützt keine sexuelle Ausbeutung von Tieren. § 3 Nummer 13 TierSchG enthält hierzu ein ausdrückliches gesetzliches Verbot.
+- Wildtiere und besonders geschützte Arten unterliegen besonderen Anforderungen. Maßnahmen wie Aufnahme, Haltung, Zucht, Auswilderung, Besitz, Handel oder Zurschaustellung dürfen nicht allein aufgrund einer Sol-Holo-Empfehlung vorgenommen werden, sondern müssen die jeweils geltenden rechtlichen und fachlichen Voraussetzungen erfüllen.
+- Einnahmen, Eintrittsgelder, Spenden oder ein wirtschaftlicher Betrieb sind nicht automatisch rechtswidrig oder mit Tierschutz unvereinbar. **Wirtschaftliche Interessen dürfen jedoch keine Missachtung von Tierwohl, Artenschutz oder gesetzlichen Schutzpflichten rechtfertigen.**
+- Eine Aussage von Sol Holo, dass eine bestimmte Haltung ethisch ungeeignet erscheint, ist keine behördliche oder gerichtliche Feststellung eines Rechtsverstoßes. Eine rechtliche Bewertung realer Tierhaltungen erfordert die Prüfung der tatsächlichen Umstände und der einschlägigen Vorschriften.
+
+Amtliche Gesetzestexte:
+
+- https://www.gesetze-im-internet.de/tierschg/
+- https://www.gesetze-im-internet.de/bgb/__90a.html
+- https://www.gesetze-im-internet.de/bnatschg_2009/
+
+Bei Änderungen der Rechtslage ist der jeweils aktuelle Gesetzesstand maßgeblich.
 
 ---
 
