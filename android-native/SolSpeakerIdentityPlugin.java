@@ -52,6 +52,8 @@ public class SolSpeakerIdentityPlugin extends Plugin {
     private static final int MAX_SPEECH_GAP_FRAMES = 12;
     private static final float MIN_SPEECH_RMS = 0.008f;
     private static final int REQUIRED_SAMPLES = 3;
+    static final float CAMPPLUS_WAKE_THRESHOLD = 0.86f;
+    static final float ERES2NET_WAKE_THRESHOLD = 0.65f;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -78,8 +80,28 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         }
     }
 
+    static final class WakeVerification {
+        final boolean accepted;
+        final float campplusScore;
+        final float eres2netScore;
+
+        WakeVerification(
+            boolean accepted,
+            float campplusScore,
+            float eres2netScore
+        ) {
+            this.accepted = accepted;
+            this.campplusScore = campplusScore;
+            this.eres2netScore = eres2netScore;
+        }
+    }
+
+    private static SharedPreferences profilePrefs(Context context) {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+    }
+
     private SharedPreferences prefs() {
-        return getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        return profilePrefs(getContext());
     }
 
     private void ensureProfileVersion() {
@@ -113,11 +135,29 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         out.put("requiredSamples", REQUIRED_SAMPLES);
         out.put("profileReady", count >= REQUIRED_SAMPLES);
         out.put("profileVersion", PROFILE_VERSION);
+        out.put("campplusWakeThreshold", CAMPPLUS_WAKE_THRESHOLD);
+        out.put("eres2netWakeThreshold", ERES2NET_WAKE_THRESHOLD);
         out.put("localOnly", true);
         out.put("rawAudioStored", false);
-        out.put("testOnly", true);
-        out.put("securityGateEnabled", false);
+        out.put("testOnly", false);
+        out.put("securityGateEnabled", true);
         return out;
+    }
+
+    static boolean isProfileReady(Context context) {
+        SharedPreferences preferences = profilePrefs(context);
+        if (preferences.getInt(PROFILE_VERSION_KEY, 0) != PROFILE_VERSION) {
+            return false;
+        }
+        for (int i = 1; i <= REQUIRED_SAMPLES; i++) {
+            if (
+                !preferences.contains(CAMPPLUS_SAMPLE_PREFIX + i)
+                    || !preferences.contains(ERES2NET_SAMPLE_PREFIX + i)
+            ) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @PluginMethod
@@ -131,6 +171,16 @@ public class SolSpeakerIdentityPlugin extends Plugin {
             .clear()
             .putInt(PROFILE_VERSION_KEY, PROFILE_VERSION)
             .apply();
+        getContext()
+            .getSharedPreferences(HeyHoSolPlugin.PREFERENCES_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putString(HeyHoSolPlugin.MODE_KEY, HeyHoSolPlugin.MODE_OFF)
+            .apply();
+        getContext().stopService(new android.content.Intent(
+            getContext(),
+            HeyHoSolService.class
+        ));
+        HeyHoSolPlugin.publishStatusEvent();
         call.resolve(status());
     }
 
@@ -187,6 +237,7 @@ public class SolSpeakerIdentityPlugin extends Plugin {
                     .apply();
                 JSObject out = status();
                 out.put("savedSample", next);
+                mainHandler.post(HeyHoSolPlugin::publishStatusEvent);
                 resolveOnMain(call, out);
             } catch (Exception error) {
                 rejectOnMain(call, "Stimmprobe konnte nicht verarbeitet werden: " + error.getMessage(), error);
@@ -202,21 +253,26 @@ public class SolSpeakerIdentityPlugin extends Plugin {
                 pauseWakeService();
                 DualEmbedding current = captureEmbedding();
                 ProfileScore campplus = scoreAgainstProfile(
+                    getContext(),
                     CAMPPLUS_SAMPLE_PREFIX,
                     current.campplus
                 );
                 ProfileScore eres2net = scoreAgainstProfile(
+                    getContext(),
                     ERES2NET_SAMPLE_PREFIX,
                     current.eres2net
                 );
+                boolean accepted =
+                    campplus.median >= CAMPPLUS_WAKE_THRESHOLD
+                        && eres2net.median >= ERES2NET_WAKE_THRESHOLD;
                 JSObject out = status();
                 out.put("campplusScore", campplus.median);
                 out.put("campplusMinimum", campplus.minimum);
                 out.put("eres2netScore", eres2net.median);
                 out.put("eres2netMinimum", eres2net.minimum);
                 out.put("score", Math.min(campplus.median, eres2net.median));
-                out.put("accepted", false);
-                out.put("decision", "measurement_only");
+                out.put("accepted", accepted);
+                out.put("decision", accepted ? "owner" : "rejected");
                 resolveOnMain(call, out);
             } catch (Exception error) {
                 rejectOnMain(call, "Stimmtest konnte nicht verarbeitet werden: " + error.getMessage(), error);
@@ -285,7 +341,69 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         }
     }
 
-    private float[] computeEmbedding(
+    static WakeVerification verifyWakeAudio(
+        Context context,
+        short[] captured,
+        int capturedCount
+    ) {
+        if (!isProfileReady(context)) {
+            throw new IllegalStateException("Stimmprofil ist nicht vollständig eingerichtet");
+        }
+
+        float[] voicedSamples = extractVoicedSamples(captured, capturedCount);
+        SpeakerEmbeddingExtractor localCampplusExtractor = null;
+        SpeakerEmbeddingExtractor localEres2netExtractor = null;
+
+        try {
+            localCampplusExtractor = new SpeakerEmbeddingExtractor(
+                context.getAssets(),
+                new SpeakerEmbeddingExtractorConfig(
+                    CAMPPLUS_MODEL_ASSET,
+                    2,
+                    false,
+                    "cpu"
+                )
+            );
+            localEres2netExtractor = new SpeakerEmbeddingExtractor(
+                context.getAssets(),
+                new SpeakerEmbeddingExtractorConfig(
+                    ERES2NET_MODEL_ASSET,
+                    2,
+                    false,
+                    "cpu"
+                )
+            );
+
+            ProfileScore campplus = scoreAgainstProfile(
+                context,
+                CAMPPLUS_SAMPLE_PREFIX,
+                computeEmbedding(localCampplusExtractor, voicedSamples)
+            );
+            ProfileScore eres2net = scoreAgainstProfile(
+                context,
+                ERES2NET_SAMPLE_PREFIX,
+                computeEmbedding(localEres2netExtractor, voicedSamples)
+            );
+            boolean accepted =
+                campplus.median >= CAMPPLUS_WAKE_THRESHOLD
+                    && eres2net.median >= ERES2NET_WAKE_THRESHOLD;
+
+            return new WakeVerification(
+                accepted,
+                campplus.median,
+                eres2net.median
+            );
+        } finally {
+            if (localCampplusExtractor != null) {
+                localCampplusExtractor.release();
+            }
+            if (localEres2netExtractor != null) {
+                localEres2netExtractor.release();
+            }
+        }
+    }
+
+    private static float[] computeEmbedding(
         SpeakerEmbeddingExtractor localExtractor,
         float[] voicedSamples
     ) {
@@ -304,7 +422,7 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         }
     }
 
-    private float[] extractVoicedSamples(short[] captured, int count) {
+    private static float[] extractVoicedSamples(short[] captured, int count) {
         if (count < FRAME_SAMPLES * MIN_ACTIVE_FRAMES) {
             throw new IllegalStateException("Es wurde keine vollständige Stimmprobe aufgenommen");
         }
@@ -416,11 +534,18 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         return eres2netExtractor;
     }
 
-    private ProfileScore scoreAgainstProfile(String prefix, float[] current) {
-        ensureProfileVersion();
+    private static ProfileScore scoreAgainstProfile(
+        Context context,
+        String prefix,
+        float[] current
+    ) {
+        SharedPreferences preferences = profilePrefs(context);
+        if (preferences.getInt(PROFILE_VERSION_KEY, 0) != PROFILE_VERSION) {
+            throw new IllegalStateException("Stimmprofil ist nicht aktuell");
+        }
         float[] scores = new float[REQUIRED_SAMPLES];
         for (int i = 0; i < REQUIRED_SAMPLES; i++) {
-            String encoded = prefs().getString(prefix + (i + 1), "");
+            String encoded = preferences.getString(prefix + (i + 1), "");
             if (encoded == null || encoded.isEmpty()) {
                 throw new IllegalStateException("Stimmprofil ist unvollständig");
             }

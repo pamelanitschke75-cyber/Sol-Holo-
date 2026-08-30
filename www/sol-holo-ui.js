@@ -85,7 +85,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       '<span class="rowIcon">✦</span>' +
       '<span class="rowText">' +
         '<span class="rowTitle">Sol-Weckruf</span>' +
-        '<span class="rowMeta">„Hallo Sol“ · „Hello Sol“</span>' +
+        '<span class="rowMeta">„Hey Sol. Bitte prüfe jetzt genau meine Stimme.“</span>' +
       '</span>' +
       '<span id="heyHoSolStatus" class="serviceStatus setup">Wird geprüft …</span>' +
     '</button>' +
@@ -250,7 +250,8 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     active: false,
     listening: false,
     pausedForConversation: false,
-    overlayPermissionGranted: false
+    overlayPermissionGranted: false,
+    speakerGateReady: false
   };
   let wakeActionRunning = false;
   let wakeListenersRegistered = false;
@@ -1457,6 +1458,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       active: Boolean(nextStatus?.active),
       listening: Boolean(nextStatus?.listening),
       pausedForConversation: Boolean(nextStatus?.pausedForConversation),
+      speakerGateReady: Boolean(nextStatus?.speakerGateReady),
       overlayPermissionGranted: Boolean(
         nextStatus?.overlayPermissionGranted
       ),
@@ -1475,7 +1477,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       );
       button.disabled =
         wakeActionRunning ||
-        (!pluginAvailable && button.dataset.wakeMode !== "off");
+        (
+          button.dataset.wakeMode !== "off" &&
+          (!pluginAvailable || !wakeStatus.speakerGateReady)
+        );
     });
 
     if (!pluginAvailable) {
@@ -1483,6 +1488,9 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       statusElement.classList.add("setup");
     } else if (!wakeStatus.supported) {
       statusElement.textContent = "Offline fehlt";
+      statusElement.classList.add("setup");
+    } else if (!wakeStatus.speakerGateReady) {
+      statusElement.textContent = "Stimme fehlt";
       statusElement.classList.add("setup");
     } else if (wakeStatus.pausedForConversation) {
       statusElement.textContent = "Sol spricht";
@@ -1668,7 +1676,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
     lastWakeDetectedAt = detectedAt;
     pendingWakePrompt = String(
-      event?.phrase || "Hallo Sol"
+      event?.phrase || "Hey Sol"
     );
     showToast("Sol-Weckruf gehört ✨");
     await startSolVoice();

@@ -81,9 +81,9 @@ if (!activity.includes("registerPlugin(SolSpeakerIdentityPlugin.class)")) {
 }
 
 const sourceText = `SOL HOLO / PAM'S HOLO – LOKALE SPRECHERERKENNUNG\n\n` +
-`Zweck: Lokaler Sicherheitstest zur Unterscheidung der autorisierten Besitzerstimme.\n` +
-`Status: Nur Einlernen/Messung; NICHT als Freigabe vor dem Weckruf aktiviert.\n` +
-`Sicherheitsprinzip: Keine Freigabe bei Unsicherheit oder fehlender Trennbarkeit.\n\n` +
+`Zweck: Lokale Unterscheidung und Freigabe der autorisierten Besitzerstimme.\n` +
+`Status: Der Weckruf wird nur nach vollständigem Prüfsatz und Freigabe durch beide Sprecher-Modelle ausgeführt.\n` +
+`Sicherheitsprinzip: Modell A muss mindestens 0,86 und Modell B mindestens 0,65 erreichen. Fehlende oder unsichere Messung sperrt den Weckruf.\n\n` +
 `sherpa-onnx 1.13.4\nQuelle: ${AAR_URL}\nLizenz: Apache License 2.0\nSHA-256 AAR: ${AAR_SHA256}\n\n` +
 `Speaker-Embedding-Modell A: 3dspeaker_speech_campplus_sv_en_voxceleb_16k.onnx\n` +
 `Quelle: ${CAMPPLUS_MODEL_URL}\nModellfamilie: 3D-Speaker / CAMPPlus\n` +
@@ -121,7 +121,7 @@ if (existsSync(uiFile)) {
 `      const p = plugin();\n` +
 `      if (!p) { statusEl.textContent = 'Nur in der Android-App verfügbar.'; enroll.disabled = true; test.disabled = true; return; }\n` +
 `      const s = await p.getStatus();\n` +
-`      statusEl.textContent = s.profileReady ? 'Profil bereit · Sicherheits-Messung ohne Freigabe 🔒' : 'Stimmproben: ' + s.sampleCount + '/3';\n` +
+`      statusEl.textContent = s.profileReady ? 'Profil bereit · Weckruf-Schutz aktiv 🔒' : 'Stimmproben: ' + s.sampleCount + '/3';\n` +
 `      enroll.disabled = Boolean(s.profileReady);\n` +
 `      enroll.textContent = s.profileReady ? '3/3 Stimmproben gespeichert' : 'Stimmprobe ' + (Number(s.sampleCount || 0) + 1) + '/3 aufnehmen';\n` +
 `      test.disabled = !s.profileReady;\n` +
@@ -134,7 +134,7 @@ if (existsSync(uiFile)) {
 `      catch (e) { statusEl.textContent = e?.message || String(e); enroll.disabled = false; }\n` +
 `    });\n` +
 `    test.addEventListener('click', async () => {\n` +
-`      try { test.disabled = true; statusEl.textContent = 'Mikrofon wird vorbereitet … bitte noch warten'; const r = await plugin().verifySample(); statusEl.textContent = 'Nur Messung 🔒 · Modell A ' + Number(r.campplusScore || 0).toFixed(3) + ' · Modell B ' + Number(r.eres2netScore || 0).toFixed(3); }\n` +
+`      try { test.disabled = true; statusEl.textContent = 'Mikrofon wird vorbereitet … bitte noch warten'; const r = await plugin().verifySample(); statusEl.textContent = (r.accepted ? 'Stimme freigegeben ✅' : 'Keine Freigabe 🔒') + ' · Modell A ' + Number(r.campplusScore || 0).toFixed(3) + ' · Modell B ' + Number(r.eres2netScore || 0).toFixed(3); }\n` +
 `      catch (e) { statusEl.textContent = e?.message || String(e); } finally { test.disabled = false; }\n` +
 `    });\n` +
 `    clear.addEventListener('click', async () => { await plugin()?.clearProfile(); await refresh(); });\n` +

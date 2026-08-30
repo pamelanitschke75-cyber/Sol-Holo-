@@ -120,7 +120,7 @@ public class HeyHoSolPlugin extends Plugin {
     }
 
     private boolean onDeviceRecognitionSupported() {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
             && SpeechRecognizer.isOnDeviceRecognitionAvailable(getContext());
     }
 
@@ -139,9 +139,14 @@ public class HeyHoSolPlugin extends Plugin {
         boolean microphonePermissionGranted = microphoneGranted();
         boolean notificationPermissionGranted = notificationsGranted();
         boolean overlayPermissionGranted = overlayPermissionGranted();
+        boolean speakerGateReady = SolSpeakerIdentityPlugin.isProfileReady(
+            getContext()
+        );
 
         JSObject result = new JSObject();
         result.put("supported", supported);
+        result.put("secureAudioSupported", Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU);
+        result.put("speakerGateReady", speakerGateReady);
         result.put("mode", mode);
         result.put("microphonePermissionGranted", microphonePermissionGranted);
         result.put("notificationPermissionGranted", notificationPermissionGranted);
@@ -157,6 +162,7 @@ public class HeyHoSolPlugin extends Plugin {
             "active",
             supported
                 && microphonePermissionGranted
+                && speakerGateReady
                 && !MODE_OFF.equals(mode)
                 && HeyHoSolService.isRunning()
         );
@@ -196,6 +202,14 @@ public class HeyHoSolPlugin extends Plugin {
             call.reject(
                 "Für den Sol-Weckruf fehlt auf diesem Handy die Offline-Spracherkennung.",
                 "ON_DEVICE_RECOGNITION_UNAVAILABLE"
+            );
+            return;
+        }
+
+        if (!SolSpeakerIdentityPlugin.isProfileReady(getContext())) {
+            call.reject(
+                "Bitte richte zuerst alle drei Stimmproben ein. Ohne sicheres Stimmprofil bleibt der Weckruf aus.",
+                "SPEAKER_PROFILE_REQUIRED"
             );
             return;
         }
@@ -240,6 +254,14 @@ public class HeyHoSolPlugin extends Plugin {
         ) {
             call.reject(
                 "Für das Hintergrund-Hören braucht Sol den sichtbaren Android-Hinweis."
+            );
+            return;
+        }
+
+        if (!SolSpeakerIdentityPlugin.isProfileReady(getContext())) {
+            call.reject(
+                "Das sichere Stimmprofil fehlt. Der Weckruf bleibt ausgeschaltet.",
+                "SPEAKER_PROFILE_REQUIRED"
             );
             return;
         }
@@ -380,7 +402,12 @@ public class HeyHoSolPlugin extends Plugin {
 
     private void startSavedModeIfNeeded() {
         String mode = savedMode();
-        if (MODE_OFF.equals(mode) || !microphoneGranted()) {
+        if (
+            MODE_OFF.equals(mode)
+                || !microphoneGranted()
+                || !onDeviceRecognitionSupported()
+                || !SolSpeakerIdentityPlugin.isProfileReady(getContext())
+        ) {
             return;
         }
 

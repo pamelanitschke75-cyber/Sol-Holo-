@@ -14,11 +14,16 @@ import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.media.AudioFormat;
+import android.media.AudioRecord;
+import android.media.MediaRecorder;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.ParcelFileDescriptor;
+import android.os.SystemClock;
 import android.provider.Settings;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
@@ -31,9 +36,16 @@ import android.widget.TextView;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class HeyHoSolService extends Service implements RecognitionListener {
     public static final String ACTION_START = "com.solholo.app.HEY_HO_SOL_START";
@@ -44,12 +56,20 @@ public class HeyHoSolService extends Service implements RecognitionListener {
 
     private static final String CHANNEL_ID = "hey_ho_sol_background";
     private static final int NOTIFICATION_ID = 2408;
+    private static final int SECURE_SAMPLE_RATE = 16000;
+    private static final int SECURE_CAPTURE_MS = 5600;
+    private static final int MIN_SECURE_CAPTURE_BYTES =
+        SECURE_SAMPLE_RATE * 2 * 4500 / 1000;
+    private static final String SECURE_WAKE_SENTENCE =
+        "Hey Sol. Bitte prüfe jetzt genau meine Stimme.";
 
     private static volatile boolean running;
     private static volatile boolean listening;
     private static volatile boolean pausedForConversation;
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final ExecutorService speakerExecutor =
+        Executors.newSingleThreadExecutor();
     private final Runnable restartRunnable = this::startRecognition;
     private final Runnable fallbackResumeRunnable = () -> {
         if (running && !pausedForConversation) {
@@ -62,9 +82,154 @@ public class HeyHoSolService extends Service implements RecognitionListener {
     private boolean destroyed;
     private boolean wakeHandled;
     private boolean recognitionStarted;
+    private boolean speakerVerificationPending;
     private boolean foregroundNotificationActive;
+    private long recognitionGeneration;
+    private SecureAudioSession secureAudioSession;
+    private final StringBuilder segmentedTranscript = new StringBuilder();
     private WindowManager wakeOverlayManager;
     private View wakeOverlayView;
+
+    private static final class SecureAudioSession {
+        private final AudioRecord recorder;
+        private final ParcelFileDescriptor readSource;
+        private final ParcelFileDescriptor.AutoCloseOutputStream writeTarget;
+        private final ByteArrayOutputStream captured = new ByteArrayOutputStream(
+            SECURE_SAMPLE_RATE * SECURE_CAPTURE_MS / 500
+        );
+        private final AtomicBoolean active = new AtomicBoolean(false);
+        private final AtomicBoolean released = new AtomicBoolean(false);
+        private Thread pumpThread;
+
+        SecureAudioSession() throws IOException {
+            int minBuffer = AudioRecord.getMinBufferSize(
+                SECURE_SAMPLE_RATE,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT
+            );
+            if (minBuffer <= 0) {
+                throw new IllegalStateException("Sicherer Audio-Puffer ist nicht verfügbar");
+            }
+
+            recorder = new AudioRecord(
+                MediaRecorder.AudioSource.VOICE_RECOGNITION,
+                SECURE_SAMPLE_RATE,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT,
+                Math.max(minBuffer * 2, SECURE_SAMPLE_RATE)
+            );
+            if (recorder.getState() != AudioRecord.STATE_INITIALIZED) {
+                recorder.release();
+                throw new IllegalStateException("Sichere Mikrofonaufnahme konnte nicht starten");
+            }
+
+            ParcelFileDescriptor[] pipe;
+            try {
+                pipe = ParcelFileDescriptor.createPipe();
+            } catch (IOException error) {
+                recorder.release();
+                throw error;
+            }
+            readSource = pipe[0];
+            writeTarget = new ParcelFileDescriptor.AutoCloseOutputStream(pipe[1]);
+        }
+
+        ParcelFileDescriptor audioSource() {
+            return readSource;
+        }
+
+        void start() {
+            recorder.startRecording();
+            active.set(true);
+            pumpThread = new Thread(this::pump, "sol-secure-audio");
+            pumpThread.start();
+        }
+
+        private void pump() {
+            byte[] buffer = new byte[3200];
+            long deadline = SystemClock.elapsedRealtime() + SECURE_CAPTURE_MS;
+
+            try {
+                while (
+                    active.get()
+                        && SystemClock.elapsedRealtime() < deadline
+                ) {
+                    int count = recorder.read(buffer, 0, buffer.length);
+                    if (count <= 0) {
+                        continue;
+                    }
+                    writeTarget.write(buffer, 0, count);
+                    synchronized (captured) {
+                        captured.write(buffer, 0, count);
+                    }
+                }
+            } catch (IOException | RuntimeException ignored) {
+                // A closed pipe ends this recognition cycle. Missing audio rejects it.
+            } finally {
+                active.set(false);
+                closeWriteTarget();
+                stopAndReleaseRecorder();
+            }
+        }
+
+        byte[] finishAndSnapshot() {
+            stopWithoutWaiting();
+            Thread thread = pumpThread;
+            if (thread != null && thread != Thread.currentThread()) {
+                try {
+                    thread.join(1500L);
+                } catch (InterruptedException error) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+            closeReadSource();
+            synchronized (captured) {
+                return captured.toByteArray();
+            }
+        }
+
+        void cancel() {
+            stopWithoutWaiting();
+            closeReadSource();
+        }
+
+        private void stopWithoutWaiting() {
+            active.set(false);
+            try {
+                recorder.stop();
+            } catch (RuntimeException ignored) {
+            }
+            closeWriteTarget();
+            if (pumpThread == null) {
+                stopAndReleaseRecorder();
+            }
+        }
+
+        private void stopAndReleaseRecorder() {
+            if (!released.compareAndSet(false, true)) {
+                return;
+            }
+            try {
+                recorder.stop();
+            } catch (RuntimeException ignored) {
+            }
+            recorder.release();
+        }
+
+        private void closeWriteTarget() {
+            try {
+                writeTarget.close();
+            } catch (IOException ignored) {
+            }
+        }
+
+        private void closeReadSource() {
+            try {
+                readSource.close();
+            } catch (IOException ignored) {
+            }
+        }
+    }
 
     public static Intent startIntent(Context context, String mode) {
         return new Intent(context, HeyHoSolService.class)
@@ -133,19 +298,26 @@ public class HeyHoSolService extends Service implements RecognitionListener {
             return START_NOT_STICKY;
         }
 
-        if (!hasMicrophonePermission() || !onDeviceRecognitionAvailable()) {
+        if (
+            !hasMicrophonePermission()
+                || !onDeviceRecognitionAvailable()
+                || !SolSpeakerIdentityPlugin.isProfileReady(this)
+        ) {
             saveError(
                 !hasMicrophonePermission()
                     ? "Mikrofonfreigabe fehlt."
-                    : "Offline-Spracherkennung ist nicht verfügbar."
+                    : !onDeviceRecognitionAvailable()
+                        ? "Sichere Offline-Spracherkennung ist nicht verfügbar."
+                        : "Bitte zuerst Pams Stimmprofil vollständig einrichten."
             );
+            saveMode(HeyHoSolPlugin.MODE_OFF);
             stopWakeService();
             return START_NOT_STICKY;
         }
 
         if (HeyHoSolPlugin.MODE_BACKGROUND.equals(currentMode)) {
             startBackgroundNotification(
-                "Wartet auf „Hey Sol“"
+                "Sag den vollständigen sicheren Prüfsatz"
             );
         } else if (foregroundNotificationActive) {
             stopForeground(STOP_FOREGROUND_REMOVE);
@@ -200,7 +372,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
     }
 
     private boolean onDeviceRecognitionAvailable() {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
             && SpeechRecognizer.isOnDeviceRecognitionAvailable(this);
     }
 
@@ -212,7 +384,9 @@ public class HeyHoSolService extends Service implements RecognitionListener {
             destroyed
                 || pausedForConversation
                 || recognitionStarted
+                || speakerVerificationPending
                 || !onDeviceRecognitionAvailable()
+                || !SolSpeakerIdentityPlugin.isProfileReady(this)
         ) {
             return;
         }
@@ -227,23 +401,70 @@ public class HeyHoSolService extends Service implements RecognitionListener {
             RecognizerIntent.EXTRA_LANGUAGE_MODEL,
             RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
         );
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
         recognizerIntent.putExtra(
             RecognizerIntent.EXTRA_LANGUAGE,
             Locale.GERMANY.toLanguageTag()
         );
+        ArrayList<String> biasingPhrases = new ArrayList<>();
+        biasingPhrases.add(SECURE_WAKE_SENTENCE);
+        recognizerIntent.putStringArrayListExtra(
+            RecognizerIntent.EXTRA_BIASING_STRINGS,
+            biasingPhrases
+        );
+        recognizerIntent.putExtra(
+            RecognizerIntent.EXTRA_SEGMENTED_SESSION,
+            RecognizerIntent.EXTRA_AUDIO_SOURCE
+        );
+
+        SecureAudioSession session;
+        try {
+            session = new SecureAudioSession();
+        } catch (IOException | RuntimeException error) {
+            saveError("Die sichere Audio-Prüfung konnte nicht vorbereitet werden.");
+            scheduleRestart(2_000L);
+            return;
+        }
+
+        recognizerIntent.putExtra(
+            RecognizerIntent.EXTRA_AUDIO_SOURCE,
+            session.audioSource()
+        );
+        recognizerIntent.putExtra(
+            RecognizerIntent.EXTRA_AUDIO_SOURCE_CHANNEL_COUNT,
+            1
+        );
+        recognizerIntent.putExtra(
+            RecognizerIntent.EXTRA_AUDIO_SOURCE_ENCODING,
+            AudioFormat.ENCODING_PCM_16BIT
+        );
+        recognizerIntent.putExtra(
+            RecognizerIntent.EXTRA_AUDIO_SOURCE_SAMPLING_RATE,
+            SECURE_SAMPLE_RATE
+        );
 
         wakeHandled = false;
+        segmentedTranscript.setLength(0);
+        recognitionGeneration++;
+        secureAudioSession = session;
         recognitionStarted = true;
+        listening = true;
+        HeyHoSolPlugin.publishStatusEvent();
+        updateBackgroundNotification("Sicherer Prüfsatz · Stimme wird lokal geprüft");
 
         try {
             speechRecognizer.startListening(recognizerIntent);
+            session.start();
         } catch (RuntimeException error) {
+            if (secureAudioSession == session) {
+                secureAudioSession = null;
+            }
+            session.cancel();
             recognitionStarted = false;
             listening = false;
-            saveError("Der Offline-Sprachdienst konnte nicht gestartet werden.");
+            saveError("Der sichere Offline-Sprachdienst konnte nicht gestartet werden.");
             scheduleRestart(1_500L);
         }
     }
@@ -262,8 +483,11 @@ public class HeyHoSolService extends Service implements RecognitionListener {
     private void pauseRecognition() {
         mainHandler.removeCallbacks(restartRunnable);
         mainHandler.removeCallbacks(fallbackResumeRunnable);
+        recognitionGeneration++;
         recognitionStarted = false;
         listening = false;
+        speakerVerificationPending = false;
+        cancelSecureAudioSession();
 
         if (speechRecognizer != null) {
             try {
@@ -273,26 +497,61 @@ public class HeyHoSolService extends Service implements RecognitionListener {
         }
     }
 
-    private void handleRecognitionResults(Bundle results) {
+    private SecureAudioSession detachSecureAudioSession() {
+        SecureAudioSession session = secureAudioSession;
+        secureAudioSession = null;
+        return session;
+    }
+
+    private void cancelSecureAudioSession() {
+        SecureAudioSession session = detachSecureAudioSession();
+        if (session != null) {
+            session.cancel();
+        }
+    }
+
+    private boolean handleRecognitionResults(Bundle results) {
         if (wakeHandled || results == null) {
-            return;
+            return false;
         }
 
         ArrayList<String> phrases = results.getStringArrayList(
             SpeechRecognizer.RESULTS_RECOGNITION
         );
         if (phrases == null) {
-            return;
+            return false;
         }
 
         for (String phrase : phrases) {
-            String canonicalPhrase = matchingWakePhrase(phrase);
+            String candidate = segmentedTranscript.length() == 0
+                ? phrase
+                : segmentedTranscript + " " + phrase;
+            String canonicalPhrase = matchingWakePhrase(candidate);
             if (!canonicalPhrase.isEmpty()) {
                 wakeHandled = true;
-                handleWakePhrase(canonicalPhrase);
-                return;
+                verifySpeakerBeforeWake(
+                    canonicalPhrase,
+                    recognitionGeneration
+                );
+                return true;
             }
         }
+        return false;
+    }
+
+    private boolean handleSegmentedRecognitionResults() {
+        if (wakeHandled || segmentedTranscript.length() == 0) {
+            return false;
+        }
+        String canonicalPhrase = matchingWakePhrase(
+            segmentedTranscript.toString()
+        );
+        if (canonicalPhrase.isEmpty()) {
+            return false;
+        }
+        wakeHandled = true;
+        verifySpeakerBeforeWake(canonicalPhrase, recognitionGeneration);
+        return true;
     }
 
     private String matchingWakePhrase(String rawPhrase) {
@@ -305,12 +564,109 @@ public class HeyHoSolService extends Service implements RecognitionListener {
             .trim();
 
         String solName = "(sol|soll|soul|sohl)";
+        String secureSentence =
+            ".*\\bhey\\s+" + solName + "\\b"
+                + ".*\\bbitte\\b"
+                + ".*\\bpr(?:u|ue)f(?:e|t|en)?\\b"
+                + ".*\\bjetzt\\b"
+                + ".*\\bgenau\\b"
+                + ".*\\bmeine\\b"
+                + ".*\\bstimme\\b.*";
 
-        if (normalized.matches(".*\\bhey\\s+" + solName + "\\b.*")) {
+        if (normalized.matches(secureSentence)) {
             return "Hey Sol";
         }
 
         return "";
+    }
+
+    private void verifySpeakerBeforeWake(String phrase, long generation) {
+        SecureAudioSession session = detachSecureAudioSession();
+        recognitionStarted = false;
+        listening = false;
+        speakerVerificationPending = true;
+        HeyHoSolPlugin.publishStatusEvent();
+        updateBackgroundNotification("Prüfsatz erkannt · Stimme wird abgeglichen");
+
+        speakerExecutor.execute(() -> {
+            boolean accepted = false;
+            try {
+                if (session == null) {
+                    throw new IllegalStateException("Sichere Audioaufnahme fehlt");
+                }
+                byte[] pcm = session.finishAndSnapshot();
+                if (pcm.length < MIN_SECURE_CAPTURE_BYTES) {
+                    throw new IllegalStateException(
+                        "Die sichere Audioquelle wurde nicht vollständig verarbeitet"
+                    );
+                }
+                short[] samples = pcm16LittleEndian(pcm);
+                SolSpeakerIdentityPlugin.WakeVerification verification =
+                    SolSpeakerIdentityPlugin.verifyWakeAudio(
+                        getApplicationContext(),
+                        samples,
+                        samples.length
+                    );
+                accepted = verification.accepted;
+            } catch (RuntimeException error) {
+                accepted = false;
+            }
+
+            final boolean ownerAccepted = accepted;
+            mainHandler.post(() -> {
+                if (destroyed || generation != recognitionGeneration) {
+                    return;
+                }
+                speakerVerificationPending = false;
+                if (ownerAccepted) {
+                    handleWakePhrase(phrase);
+                    return;
+                }
+
+                wakeHandled = false;
+                updateBackgroundNotification(
+                    "Keine Freigabe · sicherer Weckruf wartet weiter"
+                );
+                scheduleRestart(650L);
+            });
+        });
+    }
+
+    private void discardAudioAndRestart(long generation, long delayMillis) {
+        SecureAudioSession session = detachSecureAudioSession();
+        recognitionStarted = false;
+        listening = false;
+        speakerVerificationPending = true;
+        HeyHoSolPlugin.publishStatusEvent();
+
+        speakerExecutor.execute(() -> {
+            if (session != null) {
+                session.finishAndSnapshot();
+            }
+            mainHandler.post(() -> {
+                if (destroyed || generation != recognitionGeneration) {
+                    return;
+                }
+                speakerVerificationPending = false;
+                wakeHandled = false;
+                scheduleRestart(delayMillis);
+            });
+        });
+    }
+
+    private static short[] pcm16LittleEndian(byte[] pcm) {
+        if (pcm == null || pcm.length < 2) {
+            throw new IllegalStateException("Keine sichere Stimmaufnahme vorhanden");
+        }
+        int byteCount = pcm.length - (pcm.length % 2);
+        ByteBuffer buffer = ByteBuffer
+            .wrap(pcm, 0, byteCount)
+            .order(ByteOrder.LITTLE_ENDIAN);
+        short[] samples = new short[byteCount / 2];
+        for (int index = 0; index < samples.length; index++) {
+            samples[index] = buffer.getShort();
+        }
+        return samples;
     }
 
     private void handleWakePhrase(String phrase) {
@@ -551,7 +907,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
         listening = true;
         HeyHoSolPlugin.publishStatusEvent();
         updateBackgroundNotification(
-            "Wartet auf „Hey Sol“"
+            "Sag: „" + SECURE_WAKE_SENTENCE + "“"
         );
     }
 
@@ -575,7 +931,12 @@ public class HeyHoSolService extends Service implements RecognitionListener {
 
     @Override
     public void onError(int error) {
-        if (destroyed || pausedForConversation || wakeHandled) {
+        if (
+            destroyed
+                || pausedForConversation
+                || wakeHandled
+                || speakerVerificationPending
+        ) {
             return;
         }
 
@@ -597,22 +958,73 @@ public class HeyHoSolService extends Service implements RecognitionListener {
             return;
         }
 
-        scheduleRestart(delay);
+        discardAudioAndRestart(recognitionGeneration, delay);
     }
 
     @Override
     public void onResults(Bundle results) {
         recognitionStarted = false;
         listening = false;
-        handleRecognitionResults(results);
-        if (!wakeHandled) {
-            scheduleRestart(350L);
+        if (speakerVerificationPending || wakeHandled) {
+            return;
+        }
+        if (segmentedTranscript.length() > 0) {
+            ArrayList<String> phrases = results == null
+                ? null
+                : results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+            if (phrases != null && !phrases.isEmpty()) {
+                segmentedTranscript.append(' ').append(phrases.get(0));
+            }
+            return;
+        }
+        long generation = recognitionGeneration;
+        if (!handleRecognitionResults(results)) {
+            discardAudioAndRestart(generation, 350L);
         }
     }
 
     @Override
     public void onPartialResults(Bundle partialResults) {
-        handleRecognitionResults(partialResults);
+        // Partial text never authorizes a wake. Only the complete sentence,
+        // final recognition result and both speaker models can open Sol.
+    }
+
+    @Override
+    public void onSegmentResults(Bundle segmentResults) {
+        if (
+            destroyed
+                || speakerVerificationPending
+                || wakeHandled
+                || segmentResults == null
+        ) {
+            return;
+        }
+        ArrayList<String> phrases = segmentResults.getStringArrayList(
+            SpeechRecognizer.RESULTS_RECOGNITION
+        );
+        if (phrases == null || phrases.isEmpty()) {
+            return;
+        }
+        String phrase = String.valueOf(phrases.get(0)).trim();
+        if (!phrase.isEmpty()) {
+            if (segmentedTranscript.length() > 0) {
+                segmentedTranscript.append(' ');
+            }
+            segmentedTranscript.append(phrase);
+        }
+    }
+
+    @Override
+    public void onEndOfSegmentedSession() {
+        recognitionStarted = false;
+        listening = false;
+        if (speakerVerificationPending || wakeHandled) {
+            return;
+        }
+        long generation = recognitionGeneration;
+        if (!handleSegmentedRecognitionResults()) {
+            discardAudioAndRestart(generation, 350L);
+        }
     }
 
     @Override
@@ -631,7 +1043,10 @@ public class HeyHoSolService extends Service implements RecognitionListener {
         running = false;
         listening = false;
         pausedForConversation = false;
+        recognitionGeneration++;
+        speakerVerificationPending = false;
         mainHandler.removeCallbacksAndMessages(null);
+        cancelSecureAudioSession();
         removeWakeOverlay();
 
         if (speechRecognizer != null) {
@@ -641,6 +1056,8 @@ public class HeyHoSolService extends Service implements RecognitionListener {
             }
             speechRecognizer = null;
         }
+
+        speakerExecutor.shutdownNow();
 
         HeyHoSolPlugin.publishStatusEvent();
         super.onDestroy();

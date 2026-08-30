@@ -215,6 +215,22 @@ jobs:
             android/app/src/main/assets/public/SPEAKER_IDENTITY_SOURCES.txt
           grep -q "securityGateEnabled" \
             android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
+          grep -q "CAMPPLUS_WAKE_THRESHOLD = 0.86f" \
+            android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
+          grep -q "ERES2NET_WAKE_THRESHOLD = 0.65f" \
+            android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
+          grep -q "verifyWakeAudio" \
+            android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
+          grep -q "RecognizerIntent.EXTRA_AUDIO_SOURCE" \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          grep -q "SolSpeakerIdentityPlugin.verifyWakeAudio" \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          grep -q "Partial text never authorizes a wake" \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          grep -q "speakerGateReady" \
+            android/app/src/main/java/com/solholo/app/HeyHoSolPlugin.java
+          grep -q "Bitte prüfe jetzt genau meine Stimme" \
+            android/app/src/main/assets/public/sol-holo-ui.js
 
       - name: Mikrofon-Berechtigungen setzen
         run: |
