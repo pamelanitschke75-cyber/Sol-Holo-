@@ -6247,6 +6247,109 @@ async function sendLiveTranscriptToMemory(
 }
 
 
+async function handleRealtimeLocalNoteTranscript(
+  transcript
+){
+
+  if(
+    typeof window.handleSolHoloRealtimeNoteTranscript !==
+      "function"
+  ){
+
+    return false;
+  }
+
+
+  try{
+
+    const localAction =
+      await window.handleSolHoloRealtimeNoteTranscript(
+        transcript
+      );
+
+
+    if(
+      !localAction?.handled
+    ){
+
+      return false;
+    }
+
+
+    const localAnswer =
+      String(
+        localAction.answer ||
+        "Die Notizfunktion wurde ausgeführt."
+      ).trim();
+
+
+    addMessage(
+      "Sol",
+      localAnswer,
+      "sol-message"
+    );
+
+
+    chatStatus.textContent =
+      "Notizfunktion in Pam’s Holo abgeschlossen.";
+
+
+    if(
+      dc &&
+      dc.readyState ===
+        "open"
+    ){
+
+      try{
+        dc.send(
+          JSON.stringify({
+            type:"response.cancel"
+          })
+        );
+      }catch{}
+
+
+      dc.send(
+        JSON.stringify({
+          type:"conversation.item.create",
+          item:{
+            type:"message",
+            role:"user",
+            content:[{
+              type:"input_text",
+              text:
+                `[LOKALES_NOTIZERGEBNIS] ${localAnswer}`
+            }]
+          }
+        })
+      );
+
+
+      dc.send(
+        JSON.stringify({
+          type:"response.create"
+        })
+      );
+    }
+
+
+    return true;
+
+  }catch(
+    error
+  ){
+
+    console.error(
+      "Lokale Realtime-Notiz:",
+      error
+    );
+
+
+    return false;
+  }
+}
+
+
 /*
 ==========================================================
 MIKROFON
@@ -7136,6 +7239,11 @@ async function startLiveConversation(){
             ){
 
               sendLiveTranscriptToMemory(
+                transcript
+              );
+
+
+              void handleRealtimeLocalNoteTranscript(
                 transcript
               );
             }

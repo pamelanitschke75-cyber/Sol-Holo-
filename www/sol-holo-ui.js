@@ -303,6 +303,9 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   let customClonePhoto = "";
   let cloneMouthCalibrationActive = false;
   let cloneMouthBeforeCalibration = null;
+  let pendingPersonalNoteText = false;
+  let previousPlainUserMessage = "";
+  let previousPlainUserMessageAt = 0;
   let customCloneMouth = {
     x: 0.5,
     y: 0.58,
@@ -568,6 +571,19 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     }
 
     const now = Date.now();
+    const recentDuplicate = personalNotes.find((note) =>
+      normalizeNoteSearchText(note.text) === normalizeNoteSearchText(cleanText) &&
+      now - Number(note.createdAt || 0) <= 10 * 1000
+    );
+    if (recentDuplicate) {
+      return {
+        success: true,
+        duplicate: true,
+        note: recentDuplicate,
+        answer: `Notiz ist bereits gespeichert: ${recentDuplicate.title}`
+      };
+    }
+
     const randomPart = globalThis.crypto?.randomUUID?.() ||
       Math.random().toString(36).slice(2, 12);
     const note = normalizeStoredNote({
@@ -1849,6 +1865,18 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       .replace(/^(?:(?:hey\s+)?sol)\s*[,;:!.-]?\s*/i, "")
       .trim();
 
+    const finishNoteCreation = async (text) => {
+      const result = await executeNotesTool("create_personal_note", {
+        text
+      });
+      if (result?.success) {
+        pendingPersonalNoteText = false;
+        previousPlainUserMessage = "";
+        previousPlainUserMessageAt = 0;
+      }
+      return { handled: true, answer: result.answer };
+    };
+
     let noteMatch = noteMessage.match(
       /^notier(?:e)?\b\s*(?:mir\s+)?(?:bitte\s+)?[:,-]?\s*(.+?)[.!]?$/i
     );
@@ -1868,10 +1896,43 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       );
     }
     if (noteMatch) {
-      const result = await executeNotesTool("create_personal_note", {
-        text: noteMatch[1]
-      });
-      return { handled: true, answer: result.answer };
+      return finishNoteCreation(noteMatch[1]);
+    }
+
+    if (pendingPersonalNoteText) {
+      if (/^(?:abbrechen|abbruch|doch\s+nicht|keine\s+notiz)[.!?]*$/i.test(noteMessage)) {
+        pendingPersonalNoteText = false;
+        return {
+          handled: true,
+          answer: "Alles klar. Es wurde keine Notiz gespeichert."
+        };
+      }
+      return finishNoteCreation(noteMessage);
+    }
+
+    const simpleNoteRequest = noteMessage
+      .replace(/[\p{Extended_Pictographic}\p{Emoji_Modifier}\uFE0F\u200D]/gu, "")
+      .replace(/\s+(?:danke|dankeschön)\s*[.!?]*$/i, "")
+      .trim();
+    if (
+      /^(?:(?:mach|mache|schreib|schreibe)\s+(?:mir\s+)?(?:bitte\s+)?(?:eine\s+)?)?(?:einfache\s+|neue\s+)?notiz(?:\s+bitte)?[.!?]*$/i.test(simpleNoteRequest)
+    ) {
+      const previousMessageIsUsable =
+        previousPlainUserMessage &&
+        Date.now() - previousPlainUserMessageAt <= 5 * 60 * 1000 &&
+        previousPlainUserMessage.length <= 1000 &&
+        !/[?]\s*$/.test(previousPlainUserMessage) &&
+        !/^(?:ja|nein|okay|ok|danke|bitte)[.!?]*$/i.test(previousPlainUserMessage);
+
+      if (previousMessageIsUsable) {
+        return finishNoteCreation(previousPlainUserMessage);
+      }
+
+      pendingPersonalNoteText = true;
+      return {
+        handled: true,
+        answer: "Gern. Was soll ich in deinem Notizbuch in Pam’s Holo notieren?"
+      };
     }
 
     noteMatch = noteMessage.match(
@@ -1962,7 +2023,27 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       }
     }
 
+    previousPlainUserMessage = noteMessage;
+    previousPlainUserMessageAt = Date.now();
     return { handled: false };
+  };
+
+  window.handleSolHoloRealtimeNoteTranscript = async (message) => {
+    const cleanMessage = String(message || "").trim();
+    const noteMessage = cleanMessage
+      .replace(/^(?:(?:hey\s+)?sol)\s*[,;:!.-]?\s*/i, "")
+      .trim();
+    const noteIntent =
+      pendingPersonalNoteText ||
+      /\bnotiz(?:en)?\b|\bnotier(?:e|en|st|t)?\b/i.test(noteMessage);
+
+    if (!noteIntent) {
+      previousPlainUserMessage = noteMessage;
+      previousPlainUserMessageAt = Date.now();
+      return { handled: false };
+    }
+
+    return window.handleSolHoloLocalAction(cleanMessage);
   };
 
   function getHeyHoSolPlugin() {
