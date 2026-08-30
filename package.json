@@ -1,7 +1,7 @@
 {
   "type": "module",
   "scripts": {
-    "postinstall": "node scripts/generate-third-party-licenses.mjs && node scripts/install-full-face-rig-assets.mjs && node scripts/fix-samsung-notes.mjs && node scripts/repair-text-voice-notes-installer.mjs && node scripts/install-text-voice-notes.mjs",
+    "postinstall": "node scripts/generate-third-party-licenses.mjs && node scripts/install-full-face-rig-assets.mjs",
     "start": "node server.mjs",
     "cap:sync": "npx cap sync android",
     "android:build": "cd android && ./gradlew assembleDebug"
