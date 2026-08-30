@@ -166,6 +166,14 @@ Diese Quellen dokumentieren den aktuellen Planungsstand. Vor einer Veröffentlic
 
 ---
 
+## Verpflichtung auf jeweils geltendes Recht
+
+**Sol Holo richtet sich nach den jeweils aktuell geltenden gesetzlichen und regulatorischen Anforderungen. Altersfreigaben, Einwilligungen, Datenschutz- und Kinderschutzmaßnahmen werden vor einer Veröffentlichung und bei relevanten Änderungen erneut geprüft und erforderlichenfalls angepasst.**
+
+Damit wird ausdrücklich nicht vorausgesetzt, dass der Rechts- oder Plattformstand vom 30.08.2026 dauerhaft unverändert bleibt. Änderungen von Gesetzen, behördlichen Anforderungen, App-Store-Regeln oder verbindlichen Vorgaben eingebundener Dienste müssen bei der weiteren Entwicklung berücksichtigt werden.
+
+---
+
 ## Rolle von Eltern und Sorgeberechtigten
 
 Sorgeberechtigte können – abhängig von Alter, Reife, Rechtslage und konkreter Funktion – besondere Schutz-, Einrichtungs- oder Wiederherstellungsrechte erhalten.
@@ -270,6 +278,7 @@ Kurzform:
 ✅ Wiederherstellung und Inhaltszugriff als getrennte Rechte festgelegt  
 ✅ vorläufige Alters- und Schutzstufen bis 5 / 6–8 / 9–12 / 13–15 / 16–17 / 18+ dokumentiert  
 ✅ OpenAI-, Google-Play-, Apple- und DSGVO-Grundlagen für den Planungsstand vom 30.08.2026 vermerkt  
+✅ Verpflichtung auf jeweils geltendes Recht und erneute Prüfung bei relevanten Änderungen festgelegt  
 🟨 endgültiges Mindestalter und konkrete Funktionsfreigaben je Altersstufe rechtlich und technisch ausarbeiten  
 🟨 konkrete Mehrfaktorlogik je Altersstufe definieren  
 🟨 endgültige App-Store-Altersfreigabe erst anhand der fertigen Funktionen bestimmen  
