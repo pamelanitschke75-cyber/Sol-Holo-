@@ -1,6 +1,7 @@
 # 🔐 SOL HOLO – MEHRFAKTOR-IDENTITÄTSSCHUTZ MIT NFC
 
-**Datum:** 30. August 2026  
+**Sicherheitskonzept dokumentiert:** 30. August 2026  
+**Historischer NFC-Nachweis am Testgerät:** 16. August 2026  
 **Projekt:** Sol Holo · SH♾️  
 **Projekt / Idee / Entwicklung:** Pamela Nitschke  
 **Sicherheitsimpuls / Zusatzidee:** Stefanie Hörath  
@@ -86,17 +87,19 @@ Beispiel:
 
 ---
 
-## Bereits beobachteter NFC-Stand
+## Historischer NFC-Nachweis – 16.08.2026
 
-Auf dem verwendeten Samsung-Testgerät wurden bereits mehrfach NFC-Tags durch Android erkannt.
+Bereits am **16.08.2026** wurden auf dem verwendeten Samsung-Testgerät NFC-Tags durch Android erkannt.
 
-Damit ist dokumentiert, dass die allgemeine NFC-Erkennung des Geräts grundsätzlich funktioniert.
+Es liegen mindestens zwei beobachtete NFC-Erkennungen aus diesem Zeitraum vor. Auf einem dokumentierten Screenshot erscheint die Android-/Samsung-Meldung **„Neues Tag erkannt“**.
+
+Damit ist für die Projektdokumentation festgehalten, dass die allgemeine NFC-Erkennung des Testgeräts bereits **vor** der Sicherheitsentscheidung vom 30.08.2026 praktisch beobachtet wurde.
 
 **Wichtig:**
 
 Diese Beobachtung ist noch **kein erfolgreicher Test eines kryptografischen Sol-Holo-Sicherheitsschlüssels**.
 
-Die konkrete Registrierung, kryptografische Prüfung und Einbindung eines NFC-Sicherheitsschlüssels in Sol Holo muss noch implementiert und separat getestet werden.
+Sie belegt nur, dass die NFC-Grunderkennung des Geräts funktioniert. Die konkrete Registrierung, kryptografische Prüfung und Einbindung eines sicheren NFC-Schlüssels in Sol Holo muss noch implementiert und separat getestet werden.
 
 ---
 
@@ -175,8 +178,9 @@ Kurzform:
 
 ## Aktueller Status
 
-✅ Sicherheitskonzept dokumentiert  
-✅ NFC-Grunderkennung am Testgerät bereits beobachtet  
+✅ NFC-Grunderkennung am Testgerät am 16.08.2026 praktisch beobachtet  
+✅ Mehrere NFC-Erkennungen aus diesem Zeitraum dokumentiert  
+✅ Sicherheitskonzept am 30.08.2026 dokumentiert  
 ✅ NFC als zukünftiger zusätzlicher Besitznachweis festgelegt  
 ✅ Mehrfaktor-Grundsatz festgelegt  
 🟨 Kryptografischen NFC-Sicherheitsschlüssel auswählen und registrieren  
