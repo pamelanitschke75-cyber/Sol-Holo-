@@ -145,7 +145,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
 
         if (HeyHoSolPlugin.MODE_BACKGROUND.equals(currentMode)) {
             startBackgroundNotification(
-                "Wartet auf „Hallo Sol“ oder „Hello Sol“"
+                "Wartet auf „Hey Sol“"
             );
         } else if (foregroundNotificationActive) {
             stopForeground(STOP_FOREGROUND_REMOVE);
@@ -306,23 +306,8 @@ public class HeyHoSolService extends Service implements RecognitionListener {
 
         String solName = "(sol|soll|soul|sohl)";
 
-        if (normalized.matches(".*\\bhallo\\s+" + solName + "\\b.*")) {
-            return "Hallo Sol";
-        }
-
-        if (normalized.matches(".*\\bhello\\s+" + solName + "\\b.*")) {
-            return "Hello Sol";
-        }
-
-        boolean legacyWake = normalized.matches(
-            ".*\\bhey\\s+ho\\s+" + solName + "\\b.*"
-        );
-        if (legacyWake && normalized.contains("bist du da")) {
-            return "Hey ho Sol, bist du da?";
-        }
-
-        if (legacyWake && normalized.contains("are you ready")) {
-            return "Hey ho Sol, are you ready?";
+        if (normalized.matches(".*\\bhey\\s+" + solName + "\\b.*")) {
+            return "Hey Sol";
         }
 
         return "";
@@ -566,7 +551,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
         listening = true;
         HeyHoSolPlugin.publishStatusEvent();
         updateBackgroundNotification(
-            "Wartet auf „Hallo Sol“ oder „Hello Sol“"
+            "Wartet auf „Hey Sol“"
         );
     }
 
