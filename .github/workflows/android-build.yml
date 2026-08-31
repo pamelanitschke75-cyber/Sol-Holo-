@@ -20,6 +20,7 @@ on:
       - "www/sol-holo-logo.png"
       - "www/sol-motion-profile.js"
       - "www/sol-holo-ui.css"
+      - "www/sol-holo-wow.css"
       - "www/sol-holo-ui.js"
       - "www/service-worker.js"
       - "www/third-party/**"

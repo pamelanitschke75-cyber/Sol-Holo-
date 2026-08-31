@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-034-build-90-current-ui";
+const CACHE_VERSION = "sol-holo-035-wow-purple-blue-preview";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
