@@ -1042,6 +1042,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     if (viewName === "chat" && typeof updateMouthGeometry === "function") {
       window.requestAnimationFrame(updateMouthGeometry);
     }
+
+    if (viewName === "chat" && typeof scrollChatToLatest === "function") {
+      scrollChatToLatest();
+    }
   }
 
   async function askSol(prompt) {

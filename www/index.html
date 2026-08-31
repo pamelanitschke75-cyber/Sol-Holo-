@@ -1379,7 +1379,7 @@ MOBIL
 }
 
 </style>
-<link rel="stylesheet" href="./sol-holo-ui.css?v=32">
+<link rel="stylesheet" href="./sol-holo-ui.css?v=33">
 </head>
 
 <body>
@@ -5653,6 +5653,95 @@ CHAT
 ==========================================================
 */
 
+let latestMessageScrollTimers =
+  [];
+
+
+let keepLatestMessageVisibleUntil =
+  0;
+
+
+function scrollChatOnce(){
+
+  chat.scrollTop =
+    chat.scrollHeight;
+}
+
+
+function scrollChatToLatest(){
+
+  keepLatestMessageVisibleUntil =
+    Date.now() +
+    1000;
+
+
+  scrollChatOnce();
+
+
+  window.requestAnimationFrame(
+    () => {
+
+      scrollChatOnce();
+
+
+      window.requestAnimationFrame(
+        scrollChatOnce
+      );
+    }
+  );
+
+
+  latestMessageScrollTimers.forEach(
+    timer =>
+      window.clearTimeout(
+        timer
+      )
+  );
+
+
+  latestMessageScrollTimers =
+    [
+      80,
+      300,
+      800
+    ].map(
+      delay =>
+        window.setTimeout(
+          scrollChatOnce,
+          delay
+        )
+    );
+}
+
+
+function keepLatestMessageVisible(){
+
+  if(
+    Date.now() >
+    keepLatestMessageVisibleUntil
+  ){
+
+    return;
+  }
+
+
+  window.requestAnimationFrame(
+    scrollChatOnce
+  );
+}
+
+
+window.addEventListener(
+  "resize",
+  keepLatestMessageVisible
+);
+
+
+window.visualViewport?.addEventListener(
+  "resize",
+  keepLatestMessageVisible
+);
+
 function addMessage(
   speaker,
   text,
@@ -5730,6 +5819,15 @@ function addMessage(
       imageDataUrl;
 
 
+    image.addEventListener(
+      "load",
+      scrollChatToLatest,
+      {
+        once:true
+      }
+    );
+
+
     image.alt =
       "Gesendetes Bild";
 
@@ -5770,8 +5868,7 @@ function addMessage(
   );
 
 
-  chat.scrollTop =
-    chat.scrollHeight;
+  scrollChatToLatest();
 }
 
 
@@ -7633,7 +7730,7 @@ if(
 
 </script>
 
-<script src="./sol-holo-ui.js?v=32"></script>
+<script src="./sol-holo-ui.js?v=33"></script>
 
 </body>
 </html>
