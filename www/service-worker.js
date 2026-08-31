@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-030-safe-lip-sync";
+const CACHE_VERSION = "sol-holo-032-roomy-chat-layout";
 
 self.addEventListener("install", () => {
   self.skipWaiting();

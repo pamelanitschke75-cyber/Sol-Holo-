@@ -1379,7 +1379,7 @@ MOBIL
 }
 
 </style>
-<link rel="stylesheet" href="./sol-holo-ui.css">
+<link rel="stylesheet" href="./sol-holo-ui.css?v=32">
 </head>
 
 <body>
@@ -1468,7 +1468,9 @@ Du kannst noch etwas dazu schreiben oder es direkt senden.
   id="messageInput"
   rows="3"
   placeholder="Schreib Sol etwas..."
-  autocomplete="off"></textarea>
+  autocomplete="off"
+  enterkeyhint="send"
+  aria-label="Nachricht an Sol"></textarea>
 
 <button
   id="sendButton"
@@ -1489,7 +1491,7 @@ Du kannst noch etwas dazu schreiben oder es direkt senden.
 </div>
 
 
-<div id="liveStatus">
+<div id="liveStatus" role="status" aria-live="polite">
 
 <span class="wave">
 ·······
@@ -1512,7 +1514,7 @@ Ich bin da.
 
 <section id="chatPanel">
 
-<div id="chat">
+<div id="chat" role="log" aria-live="polite" aria-relevant="additions">
 
 <div class="message system-message">
 
@@ -7631,7 +7633,7 @@ if(
 
 </script>
 
-<script src="./sol-holo-ui.js"></script>
+<script src="./sol-holo-ui.js?v=32"></script>
 
 </body>
 </html>

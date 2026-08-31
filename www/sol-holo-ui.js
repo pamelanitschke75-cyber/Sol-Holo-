@@ -209,27 +209,38 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
   [
     currentHeader,
-    currentControls,
     currentChatPanel,
+    currentControls,
     currentSolStage
   ].forEach((element) => chatView.appendChild(element));
 
   currentBottomNav.setAttribute("aria-label", "Hauptnavigation");
   currentBottomNav.innerHTML =
     '<button class="navItem active" type="button" data-view="home" aria-label="Start">' +
-      '<span class="navIcon">⌂</span><span class="navLabel">Start</span>' +
+      '<span class="navIcon" aria-hidden="true"><svg viewBox="0 0 24 24">' +
+        '<path d="M4 10.8 12 4l8 6.8V20h-5v-5H9v5H4Z"/></svg></span>' +
+      '<span class="navLabel">Start</span>' +
     '</button>' +
     '<button class="navItem" type="button" data-view="chat" aria-label="Chat">' +
-      '<span class="navIcon">◌</span><span class="navLabel">Chat</span>' +
+      '<span class="navIcon" aria-hidden="true"><svg viewBox="0 0 24 24">' +
+        '<path d="M5 5.5h14v10H9l-4 3v-13Z"/></svg></span>' +
+      '<span class="navLabel">Chat</span>' +
     '</button>' +
     '<button class="navItem" type="button" data-view="memory" aria-label="Erinnerungen">' +
-      '<span class="navIcon">◇</span><span class="navLabel">Erinnerungen</span>' +
+      '<span class="navIcon" aria-hidden="true"><svg viewBox="0 0 24 24">' +
+        '<path d="M12 3 15 9l6 3-6 3-3 6-3-6-6-3 6-3 3-6Z"/></svg></span>' +
+      '<span class="navLabel">Erinnerungen</span>' +
     '</button>' +
     '<button class="navItem" type="button" data-view="services" aria-label="Dienste">' +
-      '<span class="navIcon">∞</span><span class="navLabel">Dienste</span>' +
+      '<span class="navIcon" aria-hidden="true"><svg viewBox="0 0 24 24">' +
+        '<circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="7" r="2.5"/>' +
+        '<circle cx="18" cy="17" r="2.5"/><path d="m8.4 11 7.2-3M8.4 13l7.2 3"/></svg></span>' +
+      '<span class="navLabel">Dienste</span>' +
     '</button>' +
     '<button class="navItem" type="button" data-view="profile" aria-label="Profil">' +
-      '<span class="navIcon">○</span><span class="navLabel">Profil</span>' +
+      '<span class="navIcon" aria-hidden="true"><svg viewBox="0 0 24 24">' +
+        '<circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.8-4 3-6 6.5-6s5.7 2 6.5 6"/></svg></span>' +
+      '<span class="navLabel">Profil</span>' +
     '</button>';
 
   const uiToast = document.createElement("div");
@@ -992,18 +1003,23 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
   function showView(viewName) {
     const nextView = views[viewName] || views.home;
+    const activeViewName = views[viewName] ? viewName : "home";
 
     Object.values(views).forEach((view) => {
       view?.classList.remove("active");
     });
 
     nextView.classList.add("active");
+    solApp.dataset.activeView = activeViewName;
 
     currentBottomNav.querySelectorAll(".navItem").forEach((button) => {
-      button.classList.toggle(
-        "active",
-        button.dataset.view === viewName
-      );
+      const isActive = button.dataset.view === activeViewName;
+      button.classList.toggle("active", isActive);
+      if (isActive) {
+        button.setAttribute("aria-current", "page");
+      } else {
+        button.removeAttribute("aria-current");
+      }
     });
 
     window.scrollTo({ top: 0, behavior: "smooth" });
