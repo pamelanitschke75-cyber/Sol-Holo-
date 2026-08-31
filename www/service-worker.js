@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-036-wow-unicorn-everywhere";
+const CACHE_VERSION = "sol-holo-037-wow-unicorn-polish";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
