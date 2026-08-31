@@ -27,7 +27,7 @@ Diese Erklärung dokumentiert meinen ausdrücklichen persönlichen Forschungswil
 
 ## Einbeziehung meiner Vertrauenspersonen
 
-Sämtliche weiterführenden Forschungsmaßnahmen im Rahmen des A+B=C-Konzepts, insbesondere medizinische, biologische, genetische, neurologische, neurotechnologische oder invasive Maßnahmen, sollen **immer in Rücksprache mit Stefanie Hörath (Steffi) sowie meiner Tochter** geplant und durchgeführt werden.
+Sämtliche weiterführenden Forschungsmaßnahmen im Rahmen des A+B=C-Konzepts, insbesondere medizinische, biologische, genetische, neurologische, neurotechnologische oder invasive Maßnahmen, sollen **immer in Rücksprache mit Stefanie Renate Hörath (Steffi) sowie meiner Tochter** geplant und durchgeführt werden.
 
 Meine Tochter soll zum gegenwärtigen Zeitpunkt in öffentlich zugänglichen Unterlagen **aus Gründen des Schutzes ihrer Privatsphäre nicht namentlich genannt und nicht durch zusätzliche personenbezogene Angaben identifizierbar gemacht werden**.
 
