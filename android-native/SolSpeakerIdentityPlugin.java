@@ -53,8 +53,6 @@ public class SolSpeakerIdentityPlugin extends Plugin {
     private static final int MAX_SPEECH_GAP_FRAMES = 12;
     private static final float MIN_SPEECH_RMS = 0.008f;
     private static final int REQUIRED_SAMPLES = 3;
-    static final float CAMPPLUS_WAKE_THRESHOLD = 0.86f;
-    static final float ERES2NET_WAKE_THRESHOLD = 0.65f;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -72,11 +70,11 @@ public class SolSpeakerIdentityPlugin extends Plugin {
     }
 
     private static final class ProfileScore {
-        final float median;
+        final float score;
         final float minimum;
 
-        ProfileScore(float median, float minimum) {
-            this.median = median;
+        ProfileScore(float score, float minimum) {
+            this.score = score;
             this.minimum = minimum;
         }
     }
@@ -136,8 +134,10 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         out.put("requiredSamples", REQUIRED_SAMPLES);
         out.put("profileReady", count >= REQUIRED_SAMPLES);
         out.put("profileVersion", PROFILE_VERSION);
-        out.put("campplusWakeThreshold", CAMPPLUS_WAKE_THRESHOLD);
-        out.put("eres2netWakeThreshold", ERES2NET_WAKE_THRESHOLD);
+        out.put("campplusWakeThreshold", SpeakerVerificationPolicy.CAMPPLUS_SANITY_FLOOR);
+        out.put("eres2netWakeThreshold", SpeakerVerificationPolicy.ERES2NET_OWNER_THRESHOLD);
+        out.put("profileComparison", "normalized-centroid");
+        out.put("primarySpeakerModel", "eres2net");
         out.put("localOnly", true);
         out.put("rawAudioStored", false);
         out.put("testOnly", false);
@@ -263,15 +263,16 @@ public class SolSpeakerIdentityPlugin extends Plugin {
                     ERES2NET_SAMPLE_PREFIX,
                     current.eres2net
                 );
-                boolean accepted =
-                    campplus.median >= CAMPPLUS_WAKE_THRESHOLD
-                        && eres2net.median >= ERES2NET_WAKE_THRESHOLD;
+                boolean accepted = SpeakerVerificationPolicy.isOwner(
+                    campplus.score,
+                    eres2net.score
+                );
                 JSObject out = status();
-                out.put("campplusScore", campplus.median);
+                out.put("campplusScore", campplus.score);
                 out.put("campplusMinimum", campplus.minimum);
-                out.put("eres2netScore", eres2net.median);
+                out.put("eres2netScore", eres2net.score);
                 out.put("eres2netMinimum", eres2net.minimum);
-                out.put("score", Math.min(campplus.median, eres2net.median));
+                out.put("score", eres2net.score);
                 out.put("accepted", accepted);
                 out.put("decision", accepted ? "owner" : "rejected");
                 resolveOnMain(call, out);
@@ -390,14 +391,15 @@ public class SolSpeakerIdentityPlugin extends Plugin {
                 ERES2NET_SAMPLE_PREFIX,
                 computeEmbedding(localEres2netExtractor, voicedSamples)
             );
-            boolean accepted =
-                campplus.median >= CAMPPLUS_WAKE_THRESHOLD
-                    && eres2net.median >= ERES2NET_WAKE_THRESHOLD;
+            boolean accepted = SpeakerVerificationPolicy.isOwner(
+                campplus.score,
+                eres2net.score
+            );
 
             return new WakeVerification(
                 accepted,
-                campplus.median,
-                eres2net.median
+                campplus.score,
+                eres2net.score
             );
         } finally {
             if (localCampplusExtractor != null) {
@@ -561,7 +563,8 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         if (preferences.getInt(PROFILE_VERSION_KEY, 0) != PROFILE_VERSION) {
             throw new IllegalStateException("Stimmprofil ist nicht aktuell");
         }
-        float[] scores = new float[REQUIRED_SAMPLES];
+        float[][] savedEmbeddings = new float[REQUIRED_SAMPLES][];
+        float minimum = Float.POSITIVE_INFINITY;
         for (int i = 0; i < REQUIRED_SAMPLES; i++) {
             String encoded = preferences.getString(prefix + (i + 1), "");
             if (encoded == null || encoded.isEmpty()) {
@@ -571,22 +574,17 @@ public class SolSpeakerIdentityPlugin extends Plugin {
             if (saved.length != current.length) {
                 throw new IllegalStateException("Stimmprofil ist beschädigt");
             }
-            scores[i] = cosine(saved, current);
+            savedEmbeddings[i] = saved;
+            minimum = Math.min(
+                minimum,
+                SpeakerVerificationPolicy.cosine(saved, current)
+            );
         }
-        Arrays.sort(scores);
-        return new ProfileScore(scores[1], scores[0]);
-    }
-
-    private static float cosine(float[] a, float[] b) {
-        if (a.length != b.length) return -1f;
-        double dot = 0, na = 0, nb = 0;
-        for (int i = 0; i < a.length; i++) {
-            dot += a[i] * b[i];
-            na += a[i] * a[i];
-            nb += b[i] * b[i];
-        }
-        if (na == 0 || nb == 0) return -1f;
-        return (float)(dot / (Math.sqrt(na) * Math.sqrt(nb)));
+        float[] centroid = SpeakerVerificationPolicy.normalizedCentroid(savedEmbeddings);
+        return new ProfileScore(
+            SpeakerVerificationPolicy.cosine(centroid, current),
+            minimum
+        );
     }
 
     private static String encode(float[] values) {

@@ -28,6 +28,7 @@ on:
       - "package.json"
       - "package-lock.json"
       - "android-native/**"
+      - "tests/java/**"
       - "scripts/generate-third-party-licenses.mjs"
       - "scripts/audit-android-runtime-licenses.mjs"
       - "scripts/install-full-face-rig-assets.mjs"
@@ -52,6 +53,16 @@ jobs:
         with:
           distribution: "temurin"
           java-version: "21"
+
+      - name: Sprecher-Sicherheitslogik testen
+        run: |
+          set -Eeuo pipefail
+          test_dir="$RUNNER_TEMP/speaker-policy-test"
+          mkdir -p "$test_dir"
+          javac -d "$test_dir" \
+            android-native/SpeakerVerificationPolicy.java \
+            tests/java/com/solholo/app/SpeakerVerificationPolicyTest.java
+          java -cp "$test_dir" com.solholo.app.SpeakerVerificationPolicyTest
 
       - name: Node-Abhängigkeiten installieren
         run: npm install
@@ -235,6 +246,7 @@ jobs:
           test -s android/app/src/main/assets/sol-speaker-campplus.onnx
           test -s android/app/src/main/assets/sol-speaker-eres2net.onnx
           test -s android/app/src/main/assets/public/SPEAKER_IDENTITY_SOURCES.txt
+          test -s android/app/src/main/java/com/solholo/app/SpeakerVerificationPolicy.java
           grep -q "registerPlugin(SolSpeakerIdentityPlugin.class)" \
             android/app/src/main/java/com/solholo/app/MainActivity.java
           grep -q "sherpa-onnx-1.13.4.aar" android/app/build.gradle
@@ -244,9 +256,11 @@ jobs:
             android/app/src/main/assets/public/SPEAKER_IDENTITY_SOURCES.txt
           grep -q "securityGateEnabled" \
             android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
-          grep -q "CAMPPLUS_WAKE_THRESHOLD = 0.86f" \
-            android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
-          grep -q "ERES2NET_WAKE_THRESHOLD = 0.65f" \
+          grep -q "CAMPPLUS_SANITY_FLOOR = 0.10f" \
+            android/app/src/main/java/com/solholo/app/SpeakerVerificationPolicy.java
+          grep -q "ERES2NET_OWNER_THRESHOLD = 0.58f" \
+            android/app/src/main/java/com/solholo/app/SpeakerVerificationPolicy.java
+          grep -q "normalizedCentroid" \
             android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
           grep -q "verifyWakeAudio" \
             android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java

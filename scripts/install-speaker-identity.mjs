@@ -62,6 +62,10 @@ copyFileSync(
   join(root, "android-native", "SolSpeakerIdentityPlugin.java"),
   join(javaTarget, "SolSpeakerIdentityPlugin.java")
 );
+copyFileSync(
+  join(root, "android-native", "SpeakerVerificationPolicy.java"),
+  join(javaTarget, "SpeakerVerificationPolicy.java")
+);
 
 let gradle = readFileSync(buildGradle, "utf8");
 const dependencyLine = "    implementation files('libs/sherpa-onnx-1.13.4.aar')";
@@ -82,8 +86,9 @@ if (!activity.includes("registerPlugin(SolSpeakerIdentityPlugin.class)")) {
 
 const sourceText = `SOL HOLO / PAM'S HOLO – LOKALE SPRECHERERKENNUNG\n\n` +
 `Zweck: Lokale Unterscheidung und Freigabe der autorisierten Besitzerstimme.\n` +
-`Status: Der Weckruf wird nur nach vollständigem Prüfsatz und Freigabe durch beide Sprecher-Modelle ausgeführt.\n` +
-`Sicherheitsprinzip: Modell A muss mindestens 0,86 und Modell B mindestens 0,65 erreichen. Fehlende oder unsichere Messung sperrt den Weckruf.\n\n` +
+`Status: Der Weckruf wird nur nach vollständigem Prüfsatz und lokaler Freigabe des gespeicherten Besitzerprofils ausgeführt.\n` +
+`Profilbildung: Die drei Stimmproben werden je Modell zu einem normalisierten Mittelprofil zusammengeführt.\n` +
+`Sicherheitsprinzip: Das trennschärfere Modell B muss mindestens 0,58 erreichen; Modell A muss zusätzlich mindestens 0,10 als Plausibilitätskontrolle erreichen. Fehlende oder unsichere Messung sperrt den Weckruf.\n\n` +
 `sherpa-onnx 1.13.4\nQuelle: ${AAR_URL}\nLizenz: Apache License 2.0\nSHA-256 AAR: ${AAR_SHA256}\n\n` +
 `Speaker-Embedding-Modell A: 3dspeaker_speech_campplus_sv_en_voxceleb_16k.onnx\n` +
 `Quelle: ${CAMPPLUS_MODEL_URL}\nModellfamilie: 3D-Speaker / CAMPPlus\n` +
