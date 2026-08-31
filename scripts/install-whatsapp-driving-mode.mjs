@@ -294,6 +294,19 @@ if (!manifest.includes('android:name="com.google.android.apps.healthdata"')) {
   );
 }
 
+if (!manifest.includes('android:name="com.samsung.android.app.notes"')) {
+  const queriesEnd = "    </queries>";
+  if (!manifest.includes(queriesEnd)) {
+    throw new Error("Queries-Tag für Samsung Notes nicht gefunden.");
+  }
+
+  manifest = manifest.replace(
+    queriesEnd,
+    '        <package android:name="com.samsung.android.app.notes" />\n' +
+      queriesEnd
+  );
+}
+
 if (!manifest.includes('android:name="android.intent.action.SEND"')) {
   const launcherEnd = [
     '                <category android:name="android.intent.category.LAUNCHER" />',
@@ -396,5 +409,5 @@ if (!manifest.includes(".HealthPrivacyActivity")) {
 
 writeFileSync(manifestPath, manifest, "utf8");
 console.log(
-  "WhatsApp-Fahrmodus, Sol-Weckruf, Telefon, Kontakte, Samsung Notes, Health Connect und Lautsprecherroute wurden in Android eingebunden."
+  "WhatsApp-Fahrmodus, Sol-Weckruf, Telefon, Kontakte, direkte Samsung-Notes-Übergabe, Health Connect und Lautsprecherroute wurden in Android eingebunden."
 );

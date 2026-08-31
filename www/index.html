@@ -6291,7 +6291,7 @@ async function handleRealtimeLocalNoteTranscript(
 
 
     chatStatus.textContent =
-      "Notizfunktion in Pam’s Holo abgeschlossen.";
+      "Samsung Notes zur Bestätigung geöffnet.";
 
 
     if(
@@ -6657,7 +6657,7 @@ async function handleRealtimeMemoryToolCall(
           "Die Notizfunktion hat keine Rückmeldung geliefert."
         );
       }else{
-        output = "Das persönliche Notizbuch ist in Pam’s Holo gerade nicht verfügbar.";
+        output = "Die Samsung-Notes-Übergabe ist in Pam’s Holo gerade nicht verfügbar.";
       }
     }else if(toolCall?.name === "read_health_snapshot"){
       if(typeof window.executeSolHoloHealthTool === "function"){
@@ -6691,7 +6691,7 @@ async function handleRealtimeMemoryToolCall(
     output = toolCall?.name === "search_personal_memory"
       ? "Die persönliche Gedächtnissuche ist gerade technisch fehlgeschlagen. Erfinde keine Erinnerung."
       : REALTIME_NOTE_TOOL_NAMES.has(toolCall?.name)
-        ? "Die Notizfunktion ist gerade technisch fehlgeschlagen. Behaupte nicht, dass eine Notiz gespeichert, geändert oder gelöscht wurde."
+        ? "Die Samsung-Notes-Übergabe ist gerade technisch fehlgeschlagen. Behaupte nicht, dass eine Notiz gespeichert wurde."
       : toolCall?.name === "read_health_snapshot"
         ? "Die Health-Abfrage ist technisch fehlgeschlagen. Erfinde keine Gesundheitswerte und stelle keine Diagnose."
         : "Die Telefonfunktion ist gerade technisch fehlgeschlagen. Behaupte nicht, dass eine App geöffnet wurde.";

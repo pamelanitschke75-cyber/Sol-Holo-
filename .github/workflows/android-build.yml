@@ -197,20 +197,26 @@ jobs:
       - name: Sicheren Fahr- und Weckmodus einbinden
         run: node scripts/install-whatsapp-driving-mode.mjs
 
-      - name: Notizbuch der Pam’s-Holo-Original-App prüfen
+      - name: Direkte Samsung-Notes-Übergabe prüfen
         run: |
           set -Eeuo pipefail
           notes_js="android/app/src/main/assets/public/sol-holo-ui.js"
           app_html="android/app/src/main/assets/public/index.html"
+          notes_java="android/app/src/main/java/com/solholo/app/PhoneContactsPlugin.java"
+          app_manifest="android/app/src/main/AndroidManifest.xml"
           test -s "$notes_js"
           test -s "$app_html"
-          grep -q 'pams-holo-original-notes-v1' "$notes_js"
-          grep -q 'Notizen ✏️' "$notes_js"
+          test -s "$notes_java"
+          test -s "$app_manifest"
+          grep -q 'Samsung Notes ist mit' "$notes_js"
+          grep -q 'prepareSamsungNote' "$notes_js"
+          grep -q 'prepareSamsungNote' "$notes_java"
+          grep -q 'com.samsung.android.app.notes' "$notes_java"
+          grep -q 'com.samsung.android.app.notes' "$app_manifest"
           grep -q 'create_personal_note' "$notes_js"
-          grep -q 'delete_personal_note' "$notes_js"
           grep -q 'REALTIME_NOTE_TOOL_NAMES' "$app_html"
           grep -q 'create_personal_note' server.mjs
-          grep -q 'Pam’s-Holo-Original-App' server.mjs
+          grep -q 'Pam bestätigt beziehungsweise speichert die Notiz dort selbst' server.mjs
 
       - name: Lokale Sprechererkennung in Pam’s Holo einbinden
         run: node scripts/install-speaker-identity.mjs

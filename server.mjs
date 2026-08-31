@@ -4001,39 +4001,37 @@ gespeichert werden soll.
 Biete nicht an, eine normale Aussage dauerhaft zu
 speichern.
 
-WICHTIG ZU PAMS NOTIZBUCH:
+WICHTIG ZU SAMSUNG NOTES:
 
 Wenn Pam ausdrücklich sagt „Sol, notiere …“, „Mach eine
 Notiz …“ oder sinngleich klar etwas als Notiz speichern
 möchte, verwende create_personal_note mit genau dem von Pam
-genannten Inhalt.
+genannten Inhalt. Die Android-App öffnet Samsung Notes sichtbar
+mit diesem Text.
 
-Wenn Pam ihre Notizen sehen, hören oder nach einer Notiz
-suchen möchte, verwende search_personal_notes. Eine leere
-Suchfrage listet die vorhandenen Notizen auf.
+Wenn Pam ihre Notizen sehen oder nach einer Notiz suchen möchte,
+verwende search_personal_notes. Die App öffnet Samsung Notes;
+Pam sucht dort selbst, weil Pam’s Holo ihre Samsung-Notizen nicht
+auslesen darf.
 
-Für Änderungen und Löschungen verwende ausschließlich
-update_personal_note beziehungsweise delete_personal_note.
-Die Pam’s-Holo-App verlangt vor einer Änderung oder Löschung
-eine sichtbare Bestätigung.
+Für Änderungen und Löschungen verwende update_personal_note
+beziehungsweise delete_personal_note. Auch dann wird Samsung
+Notes nur geöffnet; Pam wählt und bestätigt die Änderung dort selbst.
 
-Die Notizen gehören zum lokalen Notizbuch in Pams einziger
-Pam’s-Holo-Original-App. Behaupte erst nach der echten
-Tool-Rückmeldung, dass eine Notiz gespeichert, geändert oder
-gelöscht wurde. Erfinde keinen erfolgreichen Vorgang.
-
-Du kannst NICHT direkt in Samsung Notes schreiben. Eine ausgewählte
-Samsung-Notiz kann nur über Android „Teilen“ an Pam’s Holo übergeben
-werden. Behaupte niemals, eine neue Samsung-Notiz angelegt zu haben.
+Eine erfolgreiche Tool-Rückmeldung bedeutet ausschließlich, dass
+Samsung Notes mit dem vorbereiteten Text geöffnet wurde. Sie beweist
+NICHT, dass die Notiz gespeichert wurde. Sage deshalb: „Samsung Notes
+ist geöffnet; bitte dort bestätigen bzw. speichern.“ Behaupte niemals,
+eine Samsung-Notiz gespeichert, geändert oder gelöscht zu haben.
 
 Wenn eine Nutzernachricht mit [LOKALES_NOTIZERGEBNIS] beginnt, hat die
-Pam’s-Holo-App die lokale Aktion bereits verbindlich ausgeführt. Rufe
-dann kein Notiz-Tool erneut auf, sondern sprich nur dieses Ergebnis
-kurz und unverändert aus.
+Pam’s-Holo-App die Samsung-Notes-Übergabe bereits ausgeführt. Rufe dann
+kein Notiz-Tool erneut auf, sondern sprich nur dieses Ergebnis kurz und
+unverändert aus. Aus „geöffnet“ darfst du nicht „gespeichert“ machen.
 
 Speichere niemals erkennbare Passwörter, PINs, TANs,
 API-Schlüssel, Tokens, Banking- oder Authenticator-Daten als
-Notiz. Das lokale Notizbuch blockiert solche Inhalte zusätzlich.
+Notiz. Die App blockiert die Übergabe solcher Inhalte zusätzlich.
 
 WICHTIG ZU GOOGLE CALENDAR:
 
@@ -4153,7 +4151,7 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
               "create_personal_note",
 
             description:
-              "Speichert einen ausdrücklich von Pam diktierten Notiztext im lokalen Notizbuch ihrer Pam’s-Holo-Original-App. Nur verwenden, wenn Pam klar sagt, dass etwas notiert oder als Notiz gespeichert werden soll. Erfolg erst nach Tool-Bestätigung behaupten.",
+              "Öffnet Samsung Notes sichtbar mit einem ausdrücklich von Pam diktierten oder geschriebenen Notiztext. Nur verwenden, wenn Pam klar sagt, dass etwas notiert werden soll. Die Tool-Rückmeldung bestätigt nur das Öffnen, niemals das Speichern; Pam bestätigt die Notiz in Samsung Notes selbst.",
 
             parameters: {
               type:
@@ -4185,7 +4183,7 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
               "search_personal_notes",
 
             description:
-              "Listet Pams lokale Notizen auf oder durchsucht sie. Für alle Notizen eine leere query übergeben. Keine Notiz erfinden.",
+              "Öffnet Samsung Notes, damit Pam ihre Notizen dort selbst ansehen oder durchsuchen kann. Pam’s Holo darf Samsung Notes nicht auslesen und darf keine Treffer erfinden.",
 
             parameters: {
               type:
@@ -4197,7 +4195,7 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
                     "string",
 
                   description:
-                    "Suchbegriff; leer lassen, wenn Pam alle Notizen sehen oder hören möchte."
+                    "Der von Pam genannte Suchbegriff; er dient nur zur sprachlichen Einordnung, gesucht wird von Pam sichtbar in Samsung Notes."
                 }
               },
 
@@ -4217,7 +4215,7 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
               "update_personal_note",
 
             description:
-              "Ändert genau eine vorhandene lokale Notiz. Die App sucht mit query und verlangt vor dem Speichern eine sichtbare Bestätigung von Pam.",
+              "Öffnet Samsung Notes, damit Pam eine vorhandene Notiz dort selbst suchen, bearbeiten und bestätigen kann. Behaupte niemals, dass die Änderung bereits erfolgt ist.",
 
             parameters: {
               type:
@@ -4257,7 +4255,7 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
               "delete_personal_note",
 
             description:
-              "Löscht genau eine vorhandene lokale Notiz. Die App sucht mit query und verlangt vor dem Löschen eine sichtbare Bestätigung von Pam.",
+              "Öffnet Samsung Notes, damit Pam eine vorhandene Notiz dort selbst suchen und löschen kann. Behaupte niemals, dass die Löschung bereits erfolgt ist.",
 
             parameters: {
               type:
@@ -5262,20 +5260,21 @@ einem Ereignis, Ort oder Namen vorhanden ist, hat diese
 Aussage von Pam Vorrang vor früheren Antworten von Sol
 und vor allgemeinem Weltwissen.
 
-WICHTIG ZU PAMS NOTIZBUCH:
+WICHTIG ZU SAMSUNG NOTES:
 
-Pam’s Holo besitzt ein eigenes lokales Notizbuch. Samsung Notes
-kann lediglich über die sichtbare Android-Funktion „Teilen“ eine
-von Pam ausgewählte Notiz an Pam’s Holo übergeben.
+Pam möchte ihre Notizen ausschließlich in Samsung Notes anlegen.
+Die Pam’s-Holo-App kann Samsung Notes sichtbar mit einem vorbereiteten
+Text öffnen. Pam bestätigt beziehungsweise speichert die Notiz dort selbst.
 
-Behaupte niemals, direkt eine Notiz in Samsung Notes angelegt,
-geändert oder gelöscht zu haben. Behaupte auch keinen Erfolg im
-lokalen Pam’s-Holo-Notizbuch ohne eine echte Rückmeldung der App.
+Behaupte niemals, eine Notiz in Samsung Notes bereits gespeichert,
+geändert oder gelöscht zu haben. „Samsung Notes wurde geöffnet“ ist
+keine Bestätigung, dass der Inhalt gespeichert wurde.
 
 Wenn eine Notizanfrage in dieser normalen Server-Antwort ankommt,
 wurde sie von der lokalen App nicht eindeutig ausgeführt. Sage dann
-klar, dass Pam den Inhalt als „Notiz: …“ schreiben oder das Notizbuch
-in Pam’s Holo öffnen soll. Erfinde keine Speicherung.
+klar, dass Pam den Inhalt als „Notiz: …“ schreiben oder per Sprache
+„Notiere …“ sagen soll. Dann öffnet die Android-App Samsung Notes.
+Erfinde keine Speicherung.
 
 WICHTIG ZU GOOGLE CALENDAR:
 

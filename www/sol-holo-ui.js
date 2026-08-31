@@ -29,27 +29,13 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   );
   memoryQuickCard?.insertAdjacentHTML(
     "afterend",
-    '<button class="quickCard" type="button" data-open-view="notes">' +
+    '<button id="samsungNotesQuickCard" class="quickCard" type="button">' +
       '<span class="quickIcon">✎</span>' +
-      '<span class="quickTitle">Notizen</span>' +
-      '<span id="notesQuickMeta" class="quickMeta">Dein Notizbuch</span>' +
+      '<span class="quickTitle">Samsung Notes</span>' +
+      '<span class="quickMeta">Notizen auf deinem Handy</span>' +
       '<span class="quickChevron">›</span>' +
     '</button>'
   );
-
-  const memoryNotesRow = Array.from(
-    document.querySelectorAll("#memoryView .actionRow")
-  ).find((row) =>
-    row.querySelector(".rowTitle")?.textContent?.includes("Notizen")
-  );
-  if (memoryNotesRow) {
-    delete memoryNotesRow.dataset.solPrompt;
-    memoryNotesRow.dataset.openView = "notes";
-    const rowMeta = memoryNotesRow.querySelector(".rowMeta");
-    if (rowMeta) {
-      rowMeta.textContent = "Ansehen, neu schreiben, bearbeiten oder löschen";
-    }
-  }
 
   const notesView = document.createElement("section");
   notesView.id = "notesView";
@@ -196,9 +182,9 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       '<span class="rowIcon">✎</span>' +
       '<span class="rowText">' +
         '<span class="rowTitle">Samsung Notes</span>' +
-        '<span class="rowMeta">Ausgewählte Notiz über „Teilen“ an Sol geben</span>' +
+        '<span class="rowMeta">Notizen aus Text oder Sprache vorbereitet öffnen</span>' +
       '</span>' +
-      '<span id="samsungNotesStatus" class="serviceStatus setup">Über Teilen</span>' +
+      '<span id="samsungNotesStatus" class="serviceStatus setup">Wird geprüft …</span>' +
     '</button>' +
     '<button id="healthConnectRow" class="serviceRow" type="button">' +
       '<span class="rowIcon">♡</span>' +
@@ -653,95 +639,126 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     return `${matches.length} ${matches.length === 1 ? "Notiz" : "Notizen"}:\n${listed.join("\n")}${remainder}`;
   }
 
+  async function openSamsungNotesForReview(actionText = "ansehen") {
+    const plugin = getPhoneContactsPlugin();
+    if (!plugin) {
+      return {
+        success: false,
+        answer: "Samsung Notes kann nur aus der Pam’s-Holo-App für Android geöffnet werden."
+      };
+    }
+
+    try {
+      await plugin.openSamsungNotes();
+      return {
+        success: true,
+        opened: true,
+        saved: false,
+        answer: `Samsung Notes ist geöffnet. Du kannst deine Notizen dort ${actionText}.`
+      };
+    } catch (error) {
+      console.error("Samsung Notes öffnen:", error);
+      return {
+        success: false,
+        answer: String(
+          error?.message ||
+          "Samsung Notes konnte gerade nicht geöffnet werden."
+        )
+      };
+    }
+  }
+
+  async function prepareSamsungNote(text) {
+    const cleanText = String(text || "").trim();
+    if (!cleanText) {
+      return {
+        success: false,
+        answer: "Die Notiz ist leer. Sag oder schreib bitte, was in Samsung Notes stehen soll."
+      };
+    }
+
+    const securityWarning = noteSecurityWarning(cleanText);
+    if (securityWarning) {
+      return { success: false, securityBlocked: true, answer: securityWarning };
+    }
+
+    const plugin = getPhoneContactsPlugin();
+    if (!plugin) {
+      return {
+        success: false,
+        answer: "Samsung Notes kann nur aus der Pam’s-Holo-App für Android geöffnet werden."
+      };
+    }
+
+    const title = noteTitleFromText(cleanText);
+    const preview = cleanText.length > 800
+      ? `${cleanText.slice(0, 800)} …`
+      : cleanText;
+    const confirmed = window.confirm(
+      "Diesen Text jetzt an Samsung Notes übergeben?\n\n" +
+      preview +
+      "\n\nSamsung Notes wird geöffnet. Erst dort bestätigst bzw. speicherst du die Notiz."
+    );
+    if (!confirmed) {
+      return {
+        success: false,
+        cancelled: true,
+        answer: "Die Übergabe an Samsung Notes wurde abgebrochen. Es wurde nichts gespeichert."
+      };
+    }
+
+    try {
+      const result = await plugin.prepareSamsungNote({
+        title,
+        text: cleanText
+      });
+      if (!result?.opened) {
+        return {
+          success: false,
+          answer: "Samsung Notes hat sich nicht geöffnet. Es wurde nichts gespeichert."
+        };
+      }
+
+      showToast("Samsung Notes geöffnet · bitte dort speichern ✅️");
+      return {
+        success: true,
+        opened: true,
+        saved: false,
+        title,
+        answer:
+          `Samsung Notes ist mit „${title}“ geöffnet. ` +
+          "Bitte bestätige bzw. speichere die Notiz dort."
+      };
+    } catch (error) {
+      console.error("Samsung-Notes-Übergabe:", error);
+      return {
+        success: false,
+        answer: String(
+          error?.message ||
+          "Samsung Notes konnte die Notiz gerade nicht übernehmen. Es wurde nichts gespeichert."
+        )
+      };
+    }
+  }
+
   async function executeNotesTool(name, args = {}) {
     if (name === "create_personal_note") {
-      return createPersonalNote(args?.text, {
-        source: "Mit Sol notiert"
-      });
+      return prepareSamsungNote(args?.text);
     }
 
     if (name === "search_personal_notes") {
-      const query = String(args?.query || "").trim();
-      if (!document.body.classList.contains("voice-open")) {
-        showView("notes");
-      }
-      notesSearchInput.value = query;
-      renderPersonalNotes(query);
-      return {
-        success: true,
-        answer: personalNoteListAnswer(query)
-      };
+      return openSamsungNotesForReview("ansehen oder durchsuchen");
     }
 
-    const query = String(args?.query || "").trim();
-    const matches = findPersonalNotes(query);
-    if (!matches.length) {
-      return {
-        success: false,
-        answer: `Ich finde keine eindeutige Notiz zu „${query}“. Es wurde nichts verändert.`
-      };
-    }
-    if (matches.length > 1) {
-      if (!document.body.classList.contains("voice-open")) {
-        showView("notes");
-      }
-      notesSearchInput.value = query;
-      renderPersonalNotes(query);
-      return {
-        success: false,
-        answer: `Ich finde ${matches.length} passende Notizen. Bitte wähle die richtige in der Notizübersicht aus.`
-      };
-    }
-
-    const note = matches[0];
     if (name === "update_personal_note") {
-      const newText = String(args?.text || "").trim();
-      if (!newText) {
-        return { success: false, answer: "Der neue Notiztext ist leer." };
-      }
-      const securityWarning = noteSecurityWarning(newText);
-      if (securityWarning) {
-        return { success: false, securityBlocked: true, answer: securityWarning };
-      }
-      const confirmed = window.confirm(
-        `Notiz „${note.title}“ wirklich ändern?\n\nNeuer Text:\n${newText}`
-      );
-      if (!confirmed) {
-        return { success: false, cancelled: true, answer: "Die Änderung wurde abgebrochen." };
-      }
-      const updatedNote = normalizeStoredNote({
-        ...note,
-        title: noteTitleFromText(newText),
-        text: newText,
-        updatedAt: Date.now()
-      });
-      const nextNotes = personalNotes.map((entry) =>
-        entry.id === note.id ? updatedNote : entry
-      );
-      if (!storePersonalNotes(nextNotes)) {
-        return { success: false, answer: "Die Notiz konnte gerade nicht geändert werden." };
-      }
-      renderPersonalNotes();
-      showToast("Notiz geändert ✅️");
-      return { success: true, answer: `Notiz geändert: ${updatedNote.title}` };
+      return openSamsungNotesForReview("selbst suchen und bearbeiten");
     }
 
     if (name === "delete_personal_note") {
-      const confirmed = window.confirm(
-        `Notiz „${note.title}“ wirklich löschen?\n\n${note.text}`
-      );
-      if (!confirmed) {
-        return { success: false, cancelled: true, answer: "Das Löschen wurde abgebrochen." };
-      }
-      if (!storePersonalNotes(personalNotes.filter((entry) => entry.id !== note.id))) {
-        return { success: false, answer: "Die Notiz konnte gerade nicht gelöscht werden." };
-      }
-      renderPersonalNotes();
-      showToast("Notiz gelöscht.");
-      return { success: true, answer: `Notiz gelöscht: ${note.title}` };
+      return openSamsungNotesForReview("selbst suchen und löschen");
     }
 
-    return { success: false, answer: "Unbekannte Notizfunktion." };
+    return { success: false, answer: "Unbekannte Samsung-Notes-Funktion." };
   }
 
   window.executeSolHoloNotesTool = executeNotesTool;
@@ -1528,14 +1545,25 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     }
   }
 
-  function renderSamsungNotesStatus() {
+  async function renderSamsungNotesStatus() {
     const statusElement = document.getElementById("samsungNotesStatus");
     statusElement.classList.remove("connected", "setup");
-    if (getPhoneContactsPlugin()) {
-      statusElement.textContent = "Über Teilen";
-      statusElement.classList.add("connected");
-    } else {
+    const plugin = getPhoneContactsPlugin();
+    if (!plugin) {
       statusElement.textContent = "Nur Android";
+      statusElement.classList.add("setup");
+      return;
+    }
+
+    try {
+      const status = await plugin.getSamsungNotesStatus();
+      statusElement.textContent = status?.available
+        ? "Verbunden"
+        : "Nicht gefunden";
+      statusElement.classList.add(status?.available ? "connected" : "setup");
+    } catch (error) {
+      console.error("Samsung-Notes-Status:", error);
+      statusElement.textContent = "Prüfung fehlgeschlagen";
       statusElement.classList.add("setup");
     }
   }
@@ -1904,7 +1932,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         pendingPersonalNoteText = false;
         return {
           handled: true,
-          answer: "Alles klar. Es wurde keine Notiz gespeichert."
+          answer: "Alles klar. Es wurde nichts an Samsung Notes übergeben."
         };
       }
       return finishNoteCreation(noteMessage);
@@ -1931,7 +1959,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       pendingPersonalNoteText = true;
       return {
         handled: true,
-        answer: "Gern. Was soll ich in deinem Notizbuch in Pam’s Holo notieren?"
+        answer: "Gern. Was soll ich in Samsung Notes notieren?"
       };
     }
 
@@ -2576,17 +2604,20 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     }
   });
 
-  document.getElementById("samsungNotesRow").addEventListener("click", () => {
-    if (!getPhoneContactsPlugin()) {
-      showToast("Samsung Notes kann nur mit der Pam’s-Holo-App für Android geteilt werden.");
-      return;
-    }
-    showToast(
-      "Samsung Notes öffnen → persönliche Notiz auswählen → Teilen → Pam’s Holo. " +
-      "Vor dem Speichern fragt Sol noch einmal nach."
-    );
-    void consumeSharedNoteImport();
-  });
+  const openSamsungNotes = async () => {
+    const result = await openSamsungNotesForReview("ansehen");
+    showToast(result.answer);
+  };
+
+  document.getElementById("samsungNotesQuickCard")?.addEventListener(
+    "click",
+    () => void openSamsungNotes()
+  );
+
+  document.getElementById("samsungNotesRow").addEventListener(
+    "click",
+    () => void openSamsungNotes()
+  );
 
   document.getElementById("healthConnectRow").addEventListener("click", () => {
     void openHealthPermissions();
@@ -2599,7 +2630,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     showToast(
       "Jeder Dienst wird einzeln freigegeben. " + whatsappText +
       " Google-Konto, Telefon, Health und SmartThings richtest du über ihre Zeile ein. " +
-      "Samsung Galerie öffnet die Bildauswahl; Samsung Notes kommt über das Teilen-Menü."
+      "Samsung Galerie öffnet die Bildauswahl; Samsung Notes wird für Notizen direkt geöffnet."
     );
   });
 

@@ -43,6 +43,8 @@ import java.util.Set;
     }
 )
 public class PhoneContactsPlugin extends Plugin {
+    private static final String SAMSUNG_NOTES_PACKAGE =
+        "com.samsung.android.app.notes";
     private static final String NOTE_PREFERENCES = "sol_holo_shared_notes";
     private static final String NOTE_TEXT_KEY = "pending_note_text";
     private static final String NOTE_TITLE_KEY = "pending_note_title";
@@ -201,6 +203,128 @@ public class PhoneContactsPlugin extends Plugin {
             .apply();
 
         call.resolve(result);
+    }
+
+    private boolean samsungNotesAvailable() {
+        Intent launchIntent = getContext()
+            .getPackageManager()
+            .getLaunchIntentForPackage(SAMSUNG_NOTES_PACKAGE);
+        return launchIntent != null;
+    }
+
+    @PluginMethod
+    public void getSamsungNotesStatus(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("available", samsungNotesAvailable());
+        result.put("packageName", SAMSUNG_NOTES_PACKAGE);
+        result.put("directWriteSupported", false);
+        result.put("userConfirmationRequired", true);
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void openSamsungNotes(PluginCall call) {
+        Activity activity = getActivity();
+        if (activity == null) {
+            call.reject(
+                "Samsung Notes konnte gerade nicht geöffnet werden.",
+                "SAMSUNG_NOTES_ACTIVITY_UNAVAILABLE"
+            );
+            return;
+        }
+
+        Intent intent = activity
+            .getPackageManager()
+            .getLaunchIntentForPackage(SAMSUNG_NOTES_PACKAGE);
+        if (intent == null) {
+            call.reject(
+                "Samsung Notes wurde auf diesem Handy nicht gefunden.",
+                "SAMSUNG_NOTES_NOT_INSTALLED"
+            );
+            return;
+        }
+
+        try {
+            activity.startActivity(intent);
+            JSObject result = new JSObject();
+            result.put("opened", true);
+            result.put("packageName", SAMSUNG_NOTES_PACKAGE);
+            call.resolve(result);
+        } catch (ActivityNotFoundException error) {
+            call.reject(
+                "Samsung Notes konnte gerade nicht geöffnet werden.",
+                "SAMSUNG_NOTES_OPEN_FAILED",
+                error
+            );
+        }
+    }
+
+    @PluginMethod
+    public void prepareSamsungNote(PluginCall call) {
+        String text = call.getString("text", "").trim();
+        String title = call.getString("title", "").trim();
+
+        if (text.isEmpty()) {
+            call.reject(
+                "Der Notiztext ist leer.",
+                "SAMSUNG_NOTE_TEXT_REQUIRED"
+            );
+            return;
+        }
+
+        if (text.length() > 10000) {
+            call.reject(
+                "Der Notiztext ist für die sichere Übergabe zu lang.",
+                "SAMSUNG_NOTE_TEXT_TOO_LONG"
+            );
+            return;
+        }
+
+        if (title.length() > MAX_SHARED_NOTE_TITLE_LENGTH) {
+            title = title.substring(0, MAX_SHARED_NOTE_TITLE_LENGTH).trim();
+        }
+
+        Activity activity = getActivity();
+        if (activity == null) {
+            call.reject(
+                "Samsung Notes konnte gerade nicht geöffnet werden.",
+                "SAMSUNG_NOTES_ACTIVITY_UNAVAILABLE"
+            );
+            return;
+        }
+
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setType("text/plain");
+        intent.setPackage(SAMSUNG_NOTES_PACKAGE);
+        intent.putExtra(Intent.EXTRA_TEXT, text);
+        if (!title.isEmpty()) {
+            intent.putExtra(Intent.EXTRA_SUBJECT, title);
+            intent.putExtra(Intent.EXTRA_TITLE, title);
+        }
+
+        if (intent.resolveActivity(activity.getPackageManager()) == null) {
+            call.reject(
+                "Samsung Notes nimmt auf diesem Handy gerade keine Textübergabe an.",
+                "SAMSUNG_NOTES_SHARE_UNAVAILABLE"
+            );
+            return;
+        }
+
+        try {
+            activity.startActivity(intent);
+            JSObject result = new JSObject();
+            result.put("opened", true);
+            result.put("saved", false);
+            result.put("packageName", SAMSUNG_NOTES_PACKAGE);
+            result.put("userConfirmationRequired", true);
+            call.resolve(result);
+        } catch (ActivityNotFoundException error) {
+            call.reject(
+                "Samsung Notes konnte die Notiz gerade nicht übernehmen.",
+                "SAMSUNG_NOTES_SHARE_FAILED",
+                error
+            );
+        }
     }
 
     @PluginMethod
