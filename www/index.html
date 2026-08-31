@@ -1380,7 +1380,7 @@ MOBIL
 
 </style>
 <link rel="stylesheet" href="./sol-holo-ui.css?v=33">
-<link rel="stylesheet" href="./sol-holo-wow.css?v=1">
+<link rel="stylesheet" href="./sol-holo-wow.css?v=2">
 </head>
 
 <body>
@@ -7732,6 +7732,36 @@ if(
 </script>
 
 <script src="./sol-holo-ui.js?v=33"></script>
+<script>
+(() => {
+  "use strict";
+
+  const createUnicorn = (className, label = "Rosa Einhorn") => {
+    const unicorn = document.createElement("span");
+    unicorn.className = className;
+    unicorn.setAttribute("role", "img");
+    unicorn.setAttribute("aria-label", label);
+    unicorn.textContent = "🦄";
+    return unicorn;
+  };
+
+  const homeTitle = document.getElementById("homeTitle");
+  if (homeTitle && !homeTitle.querySelector(".pamUnicorn--home")) {
+    homeTitle.querySelector(".accent")?.remove();
+    homeTitle.append(" ", createUnicorn("pamUnicorn pamUnicorn--home"));
+  }
+
+  const chatSubtitle = document.getElementById("subtitle");
+  if (chatSubtitle && !chatSubtitle.querySelector(".pamUnicorn--chatHeader")) {
+    chatSubtitle.append(" ", createUnicorn("pamUnicorn pamUnicorn--chatHeader"));
+  }
+
+  const firstMessageTitle = document.querySelector("#chat .system-message strong");
+  if (firstMessageTitle && !firstMessageTitle.querySelector(".pamChatMessageUnicorn")) {
+    firstMessageTitle.append(" ", createUnicorn("pamChatMessageUnicorn"));
+  }
+})();
+</script>
 
 </body>
 </html>

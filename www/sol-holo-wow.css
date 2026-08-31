@@ -242,27 +242,37 @@ body{
 
 .homeIntro{
   position:relative;
-  padding-right:50px;
+  padding-right:4px;
 }
 
 .homeIntro::after{
-  content:"🦄";
-  position:absolute;
-  top:20px;
-  right:4px;
-  display:grid;
-  width:40px;
-  height:40px;
-  place-items:center;
-  border:1px solid rgba(255,149,222,.58);
-  border-radius:50%;
-  background:
-    radial-gradient(circle at 35% 28%,rgba(255,255,255,.9),rgba(255,136,216,.19) 38%,rgba(105,69,255,.15) 70%,rgba(14,30,69,.2));
-  box-shadow:
-    0 0 16px rgba(255,112,209,.4),
-    0 0 28px rgba(115,76,255,.24);
-  font-size:24px;
-  animation:wowSignatureFloat 4s ease-in-out infinite;
+  content:none;
+  display:none;
+}
+
+.pamUnicorn--home{
+  width:42px;
+  height:42px;
+  margin-left:8px;
+  font-size:27px;
+  vertical-align:.08em;
+  filter:drop-shadow(0 0 10px rgba(255,130,220,.42));
+}
+
+.pamUnicorn--chatHeader{
+  width:24px;
+  height:24px;
+  margin-left:4px;
+  font-size:16px;
+  vertical-align:middle;
+}
+
+.pamChatMessageUnicorn{
+  display:inline-block;
+  margin-left:5px;
+  font-size:18px;
+  line-height:1;
+  filter:drop-shadow(0 0 8px rgba(255,123,215,.55));
 }
 
 @keyframes wowSignatureFloat{
@@ -911,13 +921,14 @@ body{
 
 @media(max-width:380px){
   .homeIntro{
-    padding-right:44px;
+    padding-right:4px;
   }
 
-  .homeIntro::after{
-    width:35px;
-    height:35px;
-    font-size:21px;
+  .pamUnicorn--home{
+    width:36px;
+    height:36px;
+    margin-left:5px;
+    font-size:23px;
   }
 }
 
