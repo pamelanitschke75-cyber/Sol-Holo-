@@ -691,21 +691,9 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     }
 
     const title = noteTitleFromText(cleanText);
-    const preview = cleanText.length > 800
-      ? `${cleanText.slice(0, 800)} …`
+    const preview = cleanText.length > 160
+      ? `${cleanText.slice(0, 160)} …`
       : cleanText;
-    const confirmed = window.confirm(
-      "Diesen Text jetzt an Samsung Notes übergeben?\n\n" +
-      preview +
-      "\n\nSamsung Notes wird geöffnet. Erst dort bestätigst bzw. speicherst du die Notiz."
-    );
-    if (!confirmed) {
-      return {
-        success: false,
-        cancelled: true,
-        answer: "Die Übergabe an Samsung Notes wurde abgebrochen. Es wurde nichts gespeichert."
-      };
-    }
 
     try {
       const result = await plugin.prepareSamsungNote({
@@ -719,15 +707,14 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         };
       }
 
-      showToast("Samsung Notes geöffnet · bitte dort speichern ✅️");
+      showToast(`„${preview}“ an Samsung Notes übergeben ✅️`);
       return {
         success: true,
         opened: true,
         saved: false,
         title,
-        answer:
-          `Samsung Notes ist mit „${title}“ geöffnet. ` +
-          "Bitte bestätige bzw. speichere die Notiz dort."
+        handoffMode: String(result?.handoffMode || ""),
+        answer: `Samsung Notes wurde mit „${preview}“ geöffnet.`
       };
     } catch (error) {
       console.error("Samsung-Notes-Übergabe:", error);
@@ -1887,6 +1874,28 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
   window.executeSolHoloHealthTool = executeHealthTool;
 
+  function samsungNoteTextFromNaturalRequest(message) {
+    const cleanMessage = String(message || "").trim();
+    const patterns = [
+      /^(?:schreib(?:e)?|notier(?:e)?|trag(?:e)?|pack(?:e)?|setz(?:e)?)\s+(?:mir\s+)?(?:bitte\s+)?(.+?)\s+(?:bitte\s+)?(?:in|zu)\s+(?:(?:meine|die)\s+)?(?:samsungs?(?:\s+|-))?(?:notes?|noten|notizen)(?:\s+(?:rein|hinein|ein))?[.!?]*$/i,
+      /^(?:schreib(?:e)?|notier(?:e)?|trag(?:e)?|pack(?:e)?|setz(?:e)?)\s+(?:mir\s+)?(?:bitte\s+)?(?:in|zu)\s+(?:(?:meine|die)\s+)?(?:samsungs?(?:\s+|-))?(?:notes?|noten|notizen)(?:\s+(?:rein|hinein|ein))?\s*[:,-]?\s*(?:bitte\s+)?(.+?)[.!?]*$/i
+    ];
+
+    for (const pattern of patterns) {
+      const match = cleanMessage.match(pattern);
+      const noteText = String(match?.[1] || "")
+        .replace(/^[\s:,-]+|[\s.!?]+$/g, "")
+        .trim();
+      if (noteText) {
+        return noteText;
+      }
+    }
+
+    return "";
+  }
+
+  window.extractSolHoloSamsungNoteText = samsungNoteTextFromNaturalRequest;
+
   window.handleSolHoloLocalAction = async (message) => {
     const cleanMessage = String(message || "").trim();
     const noteMessage = cleanMessage
@@ -1904,6 +1913,13 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       }
       return { handled: true, answer: result.answer };
     };
+
+    const naturalSamsungNoteText = samsungNoteTextFromNaturalRequest(
+      noteMessage
+    );
+    if (naturalSamsungNoteText) {
+      return finishNoteCreation(naturalSamsungNoteText);
+    }
 
     let noteMatch = noteMessage.match(
       /^notier(?:e)?\b\s*(?:mir\s+)?(?:bitte\s+)?[:,-]?\s*(.+?)[.!]?$/i
@@ -2063,7 +2079,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       .trim();
     const noteIntent =
       pendingPersonalNoteText ||
-      /\bnotiz(?:en)?\b|\bnotier(?:e|en|st|t)?\b/i.test(noteMessage);
+      /\bnotiz(?:en)?\b|\bnotier(?:e|en|st|t)?\b|\bnotes?\b|\bnoten\b/i.test(noteMessage);
 
     if (!noteIntent) {
       previousPlainUserMessage = noteMessage;

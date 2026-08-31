@@ -200,6 +200,7 @@ jobs:
       - name: Direkte Samsung-Notes-Übergabe prüfen
         run: |
           set -Eeuo pipefail
+          node scripts/check-samsung-notes-language.mjs
           notes_js="android/app/src/main/assets/public/sol-holo-ui.js"
           app_html="android/app/src/main/assets/public/index.html"
           notes_java="android/app/src/main/java/com/solholo/app/PhoneContactsPlugin.java"
@@ -208,15 +209,21 @@ jobs:
           test -s "$app_html"
           test -s "$notes_java"
           test -s "$app_manifest"
-          grep -q 'Samsung Notes ist mit' "$notes_js"
+          grep -q 'Samsung Notes wurde mit' "$notes_js"
+          grep -q 'samsungNoteTextFromNaturalRequest' "$notes_js"
+          grep -q 'notes?|noten|notizen' "$notes_js"
           grep -q 'prepareSamsungNote' "$notes_js"
           grep -q 'prepareSamsungNote' "$notes_java"
+          grep -q 'com.google.android.gms.actions.CREATE_NOTE' "$notes_java"
+          grep -q 'com.google.android.gms.actions.extra.TEXT' "$notes_java"
+          grep -q 'ClipData.newPlainText' "$notes_java"
           grep -q 'com.samsung.android.app.notes' "$notes_java"
           grep -q 'com.samsung.android.app.notes' "$app_manifest"
           grep -q 'create_personal_note' "$notes_js"
           grep -q 'REALTIME_NOTE_TOOL_NAMES' "$app_html"
           grep -q 'create_personal_note' server.mjs
-          grep -q 'Pam bestätigt beziehungsweise speichert die Notiz dort selbst' server.mjs
+          grep -q 'Schreib bitte Zucker in Notes' server.mjs
+          grep -q 'Verlange niemals' server.mjs
 
       - name: Lokale Sprechererkennung in Pam’s Holo einbinden
         run: node scripts/install-speaker-identity.mjs

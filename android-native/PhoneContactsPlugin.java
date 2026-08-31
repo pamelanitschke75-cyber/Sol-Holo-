@@ -3,9 +3,12 @@ package com.solholo.app;
 import android.Manifest;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
+import android.content.ClipData;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
@@ -45,6 +48,12 @@ import java.util.Set;
 public class PhoneContactsPlugin extends Plugin {
     private static final String SAMSUNG_NOTES_PACKAGE =
         "com.samsung.android.app.notes";
+    private static final String GOOGLE_CREATE_NOTE_ACTION =
+        "com.google.android.gms.actions.CREATE_NOTE";
+    private static final String GOOGLE_NOTE_NAME_EXTRA =
+        "com.google.android.gms.actions.extra.NAME";
+    private static final String GOOGLE_NOTE_TEXT_EXTRA =
+        "com.google.android.gms.actions.extra.TEXT";
     private static final String NOTE_PREFERENCES = "sol_holo_shared_notes";
     private static final String NOTE_TEXT_KEY = "pending_note_text";
     private static final String NOTE_TITLE_KEY = "pending_note_title";
@@ -57,6 +66,16 @@ public class PhoneContactsPlugin extends Plugin {
     private TelephonyCallback telephonyCallback;
     private PhoneStateListener legacyPhoneStateListener;
     private int currentCallState = TelephonyManager.CALL_STATE_IDLE;
+
+    private static final class SamsungNoteLaunch {
+        final Intent intent;
+        final String mode;
+
+        SamsungNoteLaunch(Intent intent, String mode) {
+            this.intent = intent;
+            this.mode = mode;
+        }
+    }
 
     @Override
     public void load() {
@@ -212,13 +231,100 @@ public class PhoneContactsPlugin extends Plugin {
         return launchIntent != null;
     }
 
+    private Intent withSamsungNoteText(Intent intent, String title, String text) {
+        intent.setPackage(SAMSUNG_NOTES_PACKAGE);
+        intent.setType("text/plain");
+        intent.putExtra(Intent.EXTRA_TEXT, text);
+        intent.putExtra(GOOGLE_NOTE_TEXT_EXTRA, text);
+        intent.setClipData(
+            ClipData.newPlainText(
+                title.isEmpty() ? "Pam’s Holo" : title,
+                text
+            )
+        );
+
+        if (!title.isEmpty()) {
+            intent.putExtra(Intent.EXTRA_SUBJECT, title);
+            intent.putExtra(Intent.EXTRA_TITLE, title);
+            intent.putExtra(GOOGLE_NOTE_NAME_EXTRA, title);
+        }
+
+        return intent;
+    }
+
+    private Intent resolveSamsungNotesActivity(Intent intent) {
+        ResolveInfo resolved = getContext()
+            .getPackageManager()
+            .resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY);
+        if (
+            resolved == null
+                || resolved.activityInfo == null
+                || !SAMSUNG_NOTES_PACKAGE.equals(resolved.activityInfo.packageName)
+        ) {
+            return null;
+        }
+
+        intent.setComponent(
+            new ComponentName(
+                resolved.activityInfo.packageName,
+                resolved.activityInfo.name
+            )
+        );
+        return intent;
+    }
+
+    private SamsungNoteLaunch samsungNoteLaunch(String title, String text) {
+        Intent googleNote = resolveSamsungNotesActivity(
+            withSamsungNoteText(
+                new Intent(GOOGLE_CREATE_NOTE_ACTION),
+                title,
+                text
+            )
+        );
+        if (googleNote != null) {
+            return new SamsungNoteLaunch(googleNote, "create_note");
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            Intent androidNote = resolveSamsungNotesActivity(
+                withSamsungNoteText(
+                    new Intent(Intent.ACTION_CREATE_NOTE),
+                    title,
+                    text
+                )
+            );
+            if (androidNote != null) {
+                return new SamsungNoteLaunch(androidNote, "android_create_note");
+            }
+        }
+
+        Intent sharedText = resolveSamsungNotesActivity(
+            withSamsungNoteText(
+                new Intent(Intent.ACTION_SEND),
+                title,
+                text
+            )
+        );
+        if (sharedText != null) {
+            return new SamsungNoteLaunch(sharedText, "share_text");
+        }
+
+        return null;
+    }
+
     @PluginMethod
     public void getSamsungNotesStatus(PluginCall call) {
+        SamsungNoteLaunch launch = samsungNoteLaunch(
+            "Pam’s Holo",
+            "Notiz"
+        );
         JSObject result = new JSObject();
         result.put("available", samsungNotesAvailable());
         result.put("packageName", SAMSUNG_NOTES_PACKAGE);
         result.put("directWriteSupported", false);
-        result.put("userConfirmationRequired", true);
+        result.put("draftHandoffSupported", launch != null);
+        result.put("handoffMode", launch == null ? "" : launch.mode);
+        result.put("pamHoloConfirmationRequired", false);
         call.resolve(result);
     }
 
@@ -293,30 +399,24 @@ public class PhoneContactsPlugin extends Plugin {
             return;
         }
 
-        Intent intent = new Intent(Intent.ACTION_SEND);
-        intent.setType("text/plain");
-        intent.setPackage(SAMSUNG_NOTES_PACKAGE);
-        intent.putExtra(Intent.EXTRA_TEXT, text);
-        if (!title.isEmpty()) {
-            intent.putExtra(Intent.EXTRA_SUBJECT, title);
-            intent.putExtra(Intent.EXTRA_TITLE, title);
-        }
-
-        if (intent.resolveActivity(activity.getPackageManager()) == null) {
+        SamsungNoteLaunch launch = samsungNoteLaunch(title, text);
+        if (launch == null) {
             call.reject(
-                "Samsung Notes nimmt auf diesem Handy gerade keine Textübergabe an.",
-                "SAMSUNG_NOTES_SHARE_UNAVAILABLE"
+                "Diese Samsung-Notes-Version nimmt gerade keinen Notizentwurf an.",
+                "SAMSUNG_NOTES_DRAFT_UNAVAILABLE"
             );
             return;
         }
 
         try {
-            activity.startActivity(intent);
+            activity.startActivity(launch.intent);
             JSObject result = new JSObject();
             result.put("opened", true);
             result.put("saved", false);
+            result.put("textPrepared", true);
             result.put("packageName", SAMSUNG_NOTES_PACKAGE);
-            result.put("userConfirmationRequired", true);
+            result.put("handoffMode", launch.mode);
+            result.put("pamHoloConfirmationRequired", false);
             call.resolve(result);
         } catch (ActivityNotFoundException error) {
             call.reject(

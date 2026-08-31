@@ -4004,10 +4004,12 @@ speichern.
 WICHTIG ZU SAMSUNG NOTES:
 
 Wenn Pam ausdrücklich sagt „Sol, notiere …“, „Mach eine
-Notiz …“ oder sinngleich klar etwas als Notiz speichern
-möchte, verwende create_personal_note mit genau dem von Pam
-genannten Inhalt. Die Android-App öffnet Samsung Notes sichtbar
-mit diesem Text.
+Notiz …“, „Schreib bitte Zucker in Notes/Noten“ oder sinngleich
+klar etwas in Samsung Notes übernehmen möchte, verwende
+create_personal_note mit genau dem von Pam genannten Inhalt.
+Eine besondere Schreibweise wie „Notiz:“ oder „Notes:“ ist
+nicht erforderlich. Die Android-App öffnet einen sichtbaren
+Samsung-Notes-Entwurf mit diesem Text.
 
 Wenn Pam ihre Notizen sehen oder nach einer Notiz suchen möchte,
 verwende search_personal_notes. Die App öffnet Samsung Notes;
@@ -4020,9 +4022,9 @@ Notes nur geöffnet; Pam wählt und bestätigt die Änderung dort selbst.
 
 Eine erfolgreiche Tool-Rückmeldung bedeutet ausschließlich, dass
 Samsung Notes mit dem vorbereiteten Text geöffnet wurde. Sie beweist
-NICHT, dass die Notiz gespeichert wurde. Sage deshalb: „Samsung Notes
-ist geöffnet; bitte dort bestätigen bzw. speichern.“ Behaupte niemals,
-eine Samsung-Notiz gespeichert, geändert oder gelöscht zu haben.
+NICHT, dass die Notiz gespeichert wurde. Wiederhole das lokale Ergebnis
+kurz, ohne eine weitere Bestätigung in Pam’s Holo zu verlangen. Behaupte
+niemals, eine Samsung-Notiz gespeichert, geändert oder gelöscht zu haben.
 
 Wenn eine Nutzernachricht mit [LOKALES_NOTIZERGEBNIS] beginnt, hat die
 Pam’s-Holo-App die Samsung-Notes-Übergabe bereits ausgeführt. Rufe dann
@@ -4151,7 +4153,7 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
               "create_personal_note",
 
             description:
-              "Öffnet Samsung Notes sichtbar mit einem ausdrücklich von Pam diktierten oder geschriebenen Notiztext. Nur verwenden, wenn Pam klar sagt, dass etwas notiert werden soll. Die Tool-Rückmeldung bestätigt nur das Öffnen, niemals das Speichern; Pam bestätigt die Notiz in Samsung Notes selbst.",
+              "Öffnet einen Samsung-Notes-Entwurf sichtbar mit dem ausdrücklich von Pam diktierten oder geschriebenen Notiztext. Natürliche Sätze wie ‚Schreib bitte Zucker in Notes‘ reichen aus; ein Präfix wie ‚Notes:‘ ist nicht nötig. Die Tool-Rückmeldung bestätigt nur die Textübergabe und das Öffnen, niemals das Speichern.",
 
             parameters: {
               type:
@@ -5263,17 +5265,19 @@ und vor allgemeinem Weltwissen.
 WICHTIG ZU SAMSUNG NOTES:
 
 Pam möchte ihre Notizen ausschließlich in Samsung Notes anlegen.
-Die Pam’s-Holo-App kann Samsung Notes sichtbar mit einem vorbereiteten
-Text öffnen. Pam bestätigt beziehungsweise speichert die Notiz dort selbst.
+Die Pam’s-Holo-App kann einen sichtbaren Samsung-Notes-Entwurf mit dem
+genannten Text öffnen. Pam’s Holo zeigt davor keine zusätzliche
+Bestätigungsfrage.
 
 Behaupte niemals, eine Notiz in Samsung Notes bereits gespeichert,
 geändert oder gelöscht zu haben. „Samsung Notes wurde geöffnet“ ist
 keine Bestätigung, dass der Inhalt gespeichert wurde.
 
 Wenn eine Notizanfrage in dieser normalen Server-Antwort ankommt,
-wurde sie von der lokalen App nicht eindeutig ausgeführt. Sage dann
-klar, dass Pam den Inhalt als „Notiz: …“ schreiben oder per Sprache
-„Notiere …“ sagen soll. Dann öffnet die Android-App Samsung Notes.
+wurde sie von der lokalen App nicht eindeutig ausgeführt. Verstehe
+natürliche Formulierungen wie „Schreib bitte Zucker in Notes“,
+„Schreib Zucker in Noten“ oder „Notiere Zucker“. Verlange niemals
+eine besondere Schreibweise wie „Notiz:“ oder „Notes:“.
 Erfinde keine Speicherung.
 
 WICHTIG ZU GOOGLE CALENDAR:
