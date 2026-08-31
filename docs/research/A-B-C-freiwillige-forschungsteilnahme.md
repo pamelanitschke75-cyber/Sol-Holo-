@@ -3,7 +3,7 @@
 **Sol Holo / HSG – Forschungsansatz A + B = C**  
 **Datum:** 31. August 2026
 
-Ich, **Pamela Nitschke**, erkläre meine grundsätzliche und ausdrückliche Bereitschaft, als freiwillige Teilnehmerin und – soweit wissenschaftlich, ethisch und rechtlich zulässig – als Probandin an der Erforschung des von mir im Rahmen von Sol Holo/HSG beschriebenen **A+B=C-Konzepts** mitzuwirken.
+Ich, **Pamela Christina Nitschke**, erkläre meine grundsätzliche und ausdrückliche Bereitschaft, als freiwillige Teilnehmerin und – soweit wissenschaftlich, ethisch und rechtlich zulässig – als Probandin an der Erforschung des von mir im Rahmen von Sol Holo/HSG beschriebenen **A+B=C-Konzepts** mitzuwirken.
 
 ## Forschungsansatz
 
@@ -41,7 +41,7 @@ Diese Erklärung legt kein Forschungsergebnis fest. Das A+B=C-Konzept soll als *
 
 ---
 
-**Pamela Nitschke**  
+**Pamela Christina Nitschke**  
 **31. August 2026**  
 **Sol Holo · HSG – Human Second Generation · A + B = C · SH♾️**  
 *Miteinander füreinander · Together forever. ✨️🌎♾️*
