@@ -49,8 +49,11 @@ public class SolSpeakerIdentityPlugin extends Plugin {
     private static final int RECORD_MS = 5200;
     private static final int FRAME_SAMPLES = 320;
     private static final int MIN_ACTIVE_FRAMES = 45;
-    private static final int MIN_WAKE_ACTIVE_FRAMES = 18;
+    private static final int MIN_WAKE_ACTIVE_FRAMES = 12;
     private static final int MAX_SPEECH_GAP_FRAMES = 12;
+    private static final int MAX_WAKE_SPEECH_GAP_FRAMES = 24;
+    private static final int SPEECH_PADDING_FRAMES = 6;
+    private static final int WAKE_SPEECH_PADDING_FRAMES = 10;
     private static final float MIN_SPEECH_RMS = 0.008f;
     private static final int REQUIRED_SAMPLES = 3;
 
@@ -134,8 +137,16 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         out.put("requiredSamples", REQUIRED_SAMPLES);
         out.put("profileReady", count >= REQUIRED_SAMPLES);
         out.put("profileVersion", PROFILE_VERSION);
-        out.put("campplusWakeThreshold", SpeakerVerificationPolicy.CAMPPLUS_SANITY_FLOOR);
-        out.put("eres2netWakeThreshold", SpeakerVerificationPolicy.ERES2NET_OWNER_THRESHOLD);
+        out.put(
+            "campplusWakeThreshold",
+            SpeakerVerificationPolicy.WAKE_DUAL_CAMPPLUS_THRESHOLD
+        );
+        out.put(
+            "eres2netWakeThreshold",
+            SpeakerVerificationPolicy.WAKE_DUAL_ERES2NET_THRESHOLD
+        );
+        out.put("eres2netFullTestThreshold", SpeakerVerificationPolicy.ERES2NET_OWNER_THRESHOLD);
+        out.put("wakePolicy", "strict-or-dual-short-phrase");
         out.put("profileComparison", "normalized-centroid");
         out.put("primarySpeakerModel", "eres2net");
         out.put("localOnly", true);
@@ -356,6 +367,8 @@ public class SolSpeakerIdentityPlugin extends Plugin {
             captured,
             capturedCount,
             MIN_WAKE_ACTIVE_FRAMES,
+            MAX_WAKE_SPEECH_GAP_FRAMES,
+            WAKE_SPEECH_PADDING_FRAMES,
             "Hey Sol war zu kurz oder zu leise"
         );
         SpeakerEmbeddingExtractor localCampplusExtractor = null;
@@ -391,7 +404,7 @@ public class SolSpeakerIdentityPlugin extends Plugin {
                 ERES2NET_SAMPLE_PREFIX,
                 computeEmbedding(localEres2netExtractor, voicedSamples)
             );
-            boolean accepted = SpeakerVerificationPolicy.isOwner(
+            boolean accepted = SpeakerVerificationPolicy.isWakeOwner(
                 campplus.score,
                 eres2net.score
             );
@@ -435,6 +448,8 @@ public class SolSpeakerIdentityPlugin extends Plugin {
             captured,
             count,
             MIN_ACTIVE_FRAMES,
+            MAX_SPEECH_GAP_FRAMES,
+            SPEECH_PADDING_FRAMES,
             "Die Stimmprobe war zu kurz – bitte den angezeigten Prüfsatz vollständig sagen"
         );
     }
@@ -443,6 +458,8 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         short[] captured,
         int count,
         int minimumActiveFrames,
+        int maximumSpeechGapFrames,
+        int paddingFrames,
         String tooShortMessage
     ) {
         if (count < FRAME_SAMPLES * minimumActiveFrames) {
@@ -488,7 +505,7 @@ public class SolSpeakerIdentityPlugin extends Plugin {
             if (frameRms[frame] < activityThreshold) continue;
             if (
                 regionStart < 0
-                    || frame - regionLastActive - 1 > MAX_SPEECH_GAP_FRAMES
+                    || frame - regionLastActive - 1 > maximumSpeechGapFrames
             ) {
                 if (regionActiveFrames > bestActiveFrames) {
                     bestStart = regionStart;
@@ -512,7 +529,6 @@ public class SolSpeakerIdentityPlugin extends Plugin {
             throw new IllegalStateException(tooShortMessage);
         }
 
-        int paddingFrames = 6;
         int startSample = Math.max(
             0,
             (bestStart - paddingFrames) * FRAME_SAMPLES

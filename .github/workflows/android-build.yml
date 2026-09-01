@@ -265,6 +265,12 @@ jobs:
             android/app/src/main/java/com/solholo/app/SpeakerVerificationPolicy.java
           grep -q "ERES2NET_OWNER_THRESHOLD = 0.58f" \
             android/app/src/main/java/com/solholo/app/SpeakerVerificationPolicy.java
+          grep -q "WAKE_DUAL_CAMPPLUS_THRESHOLD = 0.48f" \
+            android/app/src/main/java/com/solholo/app/SpeakerVerificationPolicy.java
+          grep -q "WAKE_DUAL_ERES2NET_THRESHOLD = 0.48f" \
+            android/app/src/main/java/com/solholo/app/SpeakerVerificationPolicy.java
+          grep -q "SpeakerVerificationPolicy.isWakeOwner" \
+            android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
           grep -q "normalizedCentroid" \
             android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
           grep -q "verifyWakeAudio" \
@@ -292,7 +298,9 @@ jobs:
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q 'SECURE_WAKE_PHRASE = "Hey Sol"' \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
-          grep -q "MIN_WAKE_ACTIVE_FRAMES = 18" \
+          grep -q "MIN_WAKE_ACTIVE_FRAMES = 12" \
+            android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
+          grep -q "MAX_WAKE_SPEECH_GAP_FRAMES = 24" \
             android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
           grep -q "Partial text never authorizes a wake" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java

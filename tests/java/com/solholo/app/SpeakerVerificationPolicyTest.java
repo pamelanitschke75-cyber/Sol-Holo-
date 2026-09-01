@@ -3,11 +3,51 @@ package com.solholo.app;
 public final class SpeakerVerificationPolicyTest {
     public static void main(String[] args) {
         acceptsOwnerRangeObservedAfterFreshEnrollment();
+        acceptsPamsMeasuredFullSentenceValues();
+        acceptsShortWakeOnlyWhenBothModelsAgree();
+        keepsFullSentencePolicyStrict();
+        rejectsShortWakeWhenOnlyOneModelAgrees();
         rejectsStrongCampplusWhenEres2netDisagrees();
         rejectsUnrelatedSpeakerRange();
         rejectsInvalidMeasurements();
         buildsNormalizedCentroidFromAllSamples();
         System.out.println("SpeakerVerificationPolicyTest: OK");
+    }
+
+    private static void acceptsShortWakeOnlyWhenBothModelsAgree() {
+        assertTrue(
+            SpeakerVerificationPolicy.isWakeOwner(0.52f, 0.51f),
+            "Der kurze Besitzer-Weckruf muss bei Zustimmung beider Modelle freigegeben werden"
+        );
+    }
+
+    private static void acceptsPamsMeasuredFullSentenceValues() {
+        assertTrue(
+            SpeakerVerificationPolicy.isOwner(0.649f, 0.666f),
+            "Pams bestätigter Sicherheitstest muss freigegeben bleiben"
+        );
+    }
+
+    private static void keepsFullSentencePolicyStrict() {
+        assertFalse(
+            SpeakerVerificationPolicy.isOwner(0.52f, 0.51f),
+            "Die vollständige Sicherheitsprüfung darf nicht abgesenkt werden"
+        );
+    }
+
+    private static void rejectsShortWakeWhenOnlyOneModelAgrees() {
+        assertFalse(
+            SpeakerVerificationPolicy.isWakeOwner(0.82f, 0.47f),
+            "Modell A allein darf die kurze Stimme nicht freigeben"
+        );
+        assertFalse(
+            SpeakerVerificationPolicy.isWakeOwner(0.09f, 0.90f),
+            "Modell B allein darf die Plausibilitätskontrolle nicht umgehen"
+        );
+        assertFalse(
+            SpeakerVerificationPolicy.isWakeOwner(Float.NaN, 0.90f),
+            "Ungültige Kurzstimmenwerte müssen gesperrt werden"
+        );
     }
 
     private static void acceptsOwnerRangeObservedAfterFreshEnrollment() {

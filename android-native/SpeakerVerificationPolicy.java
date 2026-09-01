@@ -5,10 +5,15 @@ package com.solholo.app;
  * security boundaries can be regression-tested on every build.
  */
 final class SpeakerVerificationPolicy {
-    // ERes2Net is the discriminating model. CAMPPlus remains a second,
-    // deliberately low sanity gate because it is less stable on short speech.
+    // The full verification sentence keeps the strict ERes2Net-led rule.
     static final float ERES2NET_OWNER_THRESHOLD = 0.58f;
     static final float CAMPPLUS_SANITY_FLOOR = 0.10f;
+
+    // A two-word wake phrase produces a much shorter embedding than the full
+    // enrollment sentence. It may use the lower short-phrase boundary only
+    // when both independent models agree. One strong model never suffices.
+    static final float WAKE_DUAL_CAMPPLUS_THRESHOLD = 0.48f;
+    static final float WAKE_DUAL_ERES2NET_THRESHOLD = 0.48f;
 
     private SpeakerVerificationPolicy() {}
 
@@ -17,6 +22,17 @@ final class SpeakerVerificationPolicy {
             && isFinite(eres2netScore)
             && campplusScore >= CAMPPLUS_SANITY_FLOOR
             && eres2netScore >= ERES2NET_OWNER_THRESHOLD;
+    }
+
+    static boolean isWakeOwner(float campplusScore, float eres2netScore) {
+        if (!isFinite(campplusScore) || !isFinite(eres2netScore)) {
+            return false;
+        }
+        return isOwner(campplusScore, eres2netScore)
+            || (
+                campplusScore >= WAKE_DUAL_CAMPPLUS_THRESHOLD
+                    && eres2netScore >= WAKE_DUAL_ERES2NET_THRESHOLD
+            );
     }
 
     /**

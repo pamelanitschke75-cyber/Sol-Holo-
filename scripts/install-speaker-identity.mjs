@@ -88,7 +88,7 @@ const sourceText = `SOL HOLO / PAM'S HOLO – LOKALE SPRECHERERKENNUNG\n\n` +
 `Zweck: Lokale Unterscheidung und Freigabe der autorisierten Besitzerstimme.\n` +
 `Status: Der Weckruf „Hey Sol“ wird nur nach lokaler Freigabe des gespeicherten Besitzerprofils ausgeführt.\n` +
 `Profilbildung: Die drei Stimmproben werden je Modell zu einem normalisierten Mittelprofil zusammengeführt.\n` +
-`Sicherheitsprinzip: Das trennschärfere Modell B muss mindestens 0,58 erreichen; Modell A muss zusätzlich mindestens 0,10 als Plausibilitätskontrolle erreichen. Fehlende oder unsichere Messung sperrt den Weckruf.\n\n` +
+`Sicherheitsprinzip: Der vollständige Prüfsatz bleibt bei Modell B mindestens 0,58 plus Modell A mindestens 0,10. Beim nur zwei Wörter kurzen Weckruf gilt die niedrigere Kurzsatzgrenze 0,48 ausschließlich dann, wenn beide unabhängigen Modelle gleichzeitig zustimmen. Fehlende, einseitige oder ungültige Messungen sperren den Weckruf.\n\n` +
 `sherpa-onnx 1.13.4\nQuelle: ${AAR_URL}\nLizenz: Apache License 2.0\nSHA-256 AAR: ${AAR_SHA256}\n\n` +
 `Speaker-Embedding-Modell A: 3dspeaker_speech_campplus_sv_en_voxceleb_16k.onnx\n` +
 `Quelle: ${CAMPPLUS_MODEL_URL}\nModellfamilie: 3D-Speaker / CAMPPlus\n` +
