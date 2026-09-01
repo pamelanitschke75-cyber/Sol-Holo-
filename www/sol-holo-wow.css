@@ -1329,3 +1329,275 @@ body{
       linear-gradient(115deg,rgba(154,85,255,.72),rgba(98,79,255,.42),rgba(49,159,255,.72)) border-box;
   }
 }
+
+
+
+/*
+ * EINSTELLUNGEN · ALLES AN SEINEM PLATZ · 01.09.2026
+ * Profil = Identität. Einstellungen = alles Änderbare.
+ */
+#profileView .profileHero--clean{
+  margin-top:10px;
+  padding:34px 20px 38px;
+}
+
+#profileView .profileHero--clean .profileLogo{
+  width:min(190px,54vw);
+  max-height:310px;
+  object-fit:contain;
+}
+
+#profileView .profileHero--clean .profileLogo.customPhoto{
+  width:min(250px,72vw);
+  border:1px solid rgba(168,119,255,.48);
+  border-radius:24px;
+  box-shadow:
+    0 0 28px rgba(122,76,255,.34),
+    0 0 44px rgba(46,185,255,.14);
+}
+
+#settingsView{
+  padding-bottom:44px;
+}
+
+.settingsIntro{
+  margin:7px 2px 20px;
+}
+
+.settingsIntro h2{
+  margin:0;
+  color:#fbf9ff;
+  font-size:clamp(28px,7.6vw,35px);
+  line-height:1.08;
+  letter-spacing:-.035em;
+  text-shadow:0 0 22px rgba(143,84,255,.24);
+}
+
+.settingsIntro > p:last-child{
+  margin:10px 0 0;
+  color:#aeb8d2;
+  font-size:14px;
+  line-height:1.55;
+}
+
+.settingsGroup{
+  margin-top:14px;
+  padding:17px;
+  border-radius:25px;
+}
+
+.settingsGroupHeader{
+  display:grid;
+  grid-template-columns:46px minmax(0,1fr);
+  align-items:center;
+  gap:12px;
+  margin-bottom:15px;
+}
+
+.settingsGroupIcon{
+  display:grid;
+  place-items:center;
+  width:46px;
+  height:46px;
+  border:1px solid transparent;
+  border-radius:15px;
+  color:#e0c9ff;
+  background:
+    linear-gradient(145deg,rgba(102,52,207,.52),rgba(9,44,93,.5)) padding-box,
+    linear-gradient(135deg,rgba(188,112,255,.72),rgba(62,215,255,.48)) border-box;
+  box-shadow:
+    0 0 20px rgba(116,68,255,.24),
+    inset 0 1px 0 rgba(255,255,255,.08);
+  font-size:20px;
+}
+
+.settingsGroupHeader h3{
+  margin:0;
+  color:#fbf9ff;
+  font-size:17px;
+  line-height:1.25;
+}
+
+.settingsGroupHeader p{
+  margin:4px 0 0;
+  color:#98a5c2;
+  font-size:12px;
+  line-height:1.4;
+}
+
+.settingsPhotoEditor{
+  display:grid;
+  justify-items:center;
+  padding:15px 12px 12px;
+  border:1px solid rgba(119,123,225,.23);
+  border-radius:21px;
+  background:linear-gradient(145deg,rgba(15,18,50,.66),rgba(3,12,29,.56));
+}
+
+#settingsView .profilePhotoButton{
+  display:inline-flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+}
+
+#settingsView .profilePhotoEdit{
+  position:static;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:max-content;
+  margin:0 auto;
+  min-height:40px;
+  padding:8px 15px;
+  border-color:rgba(174,130,255,.36);
+  border-radius:999px;
+  color:#dcd5f4;
+  background:linear-gradient(145deg,rgba(49,32,102,.66),rgba(5,27,56,.62));
+  box-shadow:0 0 13px rgba(91,72,226,.17);
+  font-size:13px;
+  font-weight:750;
+  pointer-events:auto;
+  cursor:pointer;
+}
+
+#settingsView .profilePhotoButton.calibrating + .profilePhotoEdit{
+  display:none;
+}
+
+#settingsView .profilePhotoButton > .profileLogo{
+  width:min(165px,48vw);
+}
+
+#settingsView .profilePhotoButton.customPhoto > .profileLogo{
+  width:min(250px,70vw);
+}
+
+#settingsView .profilePhotoHelp{
+  margin:10px 0 0;
+  color:#9ca8c3;
+  font-size:12px;
+  line-height:1.45;
+  text-align:center;
+}
+
+#settingsView .drawerVoiceSettings{
+  margin:0;
+  padding:14px;
+  border-color:rgba(142,113,237,.32);
+  background:linear-gradient(145deg,rgba(26,20,68,.74),rgba(5,20,43,.7));
+}
+
+#settingsView .drawerVoiceSettings label{
+  font-size:14px;
+}
+
+#settingsView #solVoiceSelect{
+  border-color:rgba(175,114,255,.5);
+  background:#0d1029;
+}
+
+.settingsSubsection{
+  margin-top:12px;
+  padding:13px;
+  border:1px solid rgba(128,129,222,.25);
+  border-radius:18px;
+  background:rgba(8,14,35,.5);
+}
+
+.settingsSubsection > strong{
+  display:block;
+  margin-bottom:9px;
+  color:#edf0ff;
+  font-size:13px;
+}
+
+.settingsChoiceRow,
+#settingsView .wakeModeChooser{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:7px;
+}
+
+.settingsChoiceRow button,
+#settingsView .wakeModeChooser button{
+  min-height:42px;
+  padding:8px 5px;
+  border:1px solid rgba(131,123,226,.33);
+  border-radius:13px;
+  color:#aeb8d2;
+  background:rgba(15,20,52,.72);
+  font-size:11px;
+  font-weight:700;
+}
+
+.settingsChoiceRow button.active,
+#settingsView .wakeModeChooser button.active{
+  border-color:rgba(128,208,255,.58);
+  color:#f7f5ff;
+  background:linear-gradient(145deg,rgba(105,61,216,.67),rgba(23,100,168,.55));
+  box-shadow:0 0 16px rgba(98,91,232,.22);
+}
+
+.settingsWakeSlot{
+  margin-top:12px;
+}
+
+#settingsView .settingsWakeSlot .serviceRow{
+  margin:0;
+}
+
+#settingsView .settingsWakeSlot .wakeModeChooser{
+  margin:8px 0 0;
+}
+
+.settingsStatusGrid{
+  margin-top:4px;
+}
+
+.settingsActionList{
+  margin-top:12px;
+}
+
+.settingsSystemDetails{
+  display:grid;
+  gap:8px;
+  margin-top:12px;
+  padding:13px;
+  border:1px solid rgba(101,188,255,.27);
+  border-radius:18px;
+  background:linear-gradient(145deg,rgba(12,19,50,.72),rgba(4,15,34,.68));
+}
+
+.settingsSystemDetails[hidden]{
+  display:none;
+}
+
+.settingsSystemStatus{
+  margin:0!important;
+  padding:10px 11px;
+  border:1px solid rgba(130,122,223,.22);
+  border-radius:13px;
+  color:#bcc7df!important;
+  background:rgba(10,14,35,.52);
+}
+
+#drawer{
+  display:none!important;
+}
+
+@media(max-width:370px){
+  .settingsGroup{
+    padding:14px;
+  }
+
+  .settingsGroupHeader{
+    grid-template-columns:42px minmax(0,1fr);
+    gap:10px;
+  }
+
+  .settingsGroupIcon{
+    width:42px;
+    height:42px;
+  }
+}
