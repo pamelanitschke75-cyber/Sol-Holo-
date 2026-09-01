@@ -37,6 +37,8 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -56,7 +58,8 @@ public class HeyHoSolService extends Service implements RecognitionListener {
     private static final int NOTIFICATION_ID = 2408;
     private static final int SECURE_SAMPLE_RATE = 16000;
     private static final int SECURE_CAPTURE_MS = 5000;
-    private static final int RECOGNITION_WATCHDOG_MS = 12000;
+    private static final int CAPTURE_WATCHDOG_MS = SECURE_CAPTURE_MS + 2000;
+    private static final int RECOGNITION_WATCHDOG_MS = 8000;
     private static final int MIN_SECURE_CAPTURE_BYTES =
         SECURE_SAMPLE_RATE * 2 * 500 / 1000;
     private static final String SECURE_WAKE_PHRASE = "Hey Sol";
@@ -94,16 +97,16 @@ public class HeyHoSolService extends Service implements RecognitionListener {
 
     private static final class SecureAudioSession {
         private final AudioRecord recorder;
-        private final ParcelFileDescriptor readSource;
-        private final ParcelFileDescriptor.AutoCloseOutputStream writeTarget;
         private final ByteArrayOutputStream captured = new ByteArrayOutputStream(
             SECURE_SAMPLE_RATE * SECURE_CAPTURE_MS / 500
         );
         private final AtomicBoolean active = new AtomicBoolean(false);
         private final AtomicBoolean released = new AtomicBoolean(false);
         private Thread pumpThread;
+        private ParcelFileDescriptor recognitionSource;
+        private File recognitionFile;
 
-        SecureAudioSession() throws IOException {
+        SecureAudioSession() {
             int minBuffer = AudioRecord.getMinBufferSize(
                 SECURE_SAMPLE_RATE,
                 AudioFormat.CHANNEL_IN_MONO,
@@ -124,20 +127,6 @@ public class HeyHoSolService extends Service implements RecognitionListener {
                 recorder.release();
                 throw new IllegalStateException("Sichere Mikrofonaufnahme konnte nicht starten");
             }
-
-            ParcelFileDescriptor[] pipe;
-            try {
-                pipe = ParcelFileDescriptor.createPipe();
-            } catch (IOException error) {
-                recorder.release();
-                throw error;
-            }
-            readSource = pipe[0];
-            writeTarget = new ParcelFileDescriptor.AutoCloseOutputStream(pipe[1]);
-        }
-
-        ParcelFileDescriptor audioSource() {
-            return readSource;
         }
 
         void start(Runnable captureFinished) {
@@ -176,21 +165,45 @@ public class HeyHoSolService extends Service implements RecognitionListener {
                     if (count <= 0) {
                         continue;
                     }
-                    writeTarget.write(buffer, 0, count);
                     synchronized (captured) {
                         captured.write(buffer, 0, count);
                     }
                 }
-            } catch (IOException | RuntimeException ignored) {
-                // A closed pipe ends this recognition cycle. Missing audio rejects it.
+            } catch (RuntimeException ignored) {
+                // Missing or interrupted audio rejects this recognition cycle.
             } finally {
                 active.set(false);
-                closeWriteTarget();
                 stopAndReleaseRecorder();
                 if (captureFinished != null) {
                     captureFinished.run();
                 }
             }
+        }
+
+        ParcelFileDescriptor prepareRecognitionSource(File cacheDirectory)
+            throws IOException {
+            byte[] pcm;
+            synchronized (captured) {
+                pcm = captured.toByteArray();
+            }
+            if (pcm.length < MIN_SECURE_CAPTURE_BYTES) {
+                throw new IOException("Sichere Mikrofonaufnahme ist zu kurz");
+            }
+
+            recognitionFile = File.createTempFile(
+                "sol-wake-",
+                ".pcm",
+                cacheDirectory
+            );
+            try (FileOutputStream output = new FileOutputStream(recognitionFile)) {
+                output.write(pcm);
+                output.getFD().sync();
+            }
+            recognitionSource = ParcelFileDescriptor.open(
+                recognitionFile,
+                ParcelFileDescriptor.MODE_READ_ONLY
+            );
+            return recognitionSource;
         }
 
         byte[] finishAndSnapshot() {
@@ -203,7 +216,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
                     Thread.currentThread().interrupt();
                 }
             }
-            closeReadSource();
+            closeRecognitionSource();
             synchronized (captured) {
                 return captured.toByteArray();
             }
@@ -211,7 +224,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
 
         void cancel() {
             stopWithoutWaiting();
-            closeReadSource();
+            closeRecognitionSource();
         }
 
         private void stopWithoutWaiting() {
@@ -220,7 +233,6 @@ public class HeyHoSolService extends Service implements RecognitionListener {
                 recorder.stop();
             } catch (RuntimeException ignored) {
             }
-            closeWriteTarget();
             if (pumpThread == null) {
                 stopAndReleaseRecorder();
             }
@@ -237,17 +249,20 @@ public class HeyHoSolService extends Service implements RecognitionListener {
             recorder.release();
         }
 
-        private void closeWriteTarget() {
-            try {
-                writeTarget.close();
-            } catch (IOException ignored) {
+        private void closeRecognitionSource() {
+            ParcelFileDescriptor source = recognitionSource;
+            recognitionSource = null;
+            if (source != null) {
+                try {
+                    source.close();
+                } catch (IOException ignored) {
+                }
             }
-        }
 
-        private void closeReadSource() {
-            try {
-                readSource.close();
-            } catch (IOException ignored) {
+            File file = recognitionFile;
+            recognitionFile = null;
+            if (file != null && file.exists() && !file.delete()) {
+                file.deleteOnExit();
             }
         }
     }
@@ -416,58 +431,14 @@ public class HeyHoSolService extends Service implements RecognitionListener {
             return;
         }
 
-        if (speechRecognizer == null) {
-            speechRecognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(this);
-            speechRecognizer.setRecognitionListener(this);
-        }
-
-        Intent recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        recognizerIntent.putExtra(
-            RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-            RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
-        );
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false);
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
-        recognizerIntent.putExtra(
-            RecognizerIntent.EXTRA_LANGUAGE,
-            "de-DE"
-        );
-        ArrayList<String> biasingPhrases = new ArrayList<>();
-        biasingPhrases.add(SECURE_WAKE_PHRASE);
-        recognizerIntent.putStringArrayListExtra(
-            RecognizerIntent.EXTRA_BIASING_STRINGS,
-            biasingPhrases
-        );
-        recognizerIntent.putExtra(
-            RecognizerIntent.EXTRA_SEGMENTED_SESSION,
-            RecognizerIntent.EXTRA_AUDIO_SOURCE
-        );
         SecureAudioSession session;
         try {
             session = new SecureAudioSession();
-        } catch (IOException | RuntimeException error) {
+        } catch (RuntimeException error) {
             saveError("Die sichere Audio-Prüfung konnte nicht vorbereitet werden.");
             scheduleRestart(2_000L);
             return;
         }
-
-        recognizerIntent.putExtra(
-            RecognizerIntent.EXTRA_AUDIO_SOURCE,
-            session.audioSource()
-        );
-        recognizerIntent.putExtra(
-            RecognizerIntent.EXTRA_AUDIO_SOURCE_CHANNEL_COUNT,
-            1
-        );
-        recognizerIntent.putExtra(
-            RecognizerIntent.EXTRA_AUDIO_SOURCE_ENCODING,
-            AudioFormat.ENCODING_PCM_16BIT
-        );
-        recognizerIntent.putExtra(
-            RecognizerIntent.EXTRA_AUDIO_SOURCE_SAMPLING_RATE,
-            SECURE_SAMPLE_RATE
-        );
 
         wakeHandled = false;
         segmentedTranscript.setLength(0);
@@ -483,10 +454,9 @@ public class HeyHoSolService extends Service implements RecognitionListener {
         watchdogGeneration = recognitionGeneration;
         mainHandler.postDelayed(
             recognitionWatchdogRunnable,
-            RECOGNITION_WATCHDOG_MS
+            CAPTURE_WATCHDOG_MS
         );
         try {
-            speechRecognizer.startListening(recognizerIntent);
             session.start(
                 () -> mainHandler.post(
                     () -> onSecureCaptureFinished(session, generation)
@@ -531,6 +501,79 @@ public class HeyHoSolService extends Service implements RecognitionListener {
         processingAudio = true;
         HeyHoSolPlugin.publishStatusEvent();
         updateBackgroundNotification("„Hey Sol“ wird lokal geprüft …");
+
+        mainHandler.removeCallbacks(recognitionWatchdogRunnable);
+        watchdogGeneration = recognitionGeneration;
+        mainHandler.postDelayed(
+            recognitionWatchdogRunnable,
+            RECOGNITION_WATCHDOG_MS
+        );
+
+        try {
+            ParcelFileDescriptor audioSource =
+                session.prepareRecognitionSource(getCacheDir());
+            if (speechRecognizer == null) {
+                speechRecognizer =
+                    SpeechRecognizer.createOnDeviceSpeechRecognizer(this);
+                speechRecognizer.setRecognitionListener(this);
+            }
+            speechRecognizer.startListening(
+                buildRecognitionIntent(audioSource)
+            );
+        } catch (IOException | RuntimeException error) {
+            saveError(
+                "Die sichere Aufnahme konnte nicht lokal ausgewertet werden."
+            );
+            resetSpeechRecognizer();
+            discardAudioAndRestart(generation, 1_000L);
+        }
+    }
+
+    private Intent buildRecognitionIntent(
+        ParcelFileDescriptor audioSource
+    ) {
+        Intent recognizerIntent = new Intent(
+            RecognizerIntent.ACTION_RECOGNIZE_SPEECH
+        );
+        recognizerIntent.putExtra(
+            RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+            RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+        );
+        recognizerIntent.putExtra(
+            RecognizerIntent.EXTRA_PARTIAL_RESULTS,
+            false
+        );
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "de-DE");
+
+        ArrayList<String> biasingPhrases = new ArrayList<>();
+        biasingPhrases.add(SECURE_WAKE_PHRASE);
+        recognizerIntent.putStringArrayListExtra(
+            RecognizerIntent.EXTRA_BIASING_STRINGS,
+            biasingPhrases
+        );
+        recognizerIntent.putExtra(
+            RecognizerIntent.EXTRA_AUDIO_SOURCE,
+            audioSource
+        );
+        recognizerIntent.putExtra(
+            RecognizerIntent.EXTRA_AUDIO_SOURCE_CHANNEL_COUNT,
+            1
+        );
+        recognizerIntent.putExtra(
+            RecognizerIntent.EXTRA_AUDIO_SOURCE_ENCODING,
+            AudioFormat.ENCODING_PCM_16BIT
+        );
+        recognizerIntent.putExtra(
+            RecognizerIntent.EXTRA_AUDIO_SOURCE_SAMPLING_RATE,
+            SECURE_SAMPLE_RATE
+        );
+        recognizerIntent.putExtra(
+            RecognizerIntent.EXTRA_SEGMENTED_SESSION,
+            RecognizerIntent.EXTRA_AUDIO_SOURCE
+        );
+        return recognizerIntent;
     }
 
     private void scheduleRestart(long delayMillis) {

@@ -275,6 +275,8 @@ jobs:
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q "RecognizerIntent.EXTRA_SEGMENTED_SESSION" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          grep -q "prepareRecognitionSource" \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q "isProcessingAudio" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q "WakePhraseMatcher.canonicalPhrase" \
