@@ -1106,7 +1106,6 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   }
 
   async function startSolVoice() {
-    await pauseWakeListeningForConversation();
     showView("chat");
 
     if (
@@ -1119,6 +1118,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     }
 
     enterVoiceMode();
+    await pauseWakeListeningForConversation();
     await startLiveConversation();
   }
 
@@ -2253,6 +2253,8 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       await plugin.addListener("wakeDiagnostic", (event) => {
         if (event?.stage === "phrase_heard") {
           showToast("„Hey Sol“ gehört · deine Stimme wird geprüft …");
+        } else if (event?.stage === "owner_accepted") {
+          showToast("Stimme freigegeben · Sol startet ✨");
         } else if (event?.stage === "owner_rejected") {
           showToast("„Hey Sol“ gehört · Stimme nicht freigegeben 🔒");
         }
@@ -2404,7 +2406,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     pendingWakePrompt = String(
       event?.phrase || "Hey Sol"
     );
-    showToast("Sol-Weckruf gehört ✨");
+    showToast("Stimme freigegeben · Sol startet ✨");
     await startSolVoice();
   }
 

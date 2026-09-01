@@ -57,6 +57,7 @@ public class HeyHoSolPlugin extends Plugin {
     @Override
     public void load() {
         activePlugin = this;
+        publishPendingWakeEvent();
     }
 
     @Override
@@ -65,6 +66,10 @@ public class HeyHoSolPlugin extends Plugin {
         activityVisible = true;
         startSavedModeIfNeeded();
         publishStatusEvent();
+        new Handler(Looper.getMainLooper()).postDelayed(
+            HeyHoSolPlugin::publishPendingWakeEvent,
+            250L
+        );
     }
 
     @Override
@@ -439,13 +444,30 @@ public class HeyHoSolPlugin extends Plugin {
             .putLong(PENDING_TIME_KEY, detectedAt)
             .apply();
 
+        publishPendingWakeEvent();
+    }
+
+    public static void publishPendingWakeEvent() {
         HeyHoSolPlugin plugin = activePlugin;
-        if (plugin != null) {
-            JSObject event = new JSObject();
-            event.put("phrase", phrase);
-            event.put("detectedAt", detectedAt);
-            plugin.notifyListeners("wakePhraseDetected", event, true);
+        if (plugin == null) {
+            return;
         }
+
+        Context context = plugin.getContext();
+        String phrase = context
+            .getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+            .getString(PENDING_PHRASE_KEY, "");
+        long detectedAt = context
+            .getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+            .getLong(PENDING_TIME_KEY, 0L);
+        if (phrase.isEmpty() || detectedAt <= 0L) {
+            return;
+        }
+
+        JSObject event = new JSObject();
+        event.put("phrase", phrase);
+        event.put("detectedAt", detectedAt);
+        plugin.notifyListeners("wakePhraseDetected", event, true);
     }
 
     public static void publishWakeDiagnostic(String stage) {

@@ -6846,13 +6846,76 @@ function saveRealtimeAssistantTranscript(
 }
 
 
+function sendPendingWakePrompt(channel){
+
+  if(
+    !channel ||
+    channel.readyState !== "open" ||
+    typeof window.consumeSolHoloWakePrompt !== "function"
+  ){
+
+    return false;
+  }
+
+
+  const wakePrompt =
+    window.consumeSolHoloWakePrompt();
+
+
+  if(!wakePrompt){
+
+    return false;
+  }
+
+
+  channel.send(
+    JSON.stringify({
+      type:"conversation.item.create",
+      item:{
+        type:"message",
+        role:"user",
+        content:[{
+          type:"input_text",
+          text:wakePrompt
+        }]
+      }
+    })
+  );
+
+
+  channel.send(
+    JSON.stringify({
+      type:"response.create"
+    })
+  );
+
+
+  return true;
+}
+
+
 async function startLiveConversation(){
 
   if(
     pc
   ){
 
-    return;
+    if(
+      pc.connectionState === "failed" ||
+      pc.connectionState === "closed" ||
+      pc.connectionState === "disconnected"
+    ){
+
+      stopLiveConversation();
+
+    }else{
+
+      sendPendingWakePrompt(
+        dc
+      );
+
+      return;
+    }
   }
 
 
@@ -7167,38 +7230,9 @@ async function startLiveConversation(){
         );
 
 
-        if(
-          typeof window.consumeSolHoloWakePrompt === "function"
-        ){
-
-          const wakePrompt =
-            window.consumeSolHoloWakePrompt();
-
-
-          if(wakePrompt){
-
-            activeDataChannel.send(
-              JSON.stringify({
-                type:"conversation.item.create",
-                item:{
-                  type:"message",
-                  role:"user",
-                  content:[{
-                    type:"input_text",
-                    text:wakePrompt
-                  }]
-                }
-              })
-            );
-
-
-            activeDataChannel.send(
-              JSON.stringify({
-                type:"response.create"
-              })
-            );
-          }
-        }
+        sendPendingWakePrompt(
+          activeDataChannel
+        );
       }
     );
 
@@ -7765,4 +7799,3 @@ if(
 
 </body>
 </html>
-

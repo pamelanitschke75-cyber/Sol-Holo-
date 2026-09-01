@@ -176,6 +176,30 @@ if (!mainActivity.includes("handleSharedNoteIntent(this, intent)")) {
   );
 }
 
+if (!mainActivity.includes("HeyHoSolPlugin.publishPendingWakeEvent();")) {
+  const createMarker =
+    "        PhoneContactsPlugin.handleSharedNoteIntent(this, getIntent());\n    }";
+  if (!mainActivity.includes(createMarker)) {
+    throw new Error("onCreate-Markierung für den Sol-Weckruf nicht gefunden.");
+  }
+  mainActivity = mainActivity.replace(
+    createMarker,
+    "        PhoneContactsPlugin.handleSharedNoteIntent(this, getIntent());\n" +
+      "        HeyHoSolPlugin.publishPendingWakeEvent();\n    }"
+  );
+
+  const intentMarker =
+    "        PhoneContactsPlugin.handleSharedNoteIntent(this, intent);\n    }";
+  if (!mainActivity.includes(intentMarker)) {
+    throw new Error("onNewIntent-Markierung für den Sol-Weckruf nicht gefunden.");
+  }
+  mainActivity = mainActivity.replace(
+    intentMarker,
+    "        PhoneContactsPlugin.handleSharedNoteIntent(this, intent);\n" +
+      "        HeyHoSolPlugin.publishPendingWakeEvent();\n    }"
+  );
+}
+
 writeFileSync(mainActivityPath, mainActivity, "utf8");
 
 let manifest = readFileSync(manifestPath, "utf8");

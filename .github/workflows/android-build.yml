@@ -277,6 +277,12 @@ jobs:
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q "prepareRecognitionSource" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          grep -q "ParcelFileDescriptor.createPipe" \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          grep -q "AutoCloseOutputStream" \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          grep -q 'publishWakeDiagnostic("owner_accepted")' \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q "isProcessingAudio" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q "WakePhraseMatcher.canonicalPhrase" \
@@ -292,6 +298,10 @@ jobs:
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q "speakerGateReady" \
             android/app/src/main/java/com/solholo/app/HeyHoSolPlugin.java
+          grep -q "publishPendingWakeEvent" \
+            android/app/src/main/java/com/solholo/app/HeyHoSolPlugin.java
+          grep -q "sendPendingWakePrompt" \
+            android/app/src/main/assets/public/index.html
           grep -q "Bitte prüfe jetzt genau meine Stimme" \
             android/app/src/main/assets/public/sol-holo-ui.js
 

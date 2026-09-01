@@ -37,8 +37,6 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -103,8 +101,9 @@ public class HeyHoSolService extends Service implements RecognitionListener {
         private final AtomicBoolean active = new AtomicBoolean(false);
         private final AtomicBoolean released = new AtomicBoolean(false);
         private Thread pumpThread;
+        private Thread recognitionWriterThread;
         private ParcelFileDescriptor recognitionSource;
-        private File recognitionFile;
+        private ParcelFileDescriptor recognitionSink;
 
         SecureAudioSession() {
             int minBuffer = AudioRecord.getMinBufferSize(
@@ -180,8 +179,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
             }
         }
 
-        ParcelFileDescriptor prepareRecognitionSource(File cacheDirectory)
-            throws IOException {
+        ParcelFileDescriptor prepareRecognitionSource() throws IOException {
             byte[] pcm;
             synchronized (captured) {
                 pcm = captured.toByteArray();
@@ -190,20 +188,36 @@ public class HeyHoSolService extends Service implements RecognitionListener {
                 throw new IOException("Sichere Mikrofonaufnahme ist zu kurz");
             }
 
-            recognitionFile = File.createTempFile(
-                "sol-wake-",
-                ".pcm",
-                cacheDirectory
+            ParcelFileDescriptor[] pipe = ParcelFileDescriptor.createPipe();
+            recognitionSource = pipe[0];
+            recognitionSink = pipe[1];
+
+            ParcelFileDescriptor sink = recognitionSink;
+            recognitionWriterThread = new Thread(
+                () -> streamRecognitionAudio(sink, pcm),
+                "sol-recognition-audio"
             );
-            try (FileOutputStream output = new FileOutputStream(recognitionFile)) {
-                output.write(pcm);
-                output.getFD().sync();
-            }
-            recognitionSource = ParcelFileDescriptor.open(
-                recognitionFile,
-                ParcelFileDescriptor.MODE_READ_ONLY
-            );
+            recognitionWriterThread.start();
             return recognitionSource;
+        }
+
+        private void streamRecognitionAudio(
+            ParcelFileDescriptor sink,
+            byte[] pcm
+        ) {
+            try (
+                ParcelFileDescriptor.AutoCloseOutputStream output =
+                    new ParcelFileDescriptor.AutoCloseOutputStream(sink)
+            ) {
+                output.write(pcm);
+                output.flush();
+            } catch (IOException ignored) {
+                // A cancelled recognition closes the pipe and rejects this cycle.
+            } finally {
+                if (recognitionSink == sink) {
+                    recognitionSink = null;
+                }
+            }
         }
 
         byte[] finishAndSnapshot() {
@@ -216,7 +230,8 @@ public class HeyHoSolService extends Service implements RecognitionListener {
                     Thread.currentThread().interrupt();
                 }
             }
-            closeRecognitionSource();
+            closeRecognitionPipe();
+            joinRecognitionWriter();
             synchronized (captured) {
                 return captured.toByteArray();
             }
@@ -224,7 +239,8 @@ public class HeyHoSolService extends Service implements RecognitionListener {
 
         void cancel() {
             stopWithoutWaiting();
-            closeRecognitionSource();
+            closeRecognitionPipe();
+            joinRecognitionWriter();
         }
 
         private void stopWithoutWaiting() {
@@ -249,7 +265,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
             recorder.release();
         }
 
-        private void closeRecognitionSource() {
+        private void closeRecognitionPipe() {
             ParcelFileDescriptor source = recognitionSource;
             recognitionSource = null;
             if (source != null) {
@@ -259,10 +275,26 @@ public class HeyHoSolService extends Service implements RecognitionListener {
                 }
             }
 
-            File file = recognitionFile;
-            recognitionFile = null;
-            if (file != null && file.exists() && !file.delete()) {
-                file.deleteOnExit();
+            ParcelFileDescriptor sink = recognitionSink;
+            recognitionSink = null;
+            if (sink != null) {
+                try {
+                    sink.close();
+                } catch (IOException ignored) {
+                }
+            }
+        }
+
+        private void joinRecognitionWriter() {
+            Thread thread = recognitionWriterThread;
+            recognitionWriterThread = null;
+            if (thread == null || thread == Thread.currentThread()) {
+                return;
+            }
+            try {
+                thread.join(1_500L);
+            } catch (InterruptedException error) {
+                Thread.currentThread().interrupt();
             }
         }
     }
@@ -511,7 +543,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
 
         try {
             ParcelFileDescriptor audioSource =
-                session.prepareRecognitionSource(getCacheDir());
+                session.prepareRecognitionSource();
             if (speechRecognizer == null) {
                 speechRecognizer =
                     SpeechRecognizer.createOnDeviceSpeechRecognizer(this);
@@ -725,6 +757,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
                 speakerVerificationPending = false;
                 if (ownerAccepted) {
                     saveError("");
+                    HeyHoSolPlugin.publishWakeDiagnostic("owner_accepted");
                     handleWakePhrase(phrase);
                     return;
                 }
