@@ -1,0 +1,42 @@
+name: Android-Signierwerkzeuge bereitstellen
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/export-android-signing-tools.yml"
+
+jobs:
+  export-tools:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Java einrichten
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Offizielle Android-Signierwerkzeuge sammeln
+        run: |
+          set -Eeuo pipefail
+          android_sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          test -n "$android_sdk"
+          build_tools="$(find "$android_sdk/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          test -x "$build_tools/apksigner"
+          test -x "$build_tools/zipalign"
+          test -s "$build_tools/lib/apksigner.jar"
+
+          mkdir -p signing-tools/lib
+          cp -- "$build_tools/apksigner" signing-tools/apksigner
+          cp -- "$build_tools/zipalign" signing-tools/zipalign
+          cp -- "$build_tools/lib/apksigner.jar" signing-tools/lib/apksigner.jar
+          chmod +x signing-tools/apksigner signing-tools/zipalign
+
+      - name: Werkzeuge kurzzeitig bereitstellen
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android-Signierwerkzeuge
+          path: signing-tools
+          if-no-files-found: error
+          retention-days: 1
