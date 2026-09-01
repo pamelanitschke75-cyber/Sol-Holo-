@@ -1188,6 +1188,8 @@ body{
 #chatView #liveButton{
   width:48px;
   min-height:78px;
+  font-size:17px;
+  line-height:1;
   border-color:rgba(111,132,205,.13);
   border-radius:21px;
   color:#afa1ff;
