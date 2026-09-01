@@ -363,6 +363,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     supported: false,
     mode: "off",
     active: false,
+    serviceRunning: false,
     listening: false,
     pausedForConversation: false,
     overlayPermissionGranted: false,
@@ -2163,6 +2164,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       supported: Boolean(nextStatus?.supported),
       mode: String(nextStatus?.mode || "off"),
       active: Boolean(nextStatus?.active),
+      serviceRunning: Boolean(nextStatus?.serviceRunning),
       listening: Boolean(nextStatus?.listening),
       pausedForConversation: Boolean(nextStatus?.pausedForConversation),
       speakerGateReady: Boolean(nextStatus?.speakerGateReady),
@@ -2211,12 +2213,16 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     } else if (wakeStatus.mode === "background") {
       statusElement.textContent = wakeStatus.listening
         ? "Hintergrund aktiv"
-        : "Startet …";
+        : wakeStatus.serviceRunning
+          ? "Mikrofon startet …"
+          : "Startet …";
       statusElement.classList.add("connected");
     } else if (wakeStatus.mode === "foreground") {
       statusElement.textContent = wakeStatus.listening
         ? "App hört zu"
-        : "App offen";
+        : wakeStatus.serviceRunning
+          ? "Mikrofon startet …"
+          : "App offen";
       statusElement.classList.add("connected");
     } else {
       statusElement.textContent = "Aus";
@@ -2237,6 +2243,13 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       });
       await plugin.addListener("wakeStatusChanged", (status) => {
         renderWakeStatus(status);
+      });
+      await plugin.addListener("wakeDiagnostic", (event) => {
+        if (event?.stage === "phrase_heard") {
+          showToast("„Hey Sol“ gehört · deine Stimme wird geprüft …");
+        } else if (event?.stage === "owner_rejected") {
+          showToast("„Hey Sol“ gehört · Stimme nicht freigegeben 🔒");
+        }
       });
     } catch (error) {
       wakeListenersRegistered = false;

@@ -40,9 +40,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.text.Normalizer;
 import java.util.ArrayList;
-import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -57,9 +55,10 @@ public class HeyHoSolService extends Service implements RecognitionListener {
     private static final String CHANNEL_ID = "hey_ho_sol_background";
     private static final int NOTIFICATION_ID = 2408;
     private static final int SECURE_SAMPLE_RATE = 16000;
-    private static final int SECURE_CAPTURE_MS = 3200;
+    private static final int SECURE_CAPTURE_MS = 7000;
+    private static final int RECOGNITION_WATCHDOG_MS = 8500;
     private static final int MIN_SECURE_CAPTURE_BYTES =
-        SECURE_SAMPLE_RATE * 2 * 2400 / 1000;
+        SECURE_SAMPLE_RATE * 2 * 500 / 1000;
     private static final String SECURE_WAKE_PHRASE = "Hey Sol";
 
     private static volatile boolean running;
@@ -75,6 +74,8 @@ public class HeyHoSolService extends Service implements RecognitionListener {
             startRecognition();
         }
     };
+    private final Runnable recognitionWatchdogRunnable =
+        this::recoverTimedOutRecognition;
 
     private SpeechRecognizer speechRecognizer;
     private String currentMode = HeyHoSolPlugin.MODE_OFF;
@@ -84,6 +85,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
     private boolean speakerVerificationPending;
     private boolean foregroundNotificationActive;
     private long recognitionGeneration;
+    private long watchdogGeneration;
     private SecureAudioSession secureAudioSession;
     private final StringBuilder segmentedTranscript = new StringBuilder();
     private WindowManager wakeOverlayManager;
@@ -405,7 +407,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
         recognizerIntent.putExtra(
             RecognizerIntent.EXTRA_LANGUAGE,
-            Locale.GERMANY.toLanguageTag()
+            "de-DE"
         );
         ArrayList<String> biasingPhrases = new ArrayList<>();
         biasingPhrases.add(SECURE_WAKE_PHRASE);
@@ -413,11 +415,6 @@ public class HeyHoSolService extends Service implements RecognitionListener {
             RecognizerIntent.EXTRA_BIASING_STRINGS,
             biasingPhrases
         );
-        recognizerIntent.putExtra(
-            RecognizerIntent.EXTRA_SEGMENTED_SESSION,
-            RecognizerIntent.EXTRA_AUDIO_SOURCE
-        );
-
         SecureAudioSession session;
         try {
             session = new SecureAudioSession();
@@ -449,14 +446,20 @@ public class HeyHoSolService extends Service implements RecognitionListener {
         recognitionGeneration++;
         secureAudioSession = session;
         recognitionStarted = true;
-        listening = true;
+        listening = false;
         HeyHoSolPlugin.publishStatusEvent();
-        updateBackgroundNotification("Sicherer Prüfsatz · Stimme wird lokal geprüft");
+        updateBackgroundNotification("Mikrofon startet …");
 
+        watchdogGeneration = recognitionGeneration;
+        mainHandler.postDelayed(
+            recognitionWatchdogRunnable,
+            RECOGNITION_WATCHDOG_MS
+        );
         try {
             speechRecognizer.startListening(recognizerIntent);
             session.start();
         } catch (RuntimeException error) {
+            mainHandler.removeCallbacks(recognitionWatchdogRunnable);
             if (secureAudioSession == session) {
                 secureAudioSession = null;
             }
@@ -469,6 +472,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
     }
 
     private void scheduleRestart(long delayMillis) {
+        mainHandler.removeCallbacks(recognitionWatchdogRunnable);
         recognitionStarted = false;
         listening = false;
         HeyHoSolPlugin.publishStatusEvent();
@@ -482,6 +486,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
     private void pauseRecognition() {
         mainHandler.removeCallbacks(restartRunnable);
         mainHandler.removeCallbacks(fallbackResumeRunnable);
+        mainHandler.removeCallbacks(recognitionWatchdogRunnable);
         recognitionGeneration++;
         recognitionStarted = false;
         listening = false;
@@ -559,34 +564,22 @@ public class HeyHoSolService extends Service implements RecognitionListener {
     }
 
     private String matchingWakePhrase(String rawPhrase) {
-        String normalized = Normalizer
-            .normalize(String.valueOf(rawPhrase), Normalizer.Form.NFD)
-            .replaceAll("\\p{M}+", "")
-            .toLowerCase(Locale.ROOT)
-            .replaceAll("[^a-z ]", " ")
-            .replaceAll("\\s+", " ")
-            .trim();
-
-        String solName = "(sol|soll|soul|sohl)";
-        String secureWakePhrase = "^hey\\s+" + solName + "$";
-
-        if (normalized.matches(secureWakePhrase)) {
-            return "Hey Sol";
-        }
-
-        return "";
+        return WakePhraseMatcher.canonicalPhrase(rawPhrase);
     }
 
     private void verifySpeakerBeforeWake(String phrase, long generation) {
+        mainHandler.removeCallbacks(recognitionWatchdogRunnable);
         SecureAudioSession session = detachSecureAudioSession();
         recognitionStarted = false;
         listening = false;
         speakerVerificationPending = true;
         HeyHoSolPlugin.publishStatusEvent();
+        HeyHoSolPlugin.publishWakeDiagnostic("phrase_heard");
         updateBackgroundNotification("Hey Sol erkannt · Stimme wird abgeglichen");
 
         speakerExecutor.execute(() -> {
             boolean accepted = false;
+            String failureReason = "Stimme wurde nicht sicher freigegeben.";
             try {
                 if (session == null) {
                     throw new IllegalStateException("Sichere Audioaufnahme fehlt");
@@ -607,20 +600,30 @@ public class HeyHoSolService extends Service implements RecognitionListener {
                 accepted = verification.accepted;
             } catch (RuntimeException error) {
                 accepted = false;
+                if (
+                    error.getMessage() != null
+                        && !error.getMessage().trim().isEmpty()
+                ) {
+                    failureReason = error.getMessage();
+                }
             }
 
             final boolean ownerAccepted = accepted;
+            final String rejectionReason = failureReason;
             mainHandler.post(() -> {
                 if (destroyed || generation != recognitionGeneration) {
                     return;
                 }
                 speakerVerificationPending = false;
                 if (ownerAccepted) {
+                    saveError("");
                     handleWakePhrase(phrase);
                     return;
                 }
 
+                saveError(rejectionReason);
                 wakeHandled = false;
+                HeyHoSolPlugin.publishWakeDiagnostic("owner_rejected");
                 updateBackgroundNotification(
                     "Keine Freigabe · sicherer Weckruf wartet weiter"
                 );
@@ -630,6 +633,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
     }
 
     private void discardAudioAndRestart(long generation, long delayMillis) {
+        mainHandler.removeCallbacks(recognitionWatchdogRunnable);
         SecureAudioSession session = detachSecureAudioSession();
         recognitionStarted = false;
         listening = false;
@@ -649,6 +653,38 @@ public class HeyHoSolService extends Service implements RecognitionListener {
                 scheduleRestart(delayMillis);
             });
         });
+    }
+
+    private void recoverTimedOutRecognition() {
+        long generation = watchdogGeneration;
+        if (
+            destroyed
+                || pausedForConversation
+                || speakerVerificationPending
+                || wakeHandled
+                || !recognitionStarted
+                || generation != recognitionGeneration
+        ) {
+            return;
+        }
+
+        speakerVerificationPending = true;
+        listening = false;
+        HeyHoSolPlugin.publishStatusEvent();
+        resetSpeechRecognizer();
+        discardAudioAndRestart(generation, 250L);
+    }
+
+    private void resetSpeechRecognizer() {
+        SpeechRecognizer recognizer = speechRecognizer;
+        speechRecognizer = null;
+        if (recognizer == null) {
+            return;
+        }
+        try {
+            recognizer.destroy();
+        } catch (RuntimeException ignored) {
+        }
     }
 
     private static short[] pcm16LittleEndian(byte[] pcm) {
@@ -928,6 +964,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
 
     @Override
     public void onError(int error) {
+        mainHandler.removeCallbacks(recognitionWatchdogRunnable);
         if (
             destroyed
                 || pausedForConversation
@@ -940,6 +977,10 @@ public class HeyHoSolService extends Service implements RecognitionListener {
         long delay = error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY
             ? 1_500L
             : 450L;
+
+        if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY) {
+            resetSpeechRecognizer();
+        }
 
         if (
             error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED
@@ -960,6 +1001,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
 
     @Override
     public void onResults(Bundle results) {
+        mainHandler.removeCallbacks(recognitionWatchdogRunnable);
         recognitionStarted = false;
         listening = false;
         if (speakerVerificationPending || wakeHandled) {
@@ -982,7 +1024,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
 
     @Override
     public void onPartialResults(Bundle partialResults) {
-        // Partial text never authorizes a wake. Only the complete sentence,
+        // Partial text never authorizes a wake. Only the complete wake phrase,
         // final recognition result and both speaker models can open Sol.
     }
 
@@ -1013,6 +1055,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
 
     @Override
     public void onEndOfSegmentedSession() {
+        mainHandler.removeCallbacks(recognitionWatchdogRunnable);
         recognitionStarted = false;
         listening = false;
         if (speakerVerificationPending || wakeHandled) {

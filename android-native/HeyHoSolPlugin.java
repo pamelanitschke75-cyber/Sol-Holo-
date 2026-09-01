@@ -447,6 +447,15 @@ public class HeyHoSolPlugin extends Plugin {
         }
     }
 
+    public static void publishWakeDiagnostic(String stage) {
+        HeyHoSolPlugin plugin = activePlugin;
+        if (plugin != null) {
+            JSObject event = new JSObject();
+            event.put("stage", stage);
+            plugin.notifyListeners("wakeDiagnostic", event, false);
+        }
+    }
+
     public static void publishStatusEvent() {
         HeyHoSolPlugin plugin = activePlugin;
         if (plugin != null) {
