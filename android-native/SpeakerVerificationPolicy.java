@@ -15,6 +15,12 @@ final class SpeakerVerificationPolicy {
     static final float WAKE_DUAL_CAMPPLUS_THRESHOLD = 0.48f;
     static final float WAKE_DUAL_ERES2NET_THRESHOLD = 0.48f;
 
+    // Once Pam has passed the strict full-sentence test, the leading
+    // "Hey Sol" clause is stored as a phrase-matched embedding template.
+    // Both independent models must match that verified template.
+    static final float WAKE_TEMPLATE_CAMPPLUS_THRESHOLD = 0.50f;
+    static final float WAKE_TEMPLATE_ERES2NET_THRESHOLD = 0.50f;
+
     private SpeakerVerificationPolicy() {}
 
     static boolean isOwner(float campplusScore, float eres2netScore) {
@@ -33,6 +39,16 @@ final class SpeakerVerificationPolicy {
                 campplusScore >= WAKE_DUAL_CAMPPLUS_THRESHOLD
                     && eres2netScore >= WAKE_DUAL_ERES2NET_THRESHOLD
             );
+    }
+
+    static boolean isWakeTemplateOwner(
+        float campplusScore,
+        float eres2netScore
+    ) {
+        return isFinite(campplusScore)
+            && isFinite(eres2netScore)
+            && campplusScore >= WAKE_TEMPLATE_CAMPPLUS_THRESHOLD
+            && eres2netScore >= WAKE_TEMPLATE_ERES2NET_THRESHOLD;
     }
 
     /**

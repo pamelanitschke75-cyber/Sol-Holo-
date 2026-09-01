@@ -41,6 +41,10 @@ public class SolSpeakerIdentityPlugin extends Plugin {
     private static final String PREFS = "sol_holo_speaker_identity";
     private static final String CAMPPLUS_SAMPLE_PREFIX = "owner_campplus_embedding_";
     private static final String ERES2NET_SAMPLE_PREFIX = "owner_eres2net_embedding_";
+    private static final String WAKE_CAMPPLUS_TEMPLATE_KEY =
+        "owner_wake_campplus_embedding";
+    private static final String WAKE_ERES2NET_TEMPLATE_KEY =
+        "owner_wake_eres2net_embedding";
     private static final String PROFILE_VERSION_KEY = "profile_version";
     private static final String CAMPPLUS_MODEL_ASSET = "sol-speaker-campplus.onnx";
     private static final String ERES2NET_MODEL_ASSET = "sol-speaker-eres2net.onnx";
@@ -72,6 +76,19 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         }
     }
 
+    private static final class CapturedVoice {
+        final DualEmbedding fullSentence;
+        final DualEmbedding wakePhrase;
+
+        CapturedVoice(
+            DualEmbedding fullSentence,
+            DualEmbedding wakePhrase
+        ) {
+            this.fullSentence = fullSentence;
+            this.wakePhrase = wakePhrase;
+        }
+    }
+
     private static final class ProfileScore {
         final float score;
         final float minimum;
@@ -86,15 +103,18 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         final boolean accepted;
         final float campplusScore;
         final float eres2netScore;
+        final boolean templateUsed;
 
         WakeVerification(
             boolean accepted,
             float campplusScore,
-            float eres2netScore
+            float eres2netScore,
+            boolean templateUsed
         ) {
             this.accepted = accepted;
             this.campplusScore = campplusScore;
             this.eres2netScore = eres2netScore;
+            this.templateUsed = templateUsed;
         }
     }
 
@@ -136,17 +156,26 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         out.put("sampleCount", count);
         out.put("requiredSamples", REQUIRED_SAMPLES);
         out.put("profileReady", count >= REQUIRED_SAMPLES);
+        out.put("wakeVoiceReady", isWakeVoiceReady(getContext()));
         out.put("profileVersion", PROFILE_VERSION);
         out.put(
             "campplusWakeThreshold",
-            SpeakerVerificationPolicy.WAKE_DUAL_CAMPPLUS_THRESHOLD
+            SpeakerVerificationPolicy.WAKE_TEMPLATE_CAMPPLUS_THRESHOLD
         );
         out.put(
             "eres2netWakeThreshold",
+            SpeakerVerificationPolicy.WAKE_TEMPLATE_ERES2NET_THRESHOLD
+        );
+        out.put(
+            "campplusWakeFallbackThreshold",
+            SpeakerVerificationPolicy.WAKE_DUAL_CAMPPLUS_THRESHOLD
+        );
+        out.put(
+            "eres2netWakeFallbackThreshold",
             SpeakerVerificationPolicy.WAKE_DUAL_ERES2NET_THRESHOLD
         );
         out.put("eres2netFullTestThreshold", SpeakerVerificationPolicy.ERES2NET_OWNER_THRESHOLD);
-        out.put("wakePolicy", "strict-or-dual-short-phrase");
+        out.put("wakePolicy", "verified-hey-sol-template");
         out.put("profileComparison", "normalized-centroid");
         out.put("primarySpeakerModel", "eres2net");
         out.put("localOnly", true);
@@ -170,6 +199,23 @@ public class SolSpeakerIdentityPlugin extends Plugin {
             }
         }
         return true;
+    }
+
+    static boolean isWakeVoiceReady(Context context) {
+        SharedPreferences preferences = profilePrefs(context);
+        String campplus = preferences.getString(
+            WAKE_CAMPPLUS_TEMPLATE_KEY,
+            ""
+        );
+        String eres2net = preferences.getString(
+            WAKE_ERES2NET_TEMPLATE_KEY,
+            ""
+        );
+        return preferences.getInt(PROFILE_VERSION_KEY, 0) == PROFILE_VERSION
+            && campplus != null
+            && !campplus.isEmpty()
+            && eres2net != null
+            && !eres2net.isEmpty();
     }
 
     @PluginMethod
@@ -240,13 +286,25 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         executor.execute(() -> {
             try {
                 pauseWakeService();
-                DualEmbedding embedding = captureEmbedding();
+                CapturedVoice capturedVoice = captureVoice();
+                DualEmbedding embedding = capturedVoice.fullSentence;
                 int next = Math.min(sampleCount() + 1, REQUIRED_SAMPLES);
-                prefs().edit()
+                SharedPreferences.Editor editor = prefs().edit()
                     .putInt(PROFILE_VERSION_KEY, PROFILE_VERSION)
                     .putString(CAMPPLUS_SAMPLE_PREFIX + next, encode(embedding.campplus))
-                    .putString(ERES2NET_SAMPLE_PREFIX + next, encode(embedding.eres2net))
-                    .apply();
+                    .putString(ERES2NET_SAMPLE_PREFIX + next, encode(embedding.eres2net));
+                if (capturedVoice.wakePhrase != null) {
+                    editor
+                        .putString(
+                            WAKE_CAMPPLUS_TEMPLATE_KEY,
+                            encode(capturedVoice.wakePhrase.campplus)
+                        )
+                        .putString(
+                            WAKE_ERES2NET_TEMPLATE_KEY,
+                            encode(capturedVoice.wakePhrase.eres2net)
+                        );
+                }
+                editor.apply();
                 JSObject out = status();
                 out.put("savedSample", next);
                 mainHandler.post(HeyHoSolPlugin::publishStatusEvent);
@@ -263,7 +321,8 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         executor.execute(() -> {
             try {
                 pauseWakeService();
-                DualEmbedding current = captureEmbedding();
+                CapturedVoice capturedVoice = captureVoice();
+                DualEmbedding current = capturedVoice.fullSentence;
                 ProfileScore campplus = scoreAgainstProfile(
                     getContext(),
                     CAMPPLUS_SAMPLE_PREFIX,
@@ -278,6 +337,18 @@ public class SolSpeakerIdentityPlugin extends Plugin {
                     campplus.score,
                     eres2net.score
                 );
+                if (accepted && capturedVoice.wakePhrase != null) {
+                    prefs().edit()
+                        .putString(
+                            WAKE_CAMPPLUS_TEMPLATE_KEY,
+                            encode(capturedVoice.wakePhrase.campplus)
+                        )
+                        .putString(
+                            WAKE_ERES2NET_TEMPLATE_KEY,
+                            encode(capturedVoice.wakePhrase.eres2net)
+                        )
+                        .apply();
+                }
                 JSObject out = status();
                 out.put("campplusScore", campplus.score);
                 out.put("campplusMinimum", campplus.minimum);
@@ -295,7 +366,7 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         });
     }
 
-    private DualEmbedding captureEmbedding() throws Exception {
+    private CapturedVoice captureVoice() throws Exception {
         if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.RECORD_AUDIO)
             != PackageManager.PERMISSION_GRANTED) {
             throw new IllegalStateException("Mikrofonfreigabe fehlt");
@@ -344,10 +415,25 @@ public class SolSpeakerIdentityPlugin extends Plugin {
             }
 
             float[] voicedSamples = extractVoicedSamples(captured, capturedCount);
-            return new DualEmbedding(
+            DualEmbedding fullSentence = new DualEmbedding(
                 computeEmbedding(localCampplusExtractor, voicedSamples),
                 computeEmbedding(localEres2netExtractor, voicedSamples)
             );
+            DualEmbedding wakePhrase = null;
+            try {
+                float[] wakeSamples = WakeVoiceTemplateSelector.extract(
+                    captured,
+                    capturedCount
+                );
+                wakePhrase = new DualEmbedding(
+                    computeEmbedding(localCampplusExtractor, wakeSamples),
+                    computeEmbedding(localEres2netExtractor, wakeSamples)
+                );
+            } catch (RuntimeException ignored) {
+                // The strict full-sentence result remains valid. Without a
+                // clean leading "Hey Sol" segment no wake template is saved.
+            }
+            return new CapturedVoice(fullSentence, wakePhrase);
         } finally {
             try { recorder.stop(); } catch (Exception ignored) {}
             recorder.release();
@@ -394,25 +480,58 @@ public class SolSpeakerIdentityPlugin extends Plugin {
                 )
             );
 
-            ProfileScore campplus = scoreAgainstProfile(
-                context,
-                CAMPPLUS_SAMPLE_PREFIX,
-                computeEmbedding(localCampplusExtractor, voicedSamples)
+            float[] campplusEmbedding = computeEmbedding(
+                localCampplusExtractor,
+                voicedSamples
             );
-            ProfileScore eres2net = scoreAgainstProfile(
-                context,
-                ERES2NET_SAMPLE_PREFIX,
-                computeEmbedding(localEres2netExtractor, voicedSamples)
+            float[] eres2netEmbedding = computeEmbedding(
+                localEres2netExtractor,
+                voicedSamples
             );
-            boolean accepted = SpeakerVerificationPolicy.isWakeOwner(
-                campplus.score,
-                eres2net.score
-            );
+            boolean templateUsed = isWakeVoiceReady(context);
+            float campplusScore;
+            float eres2netScore;
+            boolean accepted;
+
+            if (templateUsed) {
+                campplusScore = scoreAgainstWakeTemplate(
+                    context,
+                    WAKE_CAMPPLUS_TEMPLATE_KEY,
+                    campplusEmbedding
+                );
+                eres2netScore = scoreAgainstWakeTemplate(
+                    context,
+                    WAKE_ERES2NET_TEMPLATE_KEY,
+                    eres2netEmbedding
+                );
+                accepted = SpeakerVerificationPolicy.isWakeTemplateOwner(
+                    campplusScore,
+                    eres2netScore
+                );
+            } else {
+                ProfileScore campplus = scoreAgainstProfile(
+                    context,
+                    CAMPPLUS_SAMPLE_PREFIX,
+                    campplusEmbedding
+                );
+                ProfileScore eres2net = scoreAgainstProfile(
+                    context,
+                    ERES2NET_SAMPLE_PREFIX,
+                    eres2netEmbedding
+                );
+                campplusScore = campplus.score;
+                eres2netScore = eres2net.score;
+                accepted = SpeakerVerificationPolicy.isWakeOwner(
+                    campplusScore,
+                    eres2netScore
+                );
+            }
 
             return new WakeVerification(
                 accepted,
-                campplus.score,
-                eres2net.score
+                campplusScore,
+                eres2netScore,
+                templateUsed
             );
         } finally {
             if (localCampplusExtractor != null) {
@@ -601,6 +720,26 @@ public class SolSpeakerIdentityPlugin extends Plugin {
             SpeakerVerificationPolicy.cosine(centroid, current),
             minimum
         );
+    }
+
+    private static float scoreAgainstWakeTemplate(
+        Context context,
+        String key,
+        float[] current
+    ) {
+        SharedPreferences preferences = profilePrefs(context);
+        if (preferences.getInt(PROFILE_VERSION_KEY, 0) != PROFILE_VERSION) {
+            throw new IllegalStateException("Stimmprofil ist nicht aktuell");
+        }
+        String encoded = preferences.getString(key, "");
+        if (encoded == null || encoded.isEmpty()) {
+            throw new IllegalStateException("Kurz-Weckruf ist noch nicht kalibriert");
+        }
+        float[] saved = decode(encoded);
+        if (saved.length != current.length) {
+            throw new IllegalStateException("Kurz-Weckrufprofil ist beschädigt");
+        }
+        return SpeakerVerificationPolicy.cosine(saved, current);
     }
 
     private static String encode(float[] values) {

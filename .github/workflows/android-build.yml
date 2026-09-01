@@ -68,6 +68,10 @@ jobs:
             android-native/WakePhraseMatcher.java \
             tests/java/com/solholo/app/WakePhraseMatcherTest.java
           java -cp "$test_dir" com.solholo.app.WakePhraseMatcherTest
+          javac -d "$test_dir" \
+            android-native/WakeVoiceTemplateSelector.java \
+            tests/java/com/solholo/app/WakeVoiceTemplateSelectorTest.java
+          java -cp "$test_dir" com.solholo.app.WakeVoiceTemplateSelectorTest
 
       - name: Node-Abhängigkeiten installieren
         run: npm install
@@ -269,6 +273,16 @@ jobs:
             android/app/src/main/java/com/solholo/app/SpeakerVerificationPolicy.java
           grep -q "WAKE_DUAL_ERES2NET_THRESHOLD = 0.48f" \
             android/app/src/main/java/com/solholo/app/SpeakerVerificationPolicy.java
+          grep -q "WAKE_TEMPLATE_CAMPPLUS_THRESHOLD = 0.50f" \
+            android/app/src/main/java/com/solholo/app/SpeakerVerificationPolicy.java
+          grep -q "WAKE_TEMPLATE_ERES2NET_THRESHOLD = 0.50f" \
+            android/app/src/main/java/com/solholo/app/SpeakerVerificationPolicy.java
+          grep -q "SpeakerVerificationPolicy.isWakeTemplateOwner" \
+            android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
+          grep -q "wakeVoiceReady" \
+            android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
+          test -s \
+            android/app/src/main/java/com/solholo/app/WakeVoiceTemplateSelector.java
           grep -q "SpeakerVerificationPolicy.isWakeOwner" \
             android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
           grep -q "normalizedCentroid" \
@@ -287,7 +301,7 @@ jobs:
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q "AutoCloseOutputStream" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
-          grep -q 'publishWakeDiagnostic("owner_accepted")' \
+          grep -q '"owner_accepted"' \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q "isProcessingAudio" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java

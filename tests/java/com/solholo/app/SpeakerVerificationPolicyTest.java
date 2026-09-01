@@ -4,7 +4,10 @@ public final class SpeakerVerificationPolicyTest {
     public static void main(String[] args) {
         acceptsOwnerRangeObservedAfterFreshEnrollment();
         acceptsPamsMeasuredFullSentenceValues();
+        acceptsPamsLatestMeasuredFullSentenceValues();
+        rejectsSteffisMeasuredFullSentenceValues();
         acceptsShortWakeOnlyWhenBothModelsAgree();
+        acceptsVerifiedWakeTemplateOnlyWhenBothModelsAgree();
         keepsFullSentencePolicyStrict();
         rejectsShortWakeWhenOnlyOneModelAgrees();
         rejectsStrongCampplusWhenEres2netDisagrees();
@@ -25,6 +28,39 @@ public final class SpeakerVerificationPolicyTest {
         assertTrue(
             SpeakerVerificationPolicy.isOwner(0.649f, 0.666f),
             "Pams bestätigter Sicherheitstest muss freigegeben bleiben"
+        );
+    }
+
+    private static void acceptsPamsLatestMeasuredFullSentenceValues() {
+        assertTrue(
+            SpeakerVerificationPolicy.isOwner(0.335f, 0.774f),
+            "Pams am 01.09. gemessener Vollsatz muss freigegeben werden"
+        );
+    }
+
+    private static void rejectsSteffisMeasuredFullSentenceValues() {
+        assertFalse(
+            SpeakerVerificationPolicy.isOwner(0.126f, 0.336f),
+            "Steffis am 01.09. gemessener Vollsatz muss gesperrt bleiben"
+        );
+    }
+
+    private static void acceptsVerifiedWakeTemplateOnlyWhenBothModelsAgree() {
+        assertTrue(
+            SpeakerVerificationPolicy.isWakeTemplateOwner(0.63f, 0.71f),
+            "Pams passender Hey-Sol-Abgleich muss freigegeben werden"
+        );
+        assertFalse(
+            SpeakerVerificationPolicy.isWakeTemplateOwner(0.72f, 0.49f),
+            "Modell A allein darf die Weckruf-Vorlage nicht freigeben"
+        );
+        assertFalse(
+            SpeakerVerificationPolicy.isWakeTemplateOwner(0.49f, 0.82f),
+            "Modell B allein darf die Weckruf-Vorlage nicht freigeben"
+        );
+        assertFalse(
+            SpeakerVerificationPolicy.isWakeTemplateOwner(Float.NaN, 0.82f),
+            "Ungültige Weckrufwerte müssen gesperrt werden"
         );
     }
 

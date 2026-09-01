@@ -2251,12 +2251,23 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         renderWakeStatus(status);
       });
       await plugin.addListener("wakeDiagnostic", (event) => {
+        const campplusScore = Number(event?.campplusScore);
+        const eres2netScore = Number(event?.eres2netScore);
+        const scoreText =
+          Number.isFinite(campplusScore) && Number.isFinite(eres2netScore)
+            ? ` · A ${campplusScore.toFixed(3)} · B ${eres2netScore.toFixed(3)}`
+            : "";
         if (event?.stage === "phrase_heard") {
           showToast("„Hey Sol“ gehört · deine Stimme wird geprüft …");
         } else if (event?.stage === "owner_accepted") {
           showToast("Stimme freigegeben · Sol startet ✨");
         } else if (event?.stage === "owner_rejected") {
-          showToast("„Hey Sol“ gehört · Stimme nicht freigegeben 🔒");
+          showToast(
+            "„Hey Sol“ gehört · Stimme nicht freigegeben 🔒" + scoreText +
+            (event?.templateUsed
+              ? ""
+              : " · einmal Sicherheit testen")
+          );
         }
       });
     } catch (error) {

@@ -471,10 +471,36 @@ public class HeyHoSolPlugin extends Plugin {
     }
 
     public static void publishWakeDiagnostic(String stage) {
+        publishWakeDiagnostic(
+            stage,
+            Float.NaN,
+            Float.NaN,
+            false,
+            ""
+        );
+    }
+
+    public static void publishWakeDiagnostic(
+        String stage,
+        float campplusScore,
+        float eres2netScore,
+        boolean templateUsed,
+        String reason
+    ) {
         HeyHoSolPlugin plugin = activePlugin;
         if (plugin != null) {
             JSObject event = new JSObject();
             event.put("stage", stage);
+            if (!Float.isNaN(campplusScore) && !Float.isInfinite(campplusScore)) {
+                event.put("campplusScore", campplusScore);
+            }
+            if (!Float.isNaN(eres2netScore) && !Float.isInfinite(eres2netScore)) {
+                event.put("eres2netScore", eres2netScore);
+            }
+            event.put("templateUsed", templateUsed);
+            if (reason != null && !reason.trim().isEmpty()) {
+                event.put("reason", reason.trim());
+            }
             plugin.notifyListeners("wakeDiagnostic", event, false);
         }
     }

@@ -66,6 +66,10 @@ copyFileSync(
   join(root, "android-native", "SpeakerVerificationPolicy.java"),
   join(javaTarget, "SpeakerVerificationPolicy.java")
 );
+copyFileSync(
+  join(root, "android-native", "WakeVoiceTemplateSelector.java"),
+  join(javaTarget, "WakeVoiceTemplateSelector.java")
+);
 
 let gradle = readFileSync(buildGradle, "utf8");
 const dependencyLine = "    implementation files('libs/sherpa-onnx-1.13.4.aar')";
@@ -88,7 +92,7 @@ const sourceText = `SOL HOLO / PAM'S HOLO – LOKALE SPRECHERERKENNUNG\n\n` +
 `Zweck: Lokale Unterscheidung und Freigabe der autorisierten Besitzerstimme.\n` +
 `Status: Der Weckruf „Hey Sol“ wird nur nach lokaler Freigabe des gespeicherten Besitzerprofils ausgeführt.\n` +
 `Profilbildung: Die drei Stimmproben werden je Modell zu einem normalisierten Mittelprofil zusammengeführt.\n` +
-`Sicherheitsprinzip: Der vollständige Prüfsatz bleibt bei Modell B mindestens 0,58 plus Modell A mindestens 0,10. Beim nur zwei Wörter kurzen Weckruf gilt die niedrigere Kurzsatzgrenze 0,48 ausschließlich dann, wenn beide unabhängigen Modelle gleichzeitig zustimmen. Fehlende, einseitige oder ungültige Messungen sperren den Weckruf.\n\n` +
+`Sicherheitsprinzip: Der vollständige Prüfsatz bleibt bei Modell B mindestens 0,58 plus Modell A mindestens 0,10. Nach einem erfolgreichen Besitzer-Test wird der führende Satzteil „Hey Sol“ als eigene lokale Kurzsatz-Signatur gespeichert. Beim Weckruf müssen beide unabhängigen Modelle mindestens 0,50 mit dieser bestätigten Signatur erreichen. Fehlende, einseitige oder ungültige Messungen sperren den Weckruf.\n\n` +
 `sherpa-onnx 1.13.4\nQuelle: ${AAR_URL}\nLizenz: Apache License 2.0\nSHA-256 AAR: ${AAR_SHA256}\n\n` +
 `Speaker-Embedding-Modell A: 3dspeaker_speech_campplus_sv_en_voxceleb_16k.onnx\n` +
 `Quelle: ${CAMPPLUS_MODEL_URL}\nModellfamilie: 3D-Speaker / CAMPPlus\n` +
@@ -126,10 +130,11 @@ if (existsSync(uiFile)) {
 `      const p = plugin();\n` +
 `      if (!p) { statusEl.textContent = 'Nur in der Android-App verfügbar.'; enroll.disabled = true; test.disabled = true; return; }\n` +
 `      const s = await p.getStatus();\n` +
-`      statusEl.textContent = s.profileReady ? 'Profil bereit · Weckruf-Schutz aktiv 🔒' : 'Stimmproben: ' + s.sampleCount + '/3';\n` +
+`      statusEl.textContent = s.profileReady ? (s.wakeVoiceReady ? 'Profil bereit · Kurz-Weckruf geschützt 🔒' : 'Profil bereit · Kurz-Weckruf einmal bestätigen 🔐') : 'Stimmproben: ' + s.sampleCount + '/3';\n` +
 `      enroll.disabled = Boolean(s.profileReady);\n` +
 `      enroll.textContent = s.profileReady ? '3/3 Stimmproben gespeichert' : 'Stimmprobe ' + (Number(s.sampleCount || 0) + 1) + '/3 aufnehmen';\n` +
 `      test.disabled = !s.profileReady;\n` +
+`      test.textContent = s.wakeVoiceReady ? 'Sicherheit testen' : 'Hey Sol sicher einrichten';\n` +
 `    }\n` +
 `    await plugin()?.addListener?.('speakerRecordingReady', () => {\n` +
 `      statusEl.textContent = 'JETZT den vollständigen Prüfsatz sagen … 🎙️';\n` +
@@ -139,7 +144,7 @@ if (existsSync(uiFile)) {
 `      catch (e) { statusEl.textContent = e?.message || String(e); enroll.disabled = false; }\n` +
 `    });\n` +
 `    test.addEventListener('click', async () => {\n` +
-`      try { test.disabled = true; statusEl.textContent = 'Mikrofon wird vorbereitet … bitte noch warten'; const r = await plugin().verifySample(); statusEl.textContent = (r.accepted ? 'Stimme freigegeben ✅' : 'Keine Freigabe 🔒') + ' · Modell A ' + Number(r.campplusScore || 0).toFixed(3) + ' · Modell B ' + Number(r.eres2netScore || 0).toFixed(3); }\n` +
+`      try { test.disabled = true; statusEl.textContent = 'Mikrofon wird vorbereitet … bitte noch warten'; const r = await plugin().verifySample(); statusEl.textContent = (r.accepted ? (r.wakeVoiceReady ? 'Stimme freigegeben ✅ · Hey Sol eingerichtet' : 'Stimme freigegeben ✅ · Hey Sol noch nicht sauber erfasst') : 'Keine Freigabe 🔒') + ' · Modell A ' + Number(r.campplusScore || 0).toFixed(3) + ' · Modell B ' + Number(r.eres2netScore || 0).toFixed(3); test.textContent = r.wakeVoiceReady ? 'Sicherheit testen' : 'Hey Sol sicher einrichten'; }\n` +
 `      catch (e) { statusEl.textContent = e?.message || String(e); } finally { test.disabled = false; }\n` +
 `    });\n` +
 `    clear.addEventListener('click', async () => { await plugin()?.clearProfile(); await refresh(); });\n` +

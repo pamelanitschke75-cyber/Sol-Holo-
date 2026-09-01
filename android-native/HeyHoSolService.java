@@ -719,6 +719,9 @@ public class HeyHoSolService extends Service implements RecognitionListener {
 
         speakerExecutor.execute(() -> {
             boolean accepted = false;
+            float campplusScore = Float.NaN;
+            float eres2netScore = Float.NaN;
+            boolean wakeTemplateUsed = false;
             String failureReason = "Stimme wurde nicht sicher freigegeben.";
             try {
                 if (session == null) {
@@ -738,6 +741,9 @@ public class HeyHoSolService extends Service implements RecognitionListener {
                         samples.length
                     );
                 accepted = verification.accepted;
+                campplusScore = verification.campplusScore;
+                eres2netScore = verification.eres2netScore;
+                wakeTemplateUsed = verification.templateUsed;
             } catch (RuntimeException error) {
                 accepted = false;
                 if (
@@ -749,6 +755,9 @@ public class HeyHoSolService extends Service implements RecognitionListener {
             }
 
             final boolean ownerAccepted = accepted;
+            final float measuredCampplusScore = campplusScore;
+            final float measuredEres2netScore = eres2netScore;
+            final boolean verifiedAgainstWakeTemplate = wakeTemplateUsed;
             final String rejectionReason = failureReason;
             mainHandler.post(() -> {
                 if (destroyed || generation != recognitionGeneration) {
@@ -757,14 +766,26 @@ public class HeyHoSolService extends Service implements RecognitionListener {
                 speakerVerificationPending = false;
                 if (ownerAccepted) {
                     saveError("");
-                    HeyHoSolPlugin.publishWakeDiagnostic("owner_accepted");
+                    HeyHoSolPlugin.publishWakeDiagnostic(
+                        "owner_accepted",
+                        measuredCampplusScore,
+                        measuredEres2netScore,
+                        verifiedAgainstWakeTemplate,
+                        ""
+                    );
                     handleWakePhrase(phrase);
                     return;
                 }
 
                 saveError(rejectionReason);
                 wakeHandled = false;
-                HeyHoSolPlugin.publishWakeDiagnostic("owner_rejected");
+                HeyHoSolPlugin.publishWakeDiagnostic(
+                    "owner_rejected",
+                    measuredCampplusScore,
+                    measuredEres2netScore,
+                    verifiedAgainstWakeTemplate,
+                    rejectionReason
+                );
                 updateBackgroundNotification(
                     "Keine Freigabe · sicherer Weckruf wartet weiter"
                 );
