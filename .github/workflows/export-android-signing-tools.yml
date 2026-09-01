@@ -26,11 +26,13 @@ jobs:
           test -x "$build_tools/apksigner"
           test -x "$build_tools/zipalign"
           test -s "$build_tools/lib/apksigner.jar"
+          test -d "$build_tools/lib64"
 
           mkdir -p signing-tools/lib
           cp -- "$build_tools/apksigner" signing-tools/apksigner
           cp -- "$build_tools/zipalign" signing-tools/zipalign
           cp -- "$build_tools/lib/apksigner.jar" signing-tools/lib/apksigner.jar
+          cp -a -- "$build_tools/lib64" signing-tools/lib64
           chmod +x signing-tools/apksigner signing-tools/zipalign
 
       - name: Werkzeuge kurzzeitig bereitstellen
