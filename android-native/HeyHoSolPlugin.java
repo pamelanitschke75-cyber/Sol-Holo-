@@ -157,6 +157,7 @@ public class HeyHoSolPlugin extends Plugin {
         );
         result.put("serviceRunning", HeyHoSolService.isRunning());
         result.put("listening", HeyHoSolService.isListening());
+        result.put("processingAudio", HeyHoSolService.isProcessingAudio());
         result.put("pausedForConversation", HeyHoSolService.isPausedForConversation());
         result.put(
             "active",

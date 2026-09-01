@@ -365,6 +365,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     active: false,
     serviceRunning: false,
     listening: false,
+    processingAudio: false,
     pausedForConversation: false,
     overlayPermissionGranted: false,
     speakerGateReady: false
@@ -2166,6 +2167,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       active: Boolean(nextStatus?.active),
       serviceRunning: Boolean(nextStatus?.serviceRunning),
       listening: Boolean(nextStatus?.listening),
+      processingAudio: Boolean(nextStatus?.processingAudio),
       pausedForConversation: Boolean(nextStatus?.pausedForConversation),
       speakerGateReady: Boolean(nextStatus?.speakerGateReady),
       overlayPermissionGranted: Boolean(
@@ -2213,16 +2215,20 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     } else if (wakeStatus.mode === "background") {
       statusElement.textContent = wakeStatus.listening
         ? "Hintergrund aktiv"
-        : wakeStatus.serviceRunning
-          ? "Mikrofon startet …"
-          : "Startet …";
+        : wakeStatus.processingAudio
+          ? "Prüft „Hey Sol“ …"
+          : wakeStatus.serviceRunning
+            ? "Mikrofon startet …"
+            : "Startet …";
       statusElement.classList.add("connected");
     } else if (wakeStatus.mode === "foreground") {
       statusElement.textContent = wakeStatus.listening
         ? "App hört zu"
-        : wakeStatus.serviceRunning
-          ? "Mikrofon startet …"
-          : "App offen";
+        : wakeStatus.processingAudio
+          ? "Prüft „Hey Sol“ …"
+          : wakeStatus.serviceRunning
+            ? "Mikrofon startet …"
+            : "App offen";
       statusElement.classList.add("connected");
     } else {
       statusElement.textContent = "Aus";
