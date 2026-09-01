@@ -1,4 +1,4 @@
-const CACHE_NAME = "sol-holo-v11-video";
+const CACHE_NAME = "sol-holo-v12-together-forever";
 
 const APP_FILES = [
   "/",

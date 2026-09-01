@@ -955,3 +955,377 @@ body{
     animation:none!important;
   }
 }
+
+
+/*
+ * ERINNERUNGEN · TOGETHER FOREVER · 01.09.2026
+ * Freigegebener Pam-Style aus dem Erinnerungen-Entwurf:
+ * Nachthimmel, Lila, Blau, Türkis und weiche holografische Karten.
+ */
+#memoryView{
+  isolation:isolate;
+}
+
+#memoryView::before{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  inset:74px -18px 0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 17% 8%,rgba(160,77,255,.13),transparent 27%),
+    radial-gradient(circle at 84% 18%,rgba(41,178,255,.12),transparent 31%),
+    linear-gradient(180deg,rgba(3,5,18,.04),rgba(0,2,11,.24));
+}
+
+#memoryView .subHeader{
+  margin-right:-18px;
+  margin-left:-18px;
+  padding-right:18px;
+  padding-left:18px;
+}
+
+#memoryView .subHeader::after{
+  right:0;
+  left:0;
+  background:linear-gradient(
+    90deg,
+    rgba(159,69,255,.22),
+    rgba(92,91,255,.58) 46%,
+    rgba(46,201,255,.5),
+    rgba(85,56,255,.16)
+  );
+  box-shadow:
+    0 0 14px rgba(104,77,255,.32),
+    0 0 22px rgba(51,195,255,.14);
+}
+
+#memoryView .memoryInfinityVisual{
+  width:min(410px,calc(100vw - 12px));
+  margin:0 auto -8px;
+  filter:
+    drop-shadow(0 18px 34px rgba(80,48,255,.28))
+    drop-shadow(0 0 26px rgba(35,192,255,.15));
+}
+
+#memoryView .memoryInfinityVisual svg{
+  overflow:visible;
+}
+
+#memoryView .memoryStarfield{
+  opacity:.9;
+}
+
+#memoryView .memoryBeam--soft{
+  fill:none;
+  stroke:#547bff;
+  stroke-width:8;
+  stroke-linecap:round;
+  opacity:.12;
+  filter:blur(5px);
+}
+
+#memoryView .memoryBeam--core{
+  fill:none;
+  stroke:url(#memoryInfinityGradient);
+  stroke-width:1.25;
+  stroke-linecap:round;
+  opacity:.7;
+  filter:drop-shadow(0 0 5px rgba(85,186,255,.72));
+}
+
+#memoryView .memoryOrbit{
+  fill:none;
+  transform-origin:180px 109px;
+}
+
+#memoryView .memoryOrbit--far{
+  stroke:#665cff;
+  stroke-width:1;
+  opacity:.2;
+}
+
+#memoryView .memoryOrbit--near{
+  stroke:url(#memoryInfinityGradient);
+  stroke-width:1.1;
+  opacity:.23;
+}
+
+#memoryView .memoryInfinityAura,
+#memoryView .memoryInfinityRibbon,
+#memoryView .memoryInfinityHighlight{
+  fill:none;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+#memoryView .memoryInfinityAura{
+  stroke:url(#memoryInfinityGradient);
+  stroke-width:18;
+  opacity:.5;
+}
+
+#memoryView .memoryInfinityRibbon--shadow{
+  stroke:#3e3ce8;
+  stroke-width:13;
+  opacity:.52;
+  transform:translateY(3px);
+}
+
+#memoryView .memoryInfinityRibbon--main{
+  stroke:url(#memoryInfinityGradient);
+  stroke-width:10;
+  filter:
+    drop-shadow(0 0 6px rgba(181,83,255,.78))
+    drop-shadow(0 0 12px rgba(49,204,255,.44));
+}
+
+#memoryView .memoryInfinityHighlight{
+  stroke:rgba(243,244,255,.84);
+  stroke-width:1.6;
+  stroke-dasharray:72 18;
+  opacity:.62;
+}
+
+#memoryView .memoryPlatform{
+  transform-origin:180px 188px;
+}
+
+#memoryView .memoryPlatform--glow{
+  fill:url(#memoryPlatformFill);
+  filter:blur(7px);
+  opacity:.9;
+}
+
+#memoryView .memoryPlatform--outer,
+#memoryView .memoryPlatform--inner{
+  fill:none;
+  stroke:url(#memoryPlatformGradient);
+}
+
+#memoryView .memoryPlatform--outer{
+  stroke-width:1.4;
+  opacity:.78;
+  filter:drop-shadow(0 0 8px rgba(105,72,255,.58));
+}
+
+#memoryView .memoryPlatform--inner{
+  stroke-width:2;
+  opacity:.65;
+}
+
+#memoryView .memoryPlatformLine{
+  fill:none;
+  stroke:url(#memoryPlatformGradient);
+  stroke-width:2.4;
+  opacity:.82;
+  filter:drop-shadow(0 0 7px rgba(69,203,255,.68));
+}
+
+#memoryView .memoryPlatformSpark{
+  fill:#d9f9ff;
+  filter:drop-shadow(0 0 8px #64ddff);
+}
+
+#memoryView .memoryIntro{
+  margin-top:0;
+}
+
+#memoryView .featureHeadline{
+  max-width:100%;
+  color:#f7f6ff;
+  font-size:clamp(27px,7.7vw,35px);
+  font-weight:780;
+  line-height:1.08;
+  letter-spacing:-.035em;
+  text-shadow:
+    0 0 20px rgba(139,89,255,.2),
+    0 0 34px rgba(50,179,255,.1);
+}
+
+#memoryView .featureHeadline .memoryForever{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:2px 8px;
+  margin-top:4px;
+  color:inherit;
+  font-weight:800;
+  line-height:1.08;
+  text-shadow:none;
+}
+
+#memoryView .memoryForeverWords{
+  color:#9f70ff;
+  background:linear-gradient(
+    90deg,
+    #d75aff 0%,
+    #9b63ff 36%,
+    #5d8eff 66%,
+    #43ddff 100%
+  );
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 10px rgba(135,82,255,.24));
+}
+
+#memoryView .memoryForeverSymbols{
+  color:initial;
+  font-size:.73em;
+  font-weight:400;
+  letter-spacing:.03em;
+  -webkit-text-fill-color:initial;
+  filter:
+    drop-shadow(0 0 7px rgba(255,201,90,.28))
+    drop-shadow(0 0 9px rgba(62,197,255,.22));
+}
+
+#memoryView .featureCopy{
+  max-width:390px;
+  margin-top:15px;
+  color:#b8c0d9;
+  font-size:clamp(14px,4vw,16px);
+  line-height:1.56;
+}
+
+#memoryView .actionList{
+  gap:12px;
+  margin-top:22px;
+}
+
+#memoryView .actionRow{
+  --memory-card-left:#9a55ff;
+  --memory-card-right:#318fff;
+  grid-template-columns:52px minmax(0,1fr) 22px;
+  gap:14px;
+  min-height:82px;
+  padding:12px 14px;
+  border:1px solid transparent;
+  border-radius:22px;
+  background:
+    linear-gradient(145deg,rgba(16,13,45,.9),rgba(3,11,29,.8)) padding-box,
+    linear-gradient(
+      115deg,
+      color-mix(in srgb,var(--memory-card-left) 72%,transparent),
+      rgba(98,79,255,.42) 48%,
+      color-mix(in srgb,var(--memory-card-right) 72%,transparent)
+    ) border-box;
+  box-shadow:
+    0 16px 35px rgba(0,0,0,.29),
+    0 0 22px color-mix(in srgb,var(--memory-card-left) 14%,transparent),
+    inset 0 1px 0 rgba(255,255,255,.055);
+}
+
+#memoryView .actionRow:nth-child(2){
+  --memory-card-left:#8057ff;
+  --memory-card-right:#2faeff;
+}
+
+#memoryView .actionRow:nth-child(3){
+  --memory-card-left:#b05cff;
+  --memory-card-right:#38d2ff;
+}
+
+#memoryView .actionRow::before{
+  display:none;
+}
+
+#memoryView .memoryRowIcon{
+  width:50px;
+  height:50px;
+  margin:0;
+  border:1px solid transparent;
+  border-radius:16px;
+  color:#bd78ff;
+  background:
+    linear-gradient(145deg,rgba(72,31,144,.62),rgba(7,31,77,.56)) padding-box,
+    linear-gradient(135deg,rgba(190,104,255,.75),rgba(61,211,255,.46)) border-box;
+  box-shadow:
+    0 0 19px rgba(125,66,255,.28),
+    inset 0 1px 0 rgba(255,255,255,.085);
+}
+
+#memoryView .actionRow:nth-child(2) .memoryRowIcon{
+  color:#9f77ff;
+}
+
+#memoryView .actionRow:nth-child(3) .memoryRowIcon{
+  color:#d17cff;
+}
+
+#memoryView .memoryRowIcon svg{
+  width:32px;
+  height:32px;
+  overflow:visible;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  filter:
+    drop-shadow(0 0 5px currentColor)
+    drop-shadow(0 0 9px rgba(54,206,255,.24));
+}
+
+#memoryView .rowTitle{
+  color:#f9f7ff;
+  font-size:clamp(15px,4.35vw,17px);
+  line-height:1.25;
+  letter-spacing:-.015em;
+}
+
+#memoryView .rowMeta{
+  margin-top:5px;
+  color:#abb5d0;
+  font-size:clamp(12px,3.65vw,14px);
+  line-height:1.42;
+}
+
+#memoryView .rowChevron{
+  align-self:center;
+  color:#8757ff;
+  font-size:33px;
+  font-weight:300;
+  line-height:1;
+  text-shadow:
+    0 0 9px rgba(137,70,255,.7),
+    0 0 16px rgba(53,183,255,.26);
+}
+
+#memoryView #manageMemoriesButton{
+  margin-top:16px;
+  border-color:rgba(118,95,255,.34);
+  color:#d9ddf5;
+  background:linear-gradient(145deg,rgba(25,19,68,.72),rgba(4,19,42,.72));
+}
+
+@media(max-width:370px){
+  #memoryView .featureHeadline{
+    font-size:clamp(25px,7.4vw,29px);
+  }
+
+  #memoryView .actionRow{
+    grid-template-columns:48px minmax(0,1fr) 18px;
+    gap:11px;
+    padding:11px 12px;
+  }
+
+  #memoryView .memoryRowIcon{
+    width:46px;
+    height:46px;
+  }
+
+  #memoryView .memoryRowIcon svg{
+    width:29px;
+    height:29px;
+  }
+}
+
+@supports not (color:color-mix(in srgb,#fff,#000)){
+  #memoryView .actionRow{
+    background:
+      linear-gradient(145deg,rgba(16,13,45,.9),rgba(3,11,29,.8)) padding-box,
+      linear-gradient(115deg,rgba(154,85,255,.72),rgba(98,79,255,.42),rgba(49,159,255,.72)) border-box;
+  }
+}
