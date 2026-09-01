@@ -100,6 +100,8 @@ public class HeyHoSolService extends Service implements RecognitionListener {
         );
         private final AtomicBoolean active = new AtomicBoolean(false);
         private final AtomicBoolean released = new AtomicBoolean(false);
+        private final WakeCaptureEndpointer endpointer =
+            new WakeCaptureEndpointer();
         private Thread pumpThread;
         private Thread recognitionWriterThread;
         private ParcelFileDescriptor recognitionSource;
@@ -151,6 +153,10 @@ public class HeyHoSolService extends Service implements RecognitionListener {
             return active.get();
         }
 
+        boolean hasCompleteSpeechCandidate() {
+            return endpointer.hasCompleteSpeechCandidate();
+        }
+
         private void pump(Runnable captureFinished) {
             byte[] buffer = new byte[3200];
             long deadline = SystemClock.elapsedRealtime() + SECURE_CAPTURE_MS;
@@ -166,6 +172,9 @@ public class HeyHoSolService extends Service implements RecognitionListener {
                     }
                     synchronized (captured) {
                         captured.write(buffer, 0, count);
+                    }
+                    if (endpointer.acceptPcm16LittleEndian(buffer, count)) {
+                        break;
                     }
                 }
             } catch (RuntimeException ignored) {
@@ -534,6 +543,11 @@ public class HeyHoSolService extends Service implements RecognitionListener {
         HeyHoSolPlugin.publishStatusEvent();
         updateBackgroundNotification("„Hey Sol“ wird lokal geprüft …");
 
+        if (!session.hasCompleteSpeechCandidate()) {
+            discardAudioAndRestart(generation, 80L);
+            return;
+        }
+
         mainHandler.removeCallbacks(recognitionWatchdogRunnable);
         watchdogGeneration = recognitionGeneration;
         mainHandler.postDelayed(
@@ -581,6 +595,8 @@ public class HeyHoSolService extends Service implements RecognitionListener {
 
         ArrayList<String> biasingPhrases = new ArrayList<>();
         biasingPhrases.add(SECURE_WAKE_PHRASE);
+        biasingPhrases.add("Hey Soul");
+        biasingPhrases.add("Hey Soll");
         recognizerIntent.putStringArrayListExtra(
             RecognizerIntent.EXTRA_BIASING_STRINGS,
             biasingPhrases
@@ -1191,12 +1207,12 @@ public class HeyHoSolService extends Service implements RecognitionListener {
                 !handleSegmentedRecognitionResults()
                     && !handleRecognitionResults(results)
             ) {
-                discardAudioAndRestart(generation, 350L);
+                discardAudioAndRestart(generation, 120L);
             }
             return;
         }
         if (!handleRecognitionResults(results)) {
-            discardAudioAndRestart(generation, 350L);
+            discardAudioAndRestart(generation, 120L);
         }
     }
 
@@ -1253,7 +1269,7 @@ public class HeyHoSolService extends Service implements RecognitionListener {
         }
         long generation = recognitionGeneration;
         if (!handleSegmentedRecognitionResults()) {
-            discardAudioAndRestart(generation, 350L);
+            discardAudioAndRestart(generation, 120L);
         }
     }
 

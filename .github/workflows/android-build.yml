@@ -72,6 +72,10 @@ jobs:
             android-native/WakeVoiceTemplateSelector.java \
             tests/java/com/solholo/app/WakeVoiceTemplateSelectorTest.java
           java -cp "$test_dir" com.solholo.app.WakeVoiceTemplateSelectorTest
+          javac -d "$test_dir" \
+            android-native/WakeCaptureEndpointer.java \
+            tests/java/com/solholo/app/WakeCaptureEndpointerTest.java
+          java -cp "$test_dir" com.solholo.app.WakeCaptureEndpointerTest
 
       - name: Node-Abhängigkeiten installieren
         run: npm install
@@ -308,6 +312,9 @@ jobs:
           grep -q "WakePhraseMatcher.canonicalPhrase" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           test -s android/app/src/main/java/com/solholo/app/WakePhraseMatcher.java
+          test -s android/app/src/main/java/com/solholo/app/WakeCaptureEndpointer.java
+          grep -q "WakeCaptureEndpointer" \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q "SolSpeakerIdentityPlugin.verifyWakeAudio" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q 'SECURE_WAKE_PHRASE = "Hey Sol"' \
