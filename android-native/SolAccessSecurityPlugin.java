@@ -141,6 +141,7 @@ public final class SolAccessSecurityPlugin extends Plugin {
 
     private enum AuthenticationPurpose {
         REGISTER_DEVICE,
+        APP_ACCESS,
         CRITICAL_ACTION,
         BIOMETRIC_RECOVERY
     }
@@ -374,6 +375,32 @@ public final class SolAccessSecurityPlugin extends Plugin {
             action,
             requireWatch,
             watchProofId
+        );
+    }
+
+    /**
+     * Unlocks the owner-bound app surface after a fresh device-key proof and
+     * Android system authentication. Android owns all biometric templates;
+     * Sol Holo receives neither fingerprint data nor a biometric identity.
+     */
+    @PluginMethod
+    public void authorizeAppAccess(PluginCall call) {
+        String ownerId = requiredOwnerId(call);
+        if (ownerId == null) return;
+        if (!inspectDeviceState(ownerId).verified()) {
+            call.reject(
+                "Dieses Gerät muss vor dem Entsperren einmal sicher registriert werden.",
+                "REGISTERED_DEVICE_REQUIRED"
+            );
+            return;
+        }
+        startSystemAuthentication(
+            call,
+            AuthenticationPurpose.APP_ACCESS,
+            ownerId,
+            "unlock_app",
+            false,
+            ""
         );
     }
 
@@ -1012,9 +1039,11 @@ public final class SolAccessSecurityPlugin extends Plugin {
 
         String title = purpose == AuthenticationPurpose.REGISTER_DEVICE
             ? "Dieses Gerät für Sol Holo registrieren"
-            : purpose == AuthenticationPurpose.BIOMETRIC_RECOVERY
-                ? "Zugang mit Geräte-PIN wiederherstellen"
-                : "Kritische Sol-Holo-Aktion bestätigen";
+            : purpose == AuthenticationPurpose.APP_ACCESS
+                ? "Pam’s Holo entsperren"
+                : purpose == AuthenticationPurpose.BIOMETRIC_RECOVERY
+                    ? "Zugang mit Geräte-PIN wiederherstellen"
+                    : "Kritische Sol-Holo-Aktion bestätigen";
         String subtitle = purpose == AuthenticationPurpose.BIOMETRIC_RECOVERY
             ? "Bitte Android-Geräte-PIN, Muster oder Passwort verwenden"
             : "Starke Android-Biometrie oder Geräte-PIN verwenden";

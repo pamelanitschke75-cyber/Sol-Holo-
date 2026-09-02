@@ -64,6 +64,7 @@ test("Pams ausgelieferte Holo-Instanz enthält ausschließlich Pams lokale ID un
 
 test("die signierte Pam-Instanz ist fest an pam-sol gebunden und lädt keine Sitzungs-ID", async () => {
   const html = await source("www/index.html");
+  const appLock = await source("www/app-lock-bootstrap.mjs");
 
   assert.match(html, /PAM_SOL_VOICE_STORAGE_KEY/u);
   assert.match(html, /const SOL_APP_IDENTITY = Object\.freeze/u);
@@ -81,11 +82,20 @@ test("die signierte Pam-Instanz ist fest an pam-sol gebunden und lädt keine Sit
   assert.match(html, /class="solholo-booting"/u);
   assert.match(html, /id="solHoloBootScreen"/u);
   assert.match(
-    html,
+    appLock,
     /classList\.remove\("solholo-booting"\)/u
   );
   assert.match(html, /Eine andere Identität wird niemals geladen/u);
   assert.doesNotMatch(html, /localStorage\.getItem\(\s*SOL_VOICE_STORAGE_KEY/u);
+  assert.match(html, /app-lock-bootstrap\.mjs\?v=1/u);
+  assert.doesNotMatch(html, /solHoloBootScreen"\)\?\.remove/u);
+  assert.match(appLock, /const APP_OWNER_ID = "pam-sol"/u);
+  assert.match(appLock, /authorizeAppAccess/u);
+  assert.match(appLock, /consumeCriticalAuthorization/u);
+  assert.match(appLock, /document\.addEventListener\("visibilitychange"/u);
+  assert.match(appLock, /document\.documentElement\.classList\.add\("solholo-booting"\)/u);
+  assert.doesNotMatch(appLock, /localStorage|sessionStorage/u);
+  assert.doesNotMatch(appLock, /steffi(?:-sol|s-holo)?/iu);
 });
 
 test("Google- und SmartThings-Zuordnung bindet OAuth-State und Tokenzeile an den Owner", async () => {
@@ -122,6 +132,9 @@ test("digitale Einwilligung und Geräteschlüssel lehnen Owner-Wechsel ab", asyn
   assert.match(nativeSecurity, /signConsentPayload\(PluginCall call\)/u);
   assert.match(nativeSecurity, /String ownerId = requiredOwnerId\(call\)/u);
   assert.match(nativeSecurity, /APP_OWNER_ID = "pam-sol"/u);
+  assert.match(nativeSecurity, /authorizeAppAccess\(PluginCall call\)/u);
+  assert.match(nativeSecurity, /AuthenticationPurpose\.APP_ACCESS/u);
+  assert.match(nativeSecurity, /"Pam’s Holo entsperren"/u);
   assert.match(
     nativeSecurity,
     /isOwnerBoundToInstance\(ownerId, APP_OWNER_ID\)/u

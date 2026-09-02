@@ -60,6 +60,26 @@ body{
   font-size:16px;
 }
 
+#solHoloBootScreen .solHoloLockButton{
+  min-width:min(78vw,320px);
+  min-height:54px;
+  margin-top:8px;
+  padding:12px 20px;
+  border:1px solid rgba(111,224,255,.76);
+  border-radius:18px;
+  background:linear-gradient(135deg,#7542d8,#157ba5);
+  color:#fff;
+  font-size:18px;
+  font-weight:800;
+}
+
+#solHoloBootScreen .solHoloLockHint{
+  max-width:420px;
+  color:#aaa5bb;
+  font-size:13px;
+  line-height:1.45;
+}
+
 body.voice-open{
   overflow:hidden;
 }
@@ -1549,7 +1569,7 @@ MOBIL
   <span>Sol Holo wird sicher vorbereitet …</span>
 </div>
 
-<div id="app">
+<div id="app" aria-hidden="true">
 
 <div id="beachBackground"></div>
 <div id="backgroundGlow"></div>
@@ -8748,10 +8768,7 @@ if(
 </script>
 
 <script src="./sol-holo-ui.js?v=36"></script>
-<script>
-document.documentElement.classList.remove("solholo-booting");
-document.getElementById("solHoloBootScreen")?.remove();
-</script>
+<script type="module" src="./app-lock-bootstrap.mjs?v=1"></script>
 <script type="module" src="./consent-ui-bootstrap.mjs?v=2"></script>
 <script>
 (() => {

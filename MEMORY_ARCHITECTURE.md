@@ -93,6 +93,17 @@ Für die Zuordnung gelten vier voneinander getrennte Regeln:
    zusätzlicher Herkunftshinweis verwendet werden. Sie sind niemals ein
    Identitätsbeweis und können keine Owner-Zuordnung überschreiben.
 
+Die installierte Android-App besitzt zusätzlich eine App-Sperre wie eine
+geschützte Messenger-App: Beim Start und nach dem Verlassen der App bleibt die
+persönliche Oberfläche verdeckt, bis Android eine starke Biometrie
+(beispielsweise Fingerabdruck) oder die Geräte-PIN bestätigt hat. Die Freigabe
+gilt nur zusammen mit dem kryptografisch registrierten Geräteschlüssel und der
+festen Owner-ID. Biometrische Rohdaten, Fingerabdruckbilder oder Android-
+Templates werden von Sol Holo weder gelesen noch gespeichert. Android meldet
+der App außerdem nicht zuverlässig, welcher konkrete Finger oder welche
+biometrische Person bestätigt wurde; Biometrie ist deshalb Zusatzschutz und
+niemals die Owner-ID selbst.
+
 Für alte Bilder werden Gesichtsperson, Ursprungsgerät und Ursprungsstandort als
 `not-verified` beziehungsweise `unknown` markiert, weil diese Daten
 nachträglich nicht verlässlich rekonstruiert werden können. Eine erneute

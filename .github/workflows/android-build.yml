@@ -12,6 +12,7 @@ on:
       - "www/icon-512.png"
       - "www/manifest.json"
       - "www/index.html"
+      - "www/app-lock-bootstrap.mjs"
       - "www/headaudio.min.mjs"
       - "www/headworklet.min.mjs"
       - "www/full-face-rig.mjs"
