@@ -43,6 +43,70 @@ for (const [spokenText, expectedNote] of examples) {
   }
 }
 
+const insertionStart = uiSource.indexOf(
+  "function samsungNoteInsertionFromNaturalRequest"
+);
+const insertionEnd = uiSource.indexOf(
+  "\n\n  function insertSamsungNoteLineBelow",
+  insertionStart
+);
+if (insertionStart < 0 || insertionEnd < 0) {
+  throw new Error("Samsung-Notes-Ergänzungserkennung wurde nicht gefunden.");
+}
+vm.runInContext(
+  `${uiSource.slice(insertionStart, insertionEnd)}\n` +
+    "this.extractSamsungNoteInsertion = samsungNoteInsertionFromNaturalRequest;",
+  context
+);
+
+const insertionExamples = new Map([
+  ["Setze Zucker unter Zitronensaft", ["Zucker", "Zitronensaft"]],
+  ["Füge Zucker unter Zitronensaft hinzu", ["Zucker", "Zitronensaft"]],
+  ["Sol, bitte setze Zucker unter Zitronensaft in Samsung Notes", ["Zucker", "Zitronensaft"]]
+]);
+
+for (const [spokenText, [addition, anchor]] of insertionExamples) {
+  const actual = context.extractSamsungNoteInsertion(spokenText);
+  if (actual?.addition !== addition || actual?.anchor !== anchor) {
+    throw new Error(
+      `Falsche Notes-Ergänzung für „${spokenText}“: ` +
+        `erwartet „${anchor} / ${addition}“, erhalten ${JSON.stringify(actual)}`
+    );
+  }
+}
+
+const insertLineStart = uiSource.indexOf(
+  "function insertSamsungNoteLineBelow"
+);
+const insertLineEnd = uiSource.indexOf(
+  "\n\n  window.extractSolHoloSamsungNoteText",
+  insertLineStart
+);
+if (insertLineStart < 0 || insertLineEnd < 0) {
+  throw new Error("Samsung-Notes-Zeilenaufbau wurde nicht gefunden.");
+}
+vm.runInContext(
+  `${uiSource.slice(insertLineStart, insertLineEnd)}\n` +
+    "this.insertSamsungNoteLineBelow = insertSamsungNoteLineBelow;",
+  context
+);
+assertNoteDraft("Zitronensaft", "Zitronensaft\nZucker");
+assertNoteDraft("Zitronensaft\nZucker", "Zitronensaft\nZucker");
+
+function assertNoteDraft(existing, expected) {
+  const actual = context.insertSamsungNoteLineBelow(
+    existing,
+    "Zitronensaft",
+    "Zucker"
+  );
+  if (actual !== expected) {
+    throw new Error(
+      `Falscher Samsung-Notes-Entwurf: erwartet ${JSON.stringify(expected)}, ` +
+        `erhalten ${JSON.stringify(actual)}`
+    );
+  }
+}
+
 const phonePluginSource = fs.readFileSync(
   "android-native/PhoneContactsPlugin.java",
   "utf8"

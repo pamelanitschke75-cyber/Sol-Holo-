@@ -10,8 +10,7 @@ import {
   createDecipheriv,
   createHash,
   randomBytes,
-  randomUUID,
-  timingSafeEqual
+  randomUUID
 } from "crypto";
 import {
   MAX_VIDEO_DURATION_SECONDS,
@@ -42,6 +41,16 @@ import {
   SmartThingsControlError,
   createSmartThingsDeviceControl
 } from "./modules/smartthings-device-control.mjs";
+import {
+  TRUSTED_APP_SESSION_ACTION,
+  TrustedAppSessionError,
+  createTrustedAppSessionManager
+} from "./modules/trusted-app-session.mjs";
+import {
+  createPendingCalendarActionStore,
+  isCalendarCancellation,
+  isCalendarConfirmation
+} from "./modules/pending-calendar-action.mjs";
 
 const app = express();
 
@@ -66,6 +75,14 @@ const { Pool } = pg;
 const db = new Pool({
   connectionString: process.env.DATABASE_URL
 });
+
+const trustedAppSessions =
+  createTrustedAppSessionManager({
+    database: db
+  });
+
+const pendingCalendarActions =
+  createPendingCalendarActionStore();
 
 const identityMemoryStore =
   createIdentityMemoryStore({
@@ -130,6 +147,18 @@ const GOOGLE_OAUTH_STATE_TTL_MS =
   10 * 60 * 1000;
 
 const googleOAuthStates =
+  new Map();
+
+const APP_SESSION_BOOTSTRAP_TTL_MS =
+  10 * 60 * 1000;
+
+const APP_SESSION_BOOTSTRAP_MAX_PENDING =
+  500;
+
+const appSessionBootstrapOAuthStates =
+  new Map();
+
+const appSessionBootstrapAttempts =
   new Map();
 
 const SMARTTHINGS_OAUTH_STATE_TTL_MS =
@@ -419,6 +448,84 @@ function consumeGoogleOAuthState(state) {
     : null;
 }
 
+function cleanupAppSessionBootstrapState() {
+  const now = Date.now();
+  for (const [state, entry] of appSessionBootstrapOAuthStates) {
+    if (entry.expiresAt <= now) {
+      appSessionBootstrapOAuthStates.delete(state);
+    }
+  }
+  for (const [attemptId, entry] of appSessionBootstrapAttempts) {
+    if (entry.expiresAt <= now) {
+      appSessionBootstrapAttempts.delete(attemptId);
+    }
+  }
+  while (
+    appSessionBootstrapOAuthStates.size >
+    APP_SESSION_BOOTSTRAP_MAX_PENDING
+  ) {
+    appSessionBootstrapOAuthStates.delete(
+      appSessionBootstrapOAuthStates.keys().next().value
+    );
+  }
+  while (
+    appSessionBootstrapAttempts.size >
+    APP_SESSION_BOOTSTRAP_MAX_PENDING
+  ) {
+    appSessionBootstrapAttempts.delete(
+      appSessionBootstrapAttempts.keys().next().value
+    );
+  }
+}
+
+function createAppSessionBootstrapAttempt(device) {
+  cleanupAppSessionBootstrapState();
+  const attemptId = randomBytes(32).toString("base64url");
+  const state = `${randomUUID()}-${randomUUID()}`;
+  const expiresAt = Date.now() + APP_SESSION_BOOTSTRAP_TTL_MS;
+  const attempt = {
+    attemptId,
+    ownerId: device.ownerId,
+    registrationId: device.registrationId,
+    device,
+    status: "pending",
+    errorCode: "",
+    message: "",
+    expiresAt
+  };
+  appSessionBootstrapAttempts.set(attemptId, attempt);
+  appSessionBootstrapOAuthStates.set(state, {
+    attemptId,
+    expiresAt
+  });
+  return { attempt, state };
+}
+
+function consumeAppSessionBootstrapOAuthState(state) {
+  cleanupAppSessionBootstrapState();
+  const cleanState = String(state || "").trim();
+  const stateEntry = appSessionBootstrapOAuthStates.get(cleanState);
+  appSessionBootstrapOAuthStates.delete(cleanState);
+  if (
+    !cleanState ||
+    !stateEntry ||
+    stateEntry.expiresAt <= Date.now()
+  ) {
+    return null;
+  }
+  return appSessionBootstrapAttempts.get(stateEntry.attemptId) || null;
+}
+
+function failAppSessionBootstrap(attempt, code, message) {
+  if (!attempt) return;
+  attempt.status = "failed";
+  attempt.errorCode = String(code || "TRUSTED_SESSION_BOOTSTRAP_FAILED");
+  attempt.message = String(
+    message ||
+    "Die sichere App-Sitzung konnte nicht gebunden werden."
+  );
+}
+
 function createSmartThingsOAuthState(ownerId) {
   const profile = personalHoloProfile(ownerId);
   if (!profile) {
@@ -484,12 +591,6 @@ const GOOGLE_CALENDAR_ID =
 
 const GOOGLE_CALENDAR_TIMEZONE =
   "Europe/Berlin";
-
-const GOOGLE_PERSONAL_READ_GATE_SECRET =
-  String(
-    process.env.GOOGLE_PERSONAL_READ_GATE_SECRET ||
-    ""
-  ).trim();
 
 const GOOGLE_ACCOUNT_SCOPES = [
   "openid",
@@ -891,6 +992,7 @@ async function initializeMemory() {
     bleiben unveraendert bestehen und werden nicht automatisch importiert.
   */
   await identityMemoryStore.initialize();
+  await trustedAppSessions.initialize();
 
   console.log("Sol-Holo-Memory ist bereit.");
   console.log("Bestätigtes Sol-Holo-Gedächtnis ist bereit.");
@@ -1089,6 +1191,191 @@ async function loadGoogleTokens(ownerId) {
   return result.rows[0];
 }
 
+function trustedAppSessionErrorStatus(error) {
+  if (!(error instanceof TrustedAppSessionError)) {
+    return 500;
+  }
+  if (error.code === "TRUSTED_SESSION_DEVICE_NOT_BOUND") {
+    return 404;
+  }
+  if (
+    error.code === "TRUSTED_SESSION_SIGNATURE_INVALID" ||
+    error.code === "TRUSTED_SESSION_SCOPE_MISMATCH" ||
+    error.code === "TRUSTED_SESSION_OWNER_PROOF_REQUIRED"
+  ) {
+    return 403;
+  }
+  if (error.code === "TRUSTED_SESSION_CHALLENGE_EXPIRED") {
+    return 410;
+  }
+  return 400;
+}
+
+function sendTrustedAppSessionError(res, error) {
+  const known = error instanceof TrustedAppSessionError;
+  return res
+    .status(trustedAppSessionErrorStatus(error))
+    .set({
+      "Cache-Control": "no-store, max-age=0",
+      Pragma: "no-cache"
+    })
+    .json({
+      error: known ? error.code : "TRUSTED_SESSION_OPERATION_FAILED",
+      message: known
+        ? error.message
+        : "Die sichere App-Sitzung konnte nicht verarbeitet werden.",
+      trusted: false
+    });
+}
+
+/*
+  ==========================================================
+  SICHERE APP-SITZUNG – S23 MIT BACKEND BINDEN
+  ==========================================================
+*/
+
+app.post(
+  "/app-session/bootstrap/start",
+  async (req, res) => {
+    try {
+      const identity = resolveRequestIdentity(req, res);
+      if (!identity) return;
+      const device = trustedAppSessions.parseDeviceRegistration(
+        req.body?.device
+      );
+      if (device.ownerId !== identity.ownerId) {
+        throw new TrustedAppSessionError(
+          "TRUSTED_SESSION_SCOPE_MISMATCH",
+          "Die Geräteregistrierung gehört zu einer anderen Holo-Instanz."
+        );
+      }
+
+      // A public endpoint must never let the first caller claim an ownerId.
+      // The already connected Google account is the existing trust anchor.
+      const existingTokens = await loadGoogleTokens(identity.ownerId);
+      if (!existingTokens) {
+        return res
+          .status(409)
+          .set({ "Cache-Control": "no-store, max-age=0" })
+          .json({
+            error: "GOOGLE_OWNER_ACCOUNT_REQUIRED",
+            message:
+              "Das bereits verbundene Google-Konto wird einmalig als Owner-Nachweis benötigt.",
+            started: false
+          });
+      }
+
+      const { attempt, state } =
+        createAppSessionBootstrapAttempt(device);
+      const oauth2Client = createGoogleOAuthClient();
+      const authUrl = oauth2Client.generateAuthUrl({
+        access_type: "online",
+        prompt: "select_account",
+        state,
+        scope: GOOGLE_SERVICE_SCOPES.signIn
+      });
+
+      return res
+        .set({
+          "Cache-Control": "no-store, max-age=0",
+          Pragma: "no-cache"
+        })
+        .json({
+          started: true,
+          attemptId: attempt.attemptId,
+          authUrl,
+          expiresAtMillis: attempt.expiresAt
+        });
+    } catch (error) {
+      console.error("Sichere App-Sitzung Bootstrap-Start:", error?.name);
+      return sendTrustedAppSessionError(res, error);
+    }
+  }
+);
+
+app.post(
+  "/app-session/bootstrap/status",
+  async (req, res) => {
+    const identity = resolveRequestIdentity(req, res);
+    if (!identity) return;
+    cleanupAppSessionBootstrapState();
+    const attemptId = String(req.body?.attemptId || "").trim();
+    const registrationId = String(req.body?.registrationId || "").trim();
+    const attempt = appSessionBootstrapAttempts.get(attemptId);
+    if (
+      !attempt ||
+      attempt.ownerId !== identity.ownerId ||
+      attempt.registrationId !== registrationId
+    ) {
+      return res
+        .status(404)
+        .set({ "Cache-Control": "no-store, max-age=0" })
+        .json({
+          error: "TRUSTED_SESSION_BOOTSTRAP_NOT_FOUND",
+          status: "expired"
+        });
+    }
+    return res
+      .set({
+        "Cache-Control": "no-store, max-age=0",
+        Pragma: "no-cache"
+      })
+      .json({
+        status: attempt.status,
+        registered: attempt.status === "authorized",
+        error: attempt.errorCode || undefined,
+        message: attempt.message || undefined,
+        expiresAtMillis: attempt.expiresAt
+      });
+  }
+);
+
+app.post(
+  "/app-session/challenge",
+  async (req, res) => {
+    try {
+      const identity = resolveRequestIdentity(req, res);
+      if (!identity) return;
+      const challenge = await trustedAppSessions.createChallenge({
+        ownerId: identity.ownerId,
+        registrationId: req.body?.registrationId
+      });
+      return res
+        .set({
+          "Cache-Control": "no-store, max-age=0",
+          Pragma: "no-cache"
+        })
+        .json(challenge);
+    } catch (error) {
+      return sendTrustedAppSessionError(res, error);
+    }
+  }
+);
+
+app.post(
+  "/app-session/complete",
+  async (req, res) => {
+    try {
+      const identity = resolveRequestIdentity(req, res);
+      if (!identity) return;
+      const session = await trustedAppSessions.completeChallenge({
+        ownerId: identity.ownerId,
+        registrationId: req.body?.registrationId,
+        challengeId: req.body?.challengeId,
+        signatureBase64Url: req.body?.signatureBase64Url
+      });
+      return res
+        .set({
+          "Cache-Control": "no-store, max-age=0",
+          Pragma: "no-cache"
+        })
+        .json(session);
+    } catch (error) {
+      return sendTrustedAppSessionError(res, error);
+    }
+  }
+);
+
 /*
   ==========================================================
   GOOGLE-KONTO – AUTORISIERUNGS-URL
@@ -1153,6 +1440,42 @@ app.get(
   }
 );
 
+app.post(
+  "/auth/google/start",
+  async (req, res) => {
+    try {
+      if (!hasTrustedGooglePersonalReadGate(req)) {
+        return res
+          .status(503)
+          .set({ "Cache-Control": "no-store, max-age=0" })
+          .json({
+            error: "TRUSTED_APP_SESSION_REQUIRED",
+            started: false
+          });
+      }
+      const identity = resolveRequestIdentity(req, res);
+      if (!identity) return;
+      const oauth2Client = createGoogleOAuthClient();
+      const authUrl = oauth2Client.generateAuthUrl({
+        access_type: "offline",
+        prompt: "consent",
+        include_granted_scopes: true,
+        state: createGoogleOAuthState(identity.ownerId),
+        scope: GOOGLE_ACCOUNT_SCOPES
+      });
+      return res
+        .set({ "Cache-Control": "no-store, max-age=0" })
+        .json({ started: true, authUrl });
+    } catch (error) {
+      console.error("Google OAuth Start Fehler:", error?.name || "Fehler");
+      return res.status(500).json({
+        error: "GOOGLE_AUTH_START_FAILED",
+        started: false
+      });
+    }
+  }
+);
+
 /*
   ==========================================================
   GOOGLE-KONTO – CALLBACK
@@ -1162,6 +1485,7 @@ app.get(
 app.get(
   "/auth/google/callback",
   async (req, res) => {
+    let bootstrapAttempt = null;
     try {
       const code =
         String(
@@ -1175,13 +1499,22 @@ app.get(
           ""
         ).trim();
 
+      bootstrapAttempt =
+        consumeAppSessionBootstrapOAuthState(state);
+
       if (!code) {
+        failAppSessionBootstrap(
+          bootstrapAttempt,
+          "GOOGLE_OWNER_PROOF_CANCELLED",
+          "Die Google-Bestätigung wurde abgebrochen."
+        );
         return res.status(400).send(
           "Google hat keinen Autorisierungscode geliefert."
         );
       }
 
-      const ownerId = consumeGoogleOAuthState(state);
+      const ownerId = bootstrapAttempt?.ownerId ||
+        consumeGoogleOAuthState(state);
 
       if (!ownerId) {
         return res.status(400).send(
@@ -1202,13 +1535,53 @@ app.get(
       const tokens =
         tokenResult.tokens;
 
+      oauth2Client.setCredentials(
+        tokens
+      );
+
+      if (bootstrapAttempt) {
+        const existingGoogleClient =
+          await getAuthorizedGoogleClient(ownerId);
+        const [existingSubject, confirmedSubject] =
+          await Promise.all([
+            googleAccountSubject(existingGoogleClient),
+            googleAccountSubject(oauth2Client)
+          ]);
+
+        if (existingSubject !== confirmedSubject) {
+          failAppSessionBootstrap(
+            bootstrapAttempt,
+            "GOOGLE_OWNER_ACCOUNT_MISMATCH",
+            "Bitte bestätige dasselbe Google-Konto, das bereits mit Pam’s Holo verbunden ist."
+          );
+          return res.status(403).type("html").send(`
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sichere App-Sitzung</title></head>
+<body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#05030b;color:white;font-family:Arial,sans-serif;padding:24px;text-align:center">
+<main><h1 style="color:#bd72ff">Pam’s Holo</h1><p>Dieses Google-Konto stimmt nicht mit dem bereits verbundenen Owner-Konto überein.</p><p>Bitte schließe dieses Fenster und versuche es in der App noch einmal.</p></main>
+</body></html>`);
+        }
+
+        await trustedAppSessions.registerDevice(
+          bootstrapAttempt.device,
+          { googleAccountVerified: true }
+        );
+        bootstrapAttempt.status = "authorized";
+        bootstrapAttempt.errorCode = "";
+        bootstrapAttempt.message =
+          "Das registrierte S23 wurde dem bestehenden Owner-Konto zugeordnet.";
+
+        return res.type("html").send(`
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sichere App-Sitzung</title></head>
+<body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#05030b;color:white;font-family:Arial,sans-serif;padding:24px;text-align:center">
+<main><h1 style="color:#bd72ff">🔐 ${profile.instanceName}</h1><p style="color:#45e5a2;font-size:20px">✅ Dein registriertes S23 wurde bestätigt.</p><p>Du kannst dieses Fenster schließen und zu Pam’s Holo zurückkehren. Den Geräteschlüssel prüft die App automatisch.</p></main>
+</body></html>`);
+      }
+
       await saveGoogleTokens(
         tokens,
         ownerId
-      );
-
-      oauth2Client.setCredentials(
-        tokens
       );
 
       return res.type("html").send(`
@@ -1281,9 +1654,14 @@ Du kannst dieses Fenster schließen und zur App zurückkehren.
       `);
 
     } catch (error) {
+      failAppSessionBootstrap(
+        bootstrapAttempt,
+        "TRUSTED_SESSION_BOOTSTRAP_FAILED",
+        "Die sichere Verbindung konnte nicht abgeschlossen werden."
+      );
       console.error(
         "Google OAuth Callback Fehler:",
-        error
+        error?.code || error?.name || "Fehler"
       );
 
       return res.status(500).send(
@@ -1808,6 +2186,19 @@ async function getAuthorizedGoogleClient(ownerId) {
   return oauth2Client;
 }
 
+async function googleAccountSubject(oauth2Client) {
+  const oauth2 = google.oauth2({
+    version: "v2",
+    auth: oauth2Client
+  });
+  const response = await oauth2.userinfo.get();
+  const subject = String(response?.data?.id || "").trim();
+  if (!subject) {
+    throw new Error("GOOGLE_ACCOUNT_SUBJECT_UNAVAILABLE");
+  }
+  return subject;
+}
+
 const googlePersonalServices =
   createGooglePersonalServices({
     getOwnerGoogleAuthorization:
@@ -1862,22 +2253,9 @@ function googlePersonalErrorStatus(error) {
 }
 
 function hasTrustedGooglePersonalReadGate(req) {
-  const supplied = String(
-    req.headers["x-sol-holo-trusted-session"] || ""
-  ).trim();
-
-  if (!GOOGLE_PERSONAL_READ_GATE_SECRET || !supplied) {
-    return false;
-  }
-
-  const expectedHash = createHash("sha256")
-    .update(GOOGLE_PERSONAL_READ_GATE_SECRET, "utf8")
-    .digest();
-  const suppliedHash = createHash("sha256")
-    .update(supplied, "utf8")
-    .digest();
-
-  return timingSafeEqual(expectedHash, suppliedHash);
+  return Boolean(
+    trustedAppSessions.validateRequest(req)
+  );
 }
 
 async function handleGooglePersonalRead(req, res, operation, action) {
@@ -2083,6 +2461,7 @@ function looksLikeCalendarWriteRequest(
     "kalender",
     "trag ",
     "trage ",
+    "tragt ",
     "eintragen",
     "termin",
     "erinnere mich",
@@ -2491,19 +2870,106 @@ async function createGoogleCalendarEvent(
   ==========================================================
 */
 
+function calendarActionScope(identity, conversationId) {
+  return {
+    ownerId: identity.ownerId,
+    speakerId: identity.speakerId,
+    conversationId
+  };
+}
+
+function calendarPreviewAnswer(identity, parsed) {
+  const start = new Date(parsed.start);
+  const end = new Date(parsed.end);
+  const validTimes =
+    Number.isFinite(start.getTime()) && Number.isFinite(end.getTime());
+  const dateText = validTimes
+    ? new Intl.DateTimeFormat("de-DE", {
+        timeZone: GOOGLE_CALENDAR_TIMEZONE,
+        weekday: "long",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      }).format(start)
+    : String(parsed.start || "");
+  const endText = validTimes
+    ? new Intl.DateTimeFormat("de-DE", {
+        timeZone: GOOGLE_CALENDAR_TIMEZONE,
+        hour: "2-digit",
+        minute: "2-digit"
+      }).format(end)
+    : String(parsed.end || "");
+  const reminderText = parsed.reminderMinutes === null ||
+    parsed.reminderMinutes === undefined
+    ? "Standard-Erinnerung"
+    : `Erinnerung ${Math.max(0, Number(parsed.reminderMinutes) || 0)} Minuten vorher`;
+
+  return `${identity.displayName}, ich habe diesen Termin vorbereitet, aber noch nicht gespeichert:\n\n` +
+    `• ${parsed.summary}\n` +
+    `• ${dateText} bis ${endText}\n` +
+    `• ${reminderText}\n\n` +
+    "Sag zum Beispiel „Ja, eintragen“ oder „Sol, bitte trag ein“. Wenn etwas nicht stimmt, nenne den Termin bitte noch einmal.";
+}
+
 async function handleCalendarWriteRequest(
   message,
   identity,
-  trustedAppSession = false
+  trustedAppSession = false,
+  conversationId = ""
 ) {
-  if (
-    !looksLikeCalendarWriteRequest(
-      message
-    )
-  ) {
+  const scope = calendarActionScope(identity, conversationId);
+
+  if (isCalendarCancellation(message)) {
+    const cleared = pendingCalendarActions.clear(scope);
+    return cleared
+      ? {
+          handled: true,
+          success: false,
+          cancelled: true,
+          answer:
+            "Alles klar. Der vorbereitete Termin wurde verworfen und nicht gespeichert."
+        }
+      : { handled: false };
+  }
+
+  if (!isCalendarConfirmation(message)) {
+    if (!looksLikeCalendarWriteRequest(message)) {
+      return { handled: false };
+    }
+
+    const parsed = await parseCalendarCommand(message, identity);
+    if (parsed?.action !== "create") {
+      return { handled: false };
+    }
+    if (!parsed.summary || !parsed.start || !parsed.end) {
+      return {
+        handled: true,
+        success: false,
+        answer:
+          `${identity.displayName}, ich habe erkannt, dass du einen Kalendereintrag möchtest, aber Datum oder Uhrzeit sind nicht eindeutig genug.`
+      };
+    }
+    pendingCalendarActions.remember(scope, {
+      parsed,
+      originalMessage: message
+    });
     return {
-      handled:
-        false
+      handled: true,
+      success: false,
+      confirmationRequired: true,
+      answer: calendarPreviewAnswer(identity, parsed)
+    };
+  }
+
+  const pending = pendingCalendarActions.peek(scope);
+  if (!pending) {
+    return {
+      handled: true,
+      success: false,
+      answer:
+        `${identity.displayName}, ich habe gerade keinen vorbereiteten Termin. Sag mir bitte noch einmal Termin, Datum und Uhrzeit.`
     };
   }
 
@@ -2513,147 +2979,75 @@ async function handleCalendarWriteRequest(
       success: false,
       needsTrustedAppSession: true,
       answer:
-        `${identity.displayName}, der Kalendereintrag wurde nicht gespeichert. ` +
-        "Die sichere App-Sitzung ist noch nicht gebunden."
+        `${identity.displayName}, der vorbereitete Termin wurde noch nicht gespeichert. ` +
+        "Bitte bestätige einmal die sichere App-Sitzung; danach kann ich genau diesen Termin eintragen."
     };
   }
 
-  const parsed =
-    await parseCalendarCommand(
-      message,
-      identity
-    );
-
-  if (
-    parsed?.action !==
-    "create"
-  ) {
-    return {
-      handled:
-        false
-    };
-  }
-
-  if (
-    !parsed.summary ||
-    !parsed.start ||
-    !parsed.end
-  ) {
-    return {
-      handled:
-        true,
-
-      success:
-        false,
-
-      answer:
-        `${identity.displayName}, ich habe erkannt, dass du einen Kalendereintrag möchtest, aber Datum oder Uhrzeit sind nicht eindeutig genug.`
-    };
-  }
-
-  const fingerprint =
-    createCalendarFingerprint(
-      message,
-      parsed,
-      identity.ownerId
-    );
-
-  const duplicate =
-    await findRecentCalendarAction(
-      fingerprint,
-      identity.ownerId
-    );
+  const parsed = pending.parsed;
+  const originalMessage = pending.originalMessage;
+  const fingerprint = createCalendarFingerprint(
+    originalMessage,
+    parsed,
+    identity.ownerId
+  );
+  const duplicate = await findRecentCalendarAction(
+    fingerprint,
+    identity.ownerId
+  );
 
   if (duplicate) {
+    pendingCalendarActions.clear(scope);
     return {
-      handled:
-        true,
-
-      success:
-        true,
-
-      duplicate:
-        true,
-
-      googleEventId:
-        duplicate.google_event_id,
-
+      handled: true,
+      success: true,
+      duplicate: true,
+      googleEventId: duplicate.google_event_id,
       answer:
         `${identity.displayName}, der Termin „${duplicate.event_summary || parsed.summary}“ wurde bereits gerade eben in deinem Google Kalender angelegt.`
     };
   }
 
   try {
-    const googleEvent =
-      await createGoogleCalendarEvent(
-        parsed,
-        message,
-        identity
-      );
-
+    const googleEvent = await createGoogleCalendarEvent(
+      parsed,
+      originalMessage,
+      identity
+    );
     await saveCalendarAction(
       fingerprint,
-      message,
+      originalMessage,
       googleEvent.id,
-      googleEvent.summary ||
-        parsed.summary,
-      googleEvent.start?.dateTime ||
-        parsed.start,
+      googleEvent.summary || parsed.summary,
+      googleEvent.start?.dateTime || parsed.start,
       identity.ownerId
     );
-
-    const answer =
-      `Ja, ${identity.displayName}. Der Termin „${googleEvent.summary || parsed.summary}“ wurde jetzt wirklich in deinem Google Kalender gespeichert.`;
-
+    pendingCalendarActions.clear(scope);
     return {
-      handled:
-        true,
-
-      success:
-        true,
-
-      googleEventId:
-        googleEvent.id,
-
-      htmlLink:
-        googleEvent.htmlLink ||
-        null,
-
-      answer
+      handled: true,
+      success: true,
+      googleEventId: googleEvent.id,
+      htmlLink: googleEvent.htmlLink || null,
+      answer:
+        `Ja, ${identity.displayName}. Google Calendar hat bestätigt: „${googleEvent.summary || parsed.summary}“ ist gespeichert.`
     };
-
   } catch (error) {
     console.error(
       "Google Calendar Eintrag Fehler:",
-      error
+      error?.code || error?.name || error?.message || "Fehler"
     );
-
-    if (
-      error?.message ===
-      "GOOGLE_CALENDAR_NOT_CONNECTED"
-    ) {
+    if (error?.message === "GOOGLE_CALENDAR_NOT_CONNECTED") {
       return {
-        handled:
-          true,
-
-        success:
-          false,
-
-        needsGoogleAuth:
-          true,
-
+        handled: true,
+        success: false,
+        needsGoogleAuth: true,
         answer:
-          `${identity.displayName}, dein Google Kalender ist noch nicht mit ${instanceNameForIdentity(identity)} verbunden. Öffne die Google-Verbindung bitte in der App.`
+          `${identity.displayName}, der Termin ist noch nicht gespeichert. Dein Google Kalender muss zuerst mit ${instanceNameForIdentity(identity)} verbunden werden.`
       };
     }
-
     return {
-      handled:
-        true,
-
-      success:
-        false,
-
+      handled: true,
+      success: false,
       answer:
         `${identity.displayName}, der Kalendereintrag wurde nicht gespeichert. Google Calendar hat den Vorgang nicht bestätigt.`
     };
@@ -4499,29 +4893,24 @@ app.post(
       let calendarResult =
         null;
 
-      if (
-        looksLikeCalendarWriteRequest(
-          transcript
-        )
-      ) {
-        calendarResult =
-          await handleCalendarWriteRequest(
-            transcript,
-            identity,
-            hasTrustedGooglePersonalReadGate(req)
-          );
+      calendarResult =
+        await handleCalendarWriteRequest(
+          transcript,
+          identity,
+          hasTrustedGooglePersonalReadGate(req),
+          conversation.conversationId
+        );
 
-        if (
-          calendarResult?.handled &&
-          calendarResult?.answer
-        ) {
-          appendConversationMessage(
-            conversation.conversationId,
-            identity,
-            "assistant",
-            calendarResult.answer
-          );
-        }
+      if (
+        calendarResult?.handled &&
+        calendarResult?.answer
+      ) {
+        appendConversationMessage(
+          conversation.conversationId,
+          identity,
+          "assistant",
+          calendarResult.answer
+        );
       }
 
       console.log(
@@ -6205,7 +6594,8 @@ app.post("/sol", async (req, res) => {
         : await handleCalendarWriteRequest(
             message,
             identity,
-            hasTrustedGooglePersonalReadGate(req)
+            hasTrustedGooglePersonalReadGate(req),
+            conversation.conversationId
           );
 
     if (
@@ -6235,6 +6625,11 @@ app.post("/sol", async (req, res) => {
           success:
             Boolean(
               calendarResult.success
+            ),
+
+          confirmationRequired:
+            Boolean(
+              calendarResult.confirmationRequired
             ),
 
           duplicate:

@@ -357,6 +357,8 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   let pendingPersonalNoteText = false;
   let previousPlainUserMessage = "";
   let previousPlainUserMessageAt = 0;
+  let lastPreparedSamsungNoteText = "";
+  let lastPreparedSamsungNoteAt = 0;
   let customCloneMouth = {
     x: 0.5,
     y: 0.58,
@@ -1056,21 +1058,26 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         title,
         text: cleanText
       });
-      if (!result?.opened) {
+      if (!result?.opened || result?.contentTransferred !== true) {
         return {
           success: false,
-          answer: "Samsung Notes hat sich nicht geöffnet. Es wurde nichts gespeichert."
+          answer:
+            "Samsung Notes hat den Text nicht bestätigt übernommen. Es wurde nichts gespeichert."
         };
       }
 
-      showToast(`„${preview}“ an Samsung Notes übergeben ✅️`);
+      lastPreparedSamsungNoteText = cleanText;
+      lastPreparedSamsungNoteAt = Date.now();
+      showToast("Entwurf an Samsung Notes übergeben · dort noch speichern");
       return {
         success: true,
         opened: true,
         saved: false,
         title,
         handoffMode: String(result?.handoffMode || ""),
-        answer: `Samsung Notes wurde mit „${preview}“ geöffnet.`
+        answer:
+          `Samsung Notes ist mit diesem Entwurf geöffnet: „${preview}“. ` +
+          "Bitte dort noch speichern."
       };
     } catch (error) {
       console.error("Samsung-Notes-Übergabe:", error);
@@ -1511,7 +1518,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     try {
       const response = await fetch(
         `https://sol-holo.onrender.com/google/status?${identityQuery}`,
-        { cache: "no-store" }
+        {
+          cache: "no-store",
+          headers: window.SolHoloTrustedSession?.headers?.() || {}
+        }
       );
       const data = await response.json();
 
@@ -1527,7 +1537,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       googleConnected = googleStatus.allRequestedAccessGranted;
 
       if (googleStatus.trustedSessionRequired) {
-        serviceState.textContent = "Sichere Sitzung offen";
+        serviceState.textContent = "S23 bestätigen";
         serviceState.classList.add("setup");
         profileState.textContent = "App-Sitzung noch nicht gebunden";
         todayState.textContent = "Kalender bleibt geschützt";
@@ -1588,7 +1598,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     try {
       const response = await fetch(
         `https://sol-holo.onrender.com/smartthings/status?${identityQuery}`,
-        { cache: "no-store" }
+        {
+          cache: "no-store",
+          headers: window.SolHoloTrustedSession?.headers?.() || {}
+        }
       );
       const data = await response.json();
 
@@ -1603,7 +1616,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       };
 
       if (smartThingsStatus.trustedSessionRequired) {
-        serviceState.textContent = "Sichere Sitzung offen";
+        serviceState.textContent = "S23 bestätigen";
         serviceState.classList.add("setup");
       } else if (smartThingsStatus.connected) {
         serviceState.textContent = "Zuhause verbunden";
@@ -2383,7 +2396,48 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     return "";
   }
 
+  function samsungNoteInsertionFromNaturalRequest(message) {
+    const cleanMessage = String(message || "")
+      .trim()
+      .replace(/^(?:(?:hey\s+)?sol)\s*[,;:!.-]?\s*/i, "")
+      .trim();
+    const match = cleanMessage.match(
+      /^(?:bitte\s+)?(?:setz(?:e)?|schreib(?:e)?|pack(?:e)?|füg(?:e)?)\s+(?:mir\s+)?(?:bitte\s+)?(.+?)\s+unter\s+(.+?)(?:\s+hinzu)?(?:\s+(?:in|bei|zu)\s+(?:(?:meine|die)\s+)?(?:samsungs?(?:\s+|-))?(?:notes?|noten|notizen))?[.!?]*$/i
+    );
+    const addition = String(match?.[1] || "")
+      .replace(/^[\s:,-]+|[\s.!?]+$/g, "")
+      .trim();
+    const anchor = String(match?.[2] || "")
+      .replace(/^[\s:,-]+|[\s.!?]+$/g, "")
+      .trim();
+    return addition && anchor
+      ? { addition, anchor }
+      : null;
+  }
+
+  function insertSamsungNoteLineBelow(existingText, anchor, addition) {
+    const normalized = (value) => String(value || "").trim().toLocaleLowerCase("de");
+    const lines = String(existingText || "")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    let anchorIndex = lines.findIndex(
+      (line) => normalized(line) === normalized(anchor)
+    );
+    if (anchorIndex < 0) {
+      lines.push(anchor);
+      anchorIndex = lines.length - 1;
+    }
+    const alreadyBelow = normalized(lines[anchorIndex + 1]) === normalized(addition);
+    if (!alreadyBelow) {
+      lines.splice(anchorIndex + 1, 0, addition);
+    }
+    return lines.join("\n");
+  }
+
   window.extractSolHoloSamsungNoteText = samsungNoteTextFromNaturalRequest;
+  window.extractSolHoloSamsungNoteInsertion =
+    samsungNoteInsertionFromNaturalRequest;
 
   window.handleSolHoloLocalAction = async (message) => {
     const cleanMessage = String(message || "").trim();
@@ -2400,8 +2454,44 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         previousPlainUserMessage = "";
         previousPlainUserMessageAt = 0;
       }
-      return { handled: true, answer: result.answer };
+      return {
+        handled: true,
+        status: result?.opened
+          ? "Samsung Notes geöffnet · dort noch speichern."
+          : "Samsung Notes wurde nicht geöffnet.",
+        answer: result.answer
+      };
     };
+
+    const noteInsertion = samsungNoteInsertionFromNaturalRequest(noteMessage);
+    if (noteInsertion) {
+      const recentPreparedText =
+        lastPreparedSamsungNoteText &&
+        Date.now() - lastPreparedSamsungNoteAt <= 10 * 60 * 1000
+          ? lastPreparedSamsungNoteText
+          : "";
+      const updatedDraft = insertSamsungNoteLineBelow(
+        recentPreparedText,
+        noteInsertion.anchor,
+        noteInsertion.addition
+      );
+      const result = await executeNotesTool("create_personal_note", {
+        text: updatedDraft
+      });
+      if (!result?.success) {
+        return { handled: true, answer: result.answer };
+      }
+      pendingPersonalNoteText = false;
+      previousPlainUserMessage = "";
+      previousPlainUserMessageAt = 0;
+      return {
+        handled: true,
+        status: "Aktualisierter Entwurf in Samsung Notes geöffnet.",
+        answer:
+          `Samsung Notes ist mit „${noteInsertion.anchor}\n${noteInsertion.addition}“ geöffnet. ` +
+          "Bitte dort noch speichern; deine vorhandene Notiz bleibt unverändert."
+      };
+    }
 
     const naturalSamsungNoteText = samsungNoteTextFromNaturalRequest(
       noteMessage
@@ -2568,6 +2658,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       .trim();
     const noteIntent =
       pendingPersonalNoteText ||
+      Boolean(samsungNoteInsertionFromNaturalRequest(noteMessage)) ||
       /\bnotiz(?:en)?\b|\bnotier(?:e|en|st|t)?\b|\bnotes?\b|\bnoten\b/i.test(noteMessage);
 
     if (!noteIntent) {
@@ -3134,7 +3225,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     renderSamsungNotesStatus();
   });
 
-  document.getElementById("googleAccountRow").addEventListener("click", () => {
+  document.getElementById("googleAccountRow").addEventListener("click", async () => {
     const identity = requireActivePersonalOwner();
     if (!identity) {
       return;
@@ -3148,18 +3239,59 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     }
 
     if (googleStatus.trustedSessionRequired) {
-      showToast(
-        "Google bleibt geschützt, bis die sichere App-Sitzung gebunden ist."
-      );
+      showToast("Dein registriertes S23 wird jetzt einmal sicher bestätigt …");
+      try {
+        const session = await window.SolHoloTrustedSession?.ensure?.({
+          interactive: true
+        });
+        if (!session?.trusted) {
+          throw new Error("TRUSTED_APP_SESSION_NOT_CONFIRMED");
+        }
+        await loadGoogleStatus();
+        await loadSmartThingsStatus();
+        showToast("Sichere S23-Sitzung bestätigt ✅️");
+      } catch (error) {
+        console.error("Sichere App-Sitzung:", error?.code || error?.name);
+        showToast(
+          String(
+            error?.message ||
+            "Die sichere S23-Sitzung wurde noch nicht bestätigt."
+          )
+        );
+      }
       return;
     }
 
-    const identityQuery = new URLSearchParams({
-      ownerId: identity.ownerId,
-      selectedSpeakerId: identity.speakerId
-    });
-    const authUrl =
-      `https://sol-holo.onrender.com/auth/google?${identityQuery}`;
+    let authUrl = "";
+    try {
+      const response = await fetch(
+        "https://sol-holo.onrender.com/auth/google/start",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(window.SolHoloTrustedSession?.headers?.() || {})
+          },
+          body: JSON.stringify({
+            ownerId: identity.ownerId,
+            selectedSpeakerId: identity.speakerId
+          }),
+          cache: "no-store"
+        }
+      );
+      const data = await response.json();
+      if (!response.ok || !data?.authUrl) {
+        throw new Error(
+          data?.error ||
+          "Die Google-Verbindung konnte nicht gestartet werden."
+        );
+      }
+      authUrl = data.authUrl;
+    } catch (error) {
+      console.error("Google-Verbindung:", error);
+      showToast(String(error?.message || "Google ist gerade nicht erreichbar."));
+      return;
+    }
 
     const authWindow = window.open(
       authUrl,
@@ -3235,9 +3367,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     }
 
     if (smartThingsStatus.trustedSessionRequired) {
-      showToast(
-        "SmartThings bleibt geschützt, bis die sichere App-Sitzung gebunden ist."
-      );
+      showToast("Bestätige zuerst die sichere S23-Sitzung bei Google.");
       return;
     }
 
@@ -3343,6 +3473,11 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     loadPersonalNotes();
     renderPersonalNotes("");
     restoreCustomCloneAppearance();
+    void loadGoogleStatus();
+    void loadSmartThingsStatus();
+  });
+
+  window.addEventListener("solholo:trusted-session", () => {
     void loadGoogleStatus();
     void loadSmartThingsStatus();
   });

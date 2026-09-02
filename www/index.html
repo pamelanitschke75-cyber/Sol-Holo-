@@ -2029,6 +2029,23 @@ const BACKEND_URL =
   "https://sol-holo.onrender.com";
 
 
+function backendJsonHeaders(
+  additional = {}
+){
+
+  return {
+    "Content-Type":
+      "application/json",
+    ...(
+      window.SolHoloTrustedSession
+        ?.headers?.() ||
+      {}
+    ),
+    ...additional
+  };
+}
+
+
 /*
 ==========================================================
 ELEMENTE
@@ -7135,10 +7152,8 @@ async function sendMessage(
 
           method:"POST",
 
-          headers:{
-            "Content-Type":
-              "application/json"
-          },
+          headers:
+            backendJsonHeaders(),
 
           body:
             JSON.stringify({
@@ -7229,6 +7244,39 @@ async function sendMessage(
         data?.error ||
         "Verbindung zu Sol fehlgeschlagen."
       );
+    }
+
+
+    if(
+      data?.calendar
+        ?.needsTrustedAppSession &&
+      typeof window.SolHoloTrustedSession
+        ?.ensure ===
+        "function"
+    ){
+
+      chatStatus.textContent =
+        "Sichere S23-Sitzung wird bestätigt …";
+
+
+      const trustedSession =
+        await window.SolHoloTrustedSession
+          .ensure({
+            interactive:true
+          });
+
+
+      if(
+        trustedSession?.trusted
+      ){
+
+        await sendMessage(
+          message
+        );
+
+
+        return;
+      }
     }
 
 
@@ -7482,10 +7530,8 @@ async function sendLiveTranscriptToMemory(
 
           method:"POST",
 
-          headers:{
-            "Content-Type":
-              "application/json"
-          },
+          headers:
+            backendJsonHeaders(),
 
           body:
             JSON.stringify({
@@ -8197,10 +8243,8 @@ async function startLiveConversation(){
 
           method:"POST",
 
-          headers:{
-            "Content-Type":
-              "application/json"
-          },
+          headers:
+            backendJsonHeaders(),
 
           body:
             JSON.stringify({
@@ -8993,8 +9037,8 @@ if(
 
 </script>
 
-<script src="./sol-holo-ui.js?v=36"></script>
-<script type="module" src="./app-lock-bootstrap.mjs?v=2"></script>
+<script src="./sol-holo-ui.js?v=37"></script>
+<script type="module" src="./app-lock-bootstrap.mjs?v=3"></script>
 <script type="module" src="./consent-ui-bootstrap.mjs?v=2"></script>
 <script>
 (() => {

@@ -87,7 +87,7 @@ test("die signierte Pam-Instanz ist fest an pam-sol gebunden und lädt keine Sit
   );
   assert.match(html, /Eine andere Identität wird niemals geladen/u);
   assert.doesNotMatch(html, /localStorage\.getItem\(\s*SOL_VOICE_STORAGE_KEY/u);
-  assert.match(html, /app-lock-bootstrap\.mjs\?v=2/u);
+  assert.match(html, /app-lock-bootstrap\.mjs\?v=3/u);
   assert.doesNotMatch(html, /solHoloBootScreen"\)\?\.remove/u);
   assert.match(appLock, /const APP_OWNER_ID = "pam-sol"/u);
   assert.match(appLock, /authorizeAppAccess/u);
@@ -112,8 +112,12 @@ test("Google- und SmartThings-Zuordnung bindet OAuth-State und Tokenzeile an den
 
 test("private Google-Inhalte bleiben ohne vertrauenswürdige App-Sitzung fail-closed", async () => {
   const server = await source("server.mjs");
+  const sessionClient = await source("www/trusted-app-session.mjs");
+  const nativeSecurity = await source("android-native/SolAccessSecurityPlugin.java");
 
-  assert.match(server, /GOOGLE_PERSONAL_READ_GATE_SECRET/u);
+  assert.doesNotMatch(server, /GOOGLE_PERSONAL_READ_GATE_SECRET/u);
+  assert.match(server, /createTrustedAppSessionManager/u);
+  assert.match(server, /trustedAppSessions\.validateRequest\(req\)/u);
   assert.match(server, /hasTrustedGooglePersonalReadGate\(req\)/u);
   assert.match(server, /TRUSTED_APP_SESSION_REQUIRED/u);
   assert.match(server, /Eine ownerId allein[\s\S]*keine Authentifizierung/u);
@@ -121,6 +125,13 @@ test("private Google-Inhalte bleiben ohne vertrauenswürdige App-Sitzung fail-cl
   assert.match(server, /needsTrustedAppSession: true/u);
   assert.match(server, /\/auth\/google[\s\S]*hasTrustedGooglePersonalReadGate\(req\)/u);
   assert.match(server, /\/auth\/smartthings[\s\S]*hasTrustedGooglePersonalReadGate\(req\)/u);
+  assert.match(server, /GOOGLE_OWNER_ACCOUNT_MISMATCH/u);
+  assert.match(sessionClient, /signTrustedSessionChallenge/u);
+  assert.match(sessionClient, /x-sol-holo-trusted-session/u);
+  assert.doesNotMatch(sessionClient, /localStorage|sessionStorage/u);
+  assert.match(nativeSecurity, /TRUSTED_SESSION_ACTION/u);
+  assert.match(nativeSecurity, /signTrustedSessionChallenge\(PluginCall call\)/u);
+  assert.match(nativeSecurity, /getTrustedSessionDevice\(PluginCall call\)/u);
 });
 
 test("digitale Einwilligung und Geräteschlüssel lehnen Owner-Wechsel ab", async () => {

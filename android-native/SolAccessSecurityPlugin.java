@@ -110,6 +110,14 @@ public final class SolAccessSecurityPlugin extends Plugin {
         "SHA256withECDSA";
     private static final String CONSENT_SIGNATURE_FORMAT =
         "base64url-no-padding-der";
+    private static final String TRUSTED_SESSION_ACTION =
+        "bind_trusted_app_session";
+    private static final String TRUSTED_SESSION_PURPOSE =
+        "owner_personal_services";
+    private static final String TRUSTED_SESSION_PACKAGE =
+        "com.solholo.app";
+    private static final long TRUSTED_SESSION_CLOCK_SKEW_MS = 60_000L;
+    private static final long TRUSTED_SESSION_MAX_CHALLENGE_MS = 3 * 60_000L;
 
     private final SecureRandom secureRandom = new SecureRandom();
     private final AtomicBoolean systemAuthenticationInProgress =
@@ -300,6 +308,201 @@ public final class SolAccessSecurityPlugin extends Plugin {
         String ownerId = requiredOwnerId(call);
         if (ownerId == null) return;
         call.resolve(buildStatus(ownerId));
+    }
+
+    /**
+     * Returns only the public half and local identifier of the hardware-backed
+     * device key. The private key never leaves Android Keystore.
+     */
+    @PluginMethod
+    public void getTrustedSessionDevice(PluginCall call) {
+        String ownerId = requiredOwnerId(call);
+        if (ownerId == null) return;
+        DeviceState device = inspectDeviceState(ownerId);
+        if (!device.verified()) {
+            call.reject(
+                "Dieses Gerät ist noch nicht als sicherer Besitzfaktor registriert.",
+                "REGISTERED_DEVICE_REQUIRED"
+            );
+            return;
+        }
+
+        try {
+            KeyStore.PrivateKeyEntry entry = privateKeyEntry(
+                androidKeyStore(),
+                ownerId
+            );
+            if (entry == null || entry.getCertificate() == null) {
+                throw new SecurityException("Registered device key is missing");
+            }
+            String registrationId = prefs(ownerId).getString(
+                PREF_DEVICE_REGISTRATION_ID,
+                ""
+            );
+            String certificateSha256 = prefs(ownerId).getString(
+                PREF_DEVICE_CERT_SHA256,
+                ""
+            );
+            if (
+                !registrationId.matches(
+                    "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}"
+                )
+                    || !certificateSha256.matches("[a-f0-9]{64}")
+            ) {
+                throw new SecurityException("Registered device metadata is invalid");
+            }
+
+            JSObject result = new JSObject();
+            result.put("ownerId", ownerId);
+            result.put("registrationId", registrationId);
+            result.put("packageName", getContext().getPackageName());
+            result.put(
+                "publicKeyX509Base64Url",
+                encodeBase64(entry.getCertificate().getPublicKey().getEncoded())
+            );
+            result.put("certificateSha256", certificateSha256);
+            result.put("algorithm", "EC_P256_SHA256");
+            result.put("hardwareBacked", device.hardwareBacked);
+            result.put("keySecurityLevel", device.securityLevel);
+            call.resolve(result);
+        } catch (Exception error) {
+            call.reject(
+                "Der öffentliche Geräteschlüssel konnte nicht sicher gelesen werden.",
+                "TRUSTED_SESSION_DEVICE_UNAVAILABLE",
+                error
+            );
+        }
+    }
+
+    /**
+     * Consumes a fresh one-time Android authorization and signs exactly one
+     * server-issued session challenge. This is deliberately not a generic
+     * signing API.
+     */
+    @PluginMethod
+    public void signTrustedSessionChallenge(PluginCall call) {
+        String ownerId = requiredOwnerId(call);
+        if (ownerId == null) return;
+        cleanupExpiredState();
+
+        String authorizationId = call.getString("authorizationId", "");
+        String registrationId = call.getString("registrationId", "");
+        String challengeId = call.getString("challengeId", "");
+        String nonceBase64Url = call.getString("nonceBase64Url", "");
+        String packageName = call.getString("packageName", "");
+        String purpose = call.getString("purpose", "");
+        String action = call.getString("action", "");
+        Long issuedAtMillis = call.getLong("issuedAtMillis", null);
+        Long expiresAtMillis = call.getLong("expiresAtMillis", null);
+
+        long now = System.currentTimeMillis();
+        String localRegistrationId = prefs(ownerId).getString(
+            PREF_DEVICE_REGISTRATION_ID,
+            ""
+        );
+        byte[] nonce = null;
+        try {
+            nonce = decodeBase64(nonceBase64Url);
+        } catch (RuntimeException ignored) {
+            // The validation below rejects malformed Base64URL uniformly.
+        }
+
+        if (
+            authorizationId == null
+                || authorizationId.isEmpty()
+                || registrationId == null
+                || !registrationId.equals(localRegistrationId)
+                || challengeId == null
+                || !challengeId.matches(
+                    "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}"
+                )
+                || nonce == null
+                || nonce.length != CHALLENGE_BYTES
+                || !TRUSTED_SESSION_PACKAGE.equals(packageName)
+                || !getContext().getPackageName().equals(packageName)
+                || !TRUSTED_SESSION_PURPOSE.equals(purpose)
+                || !TRUSTED_SESSION_ACTION.equals(action)
+                || issuedAtMillis == null
+                || expiresAtMillis == null
+                || issuedAtMillis <= 0L
+                || expiresAtMillis <= issuedAtMillis
+                || expiresAtMillis - issuedAtMillis > TRUSTED_SESSION_MAX_CHALLENGE_MS
+                || issuedAtMillis > now + TRUSTED_SESSION_CLOCK_SKEW_MS
+                || expiresAtMillis <= now - TRUSTED_SESSION_CLOCK_SKEW_MS
+        ) {
+            if (nonce != null) Arrays.fill(nonce, (byte)0);
+            call.reject(
+                "Die Server-Challenge für die sichere App-Sitzung ist ungültig oder abgelaufen.",
+                "TRUSTED_SESSION_CHALLENGE_INVALID"
+            );
+            return;
+        }
+
+        CriticalGrant grant = grants.remove(authorizationId);
+        SecurityFactorPolicy.GrantDecision grantDecision =
+            SecurityFactorPolicy.evaluateGrant(
+                ownerId,
+                grant == null ? null : grant.ownerId,
+                TRUSTED_SESSION_ACTION,
+                grant == null ? null : grant.action,
+                now,
+                grant == null ? 0L : grant.expiresAtMillis,
+                grant == null
+            );
+        if (!grantDecision.allowed()) {
+            Arrays.fill(nonce, (byte)0);
+            call.reject(
+                "Die einmalige Android-Freigabe für die sichere App-Sitzung fehlt oder ist abgelaufen.",
+                grantDecision.reasonCode()
+            );
+            return;
+        }
+
+        String canonicalPayload = String.join(
+            "\n",
+            "SOL_HOLO_TRUSTED_APP_SESSION_V1",
+            packageName,
+            ownerId,
+            registrationId,
+            challengeId,
+            nonceBase64Url,
+            String.valueOf(issuedAtMillis),
+            String.valueOf(expiresAtMillis),
+            TRUSTED_SESSION_PURPOSE
+        );
+        byte[] canonicalBytes = canonicalPayload.getBytes(StandardCharsets.UTF_8);
+        try {
+            DeviceState device = inspectDeviceState(ownerId);
+            KeyStore.PrivateKeyEntry entry = privateKeyEntry(
+                androidKeyStore(),
+                ownerId
+            );
+            if (!device.verified() || entry == null) {
+                throw new SecurityException("Registered device is no longer valid");
+            }
+            Signature signer = Signature.getInstance("SHA256withECDSA");
+            signer.initSign(entry.getPrivateKey());
+            signer.update(canonicalBytes);
+
+            JSObject result = new JSObject();
+            result.put("ok", true);
+            result.put("ownerId", ownerId);
+            result.put("registrationId", registrationId);
+            result.put("challengeId", challengeId);
+            result.put("signatureBase64Url", encodeBase64(signer.sign()));
+            result.put("algorithm", "SHA256withECDSA");
+            result.put("authorizationConsumed", true);
+            call.resolve(result);
+        } catch (Exception error) {
+            call.reject(
+                "Die sichere App-Challenge konnte nicht mit dem registrierten Geräteschlüssel signiert werden.",
+                "TRUSTED_SESSION_SIGNING_FAILED",
+                error
+            );
+        } finally {
+            Arrays.fill(nonce, (byte)0);
+            Arrays.fill(canonicalBytes, (byte)0);
+        }
     }
 
     @PluginMethod
@@ -1434,6 +1637,30 @@ public final class SolAccessSecurityPlugin extends Plugin {
         );
         result.put("authenticationType", factorName(authFactor));
         result.put("faceVsFingerprintKnown", false);
+        if (
+            purpose == AuthenticationPurpose.APP_ACCESS
+                && performFreshDeviceChallenge(ownerId, TRUSTED_SESSION_ACTION)
+        ) {
+            // App unlock and backend-session binding use separate one-time
+            // capabilities. Consuming one can never replay the other.
+            String trustedSessionGrantId = randomId();
+            grants.put(
+                trustedSessionGrantId,
+                new CriticalGrant(
+                    ownerId,
+                    TRUSTED_SESSION_ACTION,
+                    expiresAt
+                )
+            );
+            result.put(
+                "trustedSessionAuthorizationId",
+                trustedSessionGrantId
+            );
+            result.put(
+                "trustedSessionAuthorizationExpiresAtMillis",
+                expiresAt
+            );
+        }
         call.resolve(result);
     }
 

@@ -1,3 +1,7 @@
+import {
+  ensureTrustedAppSession
+} from "./trusted-app-session.mjs";
+
 const APP_OWNER_ID = "pam-sol";
 const APP_ACCESS_ACTION = "unlock_app";
 
@@ -150,6 +154,14 @@ async function authenticateAndReveal({ needsRegistration = false } = {}) {
     }
 
     revealApp();
+    if (grant?.trustedSessionAuthorizationId) {
+      void ensureTrustedAppSession({
+        interactive: false,
+        authorizationId: grant.trustedSessionAuthorizationId,
+        authorizationExpiresAtMillis:
+          grant.trustedSessionAuthorizationExpiresAtMillis
+      });
+    }
   } catch (error) {
     const registrationRequired =
       needsRegistration ||
