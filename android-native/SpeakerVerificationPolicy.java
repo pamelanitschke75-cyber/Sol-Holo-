@@ -9,10 +9,12 @@ final class SpeakerVerificationPolicy {
     static final float ERES2NET_OWNER_THRESHOLD = 0.58f;
     static final float CAMPPLUS_SANITY_FLOOR = 0.10f;
 
-    // A two-word wake phrase produces a much shorter embedding than the full
-    // enrollment sentence. It may use the lower short-phrase boundary only
-    // when both independent models agree. One strong model never suffices.
-    static final float WAKE_DUAL_CAMPPLUS_THRESHOLD = 0.48f;
+    // A two-word wake phrase produces a much shorter, less stable CAMPPlus
+    // embedding than the full enrollment sentence. ERes2Net remains the
+    // discriminating model; CAMPPlus is still required as an independent
+    // plausibility gate. These boundaries keep every measured Steffi sample
+    // rejected while accepting both measured Pam ranges.
+    static final float WAKE_DUAL_CAMPPLUS_THRESHOLD = CAMPPLUS_SANITY_FLOOR;
     static final float WAKE_DUAL_ERES2NET_THRESHOLD = 0.48f;
 
     // Once Pam has passed the strict full-sentence test, the leading

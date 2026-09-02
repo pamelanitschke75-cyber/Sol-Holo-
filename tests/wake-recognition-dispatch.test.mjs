@@ -10,6 +10,10 @@ const spotterSource = await readFile(
   new URL("../android-native/SolWakeKeywordSpotter.java", import.meta.url),
   "utf8"
 );
+const speakerPluginSource = await readFile(
+  new URL("../android-native/SolSpeakerIdentityPlugin.java", import.meta.url),
+  "utf8"
+);
 const installerSource = await readFile(
   new URL("../scripts/install-speaker-identity.mjs", import.meta.url),
   "utf8"
@@ -60,4 +64,28 @@ test("nur Hey Sol erreicht weiterhin beide Besitzerprüfungen", () => {
   assert.doesNotMatch(installerSource, /@Hallo_Sol|@Hello_Sol/u);
   assert.match(serviceSource, /measuredCampplusScore/u);
   assert.match(serviceSource, /measuredEres2netScore/u);
+});
+
+test("bestehende 3-von-3-Profile reparieren die Hey-Sol-Vorlage selbst", () => {
+  assert.match(
+    speakerPluginSource,
+    /boolean accepted = templateAccepted \|\| profileAccepted/u
+  );
+  assert.match(
+    speakerPluginSource,
+    /if \(profileAccepted && !templateAccepted\)/u
+  );
+  assert.match(
+    speakerPluginSource,
+    /\.putString\(\s*WAKE_CAMPPLUS_TEMPLATE_KEY/u
+  );
+  assert.match(
+    speakerPluginSource,
+    /\.putString\(\s*WAKE_ERES2NET_TEMPLATE_KEY/u
+  );
+  assert.doesNotMatch(
+    speakerPluginSource,
+    /PROFILE_VERSION\s*=\s*4/u,
+    "Das vorhandene 3-von-3-Profil darf nicht gelöscht werden"
+  );
 });
