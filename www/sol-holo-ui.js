@@ -1441,6 +1441,14 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     showView("chat");
     const chatInput = document.getElementById("messageInput");
     chatInput.value = cleanPrompt;
+    chatInput.dispatchEvent(
+      new Event(
+        "input",
+        {
+          bubbles: true
+        }
+      )
+    );
 
     if (typeof sendMessage === "function") {
       await sendMessage();

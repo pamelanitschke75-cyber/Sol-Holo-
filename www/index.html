@@ -1560,6 +1560,7 @@ MOBIL
 </style>
 <link rel="stylesheet" href="./sol-holo-ui.css?v=34">
 <link rel="stylesheet" href="./sol-holo-wow.css?v=5">
+<link rel="stylesheet" href="./sol-holo-chat-113.css?v=1">
 </head>
 
 <body>
@@ -1680,26 +1681,16 @@ Du kannst noch etwas dazu schreiben oder es direkt senden.
 
 <div id="inputRow">
 
-<button
-  id="imageButton"
-  type="button"
-  aria-label="Foto oder Video auswählen">
-📷
-</button>
-
-<input
-  id="imageInput"
-  type="file"
-  accept="image/*,video/*"
->
-
 <div id="messageWrap">
 
 <textarea
   id="messageInput"
-  rows="3"
+  rows="1"
   placeholder="Schreib Sol etwas..."
   autocomplete="off"
+  autocapitalize="sentences"
+  autocorrect="on"
+  spellcheck="true"
   enterkeyhint="send"
   aria-label="Nachricht an Sol"></textarea>
 
@@ -1713,6 +1704,21 @@ Du kannst noch etwas dazu schreiben oder es direkt senden.
 </div>
 
 <button
+  id="imageButton"
+  type="button"
+  aria-label="Foto oder Video auswählen">
+📷
+</button>
+
+<input
+  id="imageInput"
+  type="file"
+  accept="image/*,video/*"
+>
+
+<div id="liveStatus" role="status" aria-live="polite"></div>
+
+<button
   id="liveButton"
   type="button"
   aria-label="Mit Sol sprechen">
@@ -1721,24 +1727,6 @@ Du kannst noch etwas dazu schreiben oder es direkt senden.
 
 </div>
 
-
-<div id="liveStatus" role="status" aria-live="polite">
-
-<span class="wave">
-·······
-</span>
-
-&nbsp;
-
-Ich bin da.
-
-&nbsp;
-
-<span class="wave">
-·······
-</span>
-
-</div>
 
 </section>
 
@@ -2064,6 +2052,177 @@ const liveStatus =
 
 const voiceStatus =
   document.getElementById("voiceStatus");
+
+
+/*
+==========================================================
+SCHREIBFELD UND ANDROID-TASTATUR · BUILD #113
+==========================================================
+*/
+
+let solComposerBlurTimer =
+  null;
+
+
+function resizeMessageInput(){
+
+  messageInput.style.height =
+    "auto";
+
+
+  const computedStyle =
+    window.getComputedStyle(
+      messageInput
+    );
+
+
+  const minimumHeight =
+    Number.parseFloat(
+      computedStyle.minHeight
+    ) || 36;
+
+
+  const maximumHeight =
+    Number.parseFloat(
+      computedStyle.maxHeight
+    ) || 132;
+
+
+  const contentHeight =
+    Math.max(
+      minimumHeight,
+      messageInput.scrollHeight
+    );
+
+
+  messageInput.style.height =
+    `${Math.ceil(
+      Math.min(
+        contentHeight,
+        maximumHeight
+      )
+    )}px`;
+
+
+  messageInput.style.overflowY =
+    contentHeight > maximumHeight
+      ? "auto"
+      : "hidden";
+}
+
+
+function syncSolVisualViewport(){
+
+  const visualHeight =
+    window.visualViewport?.height ||
+    window.innerHeight;
+
+
+  document.documentElement.style.setProperty(
+    "--sol-viewport-height",
+    `${Math.max(
+      320,
+      Math.round(
+        visualHeight
+      )
+    )}px`
+  );
+
+
+  if(
+    document.activeElement ===
+    messageInput
+  ){
+
+    window.requestAnimationFrame(
+      () => {
+
+        window.scrollTo(
+          0,
+          0
+        );
+
+
+        if(
+          typeof scrollChatToLatest ===
+          "function"
+        ){
+
+          scrollChatToLatest();
+        }
+      }
+    );
+  }
+}
+
+
+messageInput.addEventListener(
+  "input",
+  resizeMessageInput
+);
+
+
+messageInput.addEventListener(
+  "focus",
+  () => {
+
+    window.clearTimeout(
+      solComposerBlurTimer
+    );
+
+
+    document.body.classList.add(
+      "sol-composer-focused"
+    );
+
+
+    resizeMessageInput();
+    syncSolVisualViewport();
+  }
+);
+
+
+messageInput.addEventListener(
+  "blur",
+  () => {
+
+    solComposerBlurTimer =
+      window.setTimeout(
+        () => {
+
+          document.body.classList.remove(
+            "sol-composer-focused"
+          );
+
+
+          syncSolVisualViewport();
+        },
+        180
+      );
+  }
+);
+
+
+window.addEventListener(
+  "resize",
+  syncSolVisualViewport
+);
+
+
+window.visualViewport?.addEventListener(
+  "resize",
+  syncSolVisualViewport
+);
+
+
+window.visualViewport?.addEventListener(
+  "scroll",
+  syncSolVisualViewport
+);
+
+
+resizeMessageInput();
+syncSolVisualViewport();
 
 const voiceExitButton =
   document.getElementById("voiceExitButton");
@@ -3350,6 +3509,14 @@ function setLiveStatus(
 
   liveStatus.textContent =
     cleanText;
+
+
+  liveStatus.classList.toggle(
+    "active",
+    Boolean(
+      cleanText.trim()
+    )
+  );
 
 
   voiceStatus.textContent =
@@ -6698,6 +6865,9 @@ async function sendMessage(
 
     messageInput.value =
       "";
+
+
+    resizeMessageInput();
   }
 
 
@@ -7044,6 +7214,9 @@ async function sendMessage(
 
       messageInput.value =
         "";
+
+
+      resizeMessageInput();
     }
 
 
@@ -7577,12 +7750,13 @@ stopLipSync();
   );
 
 
-  liveStatus.innerHTML =
-    '<span class="wave">·······</span>&nbsp; Ich bin da. &nbsp;<span class="wave">·······</span>';
+  setLiveStatus(
+    ""
+  );
 
 
   voiceStatus.textContent =
-    "Ich bin da.";
+    "Bereit.";
 
 
   micStatus.textContent =
