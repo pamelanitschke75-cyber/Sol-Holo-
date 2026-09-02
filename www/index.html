@@ -249,6 +249,59 @@ SCHREIBEN
     0 12px 6px;
 }
 
+#speakerIdentityChooser{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+
+  margin:0 0 10px;
+  padding:10px 12px;
+
+  border:1px solid rgba(90,205,255,.46);
+  border-radius:18px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(37,16,58,.96),
+      rgba(7,20,36,.97)
+    );
+}
+
+#speakerIdentityChooser strong{
+  flex:1 1 150px;
+  color:#f5ecff;
+  font-size:16px;
+}
+
+.speakerIdentityButton{
+  min-width:92px;
+  min-height:44px;
+  padding:8px 16px;
+
+  border:1px solid rgba(181,104,255,.68);
+  border-radius:22px;
+
+  background:rgba(19,8,31,.92);
+  color:#fff;
+  font-size:16px;
+  font-weight:700;
+}
+
+.speakerIdentityButton[aria-pressed="true"]{
+  border-color:#5cecff;
+  background:linear-gradient(135deg,#7542d8,#157ba5);
+  box-shadow:0 0 15px rgba(79,220,255,.25);
+}
+
+#speakerIdentityStatus{
+  flex:1 0 100%;
+  color:#c9bfd7;
+  font-size:13px;
+  line-height:1.35;
+}
+
 #inputRow{
   display:grid;
 
@@ -411,6 +464,7 @@ BILDVORSCHAU
 #imagePreviewPanel.visible{
   display:flex;
   align-items:center;
+  flex-wrap:wrap;
   gap:10px;
 }
 
@@ -420,6 +474,22 @@ BILDVORSCHAU
 
   object-fit:cover;
   border-radius:13px;
+}
+
+#videoPreview{
+  display:block;
+  width:100%;
+  max-height:240px;
+
+  border-radius:14px;
+  background:#000;
+}
+
+#imagePreview[hidden],
+#videoPreview[hidden],
+#mediaPreviewActions[hidden],
+#videoUploadStatus[hidden]{
+  display:none;
 }
 
 #imagePreviewText{
@@ -445,6 +515,60 @@ BILDVORSCHAU
   color:white;
 
   cursor:pointer;
+}
+
+#mediaPreviewActions{
+  display:flex;
+  width:100%;
+  gap:8px;
+}
+
+#cancelMediaButton,
+#confirmMediaButton{
+  min-height:42px;
+  padding:9px 12px;
+
+  border-radius:14px;
+  border:
+    1px solid rgba(163,89,255,.55);
+
+  color:white;
+  cursor:pointer;
+}
+
+#cancelMediaButton{
+  flex:0 0 auto;
+  background:#1c1029;
+}
+
+#confirmMediaButton{
+  flex:1;
+  background:
+    linear-gradient(
+      135deg,
+      #8637d8,
+      #315de5
+    );
+}
+
+#cancelMediaButton:disabled,
+#confirmMediaButton:disabled{
+  opacity:.48;
+  cursor:default;
+}
+
+#videoUploadStatus{
+  width:100%;
+  color:#ddd4e8;
+  font-size:13px;
+}
+
+#videoUploadProgress{
+  display:block;
+  width:100%;
+  height:8px;
+  margin-bottom:6px;
+  accent-color:#9b55ff;
 }
 
 /*
@@ -1321,6 +1445,11 @@ MOBIL
     padding-right:10px;
   }
 
+  #imagePreviewPanel{
+    margin:
+      0 0 10px;
+  }
+
   #inputRow{
     grid-template-columns:
       62px minmax(0,1fr) 62px;
@@ -1426,12 +1555,41 @@ Online
 
 <section id="controls">
 
+<div
+  id="speakerIdentityChooser"
+  role="group"
+  aria-labelledby="speakerIdentityQuestion">
+  <strong id="speakerIdentityQuestion">Wer spricht gerade?</strong>
+  <button
+    class="speakerIdentityButton"
+    type="button"
+    data-speaker-id="pam"
+    aria-pressed="false">Pam</button>
+  <button
+    class="speakerIdentityButton"
+    type="button"
+    data-speaker-id="steffi"
+    aria-pressed="false">Steffi</button>
+  <span id="speakerIdentityStatus" role="status" aria-live="polite">
+    Bitte vor dem Schreiben oder Sprechen auswählen. Erinnerungen bleiben getrennt.
+  </span>
+</div>
+
 <div id="imagePreviewPanel">
 
 <img
   id="imagePreview"
   alt="Ausgewähltes Foto oder Video"
 >
+
+<video
+  id="videoPreview"
+  aria-label="Vorschau des ausgewählten Videos"
+  controls
+  playsinline
+  preload="metadata"
+  hidden>
+</video>
 
 <div id="imagePreviewText">
 Foto oder Video ausgewählt.<br>
@@ -1444,6 +1602,32 @@ Du kannst noch etwas dazu schreiben oder es direkt senden.
   aria-label="Foto oder Video entfernen">
 ✕
 </button>
+
+<div
+  id="videoUploadStatus"
+  role="status"
+  aria-live="polite"
+  hidden>
+  <progress
+    id="videoUploadProgress"
+    max="100"
+    value="0">
+  </progress>
+  <span id="videoUploadText">Video wird übertragen … 0 %</span>
+</div>
+
+<div id="mediaPreviewActions" hidden>
+  <button
+    id="cancelMediaButton"
+    type="button">
+    Abbrechen
+  </button>
+  <button
+    id="confirmMediaButton"
+    type="button">
+    Video an Sol senden
+  </button>
+</div>
 
 </div>
 
@@ -1811,6 +1995,15 @@ const app =
 const messageInput =
   document.getElementById("messageInput");
 
+const speakerIdentityChooser =
+  document.getElementById("speakerIdentityChooser");
+
+const speakerIdentityStatus =
+  document.getElementById("speakerIdentityStatus");
+
+const speakerIdentityButtons =
+  [...document.querySelectorAll("[data-speaker-id]")];
+
 const sendButton =
   document.getElementById("sendButton");
 
@@ -1885,11 +2078,32 @@ const imagePreviewPanel =
 const imagePreview =
   document.getElementById("imagePreview");
 
+const videoPreview =
+  document.getElementById("videoPreview");
+
 const imagePreviewText =
   document.getElementById("imagePreviewText");
 
 const removeImageButton =
   document.getElementById("removeImageButton");
+
+const mediaPreviewActions =
+  document.getElementById("mediaPreviewActions");
+
+const cancelMediaButton =
+  document.getElementById("cancelMediaButton");
+
+const confirmMediaButton =
+  document.getElementById("confirmMediaButton");
+
+const videoUploadStatus =
+  document.getElementById("videoUploadStatus");
+
+const videoUploadProgress =
+  document.getElementById("videoUploadProgress");
+
+const videoUploadText =
+  document.getElementById("videoUploadText");
 
 const solCloneWrap =
   document.getElementById("solCloneWrap");
@@ -1912,8 +2126,255 @@ const mouthCanvasContext =
     }
   );
 
-const SOL_VOICE_STORAGE_KEY =
+const PAM_SOL_VOICE_STORAGE_KEY =
   "sol-holo-realtime-voice-v1";
+
+const STEFFI_SOL_VOICE_STORAGE_KEY =
+  "steffis-holo-realtime-voice-v1";
+
+const SOL_SPEAKER_SESSION_KEY =
+  "sol-holo-speaker-session-v1";
+
+const SOL_CONVERSATION_SESSION_KEY =
+  "sol-holo-conversation-session-v1";
+
+const SOL_IDENTITIES = {
+  pam:{
+    displayName:"Pam",
+    ownerId:"pam-sol",
+    speakerId:"pam"
+  },
+  steffi:{
+    displayName:"Steffi",
+    ownerId:"steffi-sol",
+    speakerId:"steffi"
+  }
+};
+
+function safeSessionValue(
+  key
+){
+
+  try{
+
+    return String(
+      sessionStorage.getItem(
+        key
+      ) ||
+      ""
+    ).trim();
+
+  }catch{
+
+    return "";
+  }
+}
+
+function createConversationId(
+  forceNew = false
+){
+
+  const existing =
+    safeSessionValue(
+      SOL_CONVERSATION_SESSION_KEY
+    );
+
+  if(
+    !forceNew &&
+    /^[a-zA-Z0-9-]{16,100}$/.test(
+      existing
+    )
+  ){
+
+    return existing;
+  }
+
+  const nextId =
+    typeof globalThis.crypto?.randomUUID ===
+      "function"
+      ? globalThis.crypto.randomUUID()
+      : `sol-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  try{
+
+    sessionStorage.setItem(
+      SOL_CONVERSATION_SESSION_KEY,
+      nextId
+    );
+
+  }catch{}
+
+  return nextId;
+}
+
+let selectedSpeakerId =
+  Object.hasOwn(
+    SOL_IDENTITIES,
+    safeSessionValue(
+      SOL_SPEAKER_SESSION_KEY
+    )
+  )
+    ? safeSessionValue(
+        SOL_SPEAKER_SESSION_KEY
+      )
+    : "";
+
+let conversationId =
+  createConversationId();
+
+function selectedIdentity(){
+
+  return SOL_IDENTITIES[
+    selectedSpeakerId
+  ] ||
+  null;
+}
+
+function renderSelectedIdentity(){
+
+  const identity =
+    selectedIdentity();
+
+  speakerIdentityButtons.forEach(
+    button => {
+
+      const active =
+        button.dataset.speakerId ===
+        selectedSpeakerId;
+
+      button.setAttribute(
+        "aria-pressed",
+        String(active)
+      );
+    }
+  );
+
+  speakerIdentityStatus.textContent =
+    identity
+      ? `${identity.displayName} ist ausgewählt. Dauerhafte Erinnerungen werden nur nach ausdrücklicher Bestätigung gespeichert.`
+      : "Bitte vor dem Schreiben oder Sprechen auswählen. Erinnerungen bleiben getrennt.";
+}
+
+function selectSpeaker(
+  speakerId
+){
+
+  const previousSpeakerId =
+    selectedSpeakerId;
+
+  const cleanSpeakerId =
+    String(
+      speakerId ||
+      ""
+    ).trim().toLowerCase();
+
+  selectedSpeakerId =
+    Object.hasOwn(
+      SOL_IDENTITIES,
+      cleanSpeakerId
+    )
+      ? cleanSpeakerId
+      : "";
+
+  if(
+    previousSpeakerId !==
+    selectedSpeakerId
+  ){
+
+    conversationId =
+      createConversationId(
+        true
+      );
+  }
+
+  try{
+
+    if(
+      selectedSpeakerId
+    ){
+
+      sessionStorage.setItem(
+        SOL_SPEAKER_SESSION_KEY,
+        selectedSpeakerId
+      );
+
+    }else{
+
+      sessionStorage.removeItem(
+        SOL_SPEAKER_SESSION_KEY
+      );
+    }
+
+  }catch{}
+
+  renderSelectedIdentity();
+
+  window.dispatchEvent(
+    new CustomEvent(
+      "solholoidentitychange",
+      {
+        detail:{
+          speakerId:
+            selectedSpeakerId,
+          ownerId:
+            selectedIdentity()?.ownerId ||
+            null
+        }
+      }
+    )
+  );
+}
+
+function requireSelectedIdentity(){
+
+  const identity =
+    selectedIdentity();
+
+  if(
+    identity
+  ){
+
+    return identity;
+  }
+
+  chatStatus.textContent =
+    "Spricht gerade Pam oder Steffi?";
+
+  speakerIdentityChooser.scrollIntoView({
+    behavior:"smooth",
+    block:"center"
+  });
+
+  return null;
+}
+
+speakerIdentityButtons.forEach(
+  button => {
+
+    button.addEventListener(
+      "click",
+      () => {
+
+        selectSpeaker(
+          button.dataset.speakerId
+        );
+
+        messageInput.focus();
+      }
+    );
+  }
+);
+
+renderSelectedIdentity();
+
+window.SolHoloIdentity = Object.freeze({
+  selected:
+    () => selectedIdentity(),
+  require:
+    () => requireSelectedIdentity(),
+  conversationId:
+    () => conversationId
+});
 
 const SOL_REALTIME_VOICES =
   new Set([
@@ -1931,12 +2392,28 @@ const SOL_REALTIME_VOICES =
 
 function loadSelectedSolVoice(){
 
+  const ownerId =
+    selectedIdentity()?.ownerId ||
+    "";
+
+  const storageKey =
+    ownerId === "pam-sol"
+      ? PAM_SOL_VOICE_STORAGE_KEY
+      : ownerId === "steffi-sol"
+        ? STEFFI_SOL_VOICE_STORAGE_KEY
+        : "";
+
+  if(!storageKey){
+
+    return "coral";
+  }
+
   try{
 
     const savedVoice =
       String(
         localStorage.getItem(
-          SOL_VOICE_STORAGE_KEY
+          storageKey
         ) ||
         ""
       )
@@ -1962,11 +2439,29 @@ function loadSelectedSolVoice(){
 let selectedSolVoice =
   loadSelectedSolVoice();
 
-solVoiceSelect.value =
-  selectedSolVoice;
+function renderOwnerSolVoice(){
 
-solVoiceChoiceStatus.textContent =
-  `${solVoiceSelect.selectedOptions[0].textContent} ist für das nächste Gespräch ausgewählt.`;
+  selectedSolVoice =
+    loadSelectedSolVoice();
+
+  solVoiceSelect.value =
+    selectedSolVoice;
+
+  const identity =
+    selectedIdentity();
+
+  solVoiceChoiceStatus.textContent =
+    identity
+      ? `${solVoiceSelect.selectedOptions[0].textContent} ist nur für ${identity.displayName}s eigenes Holo ausgewählt.`
+      : "Bitte zuerst Pam oder Steffi auswählen. Die Stimmen bleiben getrennt.";
+}
+
+renderOwnerSolVoice();
+
+window.addEventListener(
+  "solholoidentitychange",
+  renderOwnerSolVoice
+);
 
 
 let selectedImageDataUrl =
@@ -1977,6 +2472,15 @@ let selectedVideoFrames =
 
 let selectedVideoDurationSeconds =
   0;
+
+let selectedVideoFile =
+  null;
+
+let selectedVideoObjectUrl =
+  null;
+
+let activeVideoUploadController =
+  null;
 
 let selectedMediaKind =
   null;
@@ -1997,7 +2501,7 @@ const LIP_SYNC_FACE = {
 };
 
 const FULL_FACE_RIG_ENABLED =
-  false;
+  true;
 
 const SOL_MOTION_PROFILE =
   window.SolHoloMotionProfile ||
@@ -3112,11 +3616,39 @@ imageInput.addEventListener(
         "image/"
       );
 
-    const isVideo =
+    let isVideo =
+      false;
+
+
+    let videoValidationError =
+      null;
+
+
+    if(
+      !isImage &&
       window.SolHoloMedia
-        ?.isSupportedVideoFile(
-          file
-        );
+        ?.validateVideoFile
+    ){
+
+      try{
+
+        window.SolHoloMedia
+          .validateVideoFile(
+            file
+          );
+
+
+        isVideo =
+          true;
+
+      }catch(
+        error
+      ){
+
+        videoValidationError =
+          error;
+      }
+    }
 
 
     if(
@@ -3125,7 +3657,8 @@ imageInput.addEventListener(
     ){
 
       chatStatus.textContent =
-        "Bitte wähle ein Foto oder Video aus.";
+        videoValidationError?.message ||
+        "Bitte wähle ein unterstütztes Foto oder Video aus.";
 
 
       imageInput.value =
@@ -3150,17 +3683,7 @@ imageInput.addEventListener(
 
     try{
 
-      selectedImageDataUrl =
-        null;
-
-      selectedVideoFrames =
-        [];
-
-      selectedVideoDurationSeconds =
-        0;
-
-      selectedMediaKind =
-        null;
+      clearSelectedImage();
 
 
       if(
@@ -3198,12 +3721,34 @@ imageInput.addEventListener(
         selectedVideoDurationSeconds =
           preparedVideo.durationSeconds;
 
+        selectedVideoFile =
+          file;
+
         selectedImageDataUrl =
           preparedVideo.frames[0] ||
           null;
 
         selectedMediaKind =
           "video";
+
+        selectedVideoObjectUrl =
+          URL.createObjectURL(
+            file
+          );
+
+        videoPreview.src =
+          selectedVideoObjectUrl;
+
+        videoPreview.poster =
+          selectedImageDataUrl;
+
+        videoPreview.hidden =
+          false;
+
+        videoPreview.load();
+
+        imagePreview.hidden =
+          true;
 
       }else{
 
@@ -3214,6 +3759,12 @@ imageInput.addEventListener(
 
         selectedMediaKind =
           "image";
+
+        imagePreview.hidden =
+          false;
+
+        videoPreview.hidden =
+          true;
       }
 
 
@@ -3244,9 +3795,20 @@ imageInput.addEventListener(
           ?
           `Video bereit · ${window.SolHoloMedia.formatDuration(
             selectedVideoDurationSeconds
-          )}<br>Sol wertet ${selectedVideoFrames.length} Ausschnitte in zeitlicher Reihenfolge aus.`
+          )} · ${(
+            file.size /
+            (1024 * 1024)
+          ).toFixed(1)} MB<br>Noch nicht übertragen. Erst „Video an Sol senden“ gibt Bildfolge und Tonspur einmalig zur Auswertung frei.`
           :
           "Foto bereit.<br>Du kannst noch etwas dazu schreiben oder es direkt senden.";
+
+
+      mediaPreviewActions.hidden =
+        !isVideo;
+
+
+      videoUploadStatus.hidden =
+        true;
 
 
       imagePreviewPanel.classList.add(
@@ -3257,7 +3819,7 @@ imageInput.addEventListener(
       chatStatus.textContent =
         isVideo
           ?
-          "Video bereit."
+          "Video bereit · bitte Senden oder Abbrechen wählen."
           :
           "Foto bereit.";
 
@@ -3271,22 +3833,7 @@ imageInput.addEventListener(
       );
 
 
-      selectedImageDataUrl =
-        null;
-
-      selectedVideoFrames =
-        [];
-
-      selectedVideoDurationSeconds =
-        0;
-
-      selectedMediaKind =
-        null;
-
-
-      imagePreviewPanel.classList.remove(
-        "visible"
-      );
+      clearSelectedImage();
 
 
       chatStatus.textContent =
@@ -3317,8 +3864,45 @@ function clearSelectedImage(){
   selectedVideoDurationSeconds =
     0;
 
+  selectedVideoFile =
+    null;
+
   selectedMediaKind =
     null;
+
+
+  videoPreview.pause();
+
+
+  videoPreview.removeAttribute(
+    "src"
+  );
+
+
+  videoPreview.removeAttribute(
+    "poster"
+  );
+
+
+  videoPreview.load();
+
+
+  videoPreview.hidden =
+    true;
+
+
+  if(
+    selectedVideoObjectUrl
+  ){
+
+    URL.revokeObjectURL(
+      selectedVideoObjectUrl
+    );
+
+
+    selectedVideoObjectUrl =
+      null;
+  }
 
 
   imagePreview.removeAttribute(
@@ -3330,6 +3914,10 @@ function clearSelectedImage(){
     "Ausgewähltes Foto oder Video";
 
 
+  imagePreview.hidden =
+    false;
+
+
   imagePreviewText.innerHTML =
     "Foto oder Video ausgewählt.<br>Du kannst noch etwas dazu schreiben oder es direkt senden.";
 
@@ -3339,8 +3927,54 @@ function clearSelectedImage(){
   );
 
 
+  mediaPreviewActions.hidden =
+    true;
+
+
+  videoUploadStatus.hidden =
+    true;
+
+
+  videoUploadProgress.value =
+    0;
+
+
+  videoUploadText.textContent =
+    "Video wird übertragen … 0 %";
+
+
+  confirmMediaButton.disabled =
+    false;
+
+
+  cancelMediaButton.disabled =
+    false;
+
+
+  removeImageButton.disabled =
+    false;
+
+
   imageInput.value =
     "";
+}
+
+
+function cancelSelectedMedia(){
+
+  if(
+    activeVideoUploadController
+  ){
+
+    activeVideoUploadController.abort();
+  }
+
+
+  clearSelectedImage();
+
+
+  chatStatus.textContent =
+    "Videosenden abgebrochen · es wurde nichts dauerhaft gespeichert.";
 }
 
 
@@ -3348,11 +3982,37 @@ removeImageButton.addEventListener(
   "click",
   () => {
 
+    if(
+      selectedMediaKind ===
+      "video"
+    ){
+
+      cancelSelectedMedia();
+
+      return;
+    }
+
+
     clearSelectedImage();
 
 
     chatStatus.textContent =
-      "Foto oder Video entfernt.";
+      "Foto entfernt.";
+  }
+);
+
+
+cancelMediaButton.addEventListener(
+  "click",
+  cancelSelectedMedia
+);
+
+
+confirmMediaButton.addEventListener(
+  "click",
+  () => {
+
+    sendMessage();
   }
 );
 
@@ -5599,6 +6259,15 @@ solVoiceSelect.addEventListener(
   "change",
   () => {
 
+    const identity =
+      requireSelectedIdentity();
+
+    if(!identity){
+
+      renderOwnerSolVoice();
+      return;
+    }
+
     const requestedVoice =
       String(
         solVoiceSelect.value ||
@@ -5622,8 +6291,13 @@ solVoiceSelect.addEventListener(
 
     try{
 
+      const storageKey =
+        identity.ownerId === "pam-sol"
+          ? PAM_SOL_VOICE_STORAGE_KEY
+          : STEFFI_SOL_VOICE_STORAGE_KEY;
+
       localStorage.setItem(
-        SOL_VOICE_STORAGE_KEY,
+        storageKey,
         selectedSolVoice
       );
 
@@ -5643,7 +6317,7 @@ solVoiceSelect.addEventListener(
 
 
     solVoiceChoiceStatus.textContent =
-      `${voiceName} ist ausgewählt. Starte das nächste Gespräch, um die Stimme zu hören.`;
+      `${voiceName} ist nur für ${identity.displayName}s eigenes Holo ausgewählt. Starte das nächste Gespräch, um die Stimme zu hören.`;
   }
 );
 
@@ -5969,6 +6643,15 @@ async function sendMessage(
       0;
 
 
+  const videoFileToSend =
+    mediaKindToSend ===
+    "video"
+      ?
+      selectedVideoFile
+      :
+      null;
+
+
   if(
     !message &&
     !imageToSend &&
@@ -5980,12 +6663,26 @@ async function sendMessage(
   }
 
 
+  const identity =
+    requireSelectedIdentity();
+
+
   if(
-    !isForcedMessage
+    !identity
+  ){
+
+    return;
+  }
+
+
+  if(
+    !isForcedMessage &&
+    mediaKindToSend !==
+      "video"
   ){
 
     addMessage(
-      "Pam",
+      identity.displayName,
       message,
       "user-message",
       mediaPreviewToSend,
@@ -6046,11 +6743,15 @@ async function sendMessage(
     true;
 
 
+  confirmMediaButton.disabled =
+    true;
+
+
   chatStatus.textContent =
     videoFramesToSend.length >
     0
       ?
-      "Sol schaut sich das Video an ..."
+      "Video wird für die sichere Übertragung vorbereitet ..."
       :
       imageToSend
         ?
@@ -6060,6 +6761,145 @@ async function sendMessage(
 
 
   try{
+
+    let videoTranscriptToSend =
+      "";
+
+
+    let videoAudioStatusToSend =
+      null;
+
+
+    if(
+      videoFramesToSend.length >
+      0
+    ){
+
+      if(
+        !videoFileToSend ||
+        !window.SolHoloMedia
+          ?.uploadVideoForAudioAnalysis
+      ){
+
+        throw new Error(
+          "Das ausgewählte Video ist nicht mehr verfügbar. Bitte wähle es erneut aus."
+        );
+      }
+
+
+      activeVideoUploadController =
+        new AbortController();
+
+
+      videoUploadStatus.hidden =
+        false;
+
+
+      videoUploadProgress.value =
+        0;
+
+
+      cancelMediaButton.disabled =
+        false;
+
+
+      removeImageButton.disabled =
+        false;
+
+
+      const audioAnalysis =
+        await window.SolHoloMedia
+          .uploadVideoForAudioAnalysis({
+
+            backendUrl:
+              BACKEND_URL,
+
+            durationSeconds:
+              videoDurationToSend,
+
+            file:
+              videoFileToSend,
+
+            signal:
+              activeVideoUploadController.signal,
+
+            onProgress:
+              percent => {
+
+                videoUploadProgress.value =
+                  percent;
+
+
+                videoUploadText.textContent =
+                  `Video wird übertragen … ${percent} %`;
+
+
+                chatStatus.textContent =
+                  `Video-Upload ${percent} %`;
+              },
+
+            onStage:
+              stage => {
+
+                if(
+                  stage ===
+                  "analyzing"
+                ){
+
+                  videoUploadText.textContent =
+                    "Upload vollständig · Ton und Sprache werden ausgewertet …";
+
+
+                  chatStatus.textContent =
+                    "Ton und gesprochener Inhalt werden ausgewertet ...";
+                }
+              }
+          });
+
+
+      activeVideoUploadController =
+        null;
+
+
+      videoTranscriptToSend =
+        String(
+          audioAnalysis?.transcript ||
+          ""
+        ).trim();
+
+
+      videoAudioStatusToSend =
+        String(
+          audioAnalysis?.audioStatus ||
+          "unavailable"
+        ).trim();
+
+
+      videoUploadText.textContent =
+        audioAnalysis?.notice ||
+        "Ton-Auswertung abgeschlossen.";
+
+
+      cancelMediaButton.disabled =
+        true;
+
+
+      removeImageButton.disabled =
+        true;
+
+
+      chatStatus.textContent =
+        videoAudioStatusToSend ===
+          "transcribed"
+          ?
+          "Sprache erkannt · Sol analysiert jetzt Bildfolge und Inhalt ..."
+          : videoAudioStatusToSend ===
+              "no_speech"
+            ?
+            "Keine verständliche Sprache erkannt · Sol analysiert die Bildfolge ..."
+            :
+            "Ton technisch nicht verfügbar · Sol analysiert die Bildfolge ...";
+    }
 
     const response =
       await fetch(
@@ -6085,7 +6925,23 @@ async function sendMessage(
                 videoFramesToSend,
 
               videoDurationSeconds:
-                videoDurationToSend
+                videoDurationToSend,
+
+              videoTranscript:
+                videoTranscriptToSend,
+
+              videoAudioStatus:
+                videoAudioStatusToSend,
+
+              selectedSpeakerId,
+
+              ownerId:
+                identity.ownerId,
+
+              conversationId,
+
+              source:
+                "text"
             })
         }
       );
@@ -6119,6 +6975,31 @@ async function sendMessage(
 
 
     if(
+      data?.identityRequired
+    ){
+
+      selectSpeaker("");
+
+      const identityQuestion =
+        String(
+          data?.question ||
+          "Spricht gerade Pam oder Steffi?"
+        ).trim();
+
+      addMessage(
+        "Sol",
+        identityQuestion,
+        "sol-message"
+      );
+
+      chatStatus.textContent =
+        identityQuestion;
+
+      return;
+    }
+
+
+    if(
       !response.ok
     ){
 
@@ -6146,6 +7027,26 @@ async function sendMessage(
     }
 
 
+    if(
+      !isForcedMessage &&
+      mediaKindToSend ===
+        "video"
+    ){
+
+      addMessage(
+        identity.displayName,
+        message,
+        "user-message",
+        mediaPreviewToSend,
+        "video"
+      );
+
+
+      messageInput.value =
+        "";
+    }
+
+
     addMessage(
       "Sol",
       answer,
@@ -6167,11 +7068,32 @@ async function sendMessage(
 
 
     chatStatus.textContent =
-      "Antwort erhalten.";
+      videoFramesToSend.length >
+        0
+        ? videoAudioStatusToSend ===
+            "transcribed"
+          ? "Antwort erhalten · Bildfolge und gesprochener Inhalt wurden ausgewertet."
+          : videoAudioStatusToSend ===
+              "no_speech"
+            ? "Antwort erhalten · Bildfolge ausgewertet, keine verständliche Sprache erkannt."
+            : "Antwort erhalten · Bildfolge ausgewertet, Ton technisch nicht verfügbar."
+        : "Antwort erhalten.";
 
   }catch(
     error
   ){
+
+    if(
+      error?.name ===
+      "AbortError"
+    ){
+
+      chatStatus.textContent =
+        "Videosenden abgebrochen · es wurde nichts dauerhaft gespeichert.";
+
+
+      return;
+    }
 
     console.error(
       "Text-/Medienchat Fehler:",
@@ -6190,9 +7112,27 @@ async function sendMessage(
 
 
     chatStatus.textContent =
+      error?.message ||
       "Chat-Fehler.";
 
+
+    if(
+      mediaKindToSend ===
+      "video"
+    ){
+
+      videoUploadStatus.hidden =
+        false;
+
+
+      videoUploadText.textContent =
+        "Fehler · das Video bleibt ausgewählt und kann erneut gesendet oder abgebrochen werden.";
+    }
+
   }finally{
+
+    activeVideoUploadController =
+      null;
 
     sendButton.disabled =
       false;
@@ -6200,6 +7140,24 @@ async function sendMessage(
 
     imageButton.disabled =
       false;
+
+
+    if(
+      selectedMediaKind ===
+      "video"
+    ){
+
+      confirmMediaButton.disabled =
+        false;
+
+
+      cancelMediaButton.disabled =
+        false;
+
+
+      removeImageButton.disabled =
+        false;
+    }
   }
 }
 
@@ -6258,6 +7216,20 @@ async function sendLiveTranscriptToMemory(
   role = "user"
 ){
 
+  const identity =
+    selectedIdentity();
+
+
+  if(
+    !identity
+  ){
+
+    memoryStatus.textContent =
+      "🧠 Bitte zuerst Pam oder Steffi auswählen.";
+
+    return;
+  }
+
   const cleanTranscript =
     String(
       transcript || ""
@@ -6297,7 +7269,17 @@ async function sendLiveTranscriptToMemory(
                 cleanTranscript,
 
               role:
-                role
+                role,
+
+              selectedSpeakerId,
+
+              ownerId:
+                identity.ownerId,
+
+              conversationId,
+
+              source:
+                "voice"
             })
         }
       );
@@ -6328,7 +7310,9 @@ async function sendLiveTranscriptToMemory(
     }else{
 
       memoryStatus.textContent =
-        "🧠 Keine dauerhafte Erinnerung nötig.";
+        data?.identityRequired
+          ? "🧠 Spricht gerade Pam oder Steffi?"
+          : "🧠 Nicht dauerhaft gespeichert.";
     }
 
   }catch(
@@ -6757,7 +7741,7 @@ async function handleRealtimeMemoryToolCall(
           "Die Notizfunktion hat keine Rückmeldung geliefert."
         );
       }else{
-        output = "Die Samsung-Notes-Übergabe ist in Pam’s Holo gerade nicht verfügbar.";
+        output = `Die Samsung-Notes-Übergabe ist in ${activeInstanceName()} gerade nicht verfügbar.`;
       }
     }else if(toolCall?.name === "read_health_snapshot"){
       if(typeof window.executeSolHoloHealthTool === "function"){
@@ -6770,7 +7754,7 @@ async function handleRealtimeMemoryToolCall(
           "Die Health-Funktion hat keine Rückmeldung geliefert."
         );
       }else{
-        output = "Health Connect ist nur in der Pam’s-Holo-App für Android verfügbar.";
+        output = `Health Connect ist nur in ${activeInstanceName()} für Android verfügbar.`;
       }
     }else if(
       typeof window.executeSolHoloPhoneTool === "function"
@@ -6784,7 +7768,7 @@ async function handleRealtimeMemoryToolCall(
         "Die Telefonfunktion hat keine Rückmeldung geliefert."
       );
     }else{
-      output = "Die Telefonfunktion ist nur in der Pam’s-Holo-App für Android verfügbar.";
+      output = `Die Telefonfunktion ist nur in ${activeInstanceName()} für Android verfügbar.`;
     }
   }catch(error){
     console.error("Realtime Tool Fehler:", error);
@@ -6896,6 +7880,17 @@ function sendPendingWakePrompt(channel){
 
 async function startLiveConversation(){
 
+  const identity =
+    requireSelectedIdentity();
+
+
+  if(
+    !identity
+  ){
+
+    return;
+  }
+
   if(
     pc
   ){
@@ -6984,7 +7979,14 @@ async function startLiveConversation(){
           body:
             JSON.stringify({
               voice:
-                selectedSolVoice
+                selectedSolVoice,
+
+              selectedSpeakerId,
+
+              ownerId:
+                identity.ownerId,
+
+              conversationId
             }),
 
           cache:"no-store"
@@ -7766,6 +8768,7 @@ if(
 </script>
 
 <script src="./sol-holo-ui.js?v=35"></script>
+<script type="module" src="./consent-ui-bootstrap.mjs?v=1"></script>
 <script>
 (() => {
   "use strict";

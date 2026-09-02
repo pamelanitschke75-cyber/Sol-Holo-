@@ -3,6 +3,7 @@
   "scripts": {
     "postinstall": "node scripts/generate-third-party-licenses.mjs && node scripts/install-full-face-rig-assets.mjs",
     "start": "node server.mjs",
+    "verify:build-108": "node scripts/verify-build-108.mjs",
     "cap:sync": "npx cap sync android",
     "android:build": "cd android && ./gradlew assembleDebug"
   },

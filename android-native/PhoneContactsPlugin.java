@@ -2,6 +2,7 @@ package com.solholo.app;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ComponentName;
@@ -13,6 +14,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.ContactsContract;
+import android.provider.Settings;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyCallback;
 import android.telephony.TelephonyManager;
@@ -60,12 +62,16 @@ public class PhoneContactsPlugin extends Plugin {
     private static final String NOTE_TRUNCATED_KEY = "pending_note_truncated";
     private static final int MAX_SHARED_NOTE_LENGTH = 3200;
     private static final int MAX_SHARED_NOTE_TITLE_LENGTH = 160;
+    private static final int MAX_SMS_LENGTH = 5000;
+    private static final int MAX_RECIPIENT_NAME_LENGTH = 160;
     private static volatile PhoneContactsPlugin activePlugin;
 
     private TelephonyManager telephonyManager;
     private TelephonyCallback telephonyCallback;
     private PhoneStateListener legacyPhoneStateListener;
     private int currentCallState = TelephonyManager.CALL_STATE_IDLE;
+    private PluginCall pendingExternalActionCall;
+    private AlertDialog pendingExternalActionDialog;
 
     private static final class SamsungNoteLaunch {
         final Intent intent;
@@ -93,6 +99,7 @@ public class PhoneContactsPlugin extends Plugin {
     @Override
     protected void handleOnDestroy() {
         unregisterCallStateListener();
+        cancelPendingExternalAction();
         if (activePlugin == this) {
             activePlugin = null;
         }
@@ -182,6 +189,18 @@ public class PhoneContactsPlugin extends Plugin {
             "connected",
             contactsGranted() && phoneStateGranted()
         );
+        result.put("permissionsCanBeRevoked", true);
+        result.put(
+            "contactsPermissionPurpose",
+            "Kontakte werden nur zum Finden eines ausdrücklich genannten Empfängers gelesen."
+        );
+        result.put(
+            "phoneStatePermissionPurpose",
+            "Der Telefonstatus wird nur erkannt, damit Pam’s Holo während eines Anrufs pausiert."
+        );
+        result.put("outgoingCallsDirectlyStarted", false);
+        result.put("smsDirectlySent", false);
+        result.put("visibleActionConfirmationRequired", true);
         result.put("callState", callStateName(currentCallState));
         result.put(
             "incomingCall",
@@ -274,6 +293,20 @@ public class PhoneContactsPlugin extends Plugin {
     }
 
     private SamsungNoteLaunch samsungNoteLaunch(String title, String text) {
+        // ACTION_SEND + EXTRA_TEXT ist Androids standardisierte Textübergabe.
+        // Samsung Notes erhält sie zuerst, damit der gewünschte Inhalt nicht nur
+        // eine leere Notizansicht öffnet.
+        Intent sharedText = resolveSamsungNotesActivity(
+            withSamsungNoteText(
+                new Intent(Intent.ACTION_SEND),
+                title,
+                text
+            )
+        );
+        if (sharedText != null) {
+            return new SamsungNoteLaunch(sharedText, "share_text");
+        }
+
         Intent googleNote = resolveSamsungNotesActivity(
             withSamsungNoteText(
                 new Intent(GOOGLE_CREATE_NOTE_ACTION),
@@ -298,17 +331,6 @@ public class PhoneContactsPlugin extends Plugin {
             }
         }
 
-        Intent sharedText = resolveSamsungNotesActivity(
-            withSamsungNoteText(
-                new Intent(Intent.ACTION_SEND),
-                title,
-                text
-            )
-        );
-        if (sharedText != null) {
-            return new SamsungNoteLaunch(sharedText, "share_text");
-        }
-
         return null;
     }
 
@@ -325,6 +347,8 @@ public class PhoneContactsPlugin extends Plugin {
         result.put("draftHandoffSupported", launch != null);
         result.put("handoffMode", launch == null ? "" : launch.mode);
         result.put("pamHoloConfirmationRequired", false);
+        result.put("reviewAndSaveInSamsungNotesRequired", true);
+        result.put("textTransport", "android.intent.extra.TEXT");
         call.resolve(result);
     }
 
@@ -417,8 +441,10 @@ public class PhoneContactsPlugin extends Plugin {
             result.put("packageName", SAMSUNG_NOTES_PACKAGE);
             result.put("handoffMode", launch.mode);
             result.put("pamHoloConfirmationRequired", false);
+            result.put("reviewAndSaveInSamsungNotesRequired", true);
+            result.put("contentTransferred", true);
             call.resolve(result);
-        } catch (ActivityNotFoundException error) {
+        } catch (ActivityNotFoundException | SecurityException error) {
             call.reject(
                 "Samsung Notes konnte die Notiz gerade nicht übernehmen.",
                 "SAMSUNG_NOTES_SHARE_FAILED",
@@ -451,6 +477,40 @@ public class PhoneContactsPlugin extends Plugin {
         JSObject result = status();
         notifyListeners("phoneStatusChanged", result, true);
         call.resolve(result);
+    }
+
+    @PluginMethod
+    public void openPermissionSettings(PluginCall call) {
+        Activity activity = getActivity();
+        if (activity == null) {
+            call.reject(
+                "Die Android-Berechtigungen konnten gerade nicht geöffnet werden.",
+                "APP_PERMISSION_SETTINGS_UNAVAILABLE"
+            );
+            return;
+        }
+
+        Intent intent = new Intent(
+            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            Uri.fromParts("package", getContext().getPackageName(), null)
+        );
+
+        try {
+            activity.startActivity(intent);
+            JSObject result = status();
+            result.put("settingsOpened", true);
+            result.put(
+                "instructions",
+                "Unter Berechtigungen können Kontakte und Telefon jederzeit einzeln widerrufen werden."
+            );
+            call.resolve(result);
+        } catch (ActivityNotFoundException | SecurityException error) {
+            call.reject(
+                "Die Android-Berechtigungen konnten gerade nicht geöffnet werden.",
+                "APP_PERMISSION_SETTINGS_UNAVAILABLE",
+                error
+            );
+        }
     }
 
     @PluginMethod
@@ -566,6 +626,9 @@ public class PhoneContactsPlugin extends Plugin {
     @PluginMethod
     public void openDialer(PluginCall call) {
         String number = cleanDestination(call.getString("number", ""));
+        String recipientName = cleanRecipientName(
+            call.getString("recipientName", "")
+        );
         if (number.isEmpty()) {
             call.reject("Keine Telefonnummer erhalten.");
             return;
@@ -577,30 +640,56 @@ public class PhoneContactsPlugin extends Plugin {
             return;
         }
 
-        Intent intent = new Intent(
-            Intent.ACTION_DIAL,
-            Uri.fromParts("tel", number, null)
-        );
+        String recipient = recipientName.isEmpty()
+            ? number
+            : recipientName + " (" + number + ")";
+        String confirmationText =
+            "Empfänger: " + recipient + "\n\n" +
+            "Aktion: Telefon-App mit dieser Nummer öffnen.\n\n" +
+            "Der Anruf wird nicht automatisch gestartet. " +
+            "Du startest ihn anschließend selbst in der Telefon-App.";
 
-        try {
-            activity.startActivity(intent);
-            JSObject result = new JSObject();
-            result.put("opened", true);
-            result.put("number", number);
-            call.resolve(result);
-        } catch (ActivityNotFoundException error) {
-            call.reject(
-                "Auf diesem Gerät wurde keine Telefon-App gefunden.",
-                null,
-                error
-            );
-        }
+        confirmExternalAction(
+            call,
+            activity,
+            "Anruf bestätigen",
+            confirmationText,
+            "Telefon-App öffnen",
+            () -> {
+                Intent intent = new Intent(
+                    Intent.ACTION_DIAL,
+                    Uri.fromParts("tel", number, null)
+                );
+
+                try {
+                    activity.startActivity(intent);
+                    JSObject result = new JSObject();
+                    result.put("opened", true);
+                    result.put("number", number);
+                    result.put("recipientName", recipientName);
+                    result.put("confirmationShown", true);
+                    result.put("userConfirmed", true);
+                    result.put("callStarted", false);
+                    result.put("finalDialerConfirmationRequired", true);
+                    call.resolve(result);
+                } catch (ActivityNotFoundException | SecurityException error) {
+                    call.reject(
+                        "Auf diesem Gerät wurde keine Telefon-App gefunden.",
+                        "PHONE_APP_UNAVAILABLE",
+                        error
+                    );
+                }
+            }
+        );
     }
 
     @PluginMethod
     public void prepareSms(PluginCall call) {
         String number = cleanDestination(call.getString("number", ""));
         String message = call.getString("message", "").trim();
+        String recipientName = cleanRecipientName(
+            call.getString("recipientName", "")
+        );
 
         if (number.isEmpty()) {
             call.reject("Keine Telefonnummer für die SMS erhalten.");
@@ -612,29 +701,159 @@ public class PhoneContactsPlugin extends Plugin {
             return;
         }
 
+        if (message.length() > MAX_SMS_LENGTH) {
+            call.reject(
+                "Der SMS-Text ist für eine vollständige sichtbare Bestätigung zu lang.",
+                "SMS_TEXT_TOO_LONG"
+            );
+            return;
+        }
+
         Activity activity = getActivity();
         if (activity == null) {
             call.reject("Die Nachrichten-App konnte nicht geöffnet werden.");
             return;
         }
 
-        Intent intent = new Intent(
-            Intent.ACTION_SENDTO,
-            Uri.fromParts("smsto", number, null)
-        );
-        intent.putExtra("sms_body", message);
+        String recipient = recipientName.isEmpty()
+            ? number
+            : recipientName + " (" + number + ")";
+        String confirmationText =
+            "Empfänger: " + recipient + "\n\n" +
+            "SMS-Inhalt:\n" + message + "\n\n" +
+            "Die Nachricht wird nicht automatisch gesendet. " +
+            "Du sendest sie anschließend selbst in der Nachrichten-App.";
 
-        try {
-            activity.startActivity(intent);
-            JSObject result = new JSObject();
-            result.put("opened", true);
-            result.put("number", number);
-            call.resolve(result);
-        } catch (ActivityNotFoundException error) {
+        confirmExternalAction(
+            call,
+            activity,
+            "SMS bestätigen",
+            confirmationText,
+            "SMS-App öffnen",
+            () -> {
+                Intent intent = new Intent(
+                    Intent.ACTION_SENDTO,
+                    Uri.fromParts("smsto", number, null)
+                );
+                intent.putExtra("sms_body", message);
+
+                try {
+                    activity.startActivity(intent);
+                    JSObject result = new JSObject();
+                    result.put("opened", true);
+                    result.put("number", number);
+                    result.put("recipientName", recipientName);
+                    result.put("confirmationShown", true);
+                    result.put("userConfirmed", true);
+                    result.put("messagePrepared", true);
+                    result.put("messageLength", message.length());
+                    result.put("sent", false);
+                    result.put("finalSmsAppConfirmationRequired", true);
+                    call.resolve(result);
+                } catch (ActivityNotFoundException | SecurityException error) {
+                    call.reject(
+                        "Auf diesem Gerät wurde keine SMS-App gefunden.",
+                        "SMS_APP_UNAVAILABLE",
+                        error
+                    );
+                }
+            }
+        );
+    }
+
+    private void confirmExternalAction(
+        PluginCall call,
+        Activity activity,
+        String title,
+        String message,
+        String positiveLabel,
+        Runnable confirmedAction
+    ) {
+        synchronized (this) {
+            if (pendingExternalActionCall != null) {
+                call.reject(
+                    "Bitte schließe zuerst die bereits geöffnete Bestätigung.",
+                    "EXTERNAL_ACTION_CONFIRMATION_ACTIVE"
+                );
+                return;
+            }
+            pendingExternalActionCall = call;
+        }
+
+        activity.runOnUiThread(() -> {
+            try {
+                AlertDialog dialog = new AlertDialog.Builder(activity)
+                    .setTitle(title)
+                    .setMessage(message)
+                    .setPositiveButton(positiveLabel, (ignored, which) -> {
+                        if (completeExternalConfirmation(call)) {
+                            confirmedAction.run();
+                        }
+                    })
+                    .setNegativeButton("Abbrechen", (ignored, which) -> {
+                        if (completeExternalConfirmation(call)) {
+                            call.reject(
+                                "Die Aktion wurde abgebrochen.",
+                                "USER_CANCELLED"
+                            );
+                        }
+                    })
+                    .setOnCancelListener(ignored -> {
+                        if (completeExternalConfirmation(call)) {
+                            call.reject(
+                                "Die Aktion wurde abgebrochen.",
+                                "USER_CANCELLED"
+                            );
+                        }
+                    })
+                    .create();
+
+                synchronized (PhoneContactsPlugin.this) {
+                    if (pendingExternalActionCall != call) {
+                        return;
+                    }
+                    pendingExternalActionDialog = dialog;
+                }
+                dialog.show();
+            } catch (RuntimeException error) {
+                if (completeExternalConfirmation(call)) {
+                    call.reject(
+                        "Die sichtbare Bestätigung konnte gerade nicht geöffnet werden.",
+                        "EXTERNAL_ACTION_CONFIRMATION_UNAVAILABLE",
+                        error
+                    );
+                }
+            }
+        });
+    }
+
+    private synchronized boolean completeExternalConfirmation(PluginCall call) {
+        if (pendingExternalActionCall != call) {
+            return false;
+        }
+        pendingExternalActionCall = null;
+        pendingExternalActionDialog = null;
+        return true;
+    }
+
+    private void cancelPendingExternalAction() {
+        PluginCall call;
+        AlertDialog dialog;
+        synchronized (this) {
+            call = pendingExternalActionCall;
+            dialog = pendingExternalActionDialog;
+            pendingExternalActionCall = null;
+            pendingExternalActionDialog = null;
+        }
+
+        if (dialog != null && dialog.isShowing()) {
+            dialog.setOnCancelListener(null);
+            dialog.dismiss();
+        }
+        if (call != null) {
             call.reject(
-                "Auf diesem Gerät wurde keine SMS-App gefunden.",
-                null,
-                error
+                "Die sichtbare Bestätigung wurde geschlossen.",
+                "EXTERNAL_ACTION_CONFIRMATION_CLOSED"
             );
         }
     }
@@ -643,6 +862,17 @@ public class PhoneContactsPlugin extends Plugin {
         String clean = (value == null ? "" : value).trim();
         if (clean.length() > 80 || clean.contains("\n") || clean.contains("\r")) {
             return "";
+        }
+        return clean;
+    }
+
+    private String cleanRecipientName(String value) {
+        String clean = (value == null ? "" : value)
+            .replace('\n', ' ')
+            .replace('\r', ' ')
+            .trim();
+        if (clean.length() > MAX_RECIPIENT_NAME_LENGTH) {
+            clean = clean.substring(0, MAX_RECIPIENT_NAME_LENGTH).trim();
         }
         return clean;
     }
@@ -667,6 +897,8 @@ public class PhoneContactsPlugin extends Plugin {
     @SuppressWarnings("deprecation")
     private void registerCallStateListener() {
         if (!phoneStateGranted() || !telephonySupported()) {
+            unregisterCallStateListener();
+            currentCallState = TelephonyManager.CALL_STATE_IDLE;
             return;
         }
 

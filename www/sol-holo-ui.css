@@ -1287,6 +1287,7 @@ body{
   height:min(78%,330px);
   max-width:66%;
   margin-bottom:18px;
+  isolation:isolate;
 }
 
 #chatView #holoBase{
@@ -1313,6 +1314,18 @@ body{
       rgba(0,0,0,.52) 83%,
       transparent 100%
     );
+}
+
+/* Ruhige GPU-Ebene fuer Foto, Vollgesichts-Rig und lokalen Mund-Fallback. */
+#chatView #faceCanvas,
+#chatView #mouthCanvas{
+  backface-visibility:hidden;
+  transform:translateZ(0);
+  -webkit-font-smoothing:antialiased;
+}
+
+#chatView #mouthCanvas{
+  transform-origin:50% 42%;
 }
 
 #chatView #statusCard,
@@ -2258,15 +2271,20 @@ body.voice-open #onboardingScreen{
 }
 
 #app:not(.voice-mode) #chatView #inputRow{
-  grid-template-columns:50px minmax(0,1fr) 50px;
-  align-items:stretch;
+  grid-template-columns:44px minmax(0,1fr) 44px;
+  align-items:end;
   gap:7px;
 }
 
 #app:not(.voice-mode) #chatView #imageButton,
 #app:not(.voice-mode) #chatView #liveButton{
-  width:50px;
-  min-height:96px;
+  width:44px;
+  height:44px;
+  min-height:44px;
+  margin-bottom:8px;
+  align-self:end;
+  border-radius:16px;
+  font-size:18px;
 }
 
 #app:not(.voice-mode) #chatView #messageWrap{
@@ -2368,12 +2386,14 @@ body.voice-open #onboardingScreen{
 
 @media(max-width:360px){
   #app:not(.voice-mode) #chatView #inputRow{
-    grid-template-columns:46px minmax(0,1fr) 46px;
+    grid-template-columns:42px minmax(0,1fr) 42px;
   }
 
   #app:not(.voice-mode) #chatView #imageButton,
   #app:not(.voice-mode) #chatView #liveButton{
-    width:46px;
+    width:42px;
+    height:42px;
+    min-height:42px;
   }
 
   #app:not(.voice-mode) #chatView #statusCard,

@@ -1,5 +1,6 @@
 package com.solholo.app;
 
+import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -12,8 +13,6 @@ import android.health.connect.datatypes.Record;
 import android.os.Build;
 import android.os.OutcomeReceiver;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.RequiresApi;
 import androidx.core.content.ContextCompat;
 
@@ -33,7 +32,6 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -43,9 +41,6 @@ public class HealthConnectPlugin extends Plugin {
         "android.permission.health.";
     private static final int MAX_DAYS = 30;
     private static final int MAX_RECORDS_PER_TYPE = 3;
-
-    private ActivityResultLauncher<String[]> healthPermissionLauncher;
-    private PluginCall pendingPermissionCall;
 
     private static final class PermissionSpec {
         final String name;
@@ -165,27 +160,6 @@ public class HealthConnectPlugin extends Plugin {
         new RecordSpec("activity", "Rollstuhlschübe", "READ_WHEELCHAIR_PUSHES", "WheelchairPushesRecord", 34)
     };
 
-    @Override
-    public void load() {
-        healthPermissionLauncher = getBridge().registerForActivityResult(
-            new ActivityResultContracts.RequestMultiplePermissions(),
-            this::finishPermissionRequest
-        );
-    }
-
-    private void finishPermissionRequest(Map<String, Boolean> results) {
-        PluginCall call = pendingPermissionCall;
-        pendingPermissionCall = null;
-        if (call == null) {
-            return;
-        }
-
-        JSObject result = status();
-        result.put("permissionRequestCompleted", true);
-        result.put("answeredPermissionCount", results.size());
-        call.resolve(result);
-    }
-
     private boolean supported() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             return false;
@@ -218,6 +192,12 @@ public class HealthConnectPlugin extends Plugin {
         result.put("supported", supported());
         result.put("readOnly", true);
         result.put("backgroundAccess", false);
+        result.put("automaticImport", false);
+        result.put("permissionsCanBeRevoked", supported());
+        result.put(
+            "permissionPurpose",
+            "Nur ausdrücklich ausgewählte Health-Kategorien werden für eine konkrete Anfrage gelesen."
+        );
         result.put("availablePermissionCount", availableCount);
         result.put("grantedPermissionCount", grantedCount);
         result.put("connected", grantedCount > 0);
@@ -244,38 +224,12 @@ public class HealthConnectPlugin extends Plugin {
             return;
         }
 
-        if (pendingPermissionCall != null) {
+        Activity activity = getActivity();
+        if (activity == null) {
             call.reject(
-                "Die Health-Connect-Freigabe ist bereits geöffnet.",
-                "HEALTH_CONNECT_REQUEST_ACTIVE"
+                "Die Health-Connect-Freigaben konnten gerade nicht geöffnet werden.",
+                "HEALTH_CONNECT_ACTIVITY_UNAVAILABLE"
             );
-            return;
-        }
-
-        List<String> missingPermissions = new ArrayList<>();
-        for (PermissionSpec permission : PERMISSIONS) {
-            if (
-                Build.VERSION.SDK_INT >= permission.minApi
-                    && !granted(permission.name)
-            ) {
-                missingPermissions.add(permission.name);
-            }
-        }
-
-        if (!missingPermissions.isEmpty()) {
-            pendingPermissionCall = call;
-            try {
-                healthPermissionLauncher.launch(
-                    missingPermissions.toArray(new String[0])
-                );
-            } catch (RuntimeException error) {
-                pendingPermissionCall = null;
-                call.reject(
-                    "Androids Health-Connect-Freigabe konnte nicht geöffnet werden.",
-                    "HEALTH_CONNECT_REQUEST_FAILED",
-                    error
-                );
-            }
             return;
         }
 
@@ -287,13 +241,13 @@ public class HealthConnectPlugin extends Plugin {
                 Intent.EXTRA_PACKAGE_NAME,
                 getContext().getPackageName()
             );
-            getActivity().startActivity(intent);
+            activity.startActivity(intent);
             JSObject result = status();
             result.put("settingsOpened", true);
+            result.put("permissionManagementMode", "android_health_connect");
             call.resolve(result);
         } catch (
             ActivityNotFoundException
-                | NullPointerException
                 | SecurityException error
         ) {
             call.reject(

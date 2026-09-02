@@ -15,6 +15,8 @@ on:
       - "www/headaudio.min.mjs"
       - "www/headworklet.min.mjs"
       - "www/full-face-rig.mjs"
+      - "www/consent-signature.mjs"
+      - "www/consent-ui-bootstrap.mjs"
       - "www/model-en-mixed.b64"
       - "www/media-tools.js"
       - "www/sol-holo-logo.png"
@@ -25,14 +27,19 @@ on:
       - "www/service-worker.js"
       - "www/third-party/**"
       - "server.mjs"
+      - "video-upload-security.mjs"
+      - "modules/**"
       - "licenses/**"
       - "package.json"
       - "package-lock.json"
       - "android-native/**"
+      - "tests/*.test.mjs"
       - "tests/java/**"
+      - "scripts/check-samsung-notes-language.mjs"
       - "scripts/generate-third-party-licenses.mjs"
       - "scripts/audit-android-runtime-licenses.mjs"
       - "scripts/install-full-face-rig-assets.mjs"
+      - "scripts/install-access-security.mjs"
       - "scripts/install-speaker-identity.mjs"
       - "scripts/install-whatsapp-driving-mode.mjs"
 
@@ -77,8 +84,25 @@ jobs:
             tests/java/com/solholo/app/WakeCaptureEndpointerTest.java
           java -cp "$test_dir" com.solholo.app.WakeCaptureEndpointerTest
 
+      - name: Mehrfaktor-Sicherheitslogik testen
+        run: |
+          set -Eeuo pipefail
+          if command -v javac >/dev/null 2>&1; then
+            test_dir="$RUNNER_TEMP/security-factor-policy-test"
+            mkdir -p "$test_dir"
+            javac -d "$test_dir" \
+              android-native/SecurityFactorPolicy.java \
+              tests/java/com/solholo/app/SecurityFactorPolicyTest.java
+            java -cp "$test_dir" com.solholo.app.SecurityFactorPolicyTest
+          else
+            echo "Kein JDK-Compiler vorhanden; reiner Java-Policy-Test wird übersprungen."
+          fi
+
       - name: Node-Abhängigkeiten installieren
         run: npm install
+
+      - name: Stille Build-108-Modultests ausführen
+        run: node --test tests/*.test.mjs
 
       - name: NPM-Sicherheitsbericht ausgeben
         continue-on-error: true
@@ -220,6 +244,9 @@ jobs:
 
       - name: Sicheren Fahr- und Weckmodus einbinden
         run: node scripts/install-whatsapp-driving-mode.mjs
+
+      - name: Mehrfaktor-Zugriffssicherheit einbinden
+        run: node scripts/install-access-security.mjs
 
       - name: Direkte Samsung-Notes-Übergabe prüfen
         run: |

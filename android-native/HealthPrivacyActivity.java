@@ -1,13 +1,17 @@
 package com.solholo.app;
 
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class HealthPrivacyActivity extends Activity {
     @Override
@@ -34,7 +38,9 @@ public class HealthPrivacyActivity extends Activity {
             "Mögliche Kategorien sind Aktivität, Körperwerte, Vitalwerte, Schlaf, " +
             "Ernährung und reproduktive Gesundheit. Android zeigt jede Freigabe " +
             "sichtbar an; einzelne Kategorien können abgewählt oder später entzogen " +
-            "werden.\n\n" +
+            "werden. Mit der Schaltfläche unten öffnet sich direkt die Android-Seite " +
+            "für Pam’s Holo. Dort kann jede Kategorie einzeln verwaltet oder vollständig " +
+            "widerrufen werden.\n\n" +
             "Pam’s Holo schreibt, verändert oder löscht keine Health-Daten. Es gibt " +
             "keinen automatischen Hintergrundzugriff und keinen automatischen Import " +
             "in das Langzeitgedächtnis. Für eine Antwort freigegebene Werte werden nur " +
@@ -55,6 +61,16 @@ public class HealthPrivacyActivity extends Activity {
             )
         );
 
+        Button managePermissions = new Button(this);
+        managePermissions.setText("Health-Freigaben verwalten oder widerrufen");
+        managePermissions.setOnClickListener(view -> openHealthPermissions());
+        LinearLayout.LayoutParams manageParams = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        manageParams.topMargin = padding;
+        content.addView(managePermissions, manageParams);
+
         Button close = new Button(this);
         close.setText("Schließen");
         close.setOnClickListener(view -> finish());
@@ -68,5 +84,34 @@ public class HealthPrivacyActivity extends Activity {
         ScrollView scrollView = new ScrollView(this);
         scrollView.addView(content);
         setContentView(scrollView);
+    }
+
+    private void openHealthPermissions() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            Toast.makeText(
+                this,
+                "Die direkte Health-Connect-Verwaltung ist ab Android 14 verfügbar.",
+                Toast.LENGTH_LONG
+            ).show();
+            return;
+        }
+
+        Intent intent = new Intent(
+            "android.health.connect.action.MANAGE_HEALTH_PERMISSIONS"
+        );
+        intent.putExtra(Intent.EXTRA_PACKAGE_NAME, getPackageName());
+
+        try {
+            startActivity(intent);
+        } catch (
+            ActivityNotFoundException
+                | SecurityException error
+        ) {
+            Toast.makeText(
+                this,
+                "Die Android-Seite für Health-Freigaben ist gerade nicht verfügbar.",
+                Toast.LENGTH_LONG
+            ).show();
+        }
     }
 }

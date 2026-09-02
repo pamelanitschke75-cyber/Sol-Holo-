@@ -5,6 +5,24 @@ import path from "path";
 import { fileURLToPath } from "url";
 import pg from "pg";
 
+/*
+  LEGACY-REFERENZDATEI
+
+  Diese Datei dokumentiert den frueheren Stand mit automatischer, ungetrennter
+  Vollzeitprotokollierung. Sie ist nicht der aktive Startpunkt (siehe
+  package.json) und darf in dieser Form nicht neu ausgerollt werden.
+
+  Fuer die aktuelle Regel "nur ausdruecklich bestaetigt" sowie die strikte
+  Pam-/Steffi-Trennung gelten:
+
+  - modules/identity-memory.mjs
+  - modules/identity-memory-store.mjs
+  - MEMORY_ARCHITECTURE.md
+
+  Bestehende Legacy-Daten werden nicht geloescht. Der aktive Server muss die
+  neue Policy vor jedem dauerhaften Write integrieren.
+*/
+
 const app = express();
 
 app.use(express.json());

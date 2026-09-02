@@ -24,6 +24,11 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
   currentHeader.insertAdjacentHTML("beforebegin", uiMarkup);
 
+  const profileMemoryState = document.getElementById("profileMemoryState");
+  if (profileMemoryState) {
+    profileMemoryState.textContent = "Nur nach Bestätigung";
+  }
+
   const memoryQuickCard = document.querySelector(
     '.quickCard[data-open-view="memory"]'
   );
@@ -287,9 +292,12 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   };
 
   const introKey = "sol-holo-intro-v2-seen";
-  const clonePhotoKey = "sol-holo-clone-photo-v1";
-  const cloneMouthKey = "sol-holo-clone-mouth-v1";
-  const notesStorageKey = "pams-holo-original-notes-v1";
+  const pamClonePhotoKey = "sol-holo-clone-photo-v1";
+  const pamCloneMouthKey = "sol-holo-clone-mouth-v1";
+  const steffiClonePhotoKey = "steffis-holo-clone-photo-v1";
+  const steffiCloneMouthKey = "steffis-holo-clone-mouth-v1";
+  const pamNotesStorageKey = "pams-holo-original-notes-v1";
+  const steffiNotesStorageKey = "steffis-holo-original-notes-v1";
   const onboarding = document.getElementById("onboardingScreen");
   const noteComposer = document.getElementById("noteComposer");
   const noteTextInput = document.getElementById("noteTextInput");
@@ -387,6 +395,160 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   let noteImportRunning = false;
   let noteListenerRegistered = false;
   let personalNotes = [];
+
+  function activePersonalOwner() {
+    return window.SolHoloIdentity?.selected()?.ownerId || "";
+  }
+
+  function activeNotesStorageKey() {
+    const ownerId = activePersonalOwner();
+    if (ownerId === "pam-sol") {
+      return pamNotesStorageKey;
+    }
+    if (ownerId === "steffi-sol") {
+      return steffiNotesStorageKey;
+    }
+    return "";
+  }
+
+  function activeCloneStorageKeys() {
+    const ownerId = activePersonalOwner();
+    if (ownerId === "pam-sol") {
+      return {
+        mouth: pamCloneMouthKey,
+        photo: pamClonePhotoKey
+      };
+    }
+    if (ownerId === "steffi-sol") {
+      return {
+        mouth: steffiCloneMouthKey,
+        photo: steffiClonePhotoKey
+      };
+    }
+    return null;
+  }
+
+  function activePersonalName() {
+    return window.SolHoloIdentity?.selected()?.displayName || "";
+  }
+
+  function activeInstanceName() {
+    const name = activePersonalName();
+    if (name === "Pam") {
+      return "Pam’s Holo";
+    }
+    if (name === "Steffi") {
+      return "Steffis Holo";
+    }
+    return "persönliches Holo";
+  }
+
+  function requireActivePersonalOwner() {
+    const identity = window.SolHoloIdentity?.require?.();
+    if (!identity) {
+      showToast("Bitte zuerst Pam oder Steffi auswählen.");
+      return null;
+    }
+    return identity;
+  }
+
+  function renderPersonalIdentityUi() {
+    const identity = window.SolHoloIdentity?.selected?.() || null;
+    const displayName = identity?.displayName || "";
+    const instanceName = displayName
+      ? `${displayName === "Pam" ? "Pam’s" : "Steffis"} Holo`
+      : "Persönliches Holo";
+
+    document.title = displayName
+      ? `Sol Holo · ${instanceName}`
+      : "Sol Holo";
+
+    const homeTitle = document.getElementById("homeTitle");
+    if (homeTitle) {
+      homeTitle.replaceChildren(
+        document.createTextNode(displayName ? `Hallo ${displayName} ` : "Hallo ")
+      );
+      const unicorn = document.createElement("span");
+      unicorn.className = "pamUnicorn pamUnicorn--home";
+      unicorn.setAttribute("role", "img");
+      unicorn.setAttribute("aria-label", "Rosa Einhorn");
+      unicorn.textContent = "🦄";
+      homeTitle.append(unicorn);
+    }
+
+    const profileName = document.querySelector("#profileView .profileName");
+    if (profileName) {
+      const unicorn = profileName.querySelector(".pamUnicorn")?.cloneNode(true);
+      profileName.replaceChildren(document.createTextNode(`${instanceName} `));
+      if (unicorn) {
+        profileName.append(unicorn);
+      }
+    }
+
+    const memoryCopy = document.querySelector(
+      "#memoryView .memoryIntro .featureCopy"
+    );
+    if (memoryCopy) {
+      memoryCopy.textContent = identity
+        ? `${instanceName} erinnert sich nur an ausdrücklich bestätigte Inhalte von ${displayName}. Pams und Steffis Erinnerungen bleiben vollständig getrennt.`
+        : "Bitte zuerst Pam oder Steffi auswählen. Beide Gedächtnisse sind vollständig getrennt.";
+    }
+
+    const servicesCopy = document.querySelector(
+      "#servicesView .servicesIntro .featureCopy"
+    );
+    if (servicesCopy) {
+      servicesCopy.textContent = identity
+        ? `${instanceName} verbindet nur ${displayName}s eigene, einzeln freigegebene Dienste. Keine Verbindung wird mit der anderen Person geteilt.`
+        : "Bitte zuerst Pam oder Steffi auswählen. Dienstverbindungen werden nie geteilt.";
+    }
+
+    const permissionCopy = document.querySelector("#servicesView .permissionNote");
+    if (permissionCopy) {
+      permissionCopy.textContent = identity
+        ? `${instanceName} liest keine Nachricht, keinen Kontakt, kein Bild, keine Notiz und keinen Health-Wert ohne ${displayName}s sichtbare Auswahl oder Freigabe. Geräteaktionen brauchen eine ausdrückliche Bestätigung.`
+        : "Bitte zuerst Pam oder Steffi auswählen. Keine persönliche Verbindung wird gemeinsam verwendet.";
+    }
+
+    const settingsCopy = document.querySelector("#settingsView .settingsIntro p:last-child");
+    if (settingsCopy) {
+      settingsCopy.textContent = identity
+        ? `Hier bestimmst du nur, wie ${instanceName} aussieht, spricht und sich verbindet.`
+        : "Bitte zuerst Pam oder Steffi auswählen. Einstellungen bleiben getrennt.";
+    }
+
+    const notesHeading = document.querySelector("#notesView .notesIntro h3");
+    if (notesHeading) {
+      notesHeading.textContent = identity
+        ? `${displayName}s eigenes Notizbuch in ${instanceName}`
+        : "Getrenntes persönliches Notizbuch";
+    }
+
+    const notesFooter = document.querySelector("#notesView .noteComposerFooter span");
+    if (notesFooter) {
+      notesFooter.textContent = identity
+        ? `Bleibt getrennt in ${instanceName} auf diesem Handy.`
+        : "Bitte zuerst Pam oder Steffi auswählen.";
+    }
+
+    noteTextInput.placeholder = identity
+      ? `Was soll ${instanceName} nur für ${displayName} notieren?`
+      : "Bitte zuerst Pam oder Steffi auswählen.";
+
+    profileDisplayImage.alt = identity
+      ? `Persönliches Bild von ${instanceName}`
+      : "Noch kein persönliches Holo ausgewählt";
+    profileCloneImage.alt = identity
+      ? `Bildvorschau für ${instanceName}`
+      : "Noch kein persönliches Holo ausgewählt";
+    profilePhotoButton.setAttribute(
+      "aria-label",
+      identity
+        ? `Eigenes Bild für ${instanceName} aus der Galerie auswählen`
+        : "Bitte zuerst Pam oder Steffi auswählen"
+    );
+  }
+
   let healthStatus = {
     supported: false,
     readOnly: true,
@@ -424,7 +586,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       return (
         "Diese Notiz enthält möglicherweise Zugangsdaten wie Passwort, PIN, " +
         "TAN, API-Key, Token, Banking- oder Authenticator-Daten. " +
-        "Pam’s Holo speichert sie zu deinem Schutz nicht."
+        "Das ausgewählte persönliche Holo speichert sie zu deinem Schutz nicht."
       );
     }
 
@@ -455,15 +617,20 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       id: String(note?.id || `note-${createdAt}`),
       title: noteTitleFromText(text, note?.title),
       text: text.slice(0, 10_000),
-      source: String(note?.source || "Pam’s Holo"),
+      source: String(note?.source || "Persönliches Holo"),
       createdAt,
       updatedAt
     };
   }
 
   function loadPersonalNotes() {
+    const storageKey = activeNotesStorageKey();
+    if (!storageKey) {
+      personalNotes = [];
+      return;
+    }
     try {
-      const stored = JSON.parse(localStorage.getItem(notesStorageKey) || "[]");
+      const stored = JSON.parse(localStorage.getItem(storageKey) || "[]");
       personalNotes = Array.isArray(stored)
         ? stored
           .map(normalizeStoredNote)
@@ -472,23 +639,27 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
           .slice(0, 250)
         : [];
     } catch (error) {
-      console.error("Pam’s-Holo-Notizen laden:", error);
+      console.error("Persönliche Holo-Notizen laden:", error);
       personalNotes = [];
     }
   }
 
   function storePersonalNotes(nextNotes) {
+    const storageKey = activeNotesStorageKey();
+    if (!storageKey) {
+      return false;
+    }
     try {
       const normalized = nextNotes
         .map(normalizeStoredNote)
         .filter(Boolean)
         .sort((left, right) => right.updatedAt - left.updatedAt)
         .slice(0, 250);
-      localStorage.setItem(notesStorageKey, JSON.stringify(normalized));
+      localStorage.setItem(storageKey, JSON.stringify(normalized));
       personalNotes = normalized;
       return true;
     } catch (error) {
-      console.error("Pam’s-Holo-Notizen speichern:", error);
+      console.error("Persönliche Holo-Notizen speichern:", error);
       return false;
     }
   }
@@ -587,6 +758,15 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   }
 
   function createPersonalNote(text, options = {}) {
+    const ownerId = activePersonalOwner();
+    if (!ownerId) {
+      return {
+        success: false,
+        identityRequired: true,
+        answer: "Spricht gerade Pam oder Steffi? Bitte wähle zuerst die eigenständige Person aus."
+      };
+    }
+
     const cleanText = String(text || "").trim();
     if (!cleanText) {
       return {
@@ -620,7 +800,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       id: `note-${randomPart}`,
       title: options.title,
       text: cleanText,
-      source: options.source || "Pam’s Holo",
+      source: options.source || (ownerId === "pam-sol" ? "Pam’s Holo" : "Steffis Holo"),
       createdAt: now,
       updatedAt: now
     });
@@ -633,7 +813,11 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     }
 
     renderPersonalNotes();
-    showToast("Notiz in Pam’s Holo gespeichert ✅️");
+    showToast(
+      ownerId === "pam-sol"
+        ? "Notiz in Pam’s Holo gespeichert ✅️"
+        : "Notiz in Steffis Holo gespeichert ✅️"
+    );
     return {
       success: true,
       note,
@@ -668,7 +852,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     if (!matches.length) {
       return query
         ? `Ich finde keine Notiz zu „${query}“. Die Notizen bleiben unverändert.`
-        : "Du hast noch keine Notiz in Pam’s Holo gespeichert.";
+        : `Du hast noch keine Notiz in ${activeInstanceName()} gespeichert.`;
     }
 
     const listed = matches.slice(0, 12).map((note, index) => {
@@ -684,11 +868,18 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   }
 
   async function openSamsungNotesForReview(actionText = "ansehen") {
+    if (!activePersonalOwner()) {
+      return {
+        success: false,
+        identityRequired: true,
+        answer: "Bitte zuerst Pam oder Steffi auswählen."
+      };
+    }
     const plugin = getPhoneContactsPlugin();
     if (!plugin) {
       return {
         success: false,
-        answer: "Samsung Notes kann nur aus der Pam’s-Holo-App für Android geöffnet werden."
+        answer: "Samsung Notes kann nur aus der Sol-Holo-App für Android geöffnet werden."
       };
     }
 
@@ -713,6 +904,13 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   }
 
   async function prepareSamsungNote(text) {
+    if (!activePersonalOwner()) {
+      return {
+        success: false,
+        identityRequired: true,
+        answer: "Bitte zuerst Pam oder Steffi auswählen."
+      };
+    }
     const cleanText = String(text || "").trim();
     if (!cleanText) {
       return {
@@ -730,7 +928,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     if (!plugin) {
       return {
         success: false,
-        answer: "Samsung Notes kann nur aus der Pam’s-Holo-App für Android geöffnet werden."
+        answer: "Samsung Notes kann nur aus der Sol-Holo-App für Android geöffnet werden."
       };
     }
 
@@ -870,16 +1068,24 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   }
 
   function restoreCustomCloneAppearance() {
+    applyCustomCloneAppearance("", null);
+    const keys = activeCloneStorageKeys();
+    if (!keys) {
+      profilePhotoHelp.textContent =
+        "Bitte zuerst Pam oder Steffi auswählen. Bilder bleiben vollständig getrennt.";
+      return;
+    }
+
     try {
-      const savedPhoto = localStorage.getItem(clonePhotoKey) || "";
+      const savedPhoto = localStorage.getItem(keys.photo) || "";
       const savedMouth = JSON.parse(
-        localStorage.getItem(cloneMouthKey) || "null"
+        localStorage.getItem(keys.mouth) || "null"
       );
       if (savedPhoto.startsWith("data:image/")) {
         applyCustomCloneAppearance(savedPhoto, savedMouth);
       }
     } catch (error) {
-      console.error("Pams-Holo-Bild wiederherstellen:", error);
+      console.error("Persönliches Holo-Bild wiederherstellen:", error);
     }
   }
 
@@ -944,6 +1150,9 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   }
 
   function beginCloneMouthCalibration() {
+    if (!requireActivePersonalOwner()) {
+      return;
+    }
     if (!customClonePhoto) {
       profilePhotoInput.click();
       return;
@@ -998,6 +1207,12 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   }
 
   function confirmCloneMouthCalibration() {
+    const keys = activeCloneStorageKeys();
+    if (!keys) {
+      cancelCloneMouthCalibration();
+      showToast("Bitte zuerst Pam oder Steffi auswählen.");
+      return;
+    }
     cloneMouthCalibrationActive = false;
     cloneMouthBeforeCalibration = null;
     profilePhotoButton.classList.remove("calibrating");
@@ -1005,16 +1220,16 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     profileMouthMarker.hidden = true;
     profilePhotoButton.setAttribute(
       "aria-label",
-      "Bild für Pam’s Holo aus der Galerie ändern"
+      `Bild für ${activePersonalName()}s Holo aus der Galerie ändern`
     );
     profilePhotoHelp.textContent =
       "Mund gespeichert · natürliche Mundformen folgen der echten Sol-Stimme.";
     window.SolHoloClone?.setMouthGeometry(customCloneMouth);
 
     try {
-      localStorage.setItem(cloneMouthKey, JSON.stringify(customCloneMouth));
+      localStorage.setItem(keys.mouth, JSON.stringify(customCloneMouth));
     } catch (error) {
-      console.error("Pams-Holo-Mundposition speichern:", error);
+      console.error("Persönliche Holo-Mundposition speichern:", error);
     }
 
     showToast("Mundbox bestätigt. Der natürliche Lip-Sync ist bereit ✅️");
@@ -1031,7 +1246,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     profileMouthMarker.hidden = true;
     profilePhotoButton.setAttribute(
       "aria-label",
-      "Bild für Pam’s Holo aus der Galerie ändern"
+      `Bild für ${activePersonalName() || "das persönliche"} Holo aus der Galerie ändern`
     );
     profilePhotoHelp.textContent =
       "Änderung abgebrochen · die bisherige Mundbox bleibt gespeichert.";
@@ -1108,6 +1323,12 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   async function startSolVoice() {
     showView("chat");
 
+    if (!window.SolHoloIdentity?.selected()) {
+      window.SolHoloIdentity?.require();
+      showToast("Bitte zuerst auswählen: Spricht gerade Pam oder Steffi?");
+      return;
+    }
+
     if (
       typeof enterVoiceMode !== "function" ||
       typeof startLiveConversation !== "function"
@@ -1126,6 +1347,26 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     const serviceState = document.getElementById("googleAccountStatus");
     const profileState = document.getElementById("profileGoogleState");
     const todayState = document.getElementById("todayCardMeta");
+    const identity = window.SolHoloIdentity?.selected?.();
+
+    if (!identity) {
+      googleConnected = false;
+      googleStatus = {
+        connected: false,
+        allRequestedAccessGranted: false,
+        services: {}
+      };
+      serviceState.textContent = "Pam oder Steffi wählen";
+      serviceState.classList.add("setup");
+      profileState.textContent = "Persönliche Auswahl nötig";
+      todayState.textContent = "Kalender bleibt getrennt";
+      return;
+    }
+
+    const identityQuery = new URLSearchParams({
+      ownerId: identity.ownerId,
+      selectedSpeakerId: identity.speakerId
+    });
 
     if (serviceState) {
       serviceState.textContent = "Wird geprüft …";
@@ -1134,7 +1375,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
     try {
       const response = await fetch(
-        "https://sol-holo.onrender.com/google/status",
+        `https://sol-holo.onrender.com/google/status?${identityQuery}`,
         { cache: "no-store" }
       );
       const data = await response.json();
@@ -1144,11 +1385,18 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         allRequestedAccessGranted: Boolean(
           response.ok && data?.allRequestedAccessGranted
         ),
-        services: data?.services || {}
+        services: data?.services || {},
+        trustedSessionRequired:
+          data?.error === "TRUSTED_APP_SESSION_REQUIRED"
       };
       googleConnected = googleStatus.allRequestedAccessGranted;
 
-      if (googleConnected) {
+      if (googleStatus.trustedSessionRequired) {
+        serviceState.textContent = "Sichere Sitzung offen";
+        serviceState.classList.add("setup");
+        profileState.textContent = "App-Sitzung noch nicht gebunden";
+        todayState.textContent = "Kalender bleibt geschützt";
+      } else if (googleConnected) {
         serviceState.textContent = "Verbunden";
         serviceState.classList.add("connected");
         profileState.textContent = "Vollständig verbunden";
@@ -1181,12 +1429,30 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
   async function loadSmartThingsStatus() {
     const serviceState = document.getElementById("smartThingsStatus");
+    const identity = window.SolHoloIdentity?.selected?.();
+
+    if (!identity) {
+      smartThingsStatus = {
+        configured: false,
+        connected: false,
+        selectedDevicesOnly: true,
+        actionsRequireConfirmation: true
+      };
+      serviceState.textContent = "Pam oder Steffi wählen";
+      serviceState.classList.add("setup");
+      return;
+    }
+
+    const identityQuery = new URLSearchParams({
+      ownerId: identity.ownerId,
+      selectedSpeakerId: identity.speakerId
+    });
     serviceState.textContent = "Wird geprüft …";
     serviceState.classList.remove("connected", "setup");
 
     try {
       const response = await fetch(
-        "https://sol-holo.onrender.com/smartthings/status",
+        `https://sol-holo.onrender.com/smartthings/status?${identityQuery}`,
         { cache: "no-store" }
       );
       const data = await response.json();
@@ -1196,10 +1462,15 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         connected: Boolean(response.ok && data?.connected),
         selectedDevicesOnly: data?.selectedDevicesOnly !== false,
         actionsRequireConfirmation:
-          data?.actionsRequireConfirmation !== false
+          data?.actionsRequireConfirmation !== false,
+        trustedSessionRequired:
+          data?.error === "TRUSTED_APP_SESSION_REQUIRED"
       };
 
-      if (smartThingsStatus.connected) {
+      if (smartThingsStatus.trustedSessionRequired) {
+        serviceState.textContent = "Sichere Sitzung offen";
+        serviceState.classList.add("setup");
+      } else if (smartThingsStatus.connected) {
         serviceState.textContent = "Zuhause verbunden";
         serviceState.classList.add("connected");
       } else if (smartThingsStatus.configured) {
@@ -1280,6 +1551,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       return;
     }
 
+    if (!requireActivePersonalOwner()) {
+      return;
+    }
+
     const plugin = getWhatsAppDrivingModePlugin();
     if (!plugin) {
       showToast("Der WhatsApp-Fahrmodus ist nur in der Android-App verfügbar.");
@@ -1297,7 +1572,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       if (!currentStatus.permissionGranted) {
         await plugin.setEnabled({ enabled: true });
         showToast(
-          "Bitte erlaube Pam’s Holo jetzt den Benachrichtigungszugriff. " +
+          `Bitte erlaube ${activeInstanceName()} jetzt den Benachrichtigungszugriff. ` +
           "Danach ist der WhatsApp-Fahrmodus aktiv."
         );
         await plugin.openNotificationAccessSettings();
@@ -1388,7 +1663,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         renderPhoneStatus(status);
 
         if (status?.callState === "ringing") {
-          showToast("Eingehender Anruf erkannt. Pam’s Holo pausiert.");
+          showToast(`Eingehender Anruf erkannt. ${activeInstanceName()} pausiert.`);
           if (typeof stopLiveConversation === "function") {
             stopLiveConversation();
           }
@@ -1397,7 +1672,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
           status?.callState === "idle" &&
           previousState !== "idle"
         ) {
-          showToast("Telefonat beendet. Pam’s Holo ist wieder da.");
+          showToast(`Telefonat beendet. ${activeInstanceName()} ist wieder da.`);
           void resumeWakeListeningAfterConversation();
         }
       });
@@ -1431,6 +1706,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       return phoneStatus;
     }
 
+    if (!requireActivePersonalOwner()) {
+      return phoneStatus;
+    }
+
     const plugin = getPhoneContactsPlugin();
     if (!plugin) {
       showToast("Telefon und Kontakte sind nur in der Android-App verfügbar.");
@@ -1449,7 +1728,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         );
       } else {
         showToast(
-          "Für alle Telefonfunktionen braucht Pam’s Holo beide Android-Freigaben."
+          `Für alle Telefonfunktionen braucht ${activeInstanceName()} beide Android-Freigaben.`
         );
       }
       return status;
@@ -1463,6 +1742,9 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   }
 
   async function findPhoneContact(query) {
+    if (!activePersonalOwner()) {
+      throw new Error("Bitte zuerst Pam oder Steffi auswählen.");
+    }
     const plugin = getPhoneContactsPlugin();
     if (!plugin) {
       throw new Error("Telefon und Kontakte sind nur in der Android-App verfügbar.");
@@ -1528,14 +1810,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       }
 
       if (actionName === "start_phone_call") {
-        const confirmed = window.confirm(
-          `Soll Pam’s Holo jetzt ${contact.name} (${contact.number}) in der Telefon-App öffnen?`
-        );
-        if (!confirmed) {
-          return { success: false, cancelled: true, answer: "Der Anruf wurde abgebrochen." };
-        }
-
-        await getPhoneContactsPlugin().openDialer({ number: contact.number });
+        await getPhoneContactsPlugin().openDialer({
+          number: contact.number,
+          recipientName: contact.name
+        });
         return {
           success: true,
           answer: `${contact.name} ist in der Telefon-App geöffnet. Du bestätigst den Anruf dort.`
@@ -1548,15 +1826,9 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
           return { success: false, answer: "Für die SMS fehlt noch der Text." };
         }
 
-        const confirmed = window.confirm(
-          `SMS an ${contact.name} vorbereiten?\n\n${message}`
-        );
-        if (!confirmed) {
-          return { success: false, cancelled: true, answer: "Die SMS wurde abgebrochen." };
-        }
-
         await getPhoneContactsPlugin().prepareSms({
           number: contact.number,
+          recipientName: contact.name,
           message
         });
         return {
@@ -1568,6 +1840,13 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       return { success: false, answer: "Unbekannte Telefonfunktion." };
     } catch (error) {
       console.error("Telefonfunktion:", error);
+      if (error?.code === "USER_CANCELLED") {
+        return {
+          success: false,
+          cancelled: true,
+          answer: "Die Aktion wurde abgebrochen."
+        };
+      }
       return {
         success: false,
         answer: String(error?.message || error || "Die Telefonfunktion ist fehlgeschlagen.")
@@ -1619,7 +1898,8 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
   async function consumeSharedNoteImport() {
     const plugin = getPhoneContactsPlugin();
-    if (!plugin || noteImportRunning) {
+    const identity = window.SolHoloIdentity?.selected?.();
+    if (!plugin || noteImportRunning || !identity) {
       return;
     }
 
@@ -1634,7 +1914,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         window.alert(
           "Diese Notiz ist für die sichere Einzelübergabe zu lang. " +
           "Bitte markiere in Samsung Notes einen kürzeren persönlichen " +
-          "Abschnitt und teile ihn erneut mit Pam’s Holo. Es wurde nichts gespeichert."
+          `Abschnitt und teile ihn erneut mit ${activeInstanceName()}. Es wurde nichts gespeichert.`
         );
         return;
       }
@@ -1646,7 +1926,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         : text;
       const confirmed = window.confirm(
         "Diese ausgewählte Samsung-Notiz im Notizbuch deiner " +
-        "Pam’s-Holo-Original-App auf diesem Handy speichern?\n\n" +
+        `${activeInstanceName()} auf diesem Handy speichern?\n\n` +
         (title ? `Titel: ${title}\n\n` : "") +
         preview +
         "\n\nNur persönliche Inhalte bestätigen. Geschäftliche Daten, PINs, " +
@@ -1660,7 +1940,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
       const savedNote = createPersonalNote(text, {
         title,
-        source: "Samsung Notes · von Pam freigegeben"
+        source: `Samsung Notes · von ${identity.displayName} freigegeben`
       });
       if (!savedNote.success) {
         if (savedNote.securityBlocked) {
@@ -1671,7 +1951,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         return;
       }
 
-      showToast("Samsung-Notiz in Pam’s Holo gespeichert ✅️");
+      showToast(`Samsung-Notiz in ${activeInstanceName()} gespeichert ✅️`);
     } catch (error) {
       console.error("Samsung-Notes-Import:", error);
       showToast("Die geteilte Notiz konnte gerade nicht übernommen werden.");
@@ -1741,6 +2021,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       return;
     }
 
+    if (!requireActivePersonalOwner()) {
+      return;
+    }
+
     const plugin = getHealthConnectPlugin();
     if (!plugin) {
       showToast("Health Connect ist nur in der Android-App verfügbar.");
@@ -1763,7 +2047,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       }
 
       if (status?.settingsOpened) {
-        showToast("Android zeigt die Health-Freigaben von Pam’s Holo.");
+        showToast(`Android zeigt die Health-Freigaben von ${activeInstanceName()}.`);
       } else if (status?.allGranted) {
         showToast("Health Connect ist vollständig und nur lesend verbunden.");
       } else if (status?.connected) {
@@ -1866,11 +2150,19 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       return { success: false, answer: "Unbekannte Health-Funktion." };
     }
 
+    if (!activePersonalOwner()) {
+      return {
+        success: false,
+        identityRequired: true,
+        answer: "Bitte zuerst Pam oder Steffi auswählen."
+      };
+    }
+
     const plugin = getHealthConnectPlugin();
     if (!plugin) {
       return {
         success: false,
-        answer: "Health Connect ist nur in der Pam’s-Holo-App für Android verfügbar."
+        answer: "Health Connect ist nur in der Sol-Holo-App für Android verfügbar."
       };
     }
 
@@ -1899,7 +2191,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       if (!status.connected) {
         return {
           success: false,
-          answer: "Öffne in Pam’s Holo unter Dienste zuerst Health Connect und wähle die Lesefreigaben."
+          answer: `Öffne in ${activeInstanceName()} unter Dienste zuerst Health Connect und wähle die Lesefreigaben.`
         };
       }
 
@@ -2494,21 +2786,33 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       moveCloneMouthCalibration(event);
       return;
     }
+    if (!requireActivePersonalOwner()) {
+      return;
+    }
     profilePhotoInput.click();
   });
 
   profilePhotoChangeButton.addEventListener("click", () => {
+    if (!requireActivePersonalOwner()) {
+      return;
+    }
     profilePhotoInput.click();
   });
 
   profilePhotoInput.addEventListener("change", async () => {
+    const identity = requireActivePersonalOwner();
+    const keys = activeCloneStorageKeys();
+    if (!identity || !keys) {
+      profilePhotoInput.value = "";
+      return;
+    }
     const file = profilePhotoInput.files?.[0];
     profilePhotoInput.value = "";
     if (!file) {
       return;
     }
 
-    showToast("Dein Bild wird für Pam’s Holo vorbereitet …");
+    showToast(`Dein Bild wird nur für ${identity.displayName}s Holo vorbereitet …`);
     try {
       const photo = await prepareClonePhoto(file);
       const mouth = normalizedCloneMouth({
@@ -2517,12 +2821,12 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         width: 0.16,
         height: 0.075
       });
-      localStorage.setItem(clonePhotoKey, photo);
-      localStorage.setItem(cloneMouthKey, JSON.stringify(mouth));
+      localStorage.setItem(keys.photo, photo);
+      localStorage.setItem(keys.mouth, JSON.stringify(mouth));
       applyCustomCloneAppearance(photo, mouth);
       showToast("Bild übernommen · dein Gesicht wird lokal erkannt 🙂");
     } catch (error) {
-      console.error("Pams-Holo-Galeriebild:", error);
+      console.error("Persönliches Holo-Galeriebild:", error);
       showToast(
         error?.message || "Das Bild konnte gerade nicht übernommen werden."
       );
@@ -2553,11 +2857,18 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   });
 
   profilePhotoResetButton.addEventListener("click", () => {
+    if (!requireActivePersonalOwner()) {
+      return;
+    }
+    const keys = activeCloneStorageKeys();
+    if (!keys) {
+      return;
+    }
     cloneMouthCalibrationActive = false;
     cloneMouthBeforeCalibration = null;
     try {
-      localStorage.removeItem(clonePhotoKey);
-      localStorage.removeItem(cloneMouthKey);
+      localStorage.removeItem(keys.photo);
+      localStorage.removeItem(keys.mouth);
     } catch {}
     applyCustomCloneAppearance("", null);
     showToast("Das ursprüngliche SH♾️-Bild ist wieder aktiv.");
@@ -2576,7 +2887,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   noteComposer.addEventListener("submit", (event) => {
     event.preventDefault();
     const result = createPersonalNote(noteTextInput.value, {
-      source: "In Pam’s Holo geschrieben"
+      source: `In ${activeInstanceName()} geschrieben`
     });
     if (result.success) {
       noteTextInput.value = "";
@@ -2659,21 +2970,40 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   });
 
   document.getElementById("googleAccountRow").addEventListener("click", () => {
+    const identity = requireActivePersonalOwner();
+    if (!identity) {
+      return;
+    }
+
     if (googleConnected) {
       showToast(
-        "Google-Konto verbunden: Anmeldung, Gmail, Kontakte, Drive und Kalender."
+        `Google-Konto nur für ${identity.displayName}s Holo verbunden: Anmeldung, Gmail, Kontakte, Drive und Kalender.`
       );
       return;
     }
 
+    if (googleStatus.trustedSessionRequired) {
+      showToast(
+        "Google bleibt geschützt, bis die sichere App-Sitzung gebunden ist."
+      );
+      return;
+    }
+
+    const identityQuery = new URLSearchParams({
+      ownerId: identity.ownerId,
+      selectedSpeakerId: identity.speakerId
+    });
+    const authUrl =
+      `https://sol-holo.onrender.com/auth/google?${identityQuery}`;
+
     const authWindow = window.open(
-      "https://sol-holo.onrender.com/auth/google",
+      authUrl,
       "_blank",
       "noopener"
     );
 
     if (!authWindow) {
-      window.location.href = "https://sol-holo.onrender.com/auth/google";
+      window.location.href = authUrl;
     }
   });
 
@@ -2698,26 +3028,50 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     }
   });
 
-  document.getElementById("phoneContactsRow").addEventListener("click", () => {
+  document.getElementById("phoneContactsRow").addEventListener("click", async () => {
     if (phoneStatus.connected) {
-      showToast(
-        "Kontakte und Anruferkennung sind aktiv. Anruf oder SMS erst nach Bestätigung."
+      const managePermissions = window.confirm(
+        "Kontakte und Anruferkennung sind aktiv. Anruf oder SMS wird immer sichtbar bestätigt.\n\nAndroid-Berechtigungen jetzt verwalten oder widerrufen?"
       );
+      if (managePermissions) {
+        try {
+          await getPhoneContactsPlugin()?.openPermissionSettings();
+        } catch (error) {
+          console.error("Telefon-Berechtigungen:", error);
+          showToast("Die Android-Berechtigungen konnten gerade nicht geöffnet werden.");
+        }
+      }
       return;
     }
     void requestPhoneAccess();
   });
 
   document.getElementById("samsungGalleryRow").addEventListener("click", () => {
+    const identity = requireActivePersonalOwner();
+    if (!identity) {
+      return;
+    }
     showView("settings");
     profilePhotoInput.click();
-    showToast("Samsung Galerie ist geöffnet · wähle dein gewünschtes Bild für Pam’s Holo.");
+    showToast(`Samsung Galerie ist geöffnet · das Bild bleibt nur bei ${identity.displayName}s Holo.`);
   });
 
   document.getElementById("smartThingsRow").addEventListener("click", () => {
+    const identity = requireActivePersonalOwner();
+    if (!identity) {
+      return;
+    }
+
     if (smartThingsStatus.connected) {
       showToast(
         "SmartThings-Zuhause verbunden. Geräteaktionen brauchen immer deine Bestätigung."
+      );
+      return;
+    }
+
+    if (smartThingsStatus.trustedSessionRequired) {
+      showToast(
+        "SmartThings bleibt geschützt, bis die sichere App-Sitzung gebunden ist."
       );
       return;
     }
@@ -2730,15 +3084,21 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       return;
     }
 
+    const identityQuery = new URLSearchParams({
+      ownerId: identity.ownerId,
+      selectedSpeakerId: identity.speakerId
+    });
+    const authUrl =
+      `https://sol-holo.onrender.com/auth/smartthings?${identityQuery}`;
+
     const authWindow = window.open(
-      "https://sol-holo.onrender.com/auth/smartthings",
+      authUrl,
       "_blank",
       "noopener"
     );
 
     if (!authWindow) {
-      window.location.href =
-        "https://sol-holo.onrender.com/auth/smartthings";
+      window.location.href = authUrl;
     }
   });
 
@@ -2813,8 +3173,18 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     void consumeSharedNoteImport();
   });
 
+  window.addEventListener("solholoidentitychange", () => {
+    renderPersonalIdentityUi();
+    loadPersonalNotes();
+    renderPersonalNotes("");
+    restoreCustomCloneAppearance();
+    void loadGoogleStatus();
+    void loadSmartThingsStatus();
+  });
+
   loadPersonalNotes();
   renderPersonalNotes();
+  renderPersonalIdentityUi();
   restoreCustomCloneAppearance();
   showView("home");
   void loadGoogleStatus();

@@ -21,6 +21,91 @@ Grundregel:
 Persönliche Informationen werden nicht automatisch dauerhaft gespeichert.
 Eine dauerhafte Speicherung erfolgt nur bei ausdrücklicher Anweisung oder bestätigter Zustimmung.
 
+## Technischer Stand – bestätigtes Vollzeitgedächtnis und Identitätstrennung
+
+Stand: 2. September 2026
+
+Das Wort **Vollzeitgedächtnis** bedeutet, dass ausdrücklich bestätigte
+Erinnerungen später dauerhaft zur Verfügung stehen können. Es bedeutet nicht,
+dass jede Text- oder Sprachnachricht ungeprüft als persönliche Erinnerung
+protokolliert wird.
+
+Die verbindliche technische Reihenfolge lautet:
+
+1. Eine Nachricht kommt als Text oder als transkribierte Sprache an. Die
+   Audio-Rohaufnahme wird nicht Bestandteil des persönlichen Memory-Stores.
+2. Beide Quellen durchlaufen dieselbe Speicherregel.
+3. Die Sprecheridentität muss durch ein ausdrückliches technisches Signal
+   feststehen. Namen im Text, Schreibstil und Gesprächsthema reichen nicht aus.
+4. Ist die Identität unklar, lautet die Rückfrage: **„Spricht gerade Pam oder
+   Steffi?“** Bis zur Antwort findet kein dauerhafter Schreibvorgang statt.
+5. Eine normale Nachricht bleibt ohne ausdrücklichen Speicherwunsch außerhalb
+   des dauerhaften persönlichen Gedächtnisses.
+6. Ein direkter Speicherbefehl oder eine bestätigte Speicherrückfrage gilt nur
+   für die eindeutig zugeordnete Person.
+7. Der Datenbankzugriff wird zusätzlich auf die kanonische Owner-ID dieser
+   Person begrenzt.
+
+Die derzeitige technische Zuordnung ist:
+
+| Person | Kanonische Owner-ID | Sicher behandelter Legacy-Alias |
+|---|---|---|
+| Pam | `pam-sol` | `pam-sol-001` |
+| Steffi | `steffi-sol` | – |
+
+Neue Einträge werden ausschließlich mit der kanonischen Owner-ID geschrieben.
+Der Legacy-Alias `pam-sol-001` wird beim gezielten Zugriff als `pam-sol`
+aufgelöst. Vorhandene Datensätze werden dafür weder gelöscht noch automatisch
+umgeschrieben.
+
+Die Implementierung besteht aus zwei eigenständigen Modulen:
+
+- `modules/identity-memory.mjs` – reine Identitäts- und
+  Speicherentscheidung für Text und Sprache,
+- `modules/identity-memory-store.mjs` – additive PostgreSQL-Tabelle,
+  bestätigte Schreibvorgänge und strikt Owner-begrenzter Abruf.
+
+Nur eine Policy-Entscheidung mit `kind: "persist"`, `persist: true` und
+`confirmed: true` darf an den dauerhaften Store übergeben werden. Die
+Datenbanktabelle erzwingt zusätzlich `confirmed IS TRUE`.
+
+Die bisher vorhandenen Tabellen bleiben aus Gründen der Datenintegrität
+unverändert erhalten. Automatisch protokollierte Legacy-Inhalte werden durch
+das neue Modul jedoch nicht als bestätigte persönliche Erinnerung abgerufen.
+Ein späterer Import muss pro Inhalt ausdrücklich bestätigt und weiterhin der
+richtigen Person zugeordnet werden.
+
+Öffentliche technische Protokolle dürfen keine Erinnerungsinhalte,
+Gesundheitsangaben, Einwilligungstexte oder Suchbegriffe enthalten. Das Modul
+stellt deshalb nur ein inhaltsfreies Audit-Ereignis bereit. Private Inhalte
+dürfen nicht durch das Protokollieren kompletter Requests, Policy-Entscheidungen
+oder SQL-Parameter umgangen werden.
+
+### Verbleibende Einbindung in den aktiven Server
+
+Der aktive Server muss die beiden Module noch an seinen Text- und Sprachpfad
+anschließen. Dabei sind folgende Punkte gemeinsam umzusetzen:
+
+- Identitätssignale (`selectedSpeakerId` und gegebenenfalls
+  `verifiedSpeakerId`) aus der jeweils vertrauenswürdigen Quelle übergeben,
+- bei `clarify_identity` oder `identity_conflict` die Pam-/Steffi-Rückfrage
+  ausgeben und nicht speichern,
+- nur `persist` an `saveConfirmed()` weiterreichen,
+- persönliche Abrufe ausschließlich mit zusammenpassender Sprecher- und
+  kanonischer Owner-ID durchführen,
+- ungeprüfte automatische Writes in `sol_fulltime_memory`,
+  `sol_long_term_memory` oder ungetrennte Gesprächstabellen für diesen neuen
+  Pfad nicht mehr verwenden,
+- die Zugriffsberechtigung auf den angeforderten Owner serverseitig prüfen;
+  Identitätszuordnung und Zugriffsberechtigung sind zwei getrennte Schranken.
+
+Automatisierte Tests befinden sich in `tests/identity-memory.test.mjs` und
+werden mit folgendem Befehl ausgeführt:
+
+```bash
+node --test tests/identity-memory.test.mjs
+```
+
 🌻 Sol Holo – Individuelle Klone, Persönlichkeit und Erinnerungstrennung
 
 Projekt: Sol Holo

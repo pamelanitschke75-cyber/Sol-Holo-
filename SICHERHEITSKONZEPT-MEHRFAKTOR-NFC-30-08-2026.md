@@ -5,7 +5,7 @@
 **Projekt:** Sol Holo · SH♾️  
 **Projekt / Idee / Entwicklung:** Pamela Nitschke  
 **Sicherheitsimpuls / Zusatzidee:** Stefanie Hörath  
-**Status:** Sicherheitskonzept dokumentiert – technische Umsetzung teilweise noch offen
+**Status:** Sicherheitskonzept dokumentiert – modulare technische Grundlage vorhanden, Geräte- und Watch-Test noch offen
 
 ---
 
@@ -84,6 +84,77 @@ Dabei gilt ausdrücklich:
 Beispiel:
 
 **registriertes Gerät + NFC-Sicherheitsschlüssel + PIN → starker Ersatz- bzw. Notfallzugang**
+
+### Trennung von privater Entscheidung und technischem Gerätetest
+
+Eine neue allgemeine In-App-Abfrage ist für diesen technischen Schritt nicht vorgesehen. Personenbezogene Inhalte privater Einwilligungsnachweise werden nicht als öffentliche App-Metadaten oder im öffentlichen Repository veröffentlicht.
+
+Davon getrennt bleiben die technischen Nachweise:
+
+- Die NFC-Funktion des Samsung Galaxy S23 ist praktisch belegt.
+- Der kryptografische Watch-HCE-/Companion-Ablauf wurde noch nicht auf einer ausgewählten Uhr getestet.
+- Für einen eigenständigen kryptografischen NFC-Sicherheitsschlüssel wurde noch kein konkreter Hersteller beziehungsweise Schlüsseltyp ausgewählt und attestiert.
+- Bis diese Tests erfolgreich abgeschlossen sind, meldet Sol Holo für diese Faktoren ehrlich **„nicht eingerichtet“** und gibt damit keine kritische Aktion frei.
+
+---
+
+## Technische Mehrfaktor-Grundlage ab Build #108
+
+Die neue modulare Grundlage trennt die Faktoren in unabhängige Kategorien:
+
+- **Besitz:** registriertes Smartphone mit nicht exportierbarem Android-Keystore-Schlüssel,
+- **Wissen:** Android-Geräte-PIN, Muster oder Passwort,
+- **Biometrie:** starke Android-Systembiometrie der Klasse 3,
+- **zusätzlicher Besitz:** eine künftig kryptografisch registrierte und signierende Uhr oder ein attestierter NFC-Sicherheitsschlüssel.
+
+Für eine kritische Aktion gilt technisch mindestens:
+
+**registriertes Gerät + (starke Android-Systembiometrie oder Geräte-PIN)**
+
+Telefon und Uhr sind zwar zwei getrennte Geräte, gehören aber beide zur Kategorie **Besitz**. Sie zählen deshalb nicht allein als zwei unabhängige Kategorien. Für besonders kritische Aktionen kann später zusätzlich gelten:
+
+**registriertes Gerät + registrierte kryptografische Uhr + (starke Systembiometrie oder Geräte-PIN)**
+
+Bei Ausfall oder Veränderung der Biometrie ist der vorgesehene lokale Wiederherstellungsweg:
+
+**registriertes Gerät + Android-Geräte-PIN/-Muster/-Passwort**
+
+Ein verlorenes oder nicht mehr nachweisbares registriertes Gerät wird nicht durch einen einfachen lokalen Schalter ersetzt. Ein späterer Gerätewechsel benötigt einen separat eingerichteten, bereits vertrauenswürdig registrierten kryptografischen Wiederherstellungsfaktor plus einen Wissensnachweis.
+
+### Registrierte Uhr als kryptografischer NFC-Signaturfaktor
+
+Eine Uhr darf nur dann den Faktor `registered_watch_nfc` liefern, wenn alle folgenden Bedingungen erfüllt sind:
+
+- Auf der Uhr existiert ein eigener privater Schlüssel, der die Uhr nicht verlassen darf.
+- Sol Holo hat den zugehörigen öffentlichen Schlüssel nach echter Registrierung und Attestierungsprüfung fest verankert.
+- Das Telefon erzeugt pro Vorgang eine neue zufällige Challenge / Nonce.
+- Die Challenge ist kurz befristet und nur einmal verwendbar.
+- Die Uhr signiert exakt die gebundene Aktion, Challenge, Ablaufzeit und einen streng ansteigenden Zähler.
+- Pam bestätigt die konkrete Aktion ausdrücklich auf der Uhr, bevor die Uhr signiert.
+- Das Telefon prüft Signatur, fest verankerten öffentlichen Schlüssel, Ablaufzeit, Aktionsbindung, Einmaligkeit und Zähler.
+- Eine NFC-ID, eine Tag-Seriennummer, ein NDEF-Text oder die bloße Nähe der Uhr wird niemals akzeptiert.
+
+Die Telefonseite enthält dafür eine Fail-Closed-Policy und eine Challenge-/Signatur-Schnittstelle. Solange ein passender Watch-Companion, ein geprüfter NFC-/HCE-Transport und eine attestierte Schlüsselregistrierung fehlen, bleibt `registered_watch_nfc` **nicht eingerichtet**.
+
+### Koexistenz mit vorhandenen NFC-Diensten
+
+Die Sicherheitsfunktion ist ausdrücklich **kein Bezahldienst**. Eine spätere HCE-Umsetzung darf ausschließlich als nicht zahlungsbezogener Dienst (`CATEGORY_OTHER`) erfolgen.
+
+Sie darf insbesondere nicht:
+
+- Google Wallet als Standard-Wallet ersetzen oder verändern,
+- die Wallet-Rolle beanspruchen,
+- Nearby umkonfigurieren,
+- den vorhandenen FIDO NFC Emulation Service umwidmen oder als Sol-Holo-Schlüssel ausgeben,
+- Android Digital Car Key verändern oder wiederverwenden.
+
+Die Android-Plattform weist außerdem darauf hin, dass HCE-Geräte wechselnde NFC-UIDs präsentieren können. Schon deshalb darf eine UID nicht zur Authentifizierung oder Identifizierung verwendet werden.
+
+### Reale Android-Grenze bei Gesicht und Finger
+
+Sol Holo kann über den Android-Systemdialog starke Biometrie oder die Geräte-PIN anfordern und anschließend unterscheiden, ob **Biometrie** oder **Geräte-Anmeldedaten** verwendet wurden.
+
+Android liefert einer normalen App jedoch nicht zuverlässig die einzelne biometrische Modalität „Gesicht“ oder „Fingerabdruck“. Welches zugelassene starke Verfahren angeboten wird, verwaltet das Betriebssystem. Sol Holo darf deshalb nicht behaupten, Gesicht und Finger auf jedem Gerät getrennt erkannt zu haben.
 
 ---
 
@@ -183,8 +254,14 @@ Kurzform:
 ✅ Sicherheitskonzept am 30.08.2026 dokumentiert  
 ✅ NFC als zukünftiger zusätzlicher Besitznachweis festgelegt  
 ✅ Mehrfaktor-Grundsatz festgelegt  
+✅ Reine Java-Policy für unabhängige Faktorkategorien und kritische Aktionen erstellt
+✅ Einfache NFC-Tags und NFC-IDs in Policy und Schnittstelle ausdrücklich gesperrt
+✅ Kryptografisches Watch-Protokoll mit Nonce, Ablaufzeit, Aktionsbindung, Zähler, Einmaligkeit und Bestätigungspflicht festgelegt
+✅ Nicht zahlungsbezogene Koexistenzregel (`CATEGORY_OTHER`) ohne Wallet-/FIDO-Übernahme festgelegt
 🟨 Kryptografischen NFC-Sicherheitsschlüssel auswählen und registrieren  
-🟨 Mehrfaktorlogik technisch implementieren  
+🟨 Android-Keystore-Geräteregistrierung und Systemdialog im echten S23-Build testen
+🟨 Watch-Companion, Watch-HCE-Fähigkeit und NFC-Transport auf der ausgewählten Uhr implementieren und testen
+🟨 Watch-Schlüsselpaar und Attestierung nach Pams Geräteauswahl sicher registrieren
 🟨 Anzahl und Kombination verdächtiger Fehlversuche festlegen  
 🟨 Sicherheitsmeldung technisch und datenschutzrechtlich definieren  
 🟨 Gerätesperre auf Android separat prüfen und testen

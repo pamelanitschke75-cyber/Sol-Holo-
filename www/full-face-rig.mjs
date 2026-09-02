@@ -32,6 +32,198 @@ function clamp(value, minimum, maximum) {
   return Math.min(maximum, Math.max(minimum, Number(value) || 0));
 }
 
+const NEUTRAL_MOTION = Object.freeze({
+  openness: 0,
+  wideness: 0,
+  roundness: 0
+});
+
+export function normalizeSpeechMotion(
+  motion,
+  speechProfile = SPEECH_MOTION
+) {
+  return {
+    openness: clamp(
+      motion?.openness,
+      0,
+      profileNumber(speechProfile, "maximumOpen", 0.60)
+    ),
+    wideness: clamp(
+      motion?.wideness,
+      0,
+      profileNumber(speechProfile, "wideMaximum", 0.48)
+    ),
+    roundness: clamp(
+      motion?.roundness,
+      0,
+      profileNumber(speechProfile, "roundMaximum", 0.46)
+    )
+  };
+}
+
+function easedMotionValue(current, target, elapsedMs, attackMs, releaseMs) {
+  const responseMs = target > current ? attackMs : releaseMs;
+  const amount = 1 - Math.exp(-elapsedMs / Math.max(1, responseMs));
+  return current + (target - current) * amount;
+}
+
+export function smoothSpeechMotion(
+  currentMotion,
+  targetMotion,
+  elapsedMilliseconds,
+  speechProfile = SPEECH_MOTION
+) {
+  const current = normalizeSpeechMotion(currentMotion, speechProfile);
+  const target = normalizeSpeechMotion(targetMotion, speechProfile);
+  const neutralEpsilon = profileNumber(
+    speechProfile,
+    "neutralEpsilon",
+    0.007
+  );
+
+  // Der aufrufende Animations-Loop endet, sobald die Audiowerte still sind.
+  // Deshalb muss der letzte stille Frame garantiert exakt neutral sein und
+  // darf keinen halb geoeffneten Mund auf dem Foto stehen lassen.
+  if (
+    Math.max(target.openness, target.wideness, target.roundness) <=
+      neutralEpsilon
+  ) {
+    return { ...NEUTRAL_MOTION };
+  }
+
+  const elapsed = clamp(elapsedMilliseconds, 8, 80);
+  const open = easedMotionValue(
+    current.openness,
+    target.openness,
+    elapsed,
+    profileNumber(speechProfile, "rigAttackMs", 34),
+    profileNumber(speechProfile, "rigReleaseMs", 86)
+  );
+  const wide = easedMotionValue(
+    current.wideness,
+    target.wideness,
+    elapsed,
+    profileNumber(speechProfile, "shapeAttackMs", 48),
+    profileNumber(speechProfile, "shapeReleaseMs", 96)
+  );
+  const round = easedMotionValue(
+    current.roundness,
+    target.roundness,
+    elapsed,
+    profileNumber(speechProfile, "shapeAttackMs", 48),
+    profileNumber(speechProfile, "shapeReleaseMs", 96)
+  );
+
+  return normalizeSpeechMotion(
+    {
+      openness: open,
+      wideness: wide,
+      roundness: round
+    },
+    speechProfile
+  );
+}
+
+export function speechMotionMetrics(
+  motion,
+  face,
+  mouth,
+  speechProfile = SPEECH_MOTION
+) {
+  const normalized = normalizeSpeechMotion(motion, speechProfile);
+  const visibleOpen = Math.pow(normalized.openness, 0.72);
+  const verticalTravel = Math.min(
+    face.height * profileNumber(speechProfile, "travelByFace", 0.027),
+    mouth.height * profileNumber(speechProfile, "travelByMouth", 0.84)
+  ) * visibleOpen;
+  const jawTravel = Math.min(
+    face.height * profileNumber(speechProfile, "jawTravelByFace", 0.014),
+    mouth.height * profileNumber(speechProfile, "jawTravelByMouth", 0.46)
+  ) * visibleOpen;
+
+  return {
+    ...normalized,
+    visibleOpen,
+    verticalTravel,
+    jawTravel,
+    upperTravel:
+      verticalTravel *
+      profileNumber(speechProfile, "upperLipShare", 0.18),
+    lowerTravel:
+      verticalTravel *
+      profileNumber(speechProfile, "lowerLipShare", 0.72),
+    shapeScale: clamp(
+      1 +
+        normalized.wideness *
+          profileNumber(speechProfile, "wideScale", 0.24) -
+        normalized.roundness *
+          profileNumber(speechProfile, "roundScale", 0.23),
+      profileNumber(speechProfile, "minimumMouthScale", 0.88),
+      profileNumber(speechProfile, "maximumMouthScale", 1.13)
+    )
+  };
+}
+
+export function lowerFaceMotionWeight(point, face, mouth) {
+  const hingeY = mouth.centerY - mouth.height * 0.10;
+  const vertical = clamp(
+    (point.y - hingeY) /
+      Math.max(0.0001, face.bottom - hingeY),
+    0,
+    1
+  );
+  const horizontal = clamp(
+    Math.abs(point.x - mouth.centerX) /
+      Math.max(0.0001, face.width * 0.52),
+    0,
+    1
+  );
+  const easedVertical = vertical * vertical * (3 - 2 * vertical);
+
+  // Der Unterkiefer rotiert: Das Kinn bewegt sich am staerksten, an den
+  // seitlichen Kiefergelenken bleibt die Bewegung kleiner.
+  return easedVertical * (1 - horizontal * 0.32);
+}
+
+export function hasSafeFaceGeometry(face, mouth, leftEye, rightEye) {
+  const boxes = [face, mouth, leftEye, rightEye];
+  if (
+    boxes.some(box =>
+      !box ||
+      ![
+        box.left,
+        box.top,
+        box.right,
+        box.bottom,
+        box.width,
+        box.height,
+        box.centerX,
+        box.centerY
+      ].every(Number.isFinite)
+    )
+  ) {
+    return false;
+  }
+
+  const eyeCenterY = (leftEye.centerY + rightEye.centerY) / 2;
+  const eyeSeparation = Math.abs(leftEye.centerX - rightEye.centerX);
+  const mouthWidthShare = mouth.width / Math.max(0.0001, face.width);
+
+  return (
+    face.width >= 0.12 &&
+    face.height >= 0.12 &&
+    mouthWidthShare >= 0.12 &&
+    mouthWidthShare <= 0.66 &&
+    mouth.centerX > face.left &&
+    mouth.centerX < face.right &&
+    mouth.centerY > eyeCenterY + face.height * 0.08 &&
+    mouth.centerY < face.bottom &&
+    eyeSeparation >= face.width * 0.10 &&
+    leftEye.centerY < mouth.centerY &&
+    rightEye.centerY < mouth.centerY
+  );
+}
+
 function uniqueIndices(connections) {
   return [
     ...new Set(
@@ -228,6 +420,8 @@ class FullFaceRig {
     this.nextBlinkAt = 0;
     this.blinkStartedAt = 0;
     this.blinkDuration = 180;
+    this.motionState = { ...NEUTRAL_MOTION };
+    this.lastMotionAt = 0;
 
     this.lipIndices = uniqueIndices(FaceLandmarker.FACE_LANDMARKS_LIPS);
     this.lipIndexSet = new Set(this.lipIndices);
@@ -333,11 +527,28 @@ class FullFaceRig {
         return false;
       }
 
+      const mouthBounds = boundsFor(landmarks, this.lipIndices);
+      const leftEyeBounds = boundsFor(landmarks, this.leftEyeLoop);
+      const rightEyeBounds = boundsFor(landmarks, this.rightEyeLoop);
+      if (
+        !hasSafeFaceGeometry(
+          faceBounds,
+          mouthBounds,
+          leftEyeBounds,
+          rightEyeBounds
+        )
+      ) {
+        this.onStatus({ state: "fallback", reason: "unsafe-landmarks" });
+        return false;
+      }
+
       this.prepareMesh(landmarks);
       this.uploadTexture();
       this.resize();
       this.ready = true;
       this.lastFrameAt = 0;
+      this.lastMotionAt = 0;
+      this.motionState = { ...NEUTRAL_MOTION };
       const firstMinimumDelay =
         profileNumber(BLINK_MOTION, "firstMinimumDelayMs", 1450);
       const firstMaximumDelay =
@@ -532,41 +743,31 @@ class FullFaceRig {
   applyMotion({ openness, wideness, roundness }, timestamp) {
     this.destinationCoordinates.set(this.sourceCoordinates);
 
-    const open = clamp(
-      openness,
-      0,
-      profileNumber(SPEECH_MOTION, "maximumOpen", 0.60)
-    );
-    const wide = clamp(
-      wideness,
-      0,
-      profileNumber(SPEECH_MOTION, "wideMaximum", 0.48)
-    );
-    const round = clamp(
-      roundness,
-      0,
-      profileNumber(SPEECH_MOTION, "roundMaximum", 0.46)
-    );
     const mouth = this.mouthBounds;
     const face = this.faceBounds;
-    const visibleOpen = Math.pow(open, 0.78);
-    const verticalTravel =
-      Math.min(
-        face.height *
-          profileNumber(SPEECH_MOTION, "travelByFace", 0.020),
-        mouth.height *
-          profileNumber(SPEECH_MOTION, "travelByMouth", 0.68)
-      ) * visibleOpen;
-    const upperTravel = verticalTravel *
-      profileNumber(SPEECH_MOTION, "upperLipShare", 0.18);
-    const lowerTravel = verticalTravel *
-      profileNumber(SPEECH_MOTION, "lowerLipShare", 0.82);
-    const shapeScale = clamp(
-      1 +
-        wide * profileNumber(SPEECH_MOTION, "wideScale", 0.036) -
-        round * profileNumber(SPEECH_MOTION, "roundScale", 0.046),
-      0.95,
-      1.04
+    const metrics = speechMotionMetrics(
+      { openness, wideness, roundness },
+      face,
+      mouth,
+      SPEECH_MOTION
+    );
+    const {
+      wideness: wide,
+      verticalTravel,
+      jawTravel,
+      upperTravel,
+      lowerTravel,
+      shapeScale
+    } = metrics;
+    const jawLipShare = profileNumber(
+      SPEECH_MOTION,
+      "jawLipShare",
+      0.66
+    );
+    const cornerLiftShare = profileNumber(
+      SPEECH_MOTION,
+      "cornerLiftShare",
+      0.18
     );
 
     for (const index of this.lipIndices) {
@@ -580,9 +781,14 @@ class FullFaceRig {
       const centerWeight = 1 - cornerDistance * 0.42;
       const destinationX = mouth.centerX +
         (sourceX - mouth.centerX) * shapeScale;
+      const cornerLift =
+        verticalTravel * wide * cornerLiftShare * cornerDistance;
       const destinationY = sourceY < mouth.centerY
-        ? sourceY - upperTravel * centerWeight
-        : sourceY + lowerTravel * centerWeight;
+        ? sourceY - upperTravel * centerWeight - cornerLift
+        : sourceY +
+          lowerTravel * centerWeight +
+          jawTravel * jawLipShare * (0.58 + centerWeight * 0.42) -
+          cornerLift;
 
       this.destinationCoordinates[index * 2] = destinationX;
       this.destinationCoordinates[index * 2 + 1] = destinationY;
@@ -606,29 +812,40 @@ class FullFaceRig {
         -(normalX * normalX + normalY * normalY) * 1.55
       );
       const direction = Math.sign(sourceX - mouth.centerX);
+      const jawWeight = lowerFaceMotionWeight(
+        { x: sourceX, y: sourceY },
+        face,
+        mouth
+      );
 
       this.movePoint(
         index,
         direction * verticalTravel * wide *
           profileNumber(SPEECH_MOTION, "cheekShare", 0.030) *
-          cheekInfluence,
-        verticalTravel * 0.022 * cheekInfluence
+          cheekInfluence +
+          direction * jawTravel * jawWeight *
+            profileNumber(SPEECH_MOTION, "jawWidenShare", 0.10),
+        jawTravel * jawWeight -
+          verticalTravel * wide *
+            profileNumber(SPEECH_MOTION, "cheekLiftShare", 0.10) *
+            cheekInfluence
       );
     }
 
     for (const index of this.faceOvalIndices) {
+      if (this.lipIndexSet.has(index)) continue;
+      const sourceX = this.sourceCoordinates[index * 2];
       const sourceY = this.sourceCoordinates[index * 2 + 1];
-      const lowerFaceWeight = clamp(
-        (sourceY - mouth.bottom) / Math.max(0.0001, face.bottom - mouth.bottom),
-        0,
-        1
+      const jawWeight = lowerFaceMotionWeight(
+        { x: sourceX, y: sourceY },
+        face,
+        mouth
       );
       this.movePoint(
         index,
-        0,
-        verticalTravel *
-          profileNumber(SPEECH_MOTION, "jawShare", 0.028) *
-          lowerFaceWeight
+        Math.sign(sourceX - mouth.centerX) * jawTravel * jawWeight *
+          profileNumber(SPEECH_MOTION, "jawWidenShare", 0.10),
+        jawTravel * jawWeight
       );
     }
 
@@ -723,15 +940,22 @@ class FullFaceRig {
     if (!force && timestamp - this.lastFrameAt < 30) return true;
     this.lastFrameAt = timestamp;
 
+    const targetMotion = normalizeSpeechMotion(motion, SPEECH_MOTION);
+    const elapsedMilliseconds = this.lastMotionAt
+      ? timestamp - this.lastMotionAt
+      : 16.67;
+    this.motionState = force
+      ? targetMotion
+      : smoothSpeechMotion(
+          this.motionState,
+          targetMotion,
+          elapsedMilliseconds,
+          SPEECH_MOTION
+        );
+    this.lastMotionAt = timestamp;
+
     this.resize();
-    this.applyMotion(
-      {
-        openness: motion?.openness,
-        wideness: motion?.wideness,
-        roundness: motion?.roundness
-      },
-      timestamp
-    );
+    this.applyMotion(this.motionState, timestamp);
     this.updateVertexBuffer();
 
     const gl = this.gl;
@@ -748,6 +972,8 @@ class FullFaceRig {
     if (!this.gl) return;
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     this.lastFrameAt = 0;
+    this.lastMotionAt = 0;
+    this.motionState = { ...NEUTRAL_MOTION };
   }
 
   disable() {

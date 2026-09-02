@@ -6,33 +6,45 @@
     Das Video selbst und einzelne Bildframes werden nicht in der App verteilt.
   */
   const profile = {
-    version:"2026-08-29-reference-video-1",
+    version:"2026-09-02-natural-mouth-jaw-2",
 
     speech:{
-      maximumOpen:0.60,
-      restingOpen:0.018,
-      attackRetention:0.66,
-      releaseRetention:0.83,
-      wideMaximum:0.48,
-      roundMaximum:0.46,
+      maximumOpen:0.62,
+      restingOpen:0.012,
+      attackRetention:0.58,
+      releaseRetention:0.80,
+      wideMaximum:0.52,
+      roundMaximum:0.50,
       upperLipShare:0.18,
-      lowerLipShare:0.82,
-      travelByFace:0.020,
-      travelByMouth:0.68,
-      wideScale:0.036,
-      roundScale:0.046,
-      jawShare:0.028,
-      cheekShare:0.030
+      lowerLipShare:0.72,
+      travelByFace:0.027,
+      travelByMouth:0.84,
+      wideScale:0.24,
+      roundScale:0.23,
+      minimumMouthScale:0.88,
+      maximumMouthScale:1.13,
+      jawTravelByFace:0.014,
+      jawTravelByMouth:0.46,
+      jawLipShare:0.66,
+      jawWidenShare:0.10,
+      cheekShare:0.055,
+      cheekLiftShare:0.10,
+      cornerLiftShare:0.18,
+      rigAttackMs:34,
+      rigReleaseMs:86,
+      shapeAttackMs:48,
+      shapeReleaseMs:96,
+      neutralEpsilon:0.007
     },
 
     fallback:{
-      baseOpen:0.055,
-      minimumOpen:0.018,
-      maximumOpen:0.60,
-      closureDepth:0.36,
-      syllableRate:0.019,
-      consonantRate:0.043,
-      phraseRate:0.0061
+      baseOpen:0.035,
+      minimumOpen:0.010,
+      maximumOpen:0.54,
+      closureDepth:0.44,
+      syllableRate:0.0174,
+      consonantRate:0.039,
+      phraseRate:0.0055
     },
 
     blink:{
