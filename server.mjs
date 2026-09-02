@@ -857,8 +857,14 @@ async function initializeMemory() {
       clone_id TEXT NOT NULL,
       role TEXT NOT NULL,
       content TEXT NOT NULL,
+      source_event_id TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
+  `);
+
+  await db.query(`
+    ALTER TABLE sol_fulltime_memory
+    ADD COLUMN IF NOT EXISTS source_event_id TEXT
   `);
 
   /*
@@ -872,6 +878,15 @@ async function initializeMemory() {
       clone_id,
       id DESC
     )
+  `);
+
+  await db.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS sol_fulltime_memory_event_uidx
+    ON sol_fulltime_memory (
+      clone_id,
+      source_event_id
+    )
+    WHERE source_event_id IS NOT NULL
   `);
 
   await db.query(`
@@ -2256,6 +2271,68 @@ function hasTrustedGooglePersonalReadGate(req) {
   return Boolean(
     trustedAppSessions.validateRequest(req)
   );
+}
+
+function requireTrustedOwnerIdentity(
+  req,
+  res
+) {
+  const trustedSession =
+    trustedAppSessions
+      .validateRequest(
+        req
+      );
+
+  if (!trustedSession) {
+    res
+      .status(401)
+      .set({
+        "Cache-Control": "no-store, max-age=0",
+        Pragma: "no-cache"
+      })
+      .json({
+        error:
+          "TRUSTED_APP_SESSION_REQUIRED",
+        message:
+          "Das private Vollzeitgedächtnis wird nur für das sicher entsperrte persönliche Gerät geöffnet.",
+        persisted:
+          false
+      });
+
+    return null;
+  }
+
+  const identity =
+    resolveRequestIdentity(
+      req,
+      res
+    );
+
+  if (!identity) {
+    return null;
+  }
+
+  if (
+    trustedSession.ownerId !==
+    identity.ownerId
+  ) {
+    res
+      .status(403)
+      .set({
+        "Cache-Control": "no-store, max-age=0",
+        Pragma: "no-cache"
+      })
+      .json({
+        error:
+          "TRUSTED_SESSION_SCOPE_MISMATCH",
+        persisted:
+          false
+      });
+
+    return null;
+  }
+
+  return identity;
 }
 
 async function handleGooglePersonalRead(req, res, operation, action) {
@@ -4051,7 +4128,11 @@ async function saveMemory(role, content) {
 
 async function saveFulltimeMemory(
   role,
-  content
+  content,
+  {
+    ownerId = "pam-sol",
+    sourceEventId = null
+  } = {}
 ) {
   if (
     content === undefined ||
@@ -4063,20 +4144,192 @@ async function saveFulltimeMemory(
   const originalContent =
     String(content);
 
-  await db.query(
+  const safeRole =
+    role === "assistant"
+      ? "assistant"
+      : "user";
+
+  const cleanSourceEventId =
+    String(
+      sourceEventId ||
+      ""
+    ).trim() || null;
+
+  const result = await db.query(
     `
       INSERT INTO sol_fulltime_memory (
         clone_id,
         role,
-        content
+        content,
+        source_event_id
       )
-      VALUES ($1, $2, $3)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT DO NOTHING
+      RETURNING id
     `,
     [
-      CURRENT_CLONE_ID,
-      role,
-      originalContent
+      cloneIdForOwner(ownerId),
+      safeRole,
+      originalContent,
+      cleanSourceEventId
     ]
+  );
+
+  return Boolean(
+    result.rows?.[0]
+  );
+}
+
+async function loadOwnerFulltimeHistoryPage(
+  identity,
+  {
+    beforeId = null,
+    limit = 250
+  } = {}
+) {
+  const safeLimit =
+    Math.min(
+      500,
+      Math.max(
+        1,
+        Number(limit) || 250
+      )
+    );
+
+  const numericBeforeId =
+    Number.parseInt(
+      beforeId,
+      10
+    );
+
+  const result = await db.query(
+    `
+      SELECT
+        id,
+        role,
+        content,
+        created_at
+      FROM sol_fulltime_memory
+      WHERE clone_id = $1
+        AND (
+          $2::bigint IS NULL OR
+          id < $2::bigint
+        )
+      ORDER BY id DESC
+      LIMIT $3
+    `,
+    [
+      cloneIdForOwner(
+        identity.ownerId
+      ),
+      Number.isSafeInteger(
+        numericBeforeId
+      ) && numericBeforeId > 0
+        ? numericBeforeId
+        : null,
+      safeLimit + 1
+    ]
+  );
+
+  const hasMore =
+    result.rows.length >
+    safeLimit;
+
+  const rows =
+    result.rows.slice(
+      0,
+      safeLimit
+    );
+
+  return {
+    rows,
+    hasMore,
+    nextBeforeId:
+      hasMore && rows.length > 0
+        ? rows[rows.length - 1].id
+        : null
+  };
+}
+
+async function loadRelevantOwnerFulltimeMemory(
+  identity,
+  message,
+  limit = 36
+) {
+  const cleanMessage =
+    String(
+      message ||
+      ""
+    ).trim();
+
+  if (!cleanMessage) {
+    return [];
+  }
+
+  const safeLimit =
+    Math.min(
+      100,
+      Math.max(
+        1,
+        Number(limit) || 36
+      )
+    );
+
+  const terms =
+    extractMemorySearchTerms(
+      cleanMessage
+    );
+
+  if (terms.length === 0) {
+    return [];
+  }
+
+  const patterns =
+    terms.map(
+      term => `%${term}%`
+    );
+
+  const result = await db.query(
+    `
+      SELECT
+        id,
+        role,
+        content,
+        created_at,
+        'fulltime' AS source
+      FROM sol_fulltime_memory
+      WHERE clone_id = $1
+        AND LOWER(content) LIKE ANY($2::text[])
+      ORDER BY
+        CASE WHEN role = 'user' THEN 0 ELSE 1 END,
+        id DESC
+      LIMIT $3
+    `,
+    [
+      cloneIdForOwner(
+        identity.ownerId
+      ),
+      patterns,
+      safeLimit
+    ]
+  );
+
+  const normalizedQuestion =
+    cleanMessage
+      .toLocaleLowerCase(
+        "de-DE"
+      );
+
+  return result.rows.filter(
+    row =>
+      String(
+        row.content ||
+        ""
+      )
+        .trim()
+        .toLocaleLowerCase(
+          "de-DE"
+        ) !== normalizedQuestion
   );
 }
 
@@ -4592,6 +4845,203 @@ function formatConfirmedMemoryRows(
 }
 
 /*
+  ==========================================================
+  PRIVATES VOLLZEITGEDÄCHTNIS – SICHTBARER CHATVERLAUF
+  ==========================================================
+
+  Der vollständige 1:1-Verlauf wird nur nach der signierten
+  App-Sitzungsprüfung an das gebundene Gerät ausgegeben.
+*/
+
+app.post(
+  "/fulltime/history",
+  async (req, res) => {
+    try {
+      const identity =
+        requireTrustedOwnerIdentity(
+          req,
+          res
+        );
+
+      if (!identity) {
+        return;
+      }
+
+      const page =
+        await loadOwnerFulltimeHistoryPage(
+          identity,
+          {
+            beforeId:
+              req.body?.beforeId,
+            limit:
+              req.body?.limit
+          }
+        );
+
+      return res
+        .set({
+          "Cache-Control":
+            "no-store, max-age=0",
+          Pragma:
+            "no-cache"
+        })
+        .json({
+          messages:
+            page.rows,
+          hasMore:
+            page.hasMore,
+          nextBeforeId:
+            page.nextBeforeId,
+          identity:
+            publicIdentity(
+              identity
+            ),
+          persisted:
+            false
+        });
+    } catch (error) {
+      console.error(
+        "Vollzeitverlauf laden:",
+        error?.code ||
+        error?.name ||
+        "Fehler"
+      );
+
+      return res
+        .status(500)
+        .json({
+          error:
+            "Der private Vollzeitverlauf konnte gerade nicht geladen werden."
+        });
+    }
+  }
+);
+
+app.post(
+  "/fulltime/history/append",
+  async (req, res) => {
+    try {
+      const identity =
+        requireTrustedOwnerIdentity(
+          req,
+          res
+        );
+
+      if (!identity) {
+        return;
+      }
+
+      const sourceEventId =
+        String(
+          req.body?.sourceEventId ||
+          ""
+        ).trim();
+
+      const entries =
+        Array.isArray(
+          req.body?.messages
+        )
+          ? req.body.messages
+          : [];
+
+      if (
+        !/^[a-zA-Z0-9:_-]{16,160}$/.test(
+          sourceEventId
+        ) ||
+        entries.length < 1 ||
+        entries.length > 8
+      ) {
+        return res.status(400).json({
+          error:
+            "Ungültiger Vollzeitverlauf-Stapel."
+        });
+      }
+
+      let inserted = 0;
+
+      for (
+        let index = 0;
+        index < entries.length;
+        index += 1
+      ) {
+        const entry =
+          entries[index];
+
+        const role =
+          entry?.role === "assistant"
+            ? "assistant"
+            : entry?.role === "user"
+              ? "user"
+              : "";
+
+        const content =
+          String(
+            entry?.content ||
+            ""
+          );
+
+        if (
+          !role ||
+          !content.trim() ||
+          content.length > 8000
+        ) {
+          return res.status(400).json({
+            error:
+              "Ungültiger Vollzeitverlauf-Eintrag."
+          });
+        }
+
+        inserted += Number(
+          await saveFulltimeMemory(
+            role,
+            content,
+            {
+              ownerId:
+                identity.ownerId,
+              sourceEventId:
+                `${sourceEventId}:${index}:${role}`
+            }
+          )
+        );
+      }
+
+      return res
+        .set({
+          "Cache-Control":
+            "no-store, max-age=0",
+          Pragma:
+            "no-cache"
+        })
+        .json({
+          saved:
+            true,
+          inserted,
+          alreadyStored:
+            entries.length - inserted,
+          identity:
+            publicIdentity(
+              identity
+            )
+        });
+    } catch (error) {
+      console.error(
+        "Vollzeitverlauf ergänzen:",
+        error?.code ||
+        error?.name ||
+        "Fehler"
+      );
+
+      return res
+        .status(500)
+        .json({
+          error:
+            "Der private Vollzeitverlauf konnte gerade nicht ergänzt werden."
+        });
+    }
+  }
+);
+
+/*
   Geschützter Abruf für Realtime-Tool-Calls.
   Die gesamte Datenbank bleibt ausschließlich im Backend.
 */
@@ -4673,22 +5123,41 @@ app.post(
         });
       }
 
-      const memories =
-        await identityMemoryStore.searchConfirmed({
-          ownerId:
-            tokenSession.ownerId,
-          speakerId:
-            tokenSession.speakerId,
-          searchText:
+      const [confirmedMemories, fulltimeMemories] =
+        await Promise.all([
+          identityMemoryStore.searchConfirmed({
+            ownerId:
+              tokenSession.ownerId,
+            speakerId:
+              tokenSession.speakerId,
+            searchText:
+              query,
+            limit:
+              40
+          }),
+          loadRelevantOwnerFulltimeMemory(
+            tokenIdentity,
             query,
-          limit:
-            40
-        });
+            60
+          )
+        ]);
+
       const memoryText =
-        formatConfirmedMemoryRows(
-          memories,
-          tokenIdentity.displayName
-        );
+        [
+          formatConfirmedMemoryRows(
+            confirmedMemories,
+            tokenIdentity.displayName
+          ),
+          formatPersonalMemoryRows(
+            fulltimeMemories
+          )
+        ]
+          .filter(Boolean)
+          .join("\n");
+
+      const memoryCount =
+        confirmedMemories.length +
+        fulltimeMemories.length;
 
       return res
         .set({
@@ -4696,9 +5165,9 @@ app.post(
           Pragma: "no-cache"
         })
         .json({
-        found: memories.length > 0,
-        count: memories.length,
-        memory_text: memoryText || "Keine passende bestätigte Erinnerung gefunden.",
+        found: memoryCount > 0,
+        count: memoryCount,
+        memory_text: memoryText || "Keine passende Erinnerung im Vollzeitgedächtnis gefunden.",
         conversationId:
           tokenSession.conversationId,
         identity:
@@ -4794,6 +5263,31 @@ app.post(
         throw error;
       }
 
+      const requestedFulltimeEventId =
+        String(
+          req.body?.fulltimeEventId ||
+          ""
+        ).trim();
+
+      const fulltimeEventId =
+        /^[a-zA-Z0-9:_-]{16,160}$/.test(
+          requestedFulltimeEventId
+        )
+          ? requestedFulltimeEventId
+          : `realtime-${randomUUID()}`;
+
+      const fulltimeSaved =
+        await saveFulltimeMemory(
+          role,
+          transcript,
+          {
+            ownerId:
+              identity.ownerId,
+            sourceEventId:
+              `${fulltimeEventId}:${role}`
+          }
+        );
+
       appendConversationMessage(
         conversation.conversationId,
         identity,
@@ -4805,9 +5299,10 @@ app.post(
         return res.json({
           saved: false,
           persisted: false,
+          fulltimeSaved,
           contextUpdated: true,
           reason:
-            "assistant_transcript_is_not_personal_memory",
+            "assistant_transcript_saved_to_fulltime_history",
           role,
           conversationId:
             conversation.conversationId,
@@ -4935,6 +5430,7 @@ app.post(
           persisted,
         persisted,
         alreadyStored,
+        fulltimeSaved,
         contextUpdated:
           true,
         role,
@@ -5219,22 +5715,26 @@ Behaupte nicht, ein Mensch zu sein.
 WICHTIG ZUM GEDÄCHTNIS:
 
 Dir wird für diese Realtime-Sitzung ausschließlich der
-zu ${identity.displayName} gehörende bestätigte Gedächtniskontext
+zu ${identity.displayName} gehörende ownergebundene Gedächtniskontext
 und ein kurzlebiger RAM-Gesprächsausschnitt bereitgestellt.
 
 Du besitzt dabei drei Gedächtnisbereiche:
 
 1. Flüchtiger Gesprächskontext:
-   Die letzten Nachrichten dieser RAM-Sitzung. Sie werden nicht
-   als persönliche Erinnerungen dauerhaft gespeichert.
+   Die letzten Nachrichten dieser RAM-Sitzung.
 
-2. Langzeitgedächtnis:
+2. Vollzeitgedächtnis:
+   ${identity.displayName}s und Sols Sprachtranskripte sowie geschriebene
+   Nachrichten werden Wort für Wort automatisch gespeichert. Dafür ist
+   kein besonderer Speicherbefehl nötig.
+
+3. Bestätigte Langzeiterinnerungen:
    Bereits vorhandene ausdrücklich gespeicherte
    Langzeiterinnerungen.
 
-Normale Text-, Video- und Sprachnachrichten sowie deine Antworten
-werden nicht automatisch dauerhaft gespeichert. Dauerhaft verfügbar
-sind nur ausdrücklich bestätigte persönliche Erinnerungen.
+Eine zusätzliche bestätigte Langzeiterinnerung bleibt vom automatischen
+Vollzeitverlauf getrennt. Frage ${identity.displayName} nicht bei jeder
+normalen Aussage nach einer zusätzlichen Bestätigung.
 
 Verwende Erinnerungen nur dann, wenn sie für die
 aktuelle Unterhaltung wirklich relevant sind.
@@ -5248,8 +5748,8 @@ eindeutig im direkt bereitgestellten aktuellen Kontext
 steht, verwende ZUERST das Tool
 "search_personal_memory".
 
-Dieses Tool durchsucht ausschließlich die bestätigten Erinnerungen
-des aktuell gebundenen Owners.
+Dieses Tool durchsucht ausschließlich das Vollzeitgedächtnis und die
+bestätigten Erinnerungen des aktuell gebundenen Owners.
 
 Erst wenn auch diese Suche keine passende Erinnerung
 liefert, darfst du sagen, dass du dazu momentan keine
@@ -5394,7 +5894,7 @@ der anderen Holo-Instanz. Pam und Steffi besitzen kein gemeinsames Profil.
               "search_personal_memory",
 
             description:
-              `Durchsucht ausschließlich die bestätigten persönlichen Erinnerungen von ${identity.displayName}. Verwende dieses Tool, bevor du bei einer persönlichen Erinnerungsfrage sagst, dass du etwas nicht weißt.`,
+              `Durchsucht ausschließlich ${identity.displayName}s ownergebundenes Vollzeitgedächtnis und bestätigte persönliche Erinnerungen. Verwende dieses Tool, bevor du bei einer persönlichen Erinnerungsfrage sagst, dass du etwas nicht weißt.`,
 
             parameters: {
               type:
@@ -6489,6 +6989,62 @@ app.post("/sol", async (req, res) => {
       throw error;
     }
 
+    const requestedFulltimeEventId =
+      String(
+        req.body?.fulltimeEventId ||
+        ""
+      ).trim();
+
+    const fulltimeEventId =
+      /^[a-zA-Z0-9:_-]{16,160}$/.test(
+        requestedFulltimeEventId
+      )
+        ? requestedFulltimeEventId
+        : `server-${randomUUID()}`;
+
+    const mediaMemoryLabel =
+      hasVideo
+        ? `[Video gesendet${
+            videoDurationSeconds
+              ? ` · ${Math.round(videoDurationSeconds)} Sekunden`
+              : ""
+          }]`
+        : hasImage
+          ? "[Foto gesendet]"
+          : "";
+
+    const userMemoryMessage =
+      [
+        originalMessage || message,
+        mediaMemoryLabel
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+    await saveFulltimeMemory(
+      "user",
+      userMemoryMessage,
+      {
+        ownerId:
+          identity.ownerId,
+        sourceEventId:
+          `${fulltimeEventId}:user`
+      }
+    );
+
+    const saveFulltimeAssistant =
+      answer =>
+        saveFulltimeMemory(
+          "assistant",
+          answer,
+          {
+            ownerId:
+              identity.ownerId,
+            sourceEventId:
+              `${fulltimeEventId}:assistant`
+          }
+        );
+
     const memoryDecision =
       evaluateIdentityMemoryWrite({
         source: "text",
@@ -6528,6 +7084,10 @@ app.post("/sol", async (req, res) => {
       memoryDecision.kind ===
       MEMORY_DECISION.REQUIRE_CONFIRMATION
     ) {
+      await saveFulltimeAssistant(
+        memoryDecision.prompt
+      );
+
       return res.status(409).json({
         error: "memory_confirmation_required",
         code: "MEMORY_CONFIRMATION_REQUIRED",
@@ -6558,6 +7118,10 @@ app.post("/sol", async (req, res) => {
       const answer = persisted
         ? `Ja, ${identity.displayName}. Das habe ich dauerhaft gespeichert: ${rememberContent}`
         : `${identity.displayName}, diese bestätigte Erinnerung ist bereits gespeichert.`;
+
+      await saveFulltimeAssistant(
+        answer
+      );
 
       appendConversationMessage(
         conversation.conversationId,
@@ -6601,6 +7165,10 @@ app.post("/sol", async (req, res) => {
     if (
       calendarResult?.handled
     ) {
+      await saveFulltimeAssistant(
+        calendarResult.answer
+      );
+
       appendConversationMessage(
         conversation.conversationId,
         identity,
@@ -6688,6 +7256,10 @@ app.post("/sol", async (req, res) => {
           ? `Ja, ${identity.displayName}. Ich habe ${blockedCount} passende bestätigte Erinnerung${blockedCount === 1 ? "" : "en"} für den normalen Abruf gesperrt.`
           : `${identity.displayName}, dazu habe ich keine passende bestätigte Erinnerung gefunden.`;
 
+      await saveFulltimeAssistant(
+        answer
+      );
+
       appendConversationMessage(
         conversation.conversationId,
         identity,
@@ -6750,6 +7322,10 @@ app.post("/sol", async (req, res) => {
           `${identity.displayName}, aktuell habe ich folgende bestätigte dauerhafte Erinnerungen gespeichert:\n\n${memoryList}`;
       }
 
+      await saveFulltimeAssistant(
+        answer
+      );
+
       appendConversationMessage(
         conversation.conversationId,
         identity,
@@ -6776,25 +7352,6 @@ app.post("/sol", async (req, res) => {
       });
     }
 
-    const mediaMemoryLabel =
-      hasVideo
-        ? `[Video gesendet${
-            videoDurationSeconds
-              ? ` · ${Math.round(videoDurationSeconds)} Sekunden`
-              : ""
-          }]`
-        : hasImage
-          ? "[Foto gesendet]"
-          : "";
-
-    const userMemoryMessage =
-      [
-        message,
-        mediaMemoryLabel
-      ]
-        .filter(Boolean)
-        .join("\n");
-
     const promptMessage =
       message ||
       (
@@ -6804,8 +7361,8 @@ app.post("/sol", async (req, res) => {
       );
 
     /*
-      Gesprächsfluss bleibt ausschließlich kurzlebig im RAM. Dauerhaft
-      abgerufen werden nur bestätigte Erinnerungen des aktiven Owners.
+      Der aktuelle Dialog bleibt zusätzlich im RAM. Für persönliche
+      Rückfragen wird das ownergebundene Vollzeitgedächtnis durchsucht.
     */
     const memories =
       getConversationMessages(
@@ -6819,18 +7376,25 @@ app.post("/sol", async (req, res) => {
         identity.displayName
       );
 
-    const longTermMemories =
-      await identityMemoryStore
-        .searchConfirmed({
-          ownerId:
-            identity.ownerId,
-          speakerId:
-            identity.speakerId,
-          searchText:
-            promptMessage,
-          limit:
-            36
-        });
+    const [longTermMemories, fulltimeMemories] =
+      await Promise.all([
+        identityMemoryStore
+          .searchConfirmed({
+            ownerId:
+              identity.ownerId,
+            speakerId:
+              identity.speakerId,
+            searchText:
+              promptMessage,
+            limit:
+              36
+          }),
+        loadRelevantOwnerFulltimeMemory(
+          identity,
+          promptMessage,
+          60
+        )
+      ]);
 
     const longTermMemoryText =
       longTermMemories
@@ -6841,15 +7405,19 @@ app.post("/sol", async (req, res) => {
         .join("\n") ||
       "Keine passenden bestätigten Langzeiterinnerungen gefunden.";
 
-    const historicalMemories =
-      longTermMemories;
-
     const historicalMemoryText =
-      formatConfirmedMemoryRows(
-        historicalMemories,
-        identity.displayName
-      ) ||
-      "Keine passenden bestätigten Erinnerungen gefunden.";
+      [
+        formatConfirmedMemoryRows(
+          longTermMemories,
+          identity.displayName
+        ),
+        formatPersonalMemoryRows(
+          fulltimeMemories
+        )
+      ]
+        .filter(Boolean)
+        .join("\n") ||
+      "Keine passenden Einträge im Vollzeitgedächtnis gefunden.";
 
     const mediaPrompt =
       hasVideo
@@ -6942,19 +7510,24 @@ Die inhaltliche Antwort wird von Sol erzeugt.
 
 Behaupte nicht, ein Mensch zu sein.
 
-Du besitzt zwei klar getrennte Kontextbereiche:
+Du besitzt drei klar getrennte Kontextbereiche:
 
 1. Flüchtiger Gesprächskontext:
-   Die letzten Nachrichten dieser RAM-Sitzung. Sie werden nicht
-   als persönliche Erinnerung dauerhaft gespeichert.
+   Die letzten Nachrichten dieser RAM-Sitzung.
 
-2. Bestätigtes Langzeitgedächtnis:
+2. Vollzeitgedächtnis:
+   Der vollständige Dialog zwischen ${identity.displayName} und Sol wird
+   Wort für Wort ownergebunden gespeichert. Textnachrichten,
+   Sprachtranskripte und Sols Antworten gehören automatisch dazu.
+   Dafür ist kein besonderer Speicherbefehl nötig.
+
+3. Bestätigte Langzeiterinnerungen:
    Nur Inhalte, die ${identity.displayName} ausdrücklich mit einem
    engen Speicherbefehl oder einer bestätigten Rückfrage freigegeben hat.
 
-Normale Text-, Foto- und Videonachrichten sowie deine Antworten werden
-nicht automatisch dauerhaft gespeichert. Frage nicht bei jeder normalen
-Aussage nach einer Speicherung. Erfinde keine Speicherbestätigung.
+Frage nicht bei jeder normalen Aussage nach einer Speicherung. Der
+Vollzeitverlauf läuft automatisch; eine zusätzliche bestätigte
+Langzeiterinnerung bleibt davon getrennt. Erfinde keine Speicherbestätigung.
 
 Verwende Erinnerungen nur dann, wenn sie für die aktuelle
 Unterhaltung wirklich relevant sind.
@@ -7027,7 +7600,7 @@ LANGZEITGEDÄCHTNIS:
 
 ${longTermMemoryText}
 
-PASSENDE BESTÄTIGTE ERINNERUNGEN:
+PASSENDE EINTRÄGE AUS BESTÄTIGTEN ERINNERUNGEN UND VOLLZEITGEDÄCHTNIS:
 
 ${historicalMemoryText}
 
@@ -7049,6 +7622,10 @@ ${memoryText || "Noch keine früheren Gesprächserinnerungen vorhanden."}
           "Sol hat keine Textantwort geliefert."
       });
     }
+
+    await saveFulltimeAssistant(
+      answer
+    );
 
     appendConversationMessage(
       conversation.conversationId,
