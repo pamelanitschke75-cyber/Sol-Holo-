@@ -4,8 +4,8 @@ import java.text.Normalizer;
 import java.util.Locale;
 
 /**
- * Normalizes the small set of spellings Android commonly returns for the
- * spoken wake phrase. Authentication remains the separate speaker gate.
+ * Normalizes the small set of labels the local keyword graph may return for
+ * the spoken wake phrase. Authentication remains the separate speaker gate.
  */
 final class WakePhraseMatcher {
     private static final String HEY = "(?:hey|hei|hai|hay)";

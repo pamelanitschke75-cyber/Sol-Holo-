@@ -1,5 +1,14 @@
 import { createHash } from "node:crypto";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from "node:fs";
 import { join } from "node:path";
 
 const root = process.cwd();
@@ -19,6 +28,13 @@ const CAMPPLUS_MODEL_URL = "https://github.com/k2-fsa/sherpa-onnx/releases/downl
 const CAMPPLUS_MODEL_SHA256 = "357a834f702b80161e5b981182c038e18553c1f2ca752ed6cec2052365d4129b";
 const ERES2NET_MODEL_URL = "https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/3dspeaker_speech_eres2net_sv_en_voxceleb_16k.onnx";
 const ERES2NET_MODEL_SHA256 = "c59158379255ad66e161679cca6af8d52d51e389e3224ab7d7a7baae295c2db5";
+const KWS_MODEL_DIR = "sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20";
+const KWS_MODEL_URL = `https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/${KWS_MODEL_DIR}.tar.bz2`;
+const KWS_MODEL_SHA256 = "68447f4fbc67e70eee3a93961f36e81e98f47aef73ce7e7ca00885c6cd3616a6";
+const KWS_KEYWORDS = [
+  "HH EY1 S OW1 L @Hey_Sol",
+  "HH EY1 Z OW1 L @Hey_Sohl"
+].join("\n") + "\n";
 
 async function download(url, target) {
   const response = await fetch(url, { redirect: "follow" });
@@ -58,6 +74,61 @@ if (eres2netModelDigest !== ERES2NET_MODEL_SHA256) {
   throw new Error(`ERes2Net-Modell Hash stimmt nicht: ${eres2netModelDigest}`);
 }
 
+const kwsTempDir = mkdtempSync(join(root, "sol-kws-build-"));
+let kwsModelDigest = "";
+try {
+  const archivePath = join(kwsTempDir, `${KWS_MODEL_DIR}.tar.bz2`);
+  const archiveBytes = await download(KWS_MODEL_URL, archivePath);
+  kwsModelDigest = sha256(archiveBytes);
+  if (kwsModelDigest !== KWS_MODEL_SHA256) {
+    throw new Error(`Hey-Sol-KWS-Modell Hash stimmt nicht: ${kwsModelDigest}`);
+  }
+
+  const extractedRoot = join(kwsTempDir, "extracted");
+  mkdirSync(extractedRoot, { recursive: true });
+  execFileSync("tar", ["-xjf", archivePath, "-C", extractedRoot], {
+    stdio: "inherit"
+  });
+  const extractedModel = join(extractedRoot, KWS_MODEL_DIR);
+  const selectedFiles = [
+    [
+      "encoder-epoch-13-avg-2-chunk-16-left-64.int8.onnx",
+      "sol-kws-encoder.int8.onnx"
+    ],
+    [
+      "decoder-epoch-13-avg-2-chunk-16-left-64.onnx",
+      "sol-kws-decoder.onnx"
+    ],
+    [
+      "joiner-epoch-13-avg-2-chunk-16-left-64.int8.onnx",
+      "sol-kws-joiner.int8.onnx"
+    ],
+    ["tokens.txt", "sol-kws-tokens.txt"]
+  ];
+  for (const [sourceName, targetName] of selectedFiles) {
+    const source = join(extractedModel, sourceName);
+    if (!existsSync(source)) {
+      throw new Error(`Hey-Sol-KWS-Datei fehlt: ${sourceName}`);
+    }
+    copyFileSync(source, join(assets, targetName));
+  }
+
+  const tokenSet = new Set(
+    readFileSync(join(assets, "sol-kws-tokens.txt"), "utf8")
+      .split(/\r?\n/)
+      .map(line => line.trim().split(/\s+/)[0])
+      .filter(Boolean)
+  );
+  for (const token of ["HH", "EY1", "S", "Z", "OW1", "L"]) {
+    if (!tokenSet.has(token)) {
+      throw new Error(`Hey-Sol-KWS-Token fehlt: ${token}`);
+    }
+  }
+  writeFileSync(join(assets, "sol-kws-keywords.txt"), KWS_KEYWORDS, "utf8");
+} finally {
+  rmSync(kwsTempDir, { recursive: true, force: true });
+}
+
 copyFileSync(
   join(root, "android-native", "SolSpeakerIdentityPlugin.java"),
   join(javaTarget, "SolSpeakerIdentityPlugin.java")
@@ -69,6 +140,14 @@ copyFileSync(
 copyFileSync(
   join(root, "android-native", "WakeVoiceTemplateSelector.java"),
   join(javaTarget, "WakeVoiceTemplateSelector.java")
+);
+copyFileSync(
+  join(root, "android-native", "PcmRingBuffer.java"),
+  join(javaTarget, "PcmRingBuffer.java")
+);
+copyFileSync(
+  join(root, "android-native", "SolWakeKeywordSpotter.java"),
+  join(javaTarget, "SolWakeKeywordSpotter.java")
 );
 
 let gradle = readFileSync(buildGradle, "utf8");
@@ -100,6 +179,11 @@ const sourceText = `SOL HOLO / PAM'S HOLO – LOKALE SPRECHERERKENNUNG\n\n` +
 `Speaker-Embedding-Modell B: 3dspeaker_speech_eres2net_sv_en_voxceleb_16k.onnx\n` +
 `Quelle: ${ERES2NET_MODEL_URL}\nModellfamilie: 3D-Speaker / ERes2Net\n` +
 `Erwartete und geprüfte SHA-256: ${ERES2NET_MODEL_SHA256}\n\n` +
+`Lokale Weckruferkennung: ${KWS_MODEL_DIR}\n` +
+`Quelle: ${KWS_MODEL_URL}\n` +
+`Zweck: Open-Vocabulary-Erkennung ausschließlich für „Hey Sol“ direkt im lokalen Mikrofonstrom.\n` +
+`Erwartete und geprüfte SHA-256: ${KWS_MODEL_SHA256}\n` +
+`Ausgeliefert werden nur der quantisierte Encoder und Joiner, der Decoder, die Tokenliste und die lokale Hey-Sol-Definition.\n\n` +
 `Lizenzbasis des 3D-Speaker-Projekts: Apache License 2.0\n\n` +
 `Datenschutz: Die Rohaufnahme wird nur im Arbeitsspeicher verarbeitet und nicht als Audiodatei gespeichert.\n` +
 `Das abgeleitete Stimmprofil wird im privaten App-Speicher des Geräts abgelegt. Android-Backup ist für Sol Holo deaktiviert.\n` +
@@ -157,5 +241,6 @@ if (existsSync(uiFile)) {
 
 console.log(
   `Lokale Sprechererkennung vorbereitet. ` +
-  `CAMPPlus=${campplusModelDigest}, ERes2Net=${eres2netModelDigest}`
+  `CAMPPlus=${campplusModelDigest}, ERes2Net=${eres2netModelDigest}, ` +
+  `HeySolKWS=${kwsModelDigest}`
 );

@@ -86,6 +86,10 @@ jobs:
             android-native/WakeCaptureEndpointer.java \
             tests/java/com/solholo/app/WakeCaptureEndpointerTest.java
           java -cp "$test_dir" com.solholo.app.WakeCaptureEndpointerTest
+          javac -d "$test_dir" \
+            android-native/PcmRingBuffer.java \
+            tests/java/com/solholo/app/PcmRingBufferTest.java
+          java -cp "$test_dir" com.solholo.app.PcmRingBufferTest
 
       - name: Mehrfaktor-Sicherheitslogik testen
         run: |
@@ -294,8 +298,15 @@ jobs:
           test -s android/app/libs/sherpa-onnx-1.13.4.aar
           test -s android/app/src/main/assets/sol-speaker-campplus.onnx
           test -s android/app/src/main/assets/sol-speaker-eres2net.onnx
+          test -s android/app/src/main/assets/sol-kws-encoder.int8.onnx
+          test -s android/app/src/main/assets/sol-kws-decoder.onnx
+          test -s android/app/src/main/assets/sol-kws-joiner.int8.onnx
+          test -s android/app/src/main/assets/sol-kws-tokens.txt
+          test -s android/app/src/main/assets/sol-kws-keywords.txt
           test -s android/app/src/main/assets/public/SPEAKER_IDENTITY_SOURCES.txt
           test -s android/app/src/main/java/com/solholo/app/SpeakerVerificationPolicy.java
+          test -s android/app/src/main/java/com/solholo/app/PcmRingBuffer.java
+          test -s android/app/src/main/java/com/solholo/app/SolWakeKeywordSpotter.java
           grep -q "registerPlugin(SolSpeakerIdentityPlugin.class)" \
             android/app/src/main/java/com/solholo/app/MainActivity.java
           grep -q "sherpa-onnx-1.13.4.aar" android/app/build.gradle
@@ -303,6 +314,12 @@ jobs:
             android/app/src/main/assets/public/SPEAKER_IDENTITY_SOURCES.txt
           grep -q "c59158379255ad66e161679cca6af8d52d51e389e3224ab7d7a7baae295c2db5" \
             android/app/src/main/assets/public/SPEAKER_IDENTITY_SOURCES.txt
+          grep -q "68447f4fbc67e70eee3a93961f36e81e98f47aef73ce7e7ca00885c6cd3616a6" \
+            android/app/src/main/assets/public/SPEAKER_IDENTITY_SOURCES.txt
+          grep -Fxq "HH EY1 S OW1 L @Hey_Sol" \
+            android/app/src/main/assets/sol-kws-keywords.txt
+          grep -Fxq "HH EY1 Z OW1 L @Hey_Sohl" \
+            android/app/src/main/assets/sol-kws-keywords.txt
           grep -q "securityGateEnabled" \
             android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
           grep -q "CAMPPLUS_SANITY_FLOOR = 0.10f" \
@@ -329,17 +346,17 @@ jobs:
             android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
           grep -q "verifyWakeAudio" \
             android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
-          grep -q "RecognizerIntent.EXTRA_AUDIO_SOURCE" \
+          grep -q "new SolWakeKeywordSpotter" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
-          grep -q "RECOGNITION_WATCHDOG_MS" \
+          grep -q "keywordSpotter.accept" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
-          grep -q "RecognizerIntent.EXTRA_SEGMENTED_SESSION" \
+          grep -q "new PcmRingBuffer" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
-          grep -q "prepareRecognitionSource" \
+          grep -q "KeywordSpotterConfig.builder" \
+            android/app/src/main/java/com/solholo/app/SolWakeKeywordSpotter.java
+          ! grep -q "android.speech.SpeechRecognizer" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
-          grep -q "ParcelFileDescriptor.createPipe" \
-            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
-          grep -q "AutoCloseOutputStream" \
+          ! grep -q "RecognizerIntent.EXTRA_AUDIO_SOURCE" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q '"owner_accepted"' \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
@@ -348,11 +365,6 @@ jobs:
           grep -q "WakePhraseMatcher.canonicalPhrase" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           test -s android/app/src/main/java/com/solholo/app/WakePhraseMatcher.java
-          test -s android/app/src/main/java/com/solholo/app/WakeCaptureEndpointer.java
-          grep -q "WakeCaptureEndpointer" \
-            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
-          ! grep -q "hasCompleteSpeechCandidate" \
-            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q "SolSpeakerIdentityPlugin.verifyWakeAudio" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q 'SECURE_WAKE_PHRASE = "Hey Sol"' \
@@ -361,8 +373,6 @@ jobs:
             android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
           grep -q "MAX_WAKE_SPEECH_GAP_FRAMES = 24" \
             android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
-          grep -q "Partial text never authorizes a wake" \
-            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q "speakerGateReady" \
             android/app/src/main/java/com/solholo/app/HeyHoSolPlugin.java
           grep -q "publishPendingWakeEvent" \
@@ -420,6 +430,11 @@ jobs:
           unzip -l "$apk" | grep -F "assets/public/mediapipe/MODIFICATION_NOTICE.txt"
           unzip -l "$apk" | grep -F "assets/sol-speaker-campplus.onnx"
           unzip -l "$apk" | grep -F "assets/sol-speaker-eres2net.onnx"
+          unzip -l "$apk" | grep -F "assets/sol-kws-encoder.int8.onnx"
+          unzip -l "$apk" | grep -F "assets/sol-kws-decoder.onnx"
+          unzip -l "$apk" | grep -F "assets/sol-kws-joiner.int8.onnx"
+          unzip -l "$apk" | grep -F "assets/sol-kws-tokens.txt"
+          unzip -l "$apk" | grep -F "assets/sol-kws-keywords.txt"
           unzip -l "$apk" | grep -F "assets/public/SPEAKER_IDENTITY_SOURCES.txt"
           unzip -p "$apk" assets/public/mediapipe/vision_bundle.mjs \
             | grep -q "SOL HOLO MODIFICATION NOTICE"
@@ -433,6 +448,8 @@ jobs:
             | grep -q "357a834f702b80161e5b981182c038e18553c1f2ca752ed6cec2052365d4129b"
           unzip -p "$apk" assets/public/SPEAKER_IDENTITY_SOURCES.txt \
             | grep -q "c59158379255ad66e161679cca6af8d52d51e389e3224ab7d7a7baae295c2db5"
+          unzip -p "$apk" assets/public/SPEAKER_IDENTITY_SOURCES.txt \
+            | grep -q "68447f4fbc67e70eee3a93961f36e81e98f47aef73ce7e7ca00885c6cd3616a6"
 
       - name: Signaturmodus sicher bestimmen
         id: signing_mode
