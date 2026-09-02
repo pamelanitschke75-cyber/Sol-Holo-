@@ -35,16 +35,26 @@ Die verbindliche technische Reihenfolge lautet:
 1. Eine Nachricht kommt als Text oder als transkribierte Sprache an. Die
    Audio-Rohaufnahme wird nicht Bestandteil des persönlichen Memory-Stores.
 2. Beide Quellen durchlaufen dieselbe Speicherregel.
-3. Die Sprecheridentität muss durch ein ausdrückliches technisches Signal
-   feststehen. Namen im Text, Schreibstil und Gesprächsthema reichen nicht aus.
-4. Ist die Identität unklar, lautet die Rückfrage: **„Spricht gerade Pam oder
-   Steffi?“** Bis zur Antwort findet kein dauerhafter Schreibvorgang statt.
+3. Die Sprecheridentität muss durch die fest signierte Holo-Instanz und ein
+   dazu passendes technisches Signal feststehen. Namen im Text, Schreibstil und
+   Gesprächsthema reichen nicht aus.
+4. Jede ausgelieferte Holo-Installation ist dauerhaft an genau eine kanonische
+   Owner-ID gebunden. Fehlt diese Bindung oder passt ein Signal nicht dazu,
+   werden persönliche Daten gesperrt. Eine andere Person darf in dieser
+   Installation weder auswählbar noch vorladbar sein.
 5. Eine normale Nachricht bleibt ohne ausdrücklichen Speicherwunsch außerhalb
    des dauerhaften persönlichen Gedächtnisses.
 6. Ein direkter Speicherbefehl oder eine bestätigte Speicherrückfrage gilt nur
    für die eindeutig zugeordnete Person.
 7. Der Datenbankzugriff wird zusätzlich auf die kanonische Owner-ID dieser
    Person begrenzt.
+8. Zwischen verschiedenen Owner-IDs gilt **0,0 gemeinsamer persönlicher
+   Speicher**. Es gibt keine gemeinsame Owner-ID und keinen gemeinsamen
+   persönlichen Datensatz.
+9. Eine von mehreren Personen gemeinsam erlebte Erinnerung darf nur als
+   getrennte Kopie pro Owner entstehen: jede Person bestätigt ihren eigenen
+   Eintrag, jeder Eintrag besitzt seine eigene Owner-ID, und Ändern, Sperren
+   oder Löschen einer Kopie beeinflusst keine andere Kopie.
 
 Die derzeitige technische Zuordnung ist:
 
@@ -57,6 +67,37 @@ Neue Einträge werden ausschließlich mit der kanonischen Owner-ID geschrieben.
 Der Legacy-Alias `pam-sol-001` wird beim gezielten Zugriff als `pam-sol`
 aufgelöst. Vorhandene Datensätze werden dafür weder gelöscht noch automatisch
 umgeschrieben.
+
+### Verbindliche Trennung alter Bilder und biometrischer Hinweise
+
+Alte Bild- oder Munddaten ohne nachweisbare Owner-Bindung werden beim ersten
+Start in einen **unzugeordneten Quarantänebereich** verschoben. Sie werden
+nicht angezeigt, nicht für den Klon verwendet und niemals anhand einer
+Vermutung automatisch einer Person zugewiesen. Auch bereits owner-benannte
+Bilddaten werden ausgesondert, wenn die ausdrückliche Bestätigung der Person
+fehlt oder nicht exakt zur fest signierten Owner-ID passt.
+
+Für die Zuordnung gelten vier voneinander getrennte Regeln:
+
+1. **Owner-ID:** Die signierte Installation akzeptiert ausschließlich ihre
+   fest einkompilierte Owner-ID. Sie ist die technische Speichergrenze.
+2. **Gesichtsverarbeitung:** Der vorhandene lokale MediaPipe Face Landmarker
+   erkennt Konturen und Landmarken für die Animation, aber keine Person. Eine
+   spätere echte Gesichtsübereinstimmung darf nur mit einem separat und
+   freiwillig angelegten, lokal geschützten Referenzprofil prüfen. Sie darf
+   niemals selbst eine Owner-ID vergeben.
+3. **Gerät:** Ein sichtbarer Gerätename ist änderbar und daher nur ein
+   Herkunftshinweis. Maßgeblich ist der owner-gebundene kryptografische
+   Geräteschlüssel der signierten App-Instanz.
+4. **Standort:** Standortdaten dürfen nur nach eigener Zustimmung als
+   zusätzlicher Herkunftshinweis verwendet werden. Sie sind niemals ein
+   Identitätsbeweis und können keine Owner-Zuordnung überschreiben.
+
+Für alte Bilder werden Gesichtsperson, Ursprungsgerät und Ursprungsstandort als
+`not-verified` beziehungsweise `unknown` markiert, weil diese Daten
+nachträglich nicht verlässlich rekonstruiert werden können. Eine erneute
+Speicherung ist nur nach bewusster Auswahl und ausdrücklicher Bestätigung der
+Person unter ihrer eigenen Owner-ID zulässig.
 
 Die Implementierung besteht aus zwei eigenständigen Modulen:
 
@@ -383,7 +424,9 @@ Beide Perspektiven können bestehen bleiben.
 
 Sol Holo darf aus den Erinnerungen verschiedener Klone keine künstliche gemeinsame Erinnerung erzeugen, die von keiner der beteiligten Personen tatsächlich so gespeichert oder bestätigt wurde.
 
-Gemeinsame Fakten können als solche dokumentiert werden.
+Gemeinsame Fakten können nur als getrennte, jeweils selbst bestätigte Kopie
+unter jeder beteiligten Owner-ID dokumentiert werden. Es entsteht dabei kein
+gemeinsamer Datensatz.
 
 Persönliche Wahrnehmungen bleiben jedoch dem jeweiligen Klon zugeordnet.
 

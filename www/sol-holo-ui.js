@@ -292,12 +292,27 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   };
 
   const introKey = "sol-holo-intro-v2-seen";
-  const pamClonePhotoKey = "sol-holo-clone-photo-v1";
-  const pamCloneMouthKey = "sol-holo-clone-mouth-v1";
-  const steffiClonePhotoKey = "steffis-holo-clone-photo-v1";
-  const steffiCloneMouthKey = "steffis-holo-clone-mouth-v1";
+  const pamClonePhotoKey = "sol-holo:pam-sol:clone-photo:v2";
+  const pamCloneMouthKey = "sol-holo:pam-sol:clone-mouth:v2";
+  const legacyClonePhotoKey = "sol-holo-clone-photo-v1";
+  const legacyCloneMouthKey = "sol-holo-clone-mouth-v1";
+  const legacyClonePhotoQuarantineKey =
+    "sol-holo:unassigned:clone-photo:v1:quarantine";
+  const legacyCloneMouthQuarantineKey =
+    "sol-holo:unassigned:clone-mouth:v1:quarantine";
+  const legacyCloneQuarantineMetadataKey =
+    "sol-holo:unassigned:clone-appearance:v1:quarantine-meta";
+  const cloneAppearanceMigrationKey =
+    "sol-holo:pam-sol:clone-appearance-migration:v2";
+  const pamCloneMetadataKey =
+    "sol-holo:pam-sol:clone-appearance-meta:v2";
+  const unverifiedPamClonePhotoQuarantineKey =
+    "sol-holo:unassigned:clone-photo:v2:quarantine";
+  const unverifiedPamCloneMouthQuarantineKey =
+    "sol-holo:unassigned:clone-mouth:v2:quarantine";
+  const unverifiedPamCloneMetadataQuarantineKey =
+    "sol-holo:unassigned:clone-appearance:v2:quarantine-meta";
   const pamNotesStorageKey = "pams-holo-original-notes-v1";
-  const steffiNotesStorageKey = "steffis-holo-original-notes-v1";
   const onboarding = document.getElementById("onboardingScreen");
   const noteComposer = document.getElementById("noteComposer");
   const noteTextInput = document.getElementById("noteTextInput");
@@ -405,9 +420,6 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     if (ownerId === "pam-sol") {
       return pamNotesStorageKey;
     }
-    if (ownerId === "steffi-sol") {
-      return steffiNotesStorageKey;
-    }
     return "";
   }
 
@@ -415,17 +427,126 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     const ownerId = activePersonalOwner();
     if (ownerId === "pam-sol") {
       return {
+        metadata: pamCloneMetadataKey,
         mouth: pamCloneMouthKey,
         photo: pamClonePhotoKey
       };
     }
-    if (ownerId === "steffi-sol") {
-      return {
-        mouth: steffiCloneMouthKey,
-        photo: steffiClonePhotoKey
-      };
-    }
     return null;
+  }
+
+  function quarantineLegacyCloneAppearance() {
+    try {
+      if (localStorage.getItem(cloneAppearanceMigrationKey) === "1") {
+        return false;
+      }
+
+      const legacyPhoto = localStorage.getItem(legacyClonePhotoKey);
+      const legacyMouth = localStorage.getItem(legacyCloneMouthKey);
+      let quarantined = false;
+
+      if (legacyPhoto) {
+        localStorage.setItem(legacyClonePhotoQuarantineKey, legacyPhoto);
+        if (localStorage.getItem(legacyClonePhotoQuarantineKey) !== legacyPhoto) {
+          throw new Error("LEGACY_PHOTO_QUARANTINE_FAILED");
+        }
+      }
+
+      if (legacyMouth) {
+        localStorage.setItem(legacyCloneMouthQuarantineKey, legacyMouth);
+        if (localStorage.getItem(legacyCloneMouthQuarantineKey) !== legacyMouth) {
+          throw new Error("LEGACY_MOUTH_QUARANTINE_FAILED");
+        }
+      }
+
+      if (legacyPhoto || legacyMouth) {
+        const quarantineMetadata = JSON.stringify({
+          deviceOrigin: "unknown",
+          facialIdentity: "not-verified",
+          locationOrigin: "unknown",
+          originalOwnerId: null,
+          reason: "legacy-owner-missing",
+          state: "unassigned"
+        });
+        localStorage.setItem(
+          legacyCloneQuarantineMetadataKey,
+          quarantineMetadata
+        );
+        if (
+          localStorage.getItem(legacyCloneQuarantineMetadataKey) !==
+            quarantineMetadata
+        ) {
+          throw new Error("LEGACY_METADATA_QUARANTINE_FAILED");
+        }
+        if (legacyPhoto) localStorage.removeItem(legacyClonePhotoKey);
+        if (legacyMouth) localStorage.removeItem(legacyCloneMouthKey);
+        quarantined = true;
+      }
+
+      localStorage.setItem(cloneAppearanceMigrationKey, "1");
+      return quarantined;
+    } catch (error) {
+      console.error("Altes Holo-Bild sicher separieren:", error);
+      return false;
+    }
+  }
+
+  function validPamCloneMetadata(value) {
+    try {
+      const metadata = JSON.parse(value || "null");
+      return Boolean(
+        metadata &&
+        metadata.ownerId === "pam-sol" &&
+        metadata.speakerId === "pam" &&
+        metadata.confirmedBy === "pam" &&
+        metadata.explicitOwnerConfirmation === true
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  function quarantineUnverifiedPamCloneAppearance(keys) {
+    try {
+      const photo = localStorage.getItem(keys.photo) || "";
+      const mouth = localStorage.getItem(keys.mouth) || "";
+      const metadata = localStorage.getItem(keys.metadata) || "";
+      if (!photo && !mouth && !metadata) return false;
+      if (validPamCloneMetadata(metadata)) return false;
+
+      const quarantineEntries = [
+        [unverifiedPamClonePhotoQuarantineKey, photo],
+        [unverifiedPamCloneMouthQuarantineKey, mouth],
+        [
+          unverifiedPamCloneMetadataQuarantineKey,
+          JSON.stringify({
+            deviceOrigin: "unknown",
+            facialIdentity: "not-verified",
+            locationOrigin: "unknown",
+            originalMetadata: metadata || null,
+            originalOwnerId: null,
+            reason: "owner-confirmation-missing-or-invalid",
+            state: "unassigned"
+          })
+        ]
+      ];
+
+      for (const [key, value] of quarantineEntries) {
+        if (!value) continue;
+        localStorage.setItem(key, value);
+        if (localStorage.getItem(key) !== value) {
+          throw new Error("UNVERIFIED_IMAGE_QUARANTINE_FAILED");
+        }
+      }
+
+      localStorage.removeItem(keys.photo);
+      localStorage.removeItem(keys.mouth);
+      localStorage.removeItem(keys.metadata);
+      return true;
+    } catch (error) {
+      console.error("Unbestätigtes Holo-Bild sicher separieren:", error);
+      return true;
+    }
   }
 
   function activePersonalName() {
@@ -437,16 +558,13 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     if (name === "Pam") {
       return "Pam’s Holo";
     }
-    if (name === "Steffi") {
-      return "Steffis Holo";
-    }
     return "persönliches Holo";
   }
 
   function requireActivePersonalOwner() {
     const identity = window.SolHoloIdentity?.require?.();
     if (!identity) {
-      showToast("Bitte zuerst Pam oder Steffi auswählen.");
+      showToast("Die feste Holo-ID ist nicht verfügbar. Persönliche Daten bleiben gesperrt.");
       return null;
     }
     return identity;
@@ -456,7 +574,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     const identity = window.SolHoloIdentity?.selected?.() || null;
     const displayName = identity?.displayName || "";
     const instanceName = displayName
-      ? `${displayName === "Pam" ? "Pam’s" : "Steffis"} Holo`
+      ? "Pam’s Holo"
       : "Persönliches Holo";
 
     document.title = displayName
@@ -490,8 +608,8 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     );
     if (memoryCopy) {
       memoryCopy.textContent = identity
-        ? `${instanceName} erinnert sich nur an ausdrücklich bestätigte Inhalte von ${displayName}. Pams und Steffis Erinnerungen bleiben vollständig getrennt.`
-        : "Bitte zuerst Pam oder Steffi auswählen. Beide Gedächtnisse sind vollständig getrennt.";
+        ? `${instanceName} erinnert sich nur an ausdrücklich bestätigte Inhalte von ${displayName}. Diese Installation kann niemals die Identität oder Erinnerungen einer anderen Person laden.`
+        : "Die feste Holo-ID ist nicht verfügbar. Das Gedächtnis bleibt gesperrt.";
     }
 
     const servicesCopy = document.querySelector(
@@ -500,21 +618,21 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     if (servicesCopy) {
       servicesCopy.textContent = identity
         ? `${instanceName} verbindet nur ${displayName}s eigene, einzeln freigegebene Dienste. Keine Verbindung wird mit der anderen Person geteilt.`
-        : "Bitte zuerst Pam oder Steffi auswählen. Dienstverbindungen werden nie geteilt.";
+        : "Die feste Holo-ID ist nicht verfügbar. Dienstverbindungen bleiben gesperrt.";
     }
 
     const permissionCopy = document.querySelector("#servicesView .permissionNote");
     if (permissionCopy) {
       permissionCopy.textContent = identity
         ? `${instanceName} liest keine Nachricht, keinen Kontakt, kein Bild, keine Notiz und keinen Health-Wert ohne ${displayName}s sichtbare Auswahl oder Freigabe. Geräteaktionen brauchen eine ausdrückliche Bestätigung.`
-        : "Bitte zuerst Pam oder Steffi auswählen. Keine persönliche Verbindung wird gemeinsam verwendet.";
+        : "Die feste Holo-ID ist nicht verfügbar. Keine persönliche Verbindung wird geladen.";
     }
 
     const settingsCopy = document.querySelector("#settingsView .settingsIntro p:last-child");
     if (settingsCopy) {
       settingsCopy.textContent = identity
         ? `Hier bestimmst du nur, wie ${instanceName} aussieht, spricht und sich verbindet.`
-        : "Bitte zuerst Pam oder Steffi auswählen. Einstellungen bleiben getrennt.";
+        : "Die feste Holo-ID ist nicht verfügbar. Einstellungen bleiben gesperrt.";
     }
 
     const notesHeading = document.querySelector("#notesView .notesIntro h3");
@@ -528,12 +646,12 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     if (notesFooter) {
       notesFooter.textContent = identity
         ? `Bleibt getrennt in ${instanceName} auf diesem Handy.`
-        : "Bitte zuerst Pam oder Steffi auswählen.";
+        : "Die feste Holo-ID ist nicht verfügbar.";
     }
 
     noteTextInput.placeholder = identity
       ? `Was soll ${instanceName} nur für ${displayName} notieren?`
-      : "Bitte zuerst Pam oder Steffi auswählen.";
+      : "Die feste Holo-ID ist nicht verfügbar.";
 
     profileDisplayImage.alt = identity
       ? `Persönliches Bild von ${instanceName}`
@@ -545,7 +663,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       "aria-label",
       identity
         ? `Eigenes Bild für ${instanceName} aus der Galerie auswählen`
-        : "Bitte zuerst Pam oder Steffi auswählen"
+        : "Die feste Holo-ID ist nicht verfügbar"
     );
   }
 
@@ -763,7 +881,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       return {
         success: false,
         identityRequired: true,
-        answer: "Spricht gerade Pam oder Steffi? Bitte wähle zuerst die eigenständige Person aus."
+        answer: "Die feste Holo-ID ist nicht verfügbar. Es wurde keine Notiz gespeichert."
       };
     }
 
@@ -800,7 +918,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       id: `note-${randomPart}`,
       title: options.title,
       text: cleanText,
-      source: options.source || (ownerId === "pam-sol" ? "Pam’s Holo" : "Steffis Holo"),
+      source: options.source || "Pam’s Holo",
       createdAt: now,
       updatedAt: now
     });
@@ -813,11 +931,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     }
 
     renderPersonalNotes();
-    showToast(
-      ownerId === "pam-sol"
-        ? "Notiz in Pam’s Holo gespeichert ✅️"
-        : "Notiz in Steffis Holo gespeichert ✅️"
-    );
+    showToast("Notiz in Pam’s Holo gespeichert ✅️");
     return {
       success: true,
       note,
@@ -872,7 +986,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       return {
         success: false,
         identityRequired: true,
-        answer: "Bitte zuerst Pam oder Steffi auswählen."
+        answer: "Die feste Holo-ID ist nicht verfügbar."
       };
     }
     const plugin = getPhoneContactsPlugin();
@@ -908,7 +1022,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       return {
         success: false,
         identityRequired: true,
-        answer: "Bitte zuerst Pam oder Steffi auswählen."
+        answer: "Die feste Holo-ID ist nicht verfügbar."
       };
     }
     const cleanText = String(text || "").trim();
@@ -1068,11 +1182,21 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   }
 
   function restoreCustomCloneAppearance() {
+    const legacyAppearanceQuarantined = quarantineLegacyCloneAppearance();
     applyCustomCloneAppearance("", null);
     const keys = activeCloneStorageKeys();
     if (!keys) {
       profilePhotoHelp.textContent =
-        "Bitte zuerst Pam oder Steffi auswählen. Bilder bleiben vollständig getrennt.";
+        "Die feste Holo-ID ist nicht verfügbar. Bilder bleiben gesperrt.";
+      return;
+    }
+
+    const unverifiedAppearanceQuarantined =
+      quarantineUnverifiedPamCloneAppearance(keys);
+
+    if (unverifiedAppearanceQuarantined) {
+      profilePhotoHelp.textContent =
+        "Ein nicht eindeutig bestätigtes Bild wurde gesperrt und separiert. Bitte wähle Pams eigenes Bild erneut aus.";
       return;
     }
 
@@ -1083,6 +1207,9 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       );
       if (savedPhoto.startsWith("data:image/")) {
         applyCustomCloneAppearance(savedPhoto, savedMouth);
+      } else if (legacyAppearanceQuarantined) {
+        profilePhotoHelp.textContent =
+          "Ein altes, nicht eindeutig zugeordnetes Bild wurde sicher separiert. Bitte wähle Pams eigenes Bild erneut aus.";
       }
     } catch (error) {
       console.error("Persönliches Holo-Bild wiederherstellen:", error);
@@ -1210,7 +1337,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     const keys = activeCloneStorageKeys();
     if (!keys) {
       cancelCloneMouthCalibration();
-      showToast("Bitte zuerst Pam oder Steffi auswählen.");
+      showToast("Die feste Holo-ID ist nicht verfügbar.");
       return;
     }
     cloneMouthCalibrationActive = false;
@@ -1325,7 +1452,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
     if (!window.SolHoloIdentity?.selected()) {
       window.SolHoloIdentity?.require();
-      showToast("Bitte zuerst auswählen: Spricht gerade Pam oder Steffi?");
+      showToast("Die feste Holo-ID ist nicht verfügbar.");
       return;
     }
 
@@ -1356,7 +1483,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         allRequestedAccessGranted: false,
         services: {}
       };
-      serviceState.textContent = "Pam oder Steffi wählen";
+      serviceState.textContent = "Holo-ID nicht verfügbar";
       serviceState.classList.add("setup");
       profileState.textContent = "Persönliche Auswahl nötig";
       todayState.textContent = "Kalender bleibt getrennt";
@@ -1438,7 +1565,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         selectedDevicesOnly: true,
         actionsRequireConfirmation: true
       };
-      serviceState.textContent = "Pam oder Steffi wählen";
+      serviceState.textContent = "Holo-ID nicht verfügbar";
       serviceState.classList.add("setup");
       return;
     }
@@ -1743,7 +1870,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
   async function findPhoneContact(query) {
     if (!activePersonalOwner()) {
-      throw new Error("Bitte zuerst Pam oder Steffi auswählen.");
+      throw new Error("Die feste Holo-ID ist nicht verfügbar.");
     }
     const plugin = getPhoneContactsPlugin();
     if (!plugin) {
@@ -2154,7 +2281,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       return {
         success: false,
         identityRequired: true,
-        answer: "Bitte zuerst Pam oder Steffi auswählen."
+        answer: "Die feste Holo-ID ist nicht verfügbar."
       };
     }
 
@@ -2812,6 +2939,14 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       return;
     }
 
+    const confirmedForOwner = window.confirm(
+      `Ist dies wirklich ${identity.displayName}s eigenes Bild und soll es ausschließlich unter ${identity.ownerId} gespeichert werden?`
+    );
+    if (!confirmedForOwner) {
+      showToast("Bild nicht gespeichert · die Zuordnung wurde nicht bestätigt.");
+      return;
+    }
+
     showToast(`Dein Bild wird nur für ${identity.displayName}s Holo vorbereitet …`);
     try {
       const photo = await prepareClonePhoto(file);
@@ -2821,10 +2956,31 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         width: 0.16,
         height: 0.075
       });
+      const metadata = JSON.stringify({
+        confirmedBy: identity.speakerId,
+        deviceBinding: "signed-owner-bound-instance",
+        deviceDisplayNameUsedAsIdentity: false,
+        explicitOwnerConfirmation: true,
+        faceProcessing: "local-landmarks-only-not-person-identification",
+        locationUsedAsIdentity: false,
+        ownerId: identity.ownerId,
+        schemaVersion: 2,
+        speakerId: identity.speakerId,
+        storedAt: new Date().toISOString()
+      });
       localStorage.setItem(keys.photo, photo);
       localStorage.setItem(keys.mouth, JSON.stringify(mouth));
+      localStorage.setItem(keys.metadata, metadata);
+      if (
+        localStorage.getItem(keys.photo) !== photo ||
+        localStorage.getItem(keys.metadata) !== metadata
+      ) {
+        throw new Error("OWNER_BOUND_IMAGE_SAVE_FAILED");
+      }
       applyCustomCloneAppearance(photo, mouth);
-      showToast("Bild übernommen · dein Gesicht wird lokal erkannt 🙂");
+      showToast(
+        "Bild owner-gebunden gespeichert · Gesichtskonturen werden nur lokal verarbeitet 🙂"
+      );
     } catch (error) {
       console.error("Persönliches Holo-Galeriebild:", error);
       showToast(
@@ -2869,6 +3025,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     try {
       localStorage.removeItem(keys.photo);
       localStorage.removeItem(keys.mouth);
+      localStorage.removeItem(keys.metadata);
     } catch {}
     applyCustomCloneAppearance("", null);
     showToast("Das ursprüngliche SH♾️-Bild ist wieder aktiv.");

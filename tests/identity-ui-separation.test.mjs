@@ -8,44 +8,75 @@ async function source(path) {
   return readFile(new URL(path, root), "utf8");
 }
 
-test("Pam und Steffi besitzen getrennte lokale Notiz-, Bild- und Mundspeicher", async () => {
+test("Pams ausgelieferte Holo-Instanz enthält ausschließlich Pams lokale ID und Speicher", async () => {
+  const html = await source("www/index.html");
   const ui = await source("www/sol-holo-ui.js");
+  const consent = await source("www/consent-ui-bootstrap.mjs");
 
   for (const key of [
     "pams-holo-original-notes-v1",
-    "steffis-holo-original-notes-v1",
-    "sol-holo-clone-photo-v1",
-    "steffis-holo-clone-photo-v1",
-    "sol-holo-clone-mouth-v1",
-    "steffis-holo-clone-mouth-v1"
+    "sol-holo:pam-sol:clone-photo:v2",
+    "sol-holo:pam-sol:clone-mouth:v2"
   ]) {
-    assert.equal(ui.includes(key), true, `fehlender getrennter Schlüssel: ${key}`);
+    assert.equal(ui.includes(key), true, `fehlender Pam-Schlüssel: ${key}`);
+  }
+
+  for (const client of [html, ui, consent]) {
+    assert.doesNotMatch(client, /steffi(?:-sol|s-holo)?/iu);
   }
 
   assert.match(ui, /function activeNotesStorageKey\(\)/u);
   assert.match(ui, /function activeCloneStorageKeys\(\)/u);
   assert.match(ui, /if \(!storageKey\) \{\s*personalNotes = \[\]/u);
   assert.match(ui, /applyCustomCloneAppearance\("", null\);/u);
+  assert.match(ui, /sol-holo:unassigned:clone-photo:v1:quarantine/u);
+  assert.match(ui, /sol-holo:unassigned:clone-mouth:v1:quarantine/u);
+  assert.match(ui, /sol-holo:pam-sol:clone-appearance-migration:v2/u);
+  assert.match(
+    ui,
+    /function restoreCustomCloneAppearance\(\) \{[\s\S]*quarantineLegacyCloneAppearance\(\);[\s\S]*applyCustomCloneAppearance\("", null\);/u
+  );
+  assert.match(
+    ui,
+    /localStorage\.setItem\(legacyClonePhotoQuarantineKey, legacyPhoto\)[\s\S]*localStorage\.getItem\(legacyClonePhotoQuarantineKey\) !== legacyPhoto/u
+  );
+  assert.match(
+    ui,
+    /localStorage\.setItem\(legacyCloneMouthQuarantineKey, legacyMouth\)[\s\S]*localStorage\.getItem\(legacyCloneMouthQuarantineKey\) !== legacyMouth/u
+  );
+  assert.match(
+    ui,
+    /if \(legacyPhoto\) localStorage\.removeItem\(legacyClonePhotoKey\);[\s\S]*if \(legacyMouth\) localStorage\.removeItem\(legacyCloneMouthKey\);/u
+  );
+  assert.doesNotMatch(
+    ui,
+    /applyCustomCloneAppearance\(legacyPhoto/u
+  );
+  assert.match(ui, /facialIdentity: "not-verified"/u);
+  assert.match(ui, /deviceOrigin: "unknown"/u);
+  assert.match(ui, /locationOrigin: "unknown"/u);
+  assert.match(ui, /explicitOwnerConfirmation: true/u);
+  assert.match(ui, /deviceDisplayNameUsedAsIdentity: false/u);
+  assert.match(ui, /locationUsedAsIdentity: false/u);
+  assert.match(ui, /local-landmarks-only-not-person-identification/u);
+  assert.match(ui, /quarantineUnverifiedPamCloneAppearance\(keys\)/u);
 });
 
-test("jede Holo-Instanz besitzt eine eigene Stimme und keine Vorauswahl", async () => {
+test("die signierte Pam-Instanz ist fest an pam-sol gebunden und lädt keine Sitzungs-ID", async () => {
   const html = await source("www/index.html");
 
   assert.match(html, /PAM_SOL_VOICE_STORAGE_KEY/u);
-  assert.match(html, /STEFFI_SOL_VOICE_STORAGE_KEY/u);
-  assert.match(html, /"steffis-holo-realtime-voice-v1"/u);
-  assert.match(html, /let selectedSpeakerId = "";/u);
-  assert.doesNotMatch(
-    html,
-    /safeSessionValue\(\s*SOL_SPEAKER_SESSION_KEY/u
-  );
-  assert.doesNotMatch(
-    html,
-    /sessionStorage\.setItem\(\s*SOL_SPEAKER_SESSION_KEY/u
-  );
+  assert.match(html, /const SOL_APP_IDENTITY = Object\.freeze/u);
+  assert.match(html, /ownerId:"pam-sol"/u);
+  assert.match(html, /speakerId:"pam"/u);
   assert.match(
     html,
-    /sessionStorage\.removeItem\(\s*SOL_SPEAKER_SESSION_KEY/u
+    /let selectedSpeakerId =\s*SOL_APP_IDENTITY\.speakerId;/u
+  );
+  assert.doesNotMatch(html, /SOL_SPEAKER_SESSION_KEY/u);
+  assert.doesNotMatch(
+    html,
+    /data-speaker-id="(?:steffi|pam)"/u
   );
   assert.match(html, /class="solholo-booting"/u);
   assert.match(html, /id="solHoloBootScreen"/u);
@@ -53,7 +84,7 @@ test("jede Holo-Instanz besitzt eine eigene Stimme und keine Vorauswahl", async 
     html,
     /classList\.remove\("solholo-booting"\)/u
   );
-  assert.match(html, /Bitte vor dem Schreiben oder Sprechen auswählen/u);
+  assert.match(html, /Eine andere Identität wird niemals geladen/u);
   assert.doesNotMatch(html, /localStorage\.getItem\(\s*SOL_VOICE_STORAGE_KEY/u);
 });
 
@@ -90,5 +121,11 @@ test("digitale Einwilligung und Geräteschlüssel lehnen Owner-Wechsel ab", asyn
   assert.match(bootstrap, /OWNER_SCOPE_MISMATCH/u);
   assert.match(nativeSecurity, /signConsentPayload\(PluginCall call\)/u);
   assert.match(nativeSecurity, /String ownerId = requiredOwnerId\(call\)/u);
+  assert.match(nativeSecurity, /APP_OWNER_ID = "pam-sol"/u);
+  assert.match(
+    nativeSecurity,
+    /isOwnerBoundToInstance\(ownerId, APP_OWNER_ID\)/u
+  );
+  assert.match(nativeSecurity, /"OWNER_SCOPE_MISMATCH"/u);
   assert.match(nativeSecurity, /payloadSha256/u);
 });

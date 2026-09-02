@@ -60,6 +60,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @CapacitorPlugin(name = "SolAccessSecurity")
 public final class SolAccessSecurityPlugin extends Plugin {
+    private static final String APP_OWNER_ID = "pam-sol";
     private static final String PREFS = "sol_holo_access_security_v1";
     private static final String DEVICE_KEY_ALIAS_PREFIX =
         "sol_holo_registered_device_signing_v1_";
@@ -280,6 +281,13 @@ public final class SolAccessSecurityPlugin extends Plugin {
             call.reject(
                 "Für diese Holo-Instanz ist eine bekannte ownerId erforderlich.",
                 "OWNER_ID_REQUIRED_OR_NOT_ALLOWED"
+            );
+            return null;
+        }
+        if (!SecurityFactorPolicy.isOwnerBoundToInstance(ownerId, APP_OWNER_ID)) {
+            call.reject(
+                "Diese signierte Holo-Instanz akzeptiert ausschließlich ihre eigene ownerId.",
+                "OWNER_SCOPE_MISMATCH"
             );
             return null;
         }

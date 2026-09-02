@@ -27,7 +27,7 @@ function requireSelectedIdentity(status) {
 
   window.SolHoloIdentity?.require?.();
   status.textContent =
-    "Bitte zuerst Pam oder Steffi auswählen. Sicherheitsdaten bleiben getrennt.";
+    "Die feste Holo-ID ist nicht verfügbar. Sicherheitsdaten bleiben gesperrt.";
   return null;
 }
 
@@ -43,13 +43,13 @@ if (settingsSystemGroup) {
       <span class="settingsGroupIcon" aria-hidden="true">🔒</span>
       <div>
         <h3 id="settingsSecurityTitle">Sicherheit &amp; Einwilligungen</h3>
-        <p>Je Person getrennte Geräteschlüssel und neue freiwillige Freigaben</p>
+        <p>Nur Pams fest gebundener Geräteschlüssel und freiwillige Freigaben</p>
       </div>
     </div>
     <div class="profileStatusGrid settingsStatusGrid">
       <div class="profileStatus glassCard">
         <strong>Dieses Gerät</strong>
-        <span id="accessSecurityDeviceState">Pam oder Steffi wählen</span>
+        <span id="accessSecurityDeviceState">Pam’s Holo</span>
       </div>
       <div class="profileStatus glassCard">
         <strong>Kryptografische Uhr</strong>
@@ -60,7 +60,7 @@ if (settingsSystemGroup) {
       Dieses Gerät sicher registrieren
     </button>
     <p id="accessSecurityStatus" class="permissionNote" role="status" aria-live="polite">
-      Bitte zuerst Pam oder Steffi auswählen. Jede Registrierung gehört nur zu dieser Person.
+      Diese Installation registriert ausschließlich Pams fest gebundene Holo-ID.
     </p>
     <div class="settingsSubsection">
       <label for="consentPurposeSelect"><strong>Neue Einwilligung auswählen</strong></label>
@@ -109,10 +109,10 @@ if (settingsSystemGroup) {
     const plugin = securityPlugin();
 
     if (!identity) {
-      deviceState.textContent = "Pam oder Steffi wählen";
+      deviceState.textContent = "Holo-ID nicht verfügbar";
       watchState.textContent = "Gerätetest noch offen";
       securityStatus.textContent =
-        "Bitte zuerst Pam oder Steffi auswählen. Jede Registrierung gehört nur zu dieser Person.";
+        "Die feste Holo-ID ist nicht verfügbar. Es wird nichts registriert.";
       registerButton.disabled = true;
       return;
     }
@@ -177,15 +177,15 @@ if (settingsSystemGroup) {
   function mountConsentComponent() {
     destroyConsentComponent();
     const selectedPurpose = CONSENT_PURPOSES[purposeSelect.value];
-    if (!selectedPurpose) {
+    const identity = selectedIdentity();
+    if (!selectedPurpose || !identity) {
       return;
     }
 
     consentComponent = createConsentSignatureComponent({
       container: consentSlot,
       owners: [
-        { id: "pam-sol", label: "Pam" },
-        { id: "steffi-sol", label: "Steffi" }
+        { id: identity.ownerId, label: identity.displayName }
       ],
       purpose: selectedPurpose.purpose,
       purposeVersion: selectedPurpose.version,

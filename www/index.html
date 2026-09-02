@@ -1592,21 +1592,12 @@ Online
 
 <div
   id="speakerIdentityChooser"
-  role="group"
+  hidden
+  aria-hidden="true"
   aria-labelledby="speakerIdentityQuestion">
-  <strong id="speakerIdentityQuestion">Wer spricht gerade?</strong>
-  <button
-    class="speakerIdentityButton"
-    type="button"
-    data-speaker-id="pam"
-    aria-pressed="false">Pam</button>
-  <button
-    class="speakerIdentityButton"
-    type="button"
-    data-speaker-id="steffi"
-    aria-pressed="false">Steffi</button>
+  <strong id="speakerIdentityQuestion">Fest gebundene Holo-Identität</strong>
   <span id="speakerIdentityStatus" role="status" aria-live="polite">
-    Bitte vor dem Schreiben oder Sprechen auswählen. Erinnerungen bleiben getrennt.
+    Diese Installation ist ausschließlich Pam zugeordnet.
   </span>
 </div>
 
@@ -2164,27 +2155,15 @@ const mouthCanvasContext =
 const PAM_SOL_VOICE_STORAGE_KEY =
   "sol-holo-realtime-voice-v1";
 
-const STEFFI_SOL_VOICE_STORAGE_KEY =
-  "steffis-holo-realtime-voice-v1";
-
-const SOL_SPEAKER_SESSION_KEY =
-  "sol-holo-speaker-session-v1";
-
 const SOL_CONVERSATION_SESSION_KEY =
   "sol-holo-conversation-session-v1";
 
-const SOL_IDENTITIES = {
-  pam:{
-    displayName:"Pam",
-    ownerId:"pam-sol",
-    speakerId:"pam"
-  },
-  steffi:{
-    displayName:"Steffi",
-    ownerId:"steffi-sol",
-    speakerId:"steffi"
-  }
-};
+const SOL_APP_IDENTITY = Object.freeze({
+  displayName:"Pam",
+  instanceName:"Pam’s Holo",
+  ownerId:"pam-sol",
+  speakerId:"pam"
+});
 
 function safeSessionValue(
   key
@@ -2242,25 +2221,18 @@ function createConversationId(
   return nextId;
 }
 
-try{
-
-  sessionStorage.removeItem(
-    SOL_SPEAKER_SESSION_KEY
-  );
-
-}catch{}
-
-let selectedSpeakerId = "";
+let selectedSpeakerId =
+  SOL_APP_IDENTITY.speakerId;
 
 let conversationId =
   createConversationId();
 
 function selectedIdentity(){
 
-  return SOL_IDENTITIES[
-    selectedSpeakerId
-  ] ||
-  null;
+  return selectedSpeakerId ===
+    SOL_APP_IDENTITY.speakerId
+      ? SOL_APP_IDENTITY
+      : null;
 }
 
 function renderSelectedIdentity(){
@@ -2284,8 +2256,8 @@ function renderSelectedIdentity(){
 
   speakerIdentityStatus.textContent =
     identity
-      ? `${identity.displayName} ist ausgewählt. Dauerhafte Erinnerungen werden nur nach ausdrücklicher Bestätigung gespeichert.`
-      : "Bitte vor dem Schreiben oder Sprechen auswählen. Erinnerungen bleiben getrennt.";
+      ? `${identity.instanceName} ist fest an ${identity.ownerId} gebunden. Eine andere Identität wird niemals geladen.`
+      : "Die feste Holo-Identität ist nicht verfügbar. Persönliche Daten bleiben gesperrt.";
 }
 
 function selectSpeaker(
@@ -2302,11 +2274,9 @@ function selectSpeaker(
     ).trim().toLowerCase();
 
   selectedSpeakerId =
-    Object.hasOwn(
-      SOL_IDENTITIES,
-      cleanSpeakerId
-    )
-      ? cleanSpeakerId
+    cleanSpeakerId ===
+      SOL_APP_IDENTITY.speakerId
+      ? SOL_APP_IDENTITY.speakerId
       : "";
 
   if(
@@ -2319,14 +2289,6 @@ function selectSpeaker(
         true
       );
   }
-
-  try{
-
-    sessionStorage.removeItem(
-      SOL_SPEAKER_SESSION_KEY
-    );
-
-  }catch{}
 
   renderSelectedIdentity();
 
@@ -2359,12 +2321,7 @@ function requireSelectedIdentity(){
   }
 
   chatStatus.textContent =
-    "Spricht gerade Pam oder Steffi?";
-
-  speakerIdentityChooser.scrollIntoView({
-    behavior:"smooth",
-    block:"center"
-  });
+    "Die fest gebundene Holo-ID konnte nicht bestätigt werden. Persönliche Daten bleiben gesperrt.";
 
   return null;
 }
@@ -2394,7 +2351,9 @@ window.SolHoloIdentity = Object.freeze({
   require:
     () => requireSelectedIdentity(),
   conversationId:
-    () => conversationId
+    () => conversationId,
+  bound:
+    () => SOL_APP_IDENTITY
 });
 
 const SOL_REALTIME_VOICES =
@@ -2420,9 +2379,7 @@ function loadSelectedSolVoice(){
   const storageKey =
     ownerId === "pam-sol"
       ? PAM_SOL_VOICE_STORAGE_KEY
-      : ownerId === "steffi-sol"
-        ? STEFFI_SOL_VOICE_STORAGE_KEY
-        : "";
+      : "";
 
   if(!storageKey){
 
@@ -2474,7 +2431,7 @@ function renderOwnerSolVoice(){
   solVoiceChoiceStatus.textContent =
     identity
       ? `${solVoiceSelect.selectedOptions[0].textContent} ist nur für ${identity.displayName}s eigenes Holo ausgewählt.`
-      : "Bitte zuerst Pam oder Steffi auswählen. Die Stimmen bleiben getrennt.";
+      : "Die fest gebundene Holo-ID ist nicht verfügbar. Die Stimme bleibt gesperrt.";
 }
 
 renderOwnerSolVoice();
@@ -3127,7 +3084,7 @@ function reportFullFaceRigStatus(
   ){
 
     lipSyncStatus.textContent =
-      "🙂 Gesicht lokal erkannt · Vollgesichtsbewegung bereit.";
+      "🙂 Gesichtskonturen lokal erkannt · keine Personenidentifikation.";
 
   }else if(
     state ===
@@ -3135,7 +3092,7 @@ function reportFullFaceRigStatus(
   ){
 
     lipSyncStatus.textContent =
-      "🙂 Gesicht wird nur auf diesem Gerät erkannt …";
+      "🙂 Gesichtskonturen werden nur auf diesem Gerät analysiert …";
 
   }else if(
     state ===
@@ -6315,7 +6272,14 @@ solVoiceSelect.addEventListener(
       const storageKey =
         identity.ownerId === "pam-sol"
           ? PAM_SOL_VOICE_STORAGE_KEY
-          : STEFFI_SOL_VOICE_STORAGE_KEY;
+          : "";
+
+      if(!storageKey){
+
+        throw new Error(
+          "Fremde Holo-ID abgelehnt."
+        );
+      }
 
       localStorage.setItem(
         storageKey,
@@ -6999,13 +6963,8 @@ async function sendMessage(
       data?.identityRequired
     ){
 
-      selectSpeaker("");
-
       const identityQuestion =
-        String(
-          data?.question ||
-          "Spricht gerade Pam oder Steffi?"
-        ).trim();
+        "Die feste Holo-ID konnte vom Server nicht bestätigt werden. Es wurden keine persönlichen Daten geladen.";
 
       addMessage(
         "Sol",
@@ -7246,7 +7205,7 @@ async function sendLiveTranscriptToMemory(
   ){
 
     memoryStatus.textContent =
-      "🧠 Bitte zuerst Pam oder Steffi auswählen.";
+      "🧠 Die feste Holo-ID ist nicht verfügbar. Memory bleibt gesperrt.";
 
     return;
   }
@@ -7332,7 +7291,7 @@ async function sendLiveTranscriptToMemory(
 
       memoryStatus.textContent =
         data?.identityRequired
-          ? "🧠 Spricht gerade Pam oder Steffi?"
+          ? "🧠 Feste Holo-ID nicht bestätigt. Nichts gespeichert."
           : "🧠 Nicht dauerhaft gespeichert.";
     }
 
@@ -8788,12 +8747,12 @@ if(
 
 </script>
 
-<script src="./sol-holo-ui.js?v=35"></script>
+<script src="./sol-holo-ui.js?v=36"></script>
 <script>
 document.documentElement.classList.remove("solholo-booting");
 document.getElementById("solHoloBootScreen")?.remove();
 </script>
-<script type="module" src="./consent-ui-bootstrap.mjs?v=1"></script>
+<script type="module" src="./consent-ui-bootstrap.mjs?v=2"></script>
 <script>
 (() => {
   "use strict";

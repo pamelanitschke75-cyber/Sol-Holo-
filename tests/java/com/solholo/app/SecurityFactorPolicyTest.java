@@ -34,6 +34,7 @@ public final class SecurityFactorPolicyTest {
         rejectsCrossOwnerWatchProof();
         rejectsCrossOwnerAndReplayedGrant();
         rejectsMissingOrUnknownOwnerWithoutFallback();
+        bindsEverySignedInstanceToExactlyOneOwner();
         allowsDeviceReplacementOnlyWithCryptographicRecoveryKey();
         System.out.println("SecurityFactorPolicyTest: OK");
     }
@@ -530,6 +531,25 @@ public final class SecurityFactorPolicyTest {
         } catch (IllegalArgumentException expected) {
             // Expected: Evidence has no default owner scope.
         }
+    }
+
+    private static void bindsEverySignedInstanceToExactlyOneOwner() {
+        assertTrue(
+            SecurityFactorPolicy.isOwnerBoundToInstance(OWNER_A, OWNER_A),
+            "Eine Instanz muss ausschließlich ihre eigene ownerId akzeptieren"
+        );
+        assertFalse(
+            SecurityFactorPolicy.isOwnerBoundToInstance(OWNER_B, OWNER_A),
+            "Eine fremde bekannte ownerId darf niemals auf Pams Instanz wechseln"
+        );
+        assertFalse(
+            SecurityFactorPolicy.isOwnerBoundToInstance(OWNER_A, OWNER_B),
+            "Pams ownerId darf niemals auf einer fremden Instanz akzeptiert werden"
+        );
+        assertFalse(
+            SecurityFactorPolicy.isOwnerBoundToInstance(null, OWNER_A),
+            "Eine fehlende ownerId darf nicht auf die Instanz-ID zurückfallen"
+        );
     }
 
     private static Decision evaluate(Operation operation, Evidence... evidence) {

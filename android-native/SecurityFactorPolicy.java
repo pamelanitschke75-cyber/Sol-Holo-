@@ -211,6 +211,19 @@ public final class SecurityFactorPolicy {
     }
 
     /**
+     * A signed Holo instance may accept exactly its compile-time owner scope.
+     * Supporting more than one owner in the shared policy never makes either
+     * owner selectable inside a concrete installed app.
+     */
+    public static boolean isOwnerBoundToInstance(
+        String requestedOwnerId,
+        String instanceOwnerId
+    ) {
+        return isAllowedOwnerId(instanceOwnerId)
+            && instanceOwnerId.equals(requestedOwnerId);
+    }
+
+    /**
      * Validates all non-transport invariants for a signed watch response.
      *
      * <p>The NFC UID is intentionally absent: it is not an input to this

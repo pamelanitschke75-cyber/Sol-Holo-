@@ -221,17 +221,24 @@ test("zweistufige Speicherung verlangt ausdrueckliche Bestaetigung derselben Per
 });
 
 test("Pam- und Steffi-Erinnerungen erhalten strikt verschiedene Owner", () => {
-  const pam = evaluateIdentityMemoryWrite(directMemoryInput());
+  const commonMemory =
+    "Sol, merke dir dauerhaft: Unser gemeinsamer Ausflug war am See.";
+  const pam = evaluateIdentityMemoryWrite(
+    directMemoryInput({ content: commonMemory })
+  );
   const steffi = evaluateIdentityMemoryWrite(
     directMemoryInput({
       selectedSpeakerId: "steffi",
-      content: "Sol, merke dir dauerhaft: Das gehoert zu Steffi."
+      content: commonMemory
     })
   );
 
   assert.equal(pam.memory.ownerId, "pam-sol");
   assert.equal(steffi.memory.ownerId, "steffi-sol");
   assert.notEqual(pam.memory.ownerId, steffi.memory.ownerId);
+  assert.equal(pam.memory.content, steffi.memory.content);
+  assert.equal(pam.memory.confirmedBy, "pam");
+  assert.equal(steffi.memory.confirmedBy, "steffi");
 });
 
 test("Identitaet wird nicht aus Namen im Inhalt geraten", () => {
