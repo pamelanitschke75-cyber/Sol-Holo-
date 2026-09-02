@@ -13,6 +13,7 @@ on:
       - "www/manifest.json"
       - "www/index.html"
       - "www/app-lock-bootstrap.mjs"
+      - "www/trusted-app-session.mjs"
       - "www/headaudio.min.mjs"
       - "www/headworklet.min.mjs"
       - "www/full-face-rig.mjs"
@@ -255,14 +256,17 @@ jobs:
           set -Eeuo pipefail
           node scripts/check-samsung-notes-language.mjs
           notes_js="android/app/src/main/assets/public/sol-holo-ui.js"
+          trusted_session_js="android/app/src/main/assets/public/trusted-app-session.mjs"
           app_html="android/app/src/main/assets/public/index.html"
           notes_java="android/app/src/main/java/com/solholo/app/PhoneContactsPlugin.java"
           app_manifest="android/app/src/main/AndroidManifest.xml"
           test -s "$notes_js"
+          test -s "$trusted_session_js"
           test -s "$app_html"
           test -s "$notes_java"
           test -s "$app_manifest"
-          grep -q 'Samsung Notes wurde mit' "$notes_js"
+          grep -q 'Bitte dort noch speichern' "$notes_js"
+          grep -q 'samsungNoteInsertionFromNaturalRequest' "$notes_js"
           grep -q 'samsungNoteTextFromNaturalRequest' "$notes_js"
           grep -q 'notes?|noten|notizen' "$notes_js"
           grep -q 'prepareSamsungNote' "$notes_js"
@@ -277,6 +281,9 @@ jobs:
           grep -q 'create_personal_note' server.mjs
           grep -q 'Schreib bitte Zucker in Notes' server.mjs
           grep -q 'Verlange niemals' server.mjs
+          grep -q 'x-sol-holo-trusted-session' "$trusted_session_js"
+          grep -q 'signTrustedSessionChallenge' \
+            android/app/src/main/java/com/solholo/app/SolAccessSecurityPlugin.java
 
       - name: Lokale Sprechererkennung in Pam’s Holo einbinden
         run: node scripts/install-speaker-identity.mjs

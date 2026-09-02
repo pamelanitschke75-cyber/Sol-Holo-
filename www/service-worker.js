@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-115-chat-proportions";
+const CACHE_VERSION = "sol-holo-116-notes-calendar-session";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
