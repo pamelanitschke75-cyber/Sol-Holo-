@@ -41,7 +41,11 @@ test("derselbe lokale PCM-Strom erreicht Weckruf- und Sprecherprüfung", () => {
 
 test("Samsung muss keine aufgenommene Datei an SpeechRecognizer übernehmen", () => {
   assert.match(serviceSource, /new SolWakeKeywordSpotter/u);
-  assert.match(spotterSource, /KeywordSpotterConfig\.builder/u);
+  assert.match(spotterSource, /new KeywordSpotterConfig\(\)/u);
+  assert.match(
+    spotterSource,
+    /new KeywordSpotter\(context\.getAssets\(\), config\)/u
+  );
   assert.match(spotterSource, /stream\.acceptWaveform/u);
   assert.doesNotMatch(serviceSource, /SpeechRecognizer|RecognizerIntent/u);
   assert.doesNotMatch(serviceSource, /ParcelFileDescriptor|prepareRecognitionSource/u);
