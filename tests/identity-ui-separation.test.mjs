@@ -87,7 +87,7 @@ test("die signierte Pam-Instanz ist fest an pam-sol gebunden und lädt keine Sit
   );
   assert.match(html, /Eine andere Identität wird niemals geladen/u);
   assert.doesNotMatch(html, /localStorage\.getItem\(\s*SOL_VOICE_STORAGE_KEY/u);
-  assert.match(html, /app-lock-bootstrap\.mjs\?v=1/u);
+  assert.match(html, /app-lock-bootstrap\.mjs\?v=2/u);
   assert.doesNotMatch(html, /solHoloBootScreen"\)\?\.remove/u);
   assert.match(appLock, /const APP_OWNER_ID = "pam-sol"/u);
   assert.match(appLock, /authorizeAppAccess/u);
@@ -135,6 +135,12 @@ test("digitale Einwilligung und Geräteschlüssel lehnen Owner-Wechsel ab", asyn
   assert.match(nativeSecurity, /authorizeAppAccess\(PluginCall call\)/u);
   assert.match(nativeSecurity, /AuthenticationPurpose\.APP_ACCESS/u);
   assert.match(nativeSecurity, /"Pam’s Holo entsperren"/u);
+  assert.match(nativeSecurity, /activity\.runOnUiThread/u);
+  assert.match(nativeSecurity, /BIOMETRIC_PROMPT_START_FAILED/u);
+  assert.match(
+    nativeSecurity,
+    /getSupportFragmentManager\(\)\.isStateSaved\(\)/u
+  );
   assert.match(
     nativeSecurity,
     /isOwnerBoundToInstance\(ownerId, APP_OWNER_ID\)/u

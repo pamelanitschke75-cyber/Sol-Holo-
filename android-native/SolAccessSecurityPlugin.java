@@ -943,6 +943,48 @@ public final class SolAccessSecurityPlugin extends Plugin {
         }
 
         FragmentActivity activity = (FragmentActivity)getActivity();
+        activity.runOnUiThread(() -> {
+            try {
+                launchSystemAuthenticationPrompt(
+                    call,
+                    activity,
+                    purpose,
+                    ownerId,
+                    action,
+                    requireWatch,
+                    watchProofId,
+                    authenticators
+                );
+            } catch (RuntimeException error) {
+                systemAuthenticationInProgress.set(false);
+                call.reject(
+                    "Die Android-Sicherheitsanzeige konnte nicht sicher geöffnet werden. Bitte die App vollständig im Vordergrund öffnen und erneut versuchen.",
+                    "BIOMETRIC_PROMPT_START_FAILED",
+                    error
+                );
+            }
+        });
+    }
+
+    private void launchSystemAuthenticationPrompt(
+        PluginCall call,
+        FragmentActivity activity,
+        AuthenticationPurpose purpose,
+        String ownerId,
+        String action,
+        boolean requireWatch,
+        String watchProofId,
+        int authenticators
+    ) {
+        if (
+            activity.isFinishing()
+                || activity.isDestroyed()
+                || activity.getSupportFragmentManager().isStateSaved()
+        ) {
+            throw new IllegalStateException(
+                "Biometric host activity is not in a safe foreground state"
+            );
+        }
         Executor executor = ContextCompat.getMainExecutor(getContext());
         BiometricPrompt prompt = new BiometricPrompt(
             activity,
@@ -1102,6 +1144,43 @@ public final class SolAccessSecurityPlugin extends Plugin {
         }
 
         FragmentActivity activity = (FragmentActivity)getActivity();
+        activity.runOnUiThread(() -> {
+            try {
+                launchConsentSignaturePrompt(
+                    call,
+                    activity,
+                    ownerId,
+                    canonicalPayload,
+                    payloadSha256
+                );
+            } catch (RuntimeException error) {
+                systemAuthenticationInProgress.set(false);
+                Arrays.fill(canonicalPayload, (byte)0);
+                call.reject(
+                    "Die Android-Sicherheitsanzeige konnte nicht sicher geöffnet werden. Bitte die App vollständig im Vordergrund öffnen und erneut versuchen.",
+                    "BIOMETRIC_PROMPT_START_FAILED",
+                    error
+                );
+            }
+        });
+    }
+
+    private void launchConsentSignaturePrompt(
+        PluginCall call,
+        FragmentActivity activity,
+        String ownerId,
+        byte[] canonicalPayload,
+        String payloadSha256
+    ) {
+        if (
+            activity.isFinishing()
+                || activity.isDestroyed()
+                || activity.getSupportFragmentManager().isStateSaved()
+        ) {
+            throw new IllegalStateException(
+                "Biometric host activity is not in a safe foreground state"
+            );
+        }
         Executor executor = ContextCompat.getMainExecutor(getContext());
         BiometricPrompt prompt = new BiometricPrompt(
             activity,

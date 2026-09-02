@@ -152,11 +152,14 @@ async function authenticateAndReveal({ needsRegistration = false } = {}) {
     revealApp();
   } catch (error) {
     const registrationRequired =
+      needsRegistration ||
       error?.code === "REGISTERED_DEVICE_REQUIRED";
     showLocked({
       needsRegistration: registrationRequired,
       message: registrationRequired
-        ? "Dieses Gerät muss zuerst einmal sicher für pam-sol registriert werden."
+        ? error?.code === "BIOMETRIC_PROMPT_START_FAILED"
+          ? "Das Android-Sicherheitsfenster konnte nicht geöffnet werden. Bitte Pam’s Holo vollständig im Vordergrund öffnen und erneut registrieren."
+          : "Dieses Gerät muss zuerst einmal sicher für pam-sol registriert werden."
         : "Nicht entsperrt. Deine persönlichen Inhalte bleiben vollständig verdeckt."
     });
   } finally {
