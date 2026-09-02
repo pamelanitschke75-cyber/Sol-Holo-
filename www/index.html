@@ -2046,6 +2046,53 @@ function backendJsonHeaders(
 }
 
 
+function createFulltimeEventId(){
+
+  return typeof globalThis.crypto?.randomUUID ===
+    "function"
+      ? `app-${globalThis.crypto.randomUUID()}`
+      : `app-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+
+async function ensureFulltimeHistorySession(
+  interactive = false
+){
+
+  const ensure =
+    window.SolHoloTrustedSession
+      ?.ensure;
+
+  if(
+    typeof ensure !==
+    "function"
+  ){
+
+    return {
+      trusted:false,
+      unavailable:true
+    };
+  }
+
+  const current =
+    await ensure({
+      interactive:false
+    });
+
+  if(
+    current?.trusted ||
+    !interactive
+  ){
+
+    return current;
+  }
+
+  return ensure({
+    interactive:true
+  });
+}
+
+
 /*
 ==========================================================
 ELEMENTE
@@ -6663,7 +6710,8 @@ function addMessage(
   text,
   className,
   imageDataUrl = null,
-  mediaKind = "image"
+  mediaKind = "image",
+  deferScroll = false
 ){
 
   const element =
@@ -6784,8 +6832,486 @@ function addMessage(
   );
 
 
-  scrollChatToLatest();
+  if(
+    !deferScroll
+  ){
+
+    scrollChatToLatest();
+  }
+
+
+  return element;
 }
+
+
+const SOL_FULLTIME_PENDING_KEY =
+  "sol-holo-fulltime-pending-v1";
+
+
+let fulltimeHistoryLoaded =
+  false;
+
+
+let fulltimeHistoryLoadPromise =
+  null;
+
+
+let fulltimePendingFlushPromise =
+  null;
+
+
+function readPendingFulltimeDialogs(){
+
+  try{
+
+    const parsed =
+      JSON.parse(
+        localStorage.getItem(
+          SOL_FULLTIME_PENDING_KEY
+        ) ||
+        "[]"
+      );
+
+    return Array.isArray(parsed)
+      ? parsed.slice(0,200)
+      : [];
+
+  }catch{
+
+    return [];
+  }
+}
+
+
+function writePendingFulltimeDialogs(
+  dialogs
+){
+
+  try{
+
+    if(
+      dialogs.length ===
+      0
+    ){
+
+      localStorage.removeItem(
+        SOL_FULLTIME_PENDING_KEY
+      );
+
+      return;
+    }
+
+    localStorage.setItem(
+      SOL_FULLTIME_PENDING_KEY,
+      JSON.stringify(
+        dialogs.slice(-200)
+      )
+    );
+
+  }catch{}
+}
+
+
+function queueFulltimeDialog(
+  messages,
+  sourceEventId = createFulltimeEventId()
+){
+
+  const cleanMessages =
+    messages
+      .map(
+        entry => ({
+          role:
+            entry?.role ===
+            "assistant"
+              ? "assistant"
+              : "user",
+          content:
+            String(
+              entry?.content ||
+              ""
+            )
+        })
+      )
+      .filter(
+        entry =>
+          entry.content.trim()
+      );
+
+  if(
+    cleanMessages.length ===
+    0
+  ){
+
+    return;
+  }
+
+  const pending =
+    readPendingFulltimeDialogs();
+
+  pending.push({
+    sourceEventId,
+    messages:
+      cleanMessages
+  });
+
+  writePendingFulltimeDialogs(
+    pending
+  );
+}
+
+
+async function flushPendingFulltimeDialogs(){
+
+  if(
+    fulltimePendingFlushPromise
+  ){
+
+    return fulltimePendingFlushPromise;
+  }
+
+  fulltimePendingFlushPromise =
+    (async () => {
+
+      const session =
+        await ensureFulltimeHistorySession(
+          false
+        );
+
+      if(
+        !session?.trusted
+      ){
+
+        return false;
+      }
+
+      const identity =
+        selectedIdentity();
+
+      if(
+        !identity
+      ){
+
+        return false;
+      }
+
+      const pending =
+        readPendingFulltimeDialogs();
+
+      while(
+        pending.length >
+        0
+      ){
+
+        const dialog =
+          pending[0];
+
+        const response =
+          await fetch(
+            `${BACKEND_URL}/fulltime/history/append`,
+            {
+              method:"POST",
+              headers:
+                backendJsonHeaders(),
+              body:
+                JSON.stringify({
+                  selectedSpeakerId:
+                    identity.speakerId,
+                  ownerId:
+                    identity.ownerId,
+                  sourceEventId:
+                    dialog.sourceEventId,
+                  messages:
+                    dialog.messages
+                }),
+              cache:"no-store"
+            }
+          );
+
+        if(
+          !response.ok
+        ){
+
+          return false;
+        }
+
+        pending.shift();
+
+        writePendingFulltimeDialogs(
+          pending
+        );
+      }
+
+      return true;
+    })()
+      .catch(
+        error => {
+
+          console.error(
+            "Vollzeitverlauf synchronisieren:",
+            error?.name ||
+            "Fehler"
+          );
+
+          return false;
+        }
+      )
+      .finally(
+        () => {
+
+          fulltimePendingFlushPromise =
+            null;
+        }
+      );
+
+  return fulltimePendingFlushPromise;
+}
+
+
+async function persistFulltimeDialog(
+  messages,
+  sourceEventId
+){
+
+  queueFulltimeDialog(
+    messages,
+    sourceEventId
+  );
+
+  return flushPendingFulltimeDialogs();
+}
+
+
+async function loadFulltimeHistory(){
+
+  if(
+    fulltimeHistoryLoaded
+  ){
+
+    return true;
+  }
+
+  if(
+    fulltimeHistoryLoadPromise
+  ){
+
+    return fulltimeHistoryLoadPromise;
+  }
+
+  fulltimeHistoryLoadPromise =
+    (async () => {
+
+      const session =
+        await ensureFulltimeHistorySession(
+          false
+        );
+
+      if(
+        !session?.trusted
+      ){
+
+        return false;
+      }
+
+      const identity =
+        selectedIdentity();
+
+      if(
+        !identity
+      ){
+
+        return false;
+      }
+
+      const messages = [];
+      let beforeId = null;
+
+      while(true){
+
+        const response =
+          await fetch(
+            `${BACKEND_URL}/fulltime/history`,
+            {
+              method:"POST",
+              headers:
+                backendJsonHeaders(),
+              body:
+                JSON.stringify({
+                  selectedSpeakerId:
+                    identity.speakerId,
+                  ownerId:
+                    identity.ownerId,
+                  beforeId,
+                  limit:500
+                }),
+              cache:"no-store"
+            }
+          );
+
+        const data =
+          await response.json();
+
+        if(
+          !response.ok
+        ){
+
+          throw new Error(
+            data?.error ||
+            "FULLTIME_HISTORY_LOAD_FAILED"
+          );
+        }
+
+        const pageMessages =
+          Array.isArray(
+            data?.messages
+          )
+            ? data.messages
+            : [];
+
+        messages.push(
+          ...pageMessages
+        );
+
+        if(
+          !data?.hasMore
+        ){
+
+          break;
+        }
+
+        const nextBeforeId =
+          String(
+            data?.nextBeforeId ||
+            ""
+          );
+
+        if(
+          !nextBeforeId ||
+          nextBeforeId ===
+            String(beforeId || "")
+        ){
+
+          throw new Error(
+            "FULLTIME_HISTORY_CURSOR_INVALID"
+          );
+        }
+
+        beforeId =
+          nextBeforeId;
+      }
+
+      messages.sort(
+        (first, second) =>
+          Number(first.id) -
+          Number(second.id)
+      );
+
+      if(
+        messages.length >
+        0
+      ){
+
+        chat.replaceChildren();
+
+        for(
+          const entry of messages
+        ){
+
+          const role =
+            entry?.role ===
+            "assistant"
+              ? "assistant"
+              : "user";
+
+          const element =
+            addMessage(
+              role === "user"
+                ? identity.displayName
+                : "Sol",
+              entry?.content,
+              role === "user"
+                ? "user-message"
+                : "sol-message",
+              null,
+              "image",
+              true
+            );
+
+          element.dataset.fulltimeId =
+            String(
+              entry?.id ||
+              ""
+            );
+        }
+
+        scrollChatToLatest();
+      }
+
+      fulltimeHistoryLoaded =
+        true;
+
+      memoryStatus.textContent =
+        `🧠 Vollzeitgedächtnis: ${messages.length} Nachrichten geladen.`;
+
+      return true;
+    })()
+      .catch(
+        error => {
+
+          console.error(
+            "Vollzeitverlauf laden:",
+            error?.message ||
+            error?.name ||
+            "Fehler"
+          );
+
+          memoryStatus.textContent =
+            "🧠 Vollzeitverlauf wird nach der sicheren Entsperrung geladen.";
+
+          return false;
+        }
+      )
+      .finally(
+        () => {
+
+          fulltimeHistoryLoadPromise =
+            null;
+        }
+      );
+
+  return fulltimeHistoryLoadPromise;
+}
+
+
+async function synchronizeAndLoadFulltimeHistory(){
+
+  await flushPendingFulltimeDialogs();
+  await loadFulltimeHistory();
+}
+
+
+window.addEventListener(
+  "solholo:trusted-session",
+  () => {
+
+    void synchronizeAndLoadFulltimeHistory();
+  }
+);
+
+
+window.addEventListener(
+  "load",
+  () => {
+
+    window.setTimeout(
+      () => {
+
+        void synchronizeAndLoadFulltimeHistory();
+      },
+      250
+    );
+  }
+);
 
 
 /*
@@ -6823,7 +7349,8 @@ TEXT / BILD SENDEN
 */
 
 async function sendMessage(
-  forcedMessage = null
+  forcedMessage = null,
+  existingFulltimeEventId = ""
 ){
 
   const isForcedMessage =
@@ -6916,6 +7443,14 @@ async function sendMessage(
   }
 
 
+  const fulltimeEventId =
+    String(
+      existingFulltimeEventId ||
+      ""
+    ).trim() ||
+    createFulltimeEventId();
+
+
   if(
     !isForcedMessage &&
     mediaKindToSend !==
@@ -6957,13 +7492,31 @@ async function sendMessage(
       localAction?.handled
     ){
 
-      addMessage(
-        "Sol",
+      const localAnswer =
         String(
           localAction.answer ||
           "Die Telefonfunktion wurde ausgeführt."
-        ),
+        );
+
+      addMessage(
+        "Sol",
+        localAnswer,
         "sol-message"
+      );
+
+
+      await persistFulltimeDialog(
+        [
+          {
+            role:"user",
+            content:message
+          },
+          {
+            role:"assistant",
+            content:localAnswer
+          }
+        ],
+        fulltimeEventId
       );
 
 
@@ -7182,6 +7735,8 @@ async function sendMessage(
 
               conversationId,
 
+              fulltimeEventId,
+
               source:
                 "text"
             })
@@ -7271,7 +7826,8 @@ async function sendMessage(
       ){
 
         await sendMessage(
-          message
+          message,
+          fulltimeEventId
         );
 
 
@@ -7486,7 +8042,8 @@ memoryButton.addEventListener(
 
 async function sendLiveTranscriptToMemory(
   transcript,
-  role = "user"
+  role = "user",
+  fulltimeEventId = ""
 ){
 
   const identity =
@@ -7549,6 +8106,13 @@ async function sendLiveTranscriptToMemory(
 
               conversationId,
 
+              fulltimeEventId:
+                String(
+                  fulltimeEventId ||
+                  ""
+                ).trim() ||
+                createFulltimeEventId(),
+
               source:
                 "voice"
             })
@@ -7572,18 +8136,21 @@ async function sendLiveTranscriptToMemory(
 
 
     if(
+      data.fulltimeSaved ||
       data.saved
     ){
 
       memoryStatus.textContent =
-        `🧠 Gespeichert: ${data.memory}`;
+        data.saved
+          ? `🧠 Vollzeit gespeichert · zusätzlich bestätigt: ${data.memory}`
+          : "🧠 Wort für Wort im Vollzeitgedächtnis gespeichert.";
 
     }else{
 
       memoryStatus.textContent =
         data?.identityRequired
           ? "🧠 Feste Holo-ID nicht bestätigt. Nichts gespeichert."
-          : "🧠 Nicht dauerhaft gespeichert.";
+          : "🧠 Vollzeitgedächtnis konnte diesen Beitrag nicht bestätigen.";
     }
 
   }catch(
@@ -8097,7 +8664,10 @@ function saveRealtimeAssistantTranscript(
 
   sendLiveTranscriptToMemory(
     transcript,
-    "assistant"
+    "assistant",
+    realtimeEvent?.event_id ||
+      realtimeEvent?.item_id ||
+      ""
   );
 }
 
@@ -8162,6 +8732,7 @@ async function startLiveConversation(){
 
     return;
   }
+
 
   if(
     pc
@@ -8645,7 +9216,11 @@ async function startLiveConversation(){
             ){
 
               sendLiveTranscriptToMemory(
-                transcript
+                transcript,
+                "user",
+                realtimeEvent?.event_id ||
+                  realtimeEvent?.item_id ||
+                  ""
               );
 
 
