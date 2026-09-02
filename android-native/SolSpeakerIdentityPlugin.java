@@ -488,44 +488,72 @@ public class SolSpeakerIdentityPlugin extends Plugin {
                 localEres2netExtractor,
                 voicedSamples
             );
-            boolean templateUsed = isWakeVoiceReady(context);
-            float campplusScore;
-            float eres2netScore;
-            boolean accepted;
+            boolean templateAvailable = isWakeVoiceReady(context);
+            boolean templateAccepted = false;
+            float templateCampplusScore = Float.NaN;
+            float templateEres2netScore = Float.NaN;
 
-            if (templateUsed) {
-                campplusScore = scoreAgainstWakeTemplate(
-                    context,
-                    WAKE_CAMPPLUS_TEMPLATE_KEY,
-                    campplusEmbedding
-                );
-                eres2netScore = scoreAgainstWakeTemplate(
-                    context,
-                    WAKE_ERES2NET_TEMPLATE_KEY,
-                    eres2netEmbedding
-                );
-                accepted = SpeakerVerificationPolicy.isWakeTemplateOwner(
-                    campplusScore,
-                    eres2netScore
-                );
-            } else {
-                ProfileScore campplus = scoreAgainstProfile(
-                    context,
-                    CAMPPLUS_SAMPLE_PREFIX,
-                    campplusEmbedding
-                );
-                ProfileScore eres2net = scoreAgainstProfile(
-                    context,
-                    ERES2NET_SAMPLE_PREFIX,
-                    eres2netEmbedding
-                );
-                campplusScore = campplus.score;
-                eres2netScore = eres2net.score;
-                accepted = SpeakerVerificationPolicy.isWakeOwner(
-                    campplusScore,
-                    eres2netScore
-                );
+            if (templateAvailable) {
+                try {
+                    templateCampplusScore = scoreAgainstWakeTemplate(
+                        context,
+                        WAKE_CAMPPLUS_TEMPLATE_KEY,
+                        campplusEmbedding
+                    );
+                    templateEres2netScore = scoreAgainstWakeTemplate(
+                        context,
+                        WAKE_ERES2NET_TEMPLATE_KEY,
+                        eres2netEmbedding
+                    );
+                    templateAccepted = SpeakerVerificationPolicy.isWakeTemplateOwner(
+                        templateCampplusScore,
+                        templateEres2netScore
+                    );
+                } catch (RuntimeException ignored) {
+                    // A missing or damaged legacy wake template must not make
+                    // an otherwise intact 3/3 owner profile unusable.
+                }
             }
+
+            ProfileScore profileCampplus = scoreAgainstProfile(
+                context,
+                CAMPPLUS_SAMPLE_PREFIX,
+                campplusEmbedding
+            );
+            ProfileScore profileEres2net = scoreAgainstProfile(
+                context,
+                ERES2NET_SAMPLE_PREFIX,
+                eres2netEmbedding
+            );
+            boolean profileAccepted = SpeakerVerificationPolicy.isWakeOwner(
+                profileCampplus.score,
+                profileEres2net.score
+            );
+            boolean accepted = templateAccepted || profileAccepted;
+
+            // Profiles created before wake templates existed keep their three
+            // verified samples. After one owner-approved exact "Hey Sol", the
+            // short template is created (or repaired) locally and privately.
+            if (profileAccepted && !templateAccepted) {
+                profilePrefs(context).edit()
+                    .putString(
+                        WAKE_CAMPPLUS_TEMPLATE_KEY,
+                        encode(campplusEmbedding)
+                    )
+                    .putString(
+                        WAKE_ERES2NET_TEMPLATE_KEY,
+                        encode(eres2netEmbedding)
+                    )
+                    .apply();
+            }
+
+            boolean templateUsed = templateAccepted;
+            float campplusScore = templateAccepted
+                ? templateCampplusScore
+                : profileCampplus.score;
+            float eres2netScore = templateAccepted
+                ? templateEres2netScore
+                : profileEres2net.score;
 
             return new WakeVerification(
                 accepted,
