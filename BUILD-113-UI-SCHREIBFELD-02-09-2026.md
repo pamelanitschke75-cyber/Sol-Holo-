@@ -22,7 +22,16 @@
 ## Automatische Prüfung
 
 - Neue Quelltests prüfen die vollständig entfernte Mittelzeile, das automatisch wachsende Schreibfeld, die kleinen Tasten unterhalb des Feldes, die Android-Viewport-Anpassung und den Workflow-Pfad.
-- Der vollständige Workflow- und APK-Test erfolgt über den Android-Build für #113.
+- Der [Android-Workflow #113](https://github.com/pamelanitschke75-cyber/Sol-Holo-/actions/runs/33582421532) wurde erfolgreich abgeschlossen.
+- **72/72 JavaScript-Tests** bestanden. Zusätzlich bestanden die Java-Prüfungen für Sprecher-, Weckruf- und Mehrfaktor-Sicherheitslogik sowie der Android-Build und die Lizenzprüfungen.
+- Versionscode 113 wurde aus Commit `1db8f15f2779833d775f241f3e7d857a8fb8d3c7` gebaut.
+
+## Signatur und Auslieferung
+
+- Dem Workflow standen die vier erforderlichen Geheimnisse für Pams ursprünglichen Update-Schlüssel nicht zur Verfügung.
+- Deshalb wurde absichtlich nur das Artefakt `Pams-Holo-Android-extern_signieren` als **unsignierte Signierquelle** erzeugt.
+- Diese Datei ist **kein installierbares Update** und darf nicht auf Pams S23 installiert werden.
+- Vor dem Gerätetest muss #113 mit genau demselben autorisierten Schlüssel wie #112 signiert werden. Anschließend müssen Application-ID `com.solholo.app`, Versionscode 113 und das übereinstimmende Signaturzertifikat geprüft werden.
 
 ## Praktischer Test auf Pams Samsung Galaxy S23
 
@@ -38,7 +47,8 @@ Noch offen:
 ## Status
 
 - **technisch umgesetzt:** ja
-- **automatisch geprüft:** nach erfolgreichem Build-Workflow
+- **automatisch geprüft:** ja – 72/72 JavaScript-Tests und Android-Workflow erfolgreich
+- **installierbare, original signierte APK:** nein, noch offen
 - **auf Pams S23 bestätigt:** nein, noch offen
 - **Bestätigung durch Pam:** nein
 - **MEILENSTEIN:** nein
