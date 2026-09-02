@@ -1,8 +1,10 @@
 /*
- * Pam’s Holo · Build #113
+ * Pam’s Holo · Build #114
  * Breites, automatisch wachsendes Schreibfeld.
  * Kamera links und Mikrofon rechts stehen klein und frei darunter.
  * Die frühere Punkte-/Spruchzeile ist vollständig entfernt.
+ * Das Holo-Bild bleibt in der Normalansicht dezent klein und wird
+ * bei geöffneter Android-Tastatur vollständig ausgeblendet.
  */
 
 :root{
@@ -202,15 +204,16 @@ body{
 }
 
 #app:not(.voice-mode) #chatView #solCloneWrap{
-  height:clamp(92px,76%,132px);
-  max-width:38%;
-  margin-bottom:12px;
+  height:clamp(72px,60%,96px);
+  max-width:28%;
+  margin-bottom:10px;
 }
 
 #app:not(.voice-mode) #chatView #holoBase{
-  bottom:7px;
-  width:30%;
-  height:9px;
+  bottom:6px;
+  width:24%;
+  max-width:132px;
+  height:7px;
 }
 
 body.sol-composer-focused{
@@ -236,22 +239,12 @@ body.sol-composer-focused #chatView{
 body.sol-composer-focused #chatView.active{
   grid-template-rows:
     auto
-    minmax(88px,1fr)
-    auto
-    clamp(88px,15dvh,118px);
+    minmax(0,1fr)
+    auto;
 }
 
 body.sol-composer-focused #chatView #solStage{
-  min-height:88px;
-}
-
-body.sol-composer-focused #chatView #solCloneWrap{
-  height:clamp(74px,74%,102px);
-  margin-bottom:9px;
-}
-
-body.sol-composer-focused #chatView #holoBase{
-  bottom:5px;
+  display:none!important;
 }
 
 @media(max-height:700px){
@@ -270,9 +263,8 @@ body.sol-composer-focused #chatView #holoBase{
   body.sol-composer-focused #chatView.active{
     grid-template-rows:
       auto
-      minmax(82px,1fr)
-      auto
-      92px;
+      minmax(0,1fr)
+      auto;
   }
 }
 
