@@ -27,8 +27,8 @@ jobs:
           set -euo pipefail
           tag='pams-holo-build-119-s23'
           apk='Pams-Holo-Build-119-S23-original-signiert.apk'
-          if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" "$apk" --clobber
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$tag" "$apk" --clobber --repo "$GITHUB_REPOSITORY"
           else
-            gh release create "$tag" "$apk" --title "Pam's Holo Build 119 · Galaxy S23" --notes "Originalsigniertes Update für Pams Galaxy S23. Wake-Phrase: Hey Sol. Signaturen: V1, V2 und V3."
+            gh release create "$tag" "$apk" --repo "$GITHUB_REPOSITORY" --title "Pam's Holo Build 119 · Galaxy S23" --notes "Originalsigniertes Update für Pams Galaxy S23. Wake-Phrase: Hey Sol. Signaturen: V1, V2 und V3."
           fi
