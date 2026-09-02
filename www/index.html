@@ -1560,7 +1560,7 @@ MOBIL
 </style>
 <link rel="stylesheet" href="./sol-holo-ui.css?v=34">
 <link rel="stylesheet" href="./sol-holo-wow.css?v=5">
-<link rel="stylesheet" href="./sol-holo-chat-114.css?v=1">
+<link rel="stylesheet" href="./sol-holo-chat-115.css?v=1">
 </head>
 
 <body>
@@ -1593,7 +1593,12 @@ MOBIL
 </h1>
 
 <div id="subtitle">
-Me, Myself &amp; I. 💜
+<span>Me, Myself &amp; I. 💜</span>
+<img
+  id="chatOwnerPortrait"
+  src="./file_000000009bf88246b8f682a46e1a429d.png"
+  alt="Pam"
+>
 </div>
 
 <div id="onlineState">
@@ -1746,6 +1751,13 @@ Ich bin da. Du kannst mir schreiben, Bilder zeigen oder mit mir sprechen. 🌻
 </div>
 
 </div>
+
+<span
+  id="chatUnicornSignature"
+  role="img"
+  aria-label="Einhorn">
+🦄
+</span>
 
 </section>
 
@@ -2056,7 +2068,7 @@ const voiceStatus =
 
 /*
 ==========================================================
-SCHREIBFELD UND ANDROID-TASTATUR · BUILD #114
+SCHREIBFELD UND ANDROID-TASTATUR · BUILD #115
 ==========================================================
 */
 
@@ -9003,15 +9015,6 @@ if(
     homeTitle.append(" ", createUnicorn("pamUnicorn pamUnicorn--home"));
   }
 
-  const chatSubtitle = document.getElementById("subtitle");
-  if (chatSubtitle && !chatSubtitle.querySelector(".pamUnicorn--chatHeader")) {
-    chatSubtitle.append(" ", createUnicorn("pamUnicorn pamUnicorn--chatHeader"));
-  }
-
-  const firstMessageTitle = document.querySelector("#chat .system-message strong");
-  if (firstMessageTitle && !firstMessageTitle.querySelector(".pamChatMessageUnicorn")) {
-    firstMessageTitle.append(" ", createUnicorn("pamChatMessageUnicorn"));
-  }
 })();
 </script>
 

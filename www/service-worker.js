@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-114-chat-holo-keyboard";
+const CACHE_VERSION = "sol-holo-115-chat-proportions";
 
 self.addEventListener("install", () => {
   self.skipWaiting();

@@ -24,7 +24,7 @@ on:
       - "www/sol-motion-profile.js"
       - "www/sol-holo-ui.css"
       - "www/sol-holo-wow.css"
-      - "www/sol-holo-chat-114.css"
+      - "www/sol-holo-chat-115.css"
       - "www/sol-holo-ui.js"
       - "www/service-worker.js"
       - "www/third-party/**"
