@@ -26,11 +26,25 @@
 - Der Quelltest prüft, dass der gesamte Holo-Bildbereich im Schreibmodus vollständig ausgeblendet wird.
 - Der Quelltest prüft die tastaturabhängige Umschaltung anhand der sichtbaren Fensterhöhe.
 - **73/73 JavaScript-Tests bestanden lokal.**
+- GitHub Actions Build #114 hat zusätzlich die Java-Sicherheitslogik, Mehrfaktorlogik, Android-Laufzeitabhängigkeiten, Lizenzdateien und die Release-APK erfolgreich geprüft.
+
+## GitHub und Android-Build
+
+- Pull Request: **#6 – Build #114: Holo kleiner und beim Schreiben ausblenden**
+- In `main` integriert: **ja**
+- Merge-Commit: `1f8371c67abc2933d3ee1c20c30c7f67fe264dd4`
+- GitHub-Actions-Lauf: **Pam’s Holo Android APK · Sol Holo #114**
+- Workflow-Ergebnis: **erfolgreich**
+- Application-ID: `com.solholo.app`
+- Versionscode: `114`
+- Versionsname: `1.0`
+- Update-Signatur: **Originalsignatur von Pam’s Holo**
+- Zertifikat SHA-256: `e122201077b93cb47edb6951446fb8dff77427a2f5a2bd4719474a638fe803e9`
+- APK-Signaturschemata: **V1, V2 und V3 gültig**
+- Signierte APK SHA-256: `8152367614f21311d80d204b8bbb8d4fa7c5fc50b96944f829561eb6dfda8f27`
 
 ## Noch offen
 
-- Android-Workflow und Release-APK für Build #114
-- Prüfung von Application-ID, Versionscode und Originalsignatur
 - Praktischer Test auf Pams Samsung Galaxy S23:
   - Normalansicht: Holo-Bild klein und mittig
   - Tastatur öffnen: Holo-Bild vollständig weg
@@ -41,9 +55,10 @@
 ## Status
 
 - **technisch umgesetzt:** ja
-- **automatisch geprüft:** ja – 73/73 JavaScript-Tests lokal
-- **Android-Build geprüft:** noch offen
-- **original signierte Update-APK:** noch offen
+- **automatisch geprüft:** ja – 73/73 JavaScript-Tests lokal und vollständiger GitHub-Workflow erfolgreich
+- **Android-Build geprüft:** ja – Build #114 erfolgreich
+- **original signierte Update-APK:** ja – Paket, Versionscode und Zertifikat geprüft
 - **auf Pams S23 bestätigt:** nein, noch offen
-- **Bestätigung durch Pam:** nein
+- **Bestätigung des gewünschten Verhaltens durch Pam:** ja
+- **Bestätigung nach Installation auf Pams S23:** nein, noch offen
 - **MEILENSTEIN:** nein
