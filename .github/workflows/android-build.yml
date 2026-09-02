@@ -326,7 +326,7 @@ jobs:
             android/app/src/main/java/com/solholo/app/SpeakerVerificationPolicy.java
           grep -q "ERES2NET_OWNER_THRESHOLD = 0.58f" \
             android/app/src/main/java/com/solholo/app/SpeakerVerificationPolicy.java
-          grep -q "WAKE_DUAL_CAMPPLUS_THRESHOLD = 0.48f" \
+          grep -q "WAKE_DUAL_CAMPPLUS_THRESHOLD = CAMPPLUS_SANITY_FLOOR" \
             android/app/src/main/java/com/solholo/app/SpeakerVerificationPolicy.java
           grep -q "WAKE_DUAL_ERES2NET_THRESHOLD = 0.48f" \
             android/app/src/main/java/com/solholo/app/SpeakerVerificationPolicy.java
