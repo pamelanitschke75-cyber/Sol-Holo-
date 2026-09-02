@@ -7,7 +7,7 @@ const html = fs.readFileSync(
   "utf8"
 );
 const css = fs.readFileSync(
-  new URL("../www/sol-holo-chat-113.css", import.meta.url),
+  new URL("../www/sol-holo-chat-114.css", import.meta.url),
   "utf8"
 );
 const ui = fs.readFileSync(
@@ -19,7 +19,7 @@ const workflow = fs.readFileSync(
   "utf8"
 );
 
-test("Build #113 entfernt die komplette Punkte- und Spruchzeile", () => {
+test("Build #114 bewahrt die entfernte Punkte- und Spruchzeile", () => {
   const statusBlock = html.match(
     /<div id="liveStatus"[\s\S]*?<\/div>/u
   )?.[0] || "";
@@ -38,8 +38,8 @@ test("Build #113 entfernt die komplette Punkte- und Spruchzeile", () => {
   );
 });
 
-test("Build #113 bietet ein automatisch wachsendes Schreibfeld", () => {
-  assert.match(html, /sol-holo-chat-113\.css\?v=1/u);
+test("Build #114 bietet ein automatisch wachsendes Schreibfeld", () => {
+  assert.match(html, /sol-holo-chat-114\.css\?v=1/u);
   assert.match(html, /id="messageInput"[\s\S]*?rows="1"/u);
   assert.match(html, /autocapitalize="sentences"/u);
   assert.match(html, /spellcheck="true"/u);
@@ -53,7 +53,7 @@ test("Build #113 bietet ein automatisch wachsendes Schreibfeld", () => {
   );
 });
 
-test("Build #113 setzt Kamera und Mikrofon klein frei darunter", () => {
+test("Build #114 setzt Kamera und Mikrofon klein frei darunter", () => {
   assert.match(
     css,
     /grid-template-areas:[\s\S]*?"composer composer composer"[\s\S]*?"camera \. microphone"/u
@@ -66,5 +66,29 @@ test("Build #113 setzt Kamera und Mikrofon klein frei darunter", () => {
     /#speakerIdentityChooser\[hidden\][\s\S]*?display:none!important/u
   );
   assert.match(css, /#stageVolumeCard\{[\s\S]*?display:none!important/u);
-  assert.match(workflow, /www\/sol-holo-chat-113\.css/u);
+  assert.match(workflow, /www\/sol-holo-chat-114\.css/u);
+});
+
+test("Build #114 hält das Holo klein und blendet es beim Schreiben aus", () => {
+  assert.match(
+    css,
+    /#solCloneWrap\{[\s\S]*?height:clamp\(72px,60%,96px\)[\s\S]*?max-width:28%/u
+  );
+  assert.match(
+    css,
+    /body\.sol-composer-focused #chatView #solStage\{[\s\S]*?display:none!important/u
+  );
+  assert.match(
+    css,
+    /body\.sol-composer-focused #chatView\.active\{[\s\S]*?grid-template-rows:[\s\S]*?minmax\(0,1fr\)[\s\S]*?auto;/u
+  );
+  assert.match(html, /SOL_SOFT_KEYBOARD_REDUCTION_PX\s*=\s*120/u);
+  assert.match(
+    html,
+    /viewportReduction\s*>?=\s*SOL_SOFT_KEYBOARD_REDUCTION_PX/u
+  );
+  assert.match(
+    html,
+    /classList\.toggle\([\s\S]*?"sol-composer-focused"/u
+  );
 });
