@@ -351,6 +351,8 @@ jobs:
           test -s android/app/src/main/java/com/solholo/app/WakeCaptureEndpointer.java
           grep -q "WakeCaptureEndpointer" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          ! grep -q "hasCompleteSpeechCandidate" \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q "SolSpeakerIdentityPlugin.verifyWakeAudio" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q 'SECURE_WAKE_PHRASE = "Hey Sol"' \

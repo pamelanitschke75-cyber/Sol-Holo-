@@ -1,8 +1,9 @@
 package com.solholo.app;
 
 /**
- * Ends a buffered wake recording shortly after a complete short utterance.
- * This class only controls capture timing. The exact phrase matcher and both
+ * Ends a buffered wake recording shortly after a likely short utterance.
+ * This class is only a latency hint. Microphone levels vary, so it must never
+ * authorize or reject captured audio. The exact phrase matcher and both
  * independent speaker models still have to authorize every wake.
  */
 final class WakeCaptureEndpointer {
@@ -53,10 +54,6 @@ final class WakeCaptureEndpointer {
 
     boolean speechStarted() {
         return speechStarted;
-    }
-
-    boolean hasCompleteSpeechCandidate() {
-        return activeFrames >= MIN_ACTIVE_FRAMES;
     }
 
     int activeFrames() {

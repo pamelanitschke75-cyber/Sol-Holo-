@@ -153,10 +153,6 @@ public class HeyHoSolService extends Service implements RecognitionListener {
             return active.get();
         }
 
-        boolean hasCompleteSpeechCandidate() {
-            return endpointer.hasCompleteSpeechCandidate();
-        }
-
         private void pump(Runnable captureFinished) {
             byte[] buffer = new byte[3200];
             long deadline = SystemClock.elapsedRealtime() + SECURE_CAPTURE_MS;
@@ -173,6 +169,8 @@ public class HeyHoSolService extends Service implements RecognitionListener {
                     synchronized (captured) {
                         captured.write(buffer, 0, count);
                     }
+                    // The endpointer may shorten a completed recording, but
+                    // it must never decide whether Android may transcribe it.
                     if (endpointer.acceptPcm16LittleEndian(buffer, count)) {
                         break;
                     }
@@ -543,11 +541,6 @@ public class HeyHoSolService extends Service implements RecognitionListener {
         HeyHoSolPlugin.publishStatusEvent();
         updateBackgroundNotification("„Hey Sol“ wird lokal geprüft …");
 
-        if (!session.hasCompleteSpeechCandidate()) {
-            discardAudioAndRestart(generation, 80L);
-            return;
-        }
-
         mainHandler.removeCallbacks(recognitionWatchdogRunnable);
         watchdogGeneration = recognitionGeneration;
         mainHandler.postDelayed(
@@ -556,6 +549,10 @@ public class HeyHoSolService extends Service implements RecognitionListener {
         );
 
         try {
+            // Always let Android evaluate a sufficiently long capture. Mic
+            // levels vary between Samsung devices, so the timing endpointer
+            // is deliberately not an authorization or rejection gate. The
+            // exact phrase matcher and both speaker models remain mandatory.
             ParcelFileDescriptor audioSource =
                 session.prepareRecognitionSource();
             if (speechRecognizer == null) {
