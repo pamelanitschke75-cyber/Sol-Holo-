@@ -7,6 +7,8 @@ public final class SpeakerVerificationPolicyTest {
         acceptsPamsLatestMeasuredFullSentenceValues();
         rejectsSteffisMeasuredFullSentenceValues();
         acceptsShortWakeOnlyWhenBothModelsAgree();
+        acceptsPamsShortWakeWithUnstableCampplus();
+        rejectsSteffisPreviouslyMeasuredRangeForShortWake();
         acceptsVerifiedWakeTemplateOnlyWhenBothModelsAgree();
         keepsFullSentencePolicyStrict();
         rejectsShortWakeWhenOnlyOneModelAgrees();
@@ -21,6 +23,24 @@ public final class SpeakerVerificationPolicyTest {
         assertTrue(
             SpeakerVerificationPolicy.isWakeOwner(0.52f, 0.51f),
             "Der kurze Besitzer-Weckruf muss bei Zustimmung beider Modelle freigegeben werden"
+        );
+    }
+
+    private static void acceptsPamsShortWakeWithUnstableCampplus() {
+        assertTrue(
+            SpeakerVerificationPolicy.isWakeOwner(0.335f, 0.774f),
+            "Pams ERes2Net-bestätigter Weckruf darf nicht am instabilen CAMPPlus-Modell scheitern"
+        );
+    }
+
+    private static void rejectsSteffisPreviouslyMeasuredRangeForShortWake() {
+        assertFalse(
+            SpeakerVerificationPolicy.isWakeOwner(0.401f, 0.418f),
+            "Steffis bisher höchster gemessener Bereich muss auch beim kurzen Weckruf gesperrt bleiben"
+        );
+        assertFalse(
+            SpeakerVerificationPolicy.isWakeOwner(0.126f, 0.336f),
+            "Steffis jüngster Messbereich muss auch beim kurzen Weckruf gesperrt bleiben"
         );
     }
 
