@@ -28,10 +28,12 @@
 
 ## Signatur und Auslieferung
 
-- Dem Workflow standen die vier erforderlichen Geheimnisse für Pams ursprünglichen Update-Schlüssel nicht zur Verfügung.
-- Deshalb wurde absichtlich nur das Artefakt `Pams-Holo-Android-extern_signieren` als **unsignierte Signierquelle** erzeugt.
-- Diese Datei ist **kein installierbares Update** und darf nicht auf Pams S23 installiert werden.
-- Vor dem Gerätetest muss #113 mit genau demselben autorisierten Schlüssel wie #112 signiert werden. Anschließend müssen Application-ID `com.solholo.app`, Versionscode 113 und das übereinstimmende Signaturzertifikat geprüft werden.
+- Dem Workflow standen die vier erforderlichen Geheimnisse für Pams ursprünglichen Update-Schlüssel nicht zur Verfügung. Deshalb erzeugte er sicherheitshalber zunächst nur das Artefakt `Pams-Holo-Android-extern_signieren` als unveränderte Signierquelle.
+- Diese Signierquelle wurde anschließend mit dem vorhandenen Original-Update-Schlüssel signiert. Die fertige Datei heißt `Pams-Holo-Update-Build-113.apk`.
+- Application-ID `com.solholo.app`, Versionscode 113 und das Signaturzertifikat wurden direkt gegen #89 und #112 geprüft.
+- Der Zertifikat-SHA-256-Wert stimmt exakt überein: `e122201077b93cb47edb6951446fb8dff77427a2f5a2bd4719474a638fe803e9`.
+- Die APK-Signaturprüfung bestätigt **V1: gültig**, **V2: gültig** und **V3: gültig** bei genau einem Signierer.
+- APK-SHA-256: `70558e0305c4fa5e4954e6506c9146c1413c8e0c382c559bd5dcf7b30c2d7375`.
 
 ## Praktischer Test auf Pams Samsung Galaxy S23
 
@@ -48,7 +50,7 @@ Noch offen:
 
 - **technisch umgesetzt:** ja
 - **automatisch geprüft:** ja – 72/72 JavaScript-Tests und Android-Workflow erfolgreich
-- **installierbare, original signierte APK:** nein, noch offen
+- **installierbare, original signierte APK:** ja – technisch vollständig geprüft
 - **auf Pams S23 bestätigt:** nein, noch offen
 - **Bestätigung durch Pam:** nein
 - **MEILENSTEIN:** nein
