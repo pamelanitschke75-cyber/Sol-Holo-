@@ -352,7 +352,7 @@ jobs:
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q "new PcmRingBuffer" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
-          grep -q "KeywordSpotterConfig.builder" \
+          grep -q "new KeywordSpotterConfig" \
             android/app/src/main/java/com/solholo/app/SolWakeKeywordSpotter.java
           ! grep -q "android.speech.SpeechRecognizer" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
