@@ -101,7 +101,7 @@ jobs:
       - name: Node-Abhängigkeiten installieren
         run: npm install
 
-      - name: Stille Build-108-Modultests ausführen
+      - name: Stille Modultests ausführen
         run: node --test tests/*.test.mjs
 
       - name: NPM-Sicherheitsbericht ausgeben

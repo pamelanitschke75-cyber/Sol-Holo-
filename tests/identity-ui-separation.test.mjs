@@ -34,7 +34,25 @@ test("jede Holo-Instanz besitzt eine eigene Stimme und keine Vorauswahl", async 
   assert.match(html, /PAM_SOL_VOICE_STORAGE_KEY/u);
   assert.match(html, /STEFFI_SOL_VOICE_STORAGE_KEY/u);
   assert.match(html, /"steffis-holo-realtime-voice-v1"/u);
-  assert.match(html, /selectedSpeakerId[\s\S]*?: "";/u);
+  assert.match(html, /let selectedSpeakerId = "";/u);
+  assert.doesNotMatch(
+    html,
+    /safeSessionValue\(\s*SOL_SPEAKER_SESSION_KEY/u
+  );
+  assert.doesNotMatch(
+    html,
+    /sessionStorage\.setItem\(\s*SOL_SPEAKER_SESSION_KEY/u
+  );
+  assert.match(
+    html,
+    /sessionStorage\.removeItem\(\s*SOL_SPEAKER_SESSION_KEY/u
+  );
+  assert.match(html, /class="solholo-booting"/u);
+  assert.match(html, /id="solHoloBootScreen"/u);
+  assert.match(
+    html,
+    /classList\.remove\("solholo-booting"\)/u
+  );
   assert.match(html, /Bitte vor dem Schreiben oder Sprechen auswählen/u);
   assert.doesNotMatch(html, /localStorage\.getItem\(\s*SOL_VOICE_STORAGE_KEY/u);
 });

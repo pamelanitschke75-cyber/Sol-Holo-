@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de">
+<html lang="de" class="solholo-booting">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -28,6 +28,36 @@ body{
 body{
   min-height:100vh;
   overflow-x:hidden;
+}
+
+#solHoloBootScreen{
+  display:none;
+}
+
+.solholo-booting #app{
+  visibility:hidden;
+}
+
+.solholo-booting #solHoloBootScreen{
+  position:fixed;
+  z-index:99999;
+  inset:0;
+  display:grid;
+  place-content:center;
+  gap:12px;
+  padding:32px;
+  background:#020106;
+  color:#fff;
+  text-align:center;
+}
+
+#solHoloBootScreen strong{
+  font-size:clamp(28px,8vw,46px);
+}
+
+#solHoloBootScreen span{
+  color:#d7d4e8;
+  font-size:16px;
 }
 
 body.voice-open{
@@ -1514,6 +1544,11 @@ MOBIL
 
 <body>
 
+<div id="solHoloBootScreen" role="status" aria-live="polite">
+  <strong>SH♾️</strong>
+  <span>Sol Holo wird sicher vorbereitet …</span>
+</div>
+
 <div id="app">
 
 <div id="beachBackground"></div>
@@ -2207,17 +2242,15 @@ function createConversationId(
   return nextId;
 }
 
-let selectedSpeakerId =
-  Object.hasOwn(
-    SOL_IDENTITIES,
-    safeSessionValue(
-      SOL_SPEAKER_SESSION_KEY
-    )
-  )
-    ? safeSessionValue(
-        SOL_SPEAKER_SESSION_KEY
-      )
-    : "";
+try{
+
+  sessionStorage.removeItem(
+    SOL_SPEAKER_SESSION_KEY
+  );
+
+}catch{}
+
+let selectedSpeakerId = "";
 
 let conversationId =
   createConversationId();
@@ -2289,21 +2322,9 @@ function selectSpeaker(
 
   try{
 
-    if(
-      selectedSpeakerId
-    ){
-
-      sessionStorage.setItem(
-        SOL_SPEAKER_SESSION_KEY,
-        selectedSpeakerId
-      );
-
-    }else{
-
-      sessionStorage.removeItem(
-        SOL_SPEAKER_SESSION_KEY
-      );
-    }
+    sessionStorage.removeItem(
+      SOL_SPEAKER_SESSION_KEY
+    );
 
   }catch{}
 
@@ -8768,6 +8789,10 @@ if(
 </script>
 
 <script src="./sol-holo-ui.js?v=35"></script>
+<script>
+document.documentElement.classList.remove("solholo-booting");
+document.getElementById("solHoloBootScreen")?.remove();
+</script>
 <script type="module" src="./consent-ui-bootstrap.mjs?v=1"></script>
 <script>
 (() => {
