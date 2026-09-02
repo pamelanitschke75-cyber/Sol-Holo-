@@ -1560,7 +1560,7 @@ MOBIL
 </style>
 <link rel="stylesheet" href="./sol-holo-ui.css?v=34">
 <link rel="stylesheet" href="./sol-holo-wow.css?v=5">
-<link rel="stylesheet" href="./sol-holo-chat-113.css?v=1">
+<link rel="stylesheet" href="./sol-holo-chat-114.css?v=1">
 </head>
 
 <body>
@@ -2056,12 +2056,23 @@ const voiceStatus =
 
 /*
 ==========================================================
-SCHREIBFELD UND ANDROID-TASTATUR · BUILD #113
+SCHREIBFELD UND ANDROID-TASTATUR · BUILD #114
 ==========================================================
 */
 
+const SOL_SOFT_KEYBOARD_REDUCTION_PX =
+  120;
+
+
 let solComposerBlurTimer =
   null;
+
+
+let solViewportBaselineHeight =
+  Math.max(
+    window.visualViewport?.height || 0,
+    window.innerHeight
+  );
 
 
 function resizeMessageInput(){
@@ -2130,6 +2141,40 @@ function syncSolVisualViewport(){
 
 
   if(
+    document.activeElement !==
+    messageInput
+  ){
+
+    solViewportBaselineHeight =
+      visualHeight;
+
+
+    document.body.classList.remove(
+      "sol-composer-focused"
+    );
+  }else{
+
+    solViewportBaselineHeight =
+      Math.max(
+        solViewportBaselineHeight,
+        visualHeight
+      );
+
+
+    const viewportReduction =
+      solViewportBaselineHeight -
+      visualHeight;
+
+
+    document.body.classList.toggle(
+      "sol-composer-focused",
+      viewportReduction >=
+        SOL_SOFT_KEYBOARD_REDUCTION_PX
+    );
+  }
+
+
+  if(
     document.activeElement ===
     messageInput
   ){
@@ -2168,11 +2213,6 @@ messageInput.addEventListener(
 
     window.clearTimeout(
       solComposerBlurTimer
-    );
-
-
-    document.body.classList.add(
-      "sol-composer-focused"
     );
 
 
