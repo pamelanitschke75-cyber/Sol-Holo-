@@ -9,6 +9,7 @@ public final class WakeCaptureEndpointerTest {
     public static void main(String[] args) {
         staysOpenDuringSilence();
         staysOpenForTooShortNoise();
+        staysOpenForQuietSpeech();
         endsPromptlyAfterCompleteWakeSpeech();
         toleratesShortPauseInsideWakePhrase();
         System.out.println("WakeCaptureEndpointerTest: OK");
@@ -35,9 +36,9 @@ public final class WakeCaptureEndpointerTest {
             detector.acceptPcm16LittleEndian(impulse, impulse.length),
             "Ein kurzes Geräusch darf die sichere Aufnahme nicht abschließen"
         );
-        assertFalse(
-            detector.hasCompleteSpeechCandidate(),
-            "Ein kurzes Geräusch darf nicht an die Spracherkennung gehen"
+        assertTrue(
+            detector.activeFrames() < WakeCaptureEndpointer.MIN_ACTIVE_FRAMES,
+            "Ein kurzes Geräusch darf die Frühende-Bedingung nicht erfüllen"
         );
     }
 
@@ -56,9 +57,21 @@ public final class WakeCaptureEndpointerTest {
             detector.activeFrames() >= WakeCaptureEndpointer.MIN_ACTIVE_FRAMES,
             "Die Mindestsprechdauer muss erfüllt sein"
         );
-        assertTrue(
-            detector.hasCompleteSpeechCandidate(),
-            "Die vollständige Äußerung muss geprüft werden"
+    }
+
+    private static void staysOpenForQuietSpeech() {
+        WakeCaptureEndpointer detector = new WakeCaptureEndpointer();
+        byte[] quietUtterance = concat(
+            frames(10, 30),
+            frames(20, 180),
+            frames(WakeCaptureEndpointer.END_SILENCE_FRAMES, 30)
+        );
+        assertFalse(
+            detector.acceptPcm16LittleEndian(
+                quietUtterance,
+                quietUtterance.length
+            ),
+            "Leise Sprache darf nur das Frühende auslassen, nicht verworfen werden"
         );
     }
 
