@@ -1,0 +1,3 @@
+Permanent Sol Holo / Pam's Holo signature verification trigger.
+Reference certificate SHA-256: E1:22:20:10:77:B9:3C:B4:7E:DB:69:51:44:6F:B8:DF:F7:74:27:A2:F5:A2:BD:47:19:47:4A:63:8F:E8:03:E9
+Purpose: trigger the normal Android release pipeline and its Build #89 signature guard without changing application behavior.
