@@ -18,7 +18,8 @@ final class SpeakerVerificationPolicy {
     static final float WAKE_DUAL_ERES2NET_THRESHOLD = 0.48f;
 
     // Once Pam has passed the strict full-sentence test, the leading
-    // "Hey Sol" clause is stored as a phrase-matched embedding template.
+    // The owner's personal wake clause is stored as a short embedding template.
+    // Existing 3/3 profiles stay valid when the personal wake name changes.
     // Both independent models must match that verified template.
     static final float WAKE_TEMPLATE_CAMPPLUS_THRESHOLD = 0.50f;
     static final float WAKE_TEMPLATE_ERES2NET_THRESHOLD = 0.50f;

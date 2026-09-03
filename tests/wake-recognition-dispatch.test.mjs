@@ -64,24 +64,25 @@ test("Samsung muss keine aufgenommene Datei an SpeechRecognizer übernehmen", ()
   assert.doesNotMatch(serviceSource, /ParcelFileDescriptor|prepareRecognitionSource/u);
 });
 
-test("nur Hey Sol erreicht weiterhin beide Besitzerprüfungen", () => {
-  assert.match(serviceSource, /SECURE_WAKE_PHRASE = "Hey Sol"/u);
+test("nur Pams owner-gebundenes Hey Pam erreicht beide Besitzerprüfungen", () => {
+  assert.match(
+    serviceSource,
+    /SECURE_WAKE_PHRASE\s*=\s*WakePhraseMatcher\.CANONICAL_PHRASE/u
+  );
   assert.match(serviceSource, /WakePhraseMatcher\.canonicalPhrase/u);
   assert.match(spotterSource, /WakePhraseMatcher\.canonicalPhrase/u);
-  assert.match(installerSource, /HH EY1 S OW1 L @Hey_Sol/u);
-  assert.match(installerSource, /HH EY1 Z OW1 L @Hey_Sohl/u);
-  assert.match(installerSource, /HH AY1 S OW1 L @Hai_Sol/u);
-  assert.match(installerSource, /HH AY1 Z OW1 L @Hai_Sohl/u);
-  assert.match(installerSource, /HH EY1 S AO1 L @Hey_Soll/u);
-  assert.match(installerSource, /HH EY1 Z AO1 L @Hey_Zoll/u);
-  assert.match(installerSource, /HH AY1 S AO1 L @Hai_Soll/u);
-  assert.match(installerSource, /HH AY1 Z AO1 L @Hai_Zoll/u);
-  assert.doesNotMatch(installerSource, /@Hallo_Sol|@Hello_Sol/u);
+  assert.match(installerSource, /PERSONAL_WAKE_OWNER_ID = "pam-sol"/u);
+  assert.match(installerSource, /PERSONAL_WAKE_NAME = "Pam"/u);
+  assert.match(installerSource, /HH EY1 P AE1 M @Hey_Pam/u);
+  assert.match(installerSource, /HH AY1 P AE1 M @Hai_Pam/u);
+  assert.match(installerSource, /HH EY1 P EH1 M @Hey_Pamm/u);
+  assert.match(installerSource, /HH AY1 P EH1 M @Hai_Pamm/u);
+  assert.doesNotMatch(installerSource, /@Hey_Sol|@Hallo_Sol|@Hello_Sol/u);
   assert.match(serviceSource, /measuredCampplusScore/u);
   assert.match(serviceSource, /measuredEres2netScore/u);
 });
 
-test("bestehende 3-von-3-Profile reparieren die Hey-Sol-Vorlage selbst", () => {
+test("bestehende 3-von-3-Profile migrieren nur die kurze Hey-Pam-Vorlage", () => {
   assert.match(
     speakerPluginSource,
     /boolean accepted = templateAccepted \|\| profileAccepted/u
@@ -97,6 +98,14 @@ test("bestehende 3-von-3-Profile reparieren die Hey-Sol-Vorlage selbst", () => {
   assert.match(
     speakerPluginSource,
     /\.putString\(\s*WAKE_ERES2NET_TEMPLATE_KEY/u
+  );
+  assert.match(
+    speakerPluginSource,
+    /\.putString\(\s*WAKE_TEMPLATE_PHRASE_KEY,\s*WakePhraseMatcher\.CANONICAL_PHRASE/u
+  );
+  assert.match(
+    speakerPluginSource,
+    /WakePhraseMatcher\.CANONICAL_PHRASE\.equals\(wakePhrase\)/u
   );
   assert.doesNotMatch(
     speakerPluginSource,

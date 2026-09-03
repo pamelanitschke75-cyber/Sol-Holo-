@@ -36,7 +36,7 @@ public final class WakeVoiceTemplateSelectorTest {
             selected.length,
             32 * FRAME_SAMPLES,
             48 * FRAME_SAMPLES,
-            "Ein kurzes Geräusch vor Hey Sol darf nicht gespeichert werden"
+            "Ein kurzes Geräusch vor Hey Pam darf nicht gespeichert werden"
         );
     }
 

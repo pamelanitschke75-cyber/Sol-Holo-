@@ -50,7 +50,8 @@ public class HeyHoSolService extends Service {
         SECURE_SAMPLE_RATE * 350 / 1000;
     private static final int MIN_SECURE_CAPTURE_SAMPLES =
         SECURE_SAMPLE_RATE * 500 / 1000;
-    private static final String SECURE_WAKE_PHRASE = "Hey Sol";
+    private static final String SECURE_WAKE_PHRASE =
+        WakePhraseMatcher.CANONICAL_PHRASE;
 
     private static volatile boolean running;
     private static volatile boolean listening;
@@ -170,7 +171,7 @@ public class HeyHoSolService extends Service {
                     failure = error.getMessage().trim();
                 }
                 if (failure.isEmpty()) {
-                    failure = "Lokale Hey-Sol-Erkennung wurde unterbrochen";
+                    failure = "Lokale Hey-Pam-Erkennung wurde unterbrochen";
                 }
             } finally {
                 active.set(false);
@@ -312,7 +313,7 @@ public class HeyHoSolService extends Service {
         }
 
         if (HeyHoSolPlugin.MODE_BACKGROUND.equals(currentMode)) {
-            startBackgroundNotification("Lokaler Hey-Sol-Schutz startet …");
+            startBackgroundNotification("Lokaler Hey-Pam-Schutz startet …");
         } else if (foregroundNotificationActive) {
             stopForeground(STOP_FOREGROUND_REMOVE);
             foregroundNotificationActive = false;
@@ -383,8 +384,8 @@ public class HeyHoSolService extends Service {
         try {
             session = new SecureAudioSession(getApplicationContext());
         } catch (IOException | RuntimeException error) {
-            saveError("Die lokale Hey-Sol-Erkennung konnte nicht vorbereitet werden.");
-            updateBackgroundNotification("Hey-Sol-Modell konnte nicht starten");
+            saveError("Die lokale Hey-Pam-Erkennung konnte nicht vorbereitet werden.");
+            updateBackgroundNotification("Hey-Pam-Modell konnte nicht starten");
             scheduleRestart(2_000L);
             return;
         }
@@ -495,10 +496,10 @@ public class HeyHoSolService extends Service {
         processingAudio = false;
         saveError(
             reason == null || reason.trim().isEmpty()
-                ? "Lokale Hey-Sol-Erkennung wurde unterbrochen."
+                ? "Lokale Hey-Pam-Erkennung wurde unterbrochen."
                 : reason
         );
-        updateBackgroundNotification("Hey-Sol-Erkennung startet neu …");
+        updateBackgroundNotification("Hey-Pam-Erkennung startet neu …");
         scheduleRestart(650L);
     }
 
@@ -510,7 +511,7 @@ public class HeyHoSolService extends Service {
         speakerVerificationPending = true;
         HeyHoSolPlugin.publishStatusEvent();
         HeyHoSolPlugin.publishWakeDiagnostic("phrase_heard");
-        updateBackgroundNotification("Hey Sol erkannt · Stimme wird abgeglichen");
+        updateBackgroundNotification("Hey Pam erkannt · Stimme wird abgeglichen");
 
         speakerExecutor.execute(() -> {
             boolean accepted = false;
@@ -524,7 +525,7 @@ public class HeyHoSolService extends Service {
                 }
                 short[] samples = session.finishAndSnapshot();
                 if (samples.length < MIN_SECURE_CAPTURE_SAMPLES) {
-                    throw new IllegalStateException("Hey Sol war zu kurz oder zu leise");
+                    throw new IllegalStateException("Hey Pam war zu kurz oder zu leise");
                 }
                 SolSpeakerIdentityPlugin.WakeVerification verification =
                     SolSpeakerIdentityPlugin.verifyWakeAudio(
@@ -736,7 +737,7 @@ public class HeyHoSolService extends Service {
             "Sol-Weckruf",
             NotificationManager.IMPORTANCE_LOW
         );
-        channel.setDescription("Zeigt sichtbar an, wenn Sol auf „Hey Sol“ hört.");
+        channel.setDescription("Zeigt sichtbar an, wenn Pam’s Holo auf „Hey Pam“ hört.");
         channel.setSound(null, null);
         NotificationManager manager = getSystemService(NotificationManager.class);
         if (manager != null) {

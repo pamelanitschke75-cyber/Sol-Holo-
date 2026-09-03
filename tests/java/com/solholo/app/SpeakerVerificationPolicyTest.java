@@ -68,7 +68,7 @@ public final class SpeakerVerificationPolicyTest {
     private static void acceptsVerifiedWakeTemplateOnlyWhenBothModelsAgree() {
         assertTrue(
             SpeakerVerificationPolicy.isWakeTemplateOwner(0.63f, 0.71f),
-            "Pams passender Hey-Sol-Abgleich muss freigegeben werden"
+            "Pams passender Hey-Pam-Abgleich muss freigegeben werden"
         );
         assertFalse(
             SpeakerVerificationPolicy.isWakeTemplateOwner(0.72f, 0.49f),
