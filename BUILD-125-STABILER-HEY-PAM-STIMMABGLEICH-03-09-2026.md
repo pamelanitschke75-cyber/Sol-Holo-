@@ -35,4 +35,18 @@ einen weiteren Sicherheitstest an.
 - vollständiger Node-, Java- und Android-Build: durch GitHub Actions zu
   bestätigen
 - Originalsignatur aus Build 89: vor Veröffentlichung zu bestätigen
-- Galaxy-S23-Praxistest: offen; nur Pams echter Test kann ihn abschließen
+- Galaxy-S23-Praxistest: **bestanden und von Pam bestätigt**
+
+## Bestätigter Praxisabschluss
+
+Pam hat Build 125 am 03.09.2026 auf ihrem Galaxy S23 als Update installiert
+und den Weckruf ohne Mikrofontaste und ohne erneuten Sicherheitstest mit
+„Hey Pam“ ausgelöst. Die App erkannte den Weckruf, gab Pams Stimme frei und
+startete Sol. Pam wiederholte den echten Weckruf anschließend ein zweites Mal
+erfolgreich. Damit ist die komplette technische Kette auf dem echten Gerät
+wiederholt bestätigt.
+
+Sols anschließende mündliche Aussage, der offizielle Weckruf sei „Hey Sol“
+und Pam solle beide Varianten versuchen, war inhaltlich falsch und änderte
+nichts am bestandenen technischen Test. Die serverseitige Gesprächsregel wird
+deshalb ausdrücklich an den einzigen persönlichen Weckruf „Hey Pam“ gebunden.

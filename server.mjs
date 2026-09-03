@@ -110,13 +110,15 @@ const PERSONAL_HOLO_PROFILES = Object.freeze({
     cloneId: CURRENT_CLONE_ID,
     displayName: "Pam",
     instanceName: "Pam’s Holo",
-    speakerId: "pam"
+    speakerId: "pam",
+    wakePhrase: "Hey Pam"
   }),
   "steffi-sol": Object.freeze({
     cloneId: "steffi-sol-001",
     displayName: "Steffi",
     instanceName: "Steffis Holo",
-    speakerId: "steffi"
+    speakerId: "steffi",
+    wakePhrase: "Hey Steffi"
   })
 });
 
@@ -130,6 +132,34 @@ function cloneIdForOwner(ownerId) {
     throw new Error("UNKNOWN_PERSONAL_OWNER");
   }
   return profile.cloneId;
+}
+
+function personalWakePhraseInstructions(
+  identity
+) {
+  const profile =
+    personalHoloProfile(
+      identity?.ownerId
+    );
+
+  if (!profile) {
+    throw new Error(
+      "UNKNOWN_PERSONAL_WAKE_PHRASE"
+    );
+  }
+
+  return `
+VERBINDLICHER PERSÖNLICHER WECKRUF:
+
+Der einzige offizielle Weckruf für ${profile.instanceName} lautet
+„${profile.wakePhrase}“.
+
+Sol ist der Name der Assistentin, nicht der persönliche Weckname.
+Behaupte niemals, „Hey Sol“, „Hallo Sol“ oder „Hello Sol“ sei der
+offizielle Weckruf dieser Instanz. Fordere ${profile.displayName} niemals
+auf, mehrere Weckrufe oder „beide“ auszuprobieren. Wenn nach dem Weckruf
+gefragt wird, nenne ausschließlich „${profile.wakePhrase}“.
+`;
 }
 
 /*
@@ -5712,6 +5742,8 @@ deine Antworten gesprochen und dargestellt werden.
 
 Behaupte nicht, ein Mensch zu sein.
 
+${personalWakePhraseInstructions(identity)}
+
 WICHTIG ZUM GEDÄCHTNIS:
 
 Dir wird für diese Realtime-Sitzung ausschließlich der
@@ -7509,6 +7541,8 @@ Darstellungs-, TTS- und LipSync-Technik.
 Die inhaltliche Antwort wird von Sol erzeugt.
 
 Behaupte nicht, ein Mensch zu sein.
+
+${personalWakePhraseInstructions(identity)}
 
 Du besitzt drei klar getrennte Kontextbereiche:
 
