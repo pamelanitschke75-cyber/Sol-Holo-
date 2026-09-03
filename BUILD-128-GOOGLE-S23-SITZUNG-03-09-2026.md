@@ -54,9 +54,18 @@ sicheren App-Sitzung und nicht Pams Bedienung oder ihr Google-Konto.
 
 - gezielte neue Client-Regressionstests: **3/3 erfolgreich**
 - vollständige lokale JavaScript-Regression: **107/107 erfolgreich**
-- Java-Sicherheitsprüfung: durch GitHub Actions zu bestätigen
-- Android-Release-Build: durch GitHub Actions zu bestätigen
-- Originalsignatur aus Build 89: vor Veröffentlichung zu bestätigen
+- Java-Sicherheitsprüfung: **erfolgreich**
+- vollständige GitHub-App-Regression: **107/107 erfolgreich**
+- Android-Release-Build: **erfolgreich**
+- GitHub Actions: [Build 128 – erfolgreich](https://github.com/pamelanitschke75-cyber/Sol-Holo-/actions/runs/33790851743)
+- Pull Request: [#27 – Google-S23-Sitzung mit frischer Challenge](https://github.com/pamelanitschke75-cyber/Sol-Holo-/pull/27)
+- in `main` zusammengeführt: **ja**
+- Merge-Commit: `3e5228cfbb4f5bd38ae400ff278826a2717f37fa`
+- geprüftes GitHub-Artefakt: `Pams-Holo-Android-extern_signieren`
+- Artefakt-ID: `9907343311`
+- Originalsignatur aus Build 89: **noch offen; der automatische Lauf enthielt
+  keine privaten Signaturwerte und hat deshalb sicher nur die unsignierte
+  Signierquelle erzeugt**
 - Google-/S23-Praxistest auf Pams Galaxy S23: **offen**
 
 Der Build darf erst nach Pams erfolgreicher echter Bestätigung als praktisch
