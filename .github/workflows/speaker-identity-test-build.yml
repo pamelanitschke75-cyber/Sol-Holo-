@@ -1,4 +1,4 @@
-name: Sol Holo · Hey Sol Stimmen-Test APK
+name: Pam’s Holo · Hey Pam Stimmen-Test APK
 
 on:
   workflow_dispatch:
@@ -88,7 +88,7 @@ jobs:
           unsigned="android/app/build/outputs/apk/release/app-release-unsigned.apk"
           aligned="$RUNNER_TEMP/speaker-test-aligned.apk"
           key="$RUNNER_TEMP/sol-holo.jks"
-          signed="android/app/build/outputs/apk/release/Pams-Holo-Hey-Sol-Stimmentest-Update.apk"
+          signed="android/app/build/outputs/apk/release/Pams-Holo-Hey-Pam-Stimmentest-Update.apk"
           sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
           tools="$(find "$sdk/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
           printf '%s' "$SOL_HOLO_KEYSTORE_BASE64" | base64 --decode > "$key"
@@ -104,11 +104,11 @@ jobs:
           unsigned="android/app/build/outputs/apk/release/app-release-unsigned.apk"
           aligned="$RUNNER_TEMP/speaker-test-aligned.apk"
           key="$RUNNER_TEMP/speaker-test.p12"
-          signed="android/app/build/outputs/apk/release/Pams-Holo-Hey-Sol-Stimmentest-Neuinstallation.apk"
+          signed="android/app/build/outputs/apk/release/Pams-Holo-Hey-Pam-Stimmentest-Neuinstallation.apk"
           pass="$(openssl rand -hex 24)"
           sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
           tools="$(find "$sdk/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
-          keytool -genkeypair -keystore "$key" -storetype PKCS12 -storepass "$pass" -keypass "$pass" -alias speaker-test -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=Sol Holo Hey Sol Stimmentest, O=Sol Holo, C=DE" >/dev/null 2>&1
+          keytool -genkeypair -keystore "$key" -storetype PKCS12 -storepass "$pass" -keypass "$pass" -alias speaker-test -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=Pams Holo Hey Pam Stimmentest, O=Sol Holo, C=DE" >/dev/null 2>&1
           "$tools/zipalign" -p -f 4 "$unsigned" "$aligned"
           "$tools/apksigner" sign --ks "$key" --ks-key-alias speaker-test --ks-pass pass:"$pass" --key-pass pass:"$pass" --out "$signed" "$aligned"
           "$tools/apksigner" verify --verbose "$signed"
@@ -117,5 +117,5 @@ jobs:
       - name: APK bereitstellen
         uses: actions/upload-artifact@v4
         with:
-          name: Sol-Holo-Hey-Sol-Stimmentest-${{ steps.signing.outputs.mode }}
-          path: android/app/build/outputs/apk/release/Pams-Holo-Hey-Sol-Stimmentest-*.apk
+          name: Pams-Holo-Hey-Pam-Stimmentest-${{ steps.signing.outputs.mode }}
+          path: android/app/build/outputs/apk/release/Pams-Holo-Hey-Pam-Stimmentest-*.apk

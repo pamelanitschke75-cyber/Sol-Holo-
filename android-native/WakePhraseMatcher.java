@@ -8,21 +8,24 @@ import java.util.Locale;
  * the spoken wake phrase. Authentication remains the separate speaker gate.
  */
 final class WakePhraseMatcher {
+    static final String OWNER_ID = "pam-sol";
+    static final String OWNER_NAME = "Pam";
+    static final String CANONICAL_PHRASE = "Hey " + OWNER_NAME;
+
     private static final String HEY = "(?:hey|hei|hai|hay)";
-    private static final String SOL =
-        "(?:sol|soll|soul|sohl|zoll|so|sole|saul|son|sohn)";
+    private static final String PERSONAL_NAME = "(?:pam|pamm)";
 
     private WakePhraseMatcher() {}
 
     static String canonicalPhrase(String rawPhrase) {
         String normalized = normalize(rawPhrase);
-        if (normalized.matches("^" + HEY + "\\s+" + SOL + "$")) {
-            return "Hey Sol";
+        if (normalized.matches("^" + HEY + "\\s+" + PERSONAL_NAME + "$")) {
+            return CANONICAL_PHRASE;
         }
 
         String joined = normalized.replace(" ", "");
-        if (joined.matches("^" + HEY + SOL + "$")) {
-            return "Hey Sol";
+        if (joined.matches("^" + HEY + PERSONAL_NAME + "$")) {
+            return CANONICAL_PHRASE;
         }
 
         return "";

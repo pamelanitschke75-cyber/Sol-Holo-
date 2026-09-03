@@ -4,7 +4,7 @@ import java.util.Arrays;
 
 /**
  * Selects the leading spoken clause from the strict verification sentence.
- * The displayed sentence starts with "Hey Sol." so this gives the wake gate a
+ * The displayed sentence starts with the owner's personal wake phrase, so this gives the wake gate a
  * duration- and phrase-matched owner template without retaining raw audio.
  */
 final class WakeVoiceTemplateSelector {
@@ -92,7 +92,7 @@ final class WakeVoiceTemplateSelector {
             return copyAsFloat(captured, safeCount, start, lastActive);
         }
 
-        throw new IllegalArgumentException("Hey Sol war zu kurz oder zu leise");
+        throw new IllegalArgumentException("Hey Pam war zu kurz oder zu leise");
     }
 
     private static float[] copyAsFloat(

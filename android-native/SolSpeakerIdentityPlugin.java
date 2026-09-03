@@ -45,6 +45,8 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         "owner_wake_campplus_embedding";
     private static final String WAKE_ERES2NET_TEMPLATE_KEY =
         "owner_wake_eres2net_embedding";
+    private static final String WAKE_TEMPLATE_PHRASE_KEY =
+        "owner_wake_phrase";
     private static final String PROFILE_VERSION_KEY = "profile_version";
     private static final String CAMPPLUS_MODEL_ASSET = "sol-speaker-campplus.onnx";
     private static final String ERES2NET_MODEL_ASSET = "sol-speaker-eres2net.onnx";
@@ -157,6 +159,9 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         out.put("requiredSamples", REQUIRED_SAMPLES);
         out.put("profileReady", count >= REQUIRED_SAMPLES);
         out.put("wakeVoiceReady", isWakeVoiceReady(getContext()));
+        out.put("ownerId", WakePhraseMatcher.OWNER_ID);
+        out.put("wakeName", WakePhraseMatcher.OWNER_NAME);
+        out.put("wakePhrase", WakePhraseMatcher.CANONICAL_PHRASE);
         out.put("profileVersion", PROFILE_VERSION);
         out.put(
             "campplusWakeThreshold",
@@ -175,7 +180,7 @@ public class SolSpeakerIdentityPlugin extends Plugin {
             SpeakerVerificationPolicy.WAKE_DUAL_ERES2NET_THRESHOLD
         );
         out.put("eres2netFullTestThreshold", SpeakerVerificationPolicy.ERES2NET_OWNER_THRESHOLD);
-        out.put("wakePolicy", "verified-hey-sol-template");
+        out.put("wakePolicy", "owner-bound-personal-phrase-and-verified-voice");
         out.put("profileComparison", "normalized-centroid");
         out.put("primarySpeakerModel", "eres2net");
         out.put("localOnly", true);
@@ -211,11 +216,16 @@ public class SolSpeakerIdentityPlugin extends Plugin {
             WAKE_ERES2NET_TEMPLATE_KEY,
             ""
         );
+        String wakePhrase = preferences.getString(
+            WAKE_TEMPLATE_PHRASE_KEY,
+            ""
+        );
         return preferences.getInt(PROFILE_VERSION_KEY, 0) == PROFILE_VERSION
             && campplus != null
             && !campplus.isEmpty()
             && eres2net != null
-            && !eres2net.isEmpty();
+            && !eres2net.isEmpty()
+            && WakePhraseMatcher.CANONICAL_PHRASE.equals(wakePhrase);
     }
 
     @PluginMethod
@@ -302,6 +312,10 @@ public class SolSpeakerIdentityPlugin extends Plugin {
                         .putString(
                             WAKE_ERES2NET_TEMPLATE_KEY,
                             encode(capturedVoice.wakePhrase.eres2net)
+                        )
+                        .putString(
+                            WAKE_TEMPLATE_PHRASE_KEY,
+                            WakePhraseMatcher.CANONICAL_PHRASE
                         );
                 }
                 editor.apply();
@@ -346,6 +360,10 @@ public class SolSpeakerIdentityPlugin extends Plugin {
                         .putString(
                             WAKE_ERES2NET_TEMPLATE_KEY,
                             encode(capturedVoice.wakePhrase.eres2net)
+                        )
+                        .putString(
+                            WAKE_TEMPLATE_PHRASE_KEY,
+                            WakePhraseMatcher.CANONICAL_PHRASE
                         )
                         .apply();
                 }
@@ -431,7 +449,7 @@ public class SolSpeakerIdentityPlugin extends Plugin {
                 );
             } catch (RuntimeException ignored) {
                 // The strict full-sentence result remains valid. Without a
-                // clean leading "Hey Sol" segment no wake template is saved.
+                // clean leading personal wake segment no wake template is saved.
             }
             return new CapturedVoice(fullSentence, wakePhrase);
         } finally {
@@ -455,7 +473,7 @@ public class SolSpeakerIdentityPlugin extends Plugin {
             MIN_WAKE_ACTIVE_FRAMES,
             MAX_WAKE_SPEECH_GAP_FRAMES,
             WAKE_SPEECH_PADDING_FRAMES,
-            "Hey Sol war zu kurz oder zu leise"
+            "Hey Pam war zu kurz oder zu leise"
         );
         SpeakerEmbeddingExtractor localCampplusExtractor = null;
         SpeakerEmbeddingExtractor localEres2netExtractor = null;
@@ -532,8 +550,8 @@ public class SolSpeakerIdentityPlugin extends Plugin {
             boolean accepted = templateAccepted || profileAccepted;
 
             // Profiles created before wake templates existed keep their three
-            // verified samples. After one owner-approved exact "Hey Sol", the
-            // short template is created (or repaired) locally and privately.
+            // verified samples. After one owner-approved personal wake phrase,
+            // the short template is created (or repaired) locally and privately.
             if (profileAccepted && !templateAccepted) {
                 profilePrefs(context).edit()
                     .putString(
@@ -543,6 +561,10 @@ public class SolSpeakerIdentityPlugin extends Plugin {
                     .putString(
                         WAKE_ERES2NET_TEMPLATE_KEY,
                         encode(eres2netEmbedding)
+                    )
+                    .putString(
+                        WAKE_TEMPLATE_PHRASE_KEY,
+                        WakePhraseMatcher.CANONICAL_PHRASE
                     )
                     .apply();
             }

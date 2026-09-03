@@ -316,21 +316,13 @@ jobs:
             android/app/src/main/assets/public/SPEAKER_IDENTITY_SOURCES.txt
           grep -q "68447f4fbc67e70eee3a93961f36e81e98f47aef73ce7e7ca00885c6cd3616a6" \
             android/app/src/main/assets/public/SPEAKER_IDENTITY_SOURCES.txt
-          grep -Fxq "HH EY1 S OW1 L @Hey_Sol" \
+          grep -Fxq "HH EY1 P AE1 M @Hey_Pam" \
             android/app/src/main/assets/sol-kws-keywords.txt
-          grep -Fxq "HH EY1 Z OW1 L @Hey_Sohl" \
+          grep -Fxq "HH AY1 P AE1 M @Hai_Pam" \
             android/app/src/main/assets/sol-kws-keywords.txt
-          grep -Fxq "HH AY1 S OW1 L @Hai_Sol" \
+          grep -Fxq "HH EY1 P EH1 M @Hey_Pamm" \
             android/app/src/main/assets/sol-kws-keywords.txt
-          grep -Fxq "HH AY1 Z OW1 L @Hai_Sohl" \
-            android/app/src/main/assets/sol-kws-keywords.txt
-          grep -Fxq "HH EY1 S AO1 L @Hey_Soll" \
-            android/app/src/main/assets/sol-kws-keywords.txt
-          grep -Fxq "HH EY1 Z AO1 L @Hey_Zoll" \
-            android/app/src/main/assets/sol-kws-keywords.txt
-          grep -Fxq "HH AY1 S AO1 L @Hai_Soll" \
-            android/app/src/main/assets/sol-kws-keywords.txt
-          grep -Fxq "HH AY1 Z AO1 L @Hai_Zoll" \
+          grep -Fxq "HH AY1 P EH1 M @Hai_Pamm" \
             android/app/src/main/assets/sol-kws-keywords.txt
           grep -q "securityGateEnabled" \
             android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
@@ -383,8 +375,18 @@ jobs:
           test -s android/app/src/main/java/com/solholo/app/WakePhraseMatcher.java
           grep -q "SolSpeakerIdentityPlugin.verifyWakeAudio" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
-          grep -q 'SECURE_WAKE_PHRASE = "Hey Sol"' \
+          grep -q 'WakePhraseMatcher.CANONICAL_PHRASE' \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          grep -q 'OWNER_ID = "pam-sol"' \
+            android/app/src/main/java/com/solholo/app/WakePhraseMatcher.java
+          grep -q 'OWNER_NAME = "Pam"' \
+            android/app/src/main/java/com/solholo/app/WakePhraseMatcher.java
+          grep -q 'CANONICAL_PHRASE = "Hey " + OWNER_NAME' \
+            android/app/src/main/java/com/solholo/app/WakePhraseMatcher.java
+          grep -q 'WAKE_TEMPLATE_PHRASE_KEY' \
+            android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
+          ! grep -Fq '@Hey_Sol' \
+            android/app/src/main/assets/sol-kws-keywords.txt
           grep -q "MIN_WAKE_ACTIVE_FRAMES = 12" \
             android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
           grep -q "MAX_WAKE_SPEECH_GAP_FRAMES = 24" \

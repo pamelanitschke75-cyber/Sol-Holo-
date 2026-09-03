@@ -73,13 +73,13 @@ final class SolWakeKeywordSpotter implements AutoCloseable {
         stream = spotter.createStream("");
         if (stream.getPtr() == 0L) {
             spotter.release();
-            throw new IllegalStateException("Hey-Sol-Erkennungsstream konnte nicht starten");
+            throw new IllegalStateException("Hey-Pam-Erkennungsstream konnte nicht starten");
         }
     }
 
     Detection accept(short[] pcm, int count) {
         if (closed) {
-            throw new IllegalStateException("Hey-Sol-Erkennung ist bereits beendet");
+            throw new IllegalStateException("Hey-Pam-Erkennung ist bereits beendet");
         }
         if (pcm == null || count <= 0 || count > pcm.length) {
             return null;

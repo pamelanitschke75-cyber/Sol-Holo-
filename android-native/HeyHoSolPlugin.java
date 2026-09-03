@@ -149,6 +149,9 @@ public class HeyHoSolPlugin extends Plugin {
         );
 
         JSObject result = new JSObject();
+        result.put("ownerId", WakePhraseMatcher.OWNER_ID);
+        result.put("wakeName", WakePhraseMatcher.OWNER_NAME);
+        result.put("wakePhrase", WakePhraseMatcher.CANONICAL_PHRASE);
         result.put("supported", supported);
         result.put("secureAudioSupported", Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU);
         result.put("speakerGateReady", speakerGateReady);

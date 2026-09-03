@@ -31,15 +31,14 @@ const ERES2NET_MODEL_SHA256 = "c59158379255ad66e161679cca6af8d52d51e389e3224ab7d
 const KWS_MODEL_DIR = "sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20";
 const KWS_MODEL_URL = `https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/${KWS_MODEL_DIR}.tar.bz2`;
 const KWS_MODEL_SHA256 = "68447f4fbc67e70eee3a93961f36e81e98f47aef73ce7e7ca00885c6cd3616a6";
+const PERSONAL_WAKE_OWNER_ID = "pam-sol";
+const PERSONAL_WAKE_NAME = "Pam";
+const PERSONAL_WAKE_PHRASE = `Hey ${PERSONAL_WAKE_NAME}`;
 const KWS_KEYWORDS = [
-  "HH EY1 S OW1 L @Hey_Sol",
-  "HH EY1 Z OW1 L @Hey_Sohl",
-  "HH AY1 S OW1 L @Hai_Sol",
-  "HH AY1 Z OW1 L @Hai_Sohl",
-  "HH EY1 S AO1 L @Hey_Soll",
-  "HH EY1 Z AO1 L @Hey_Zoll",
-  "HH AY1 S AO1 L @Hai_Soll",
-  "HH AY1 Z AO1 L @Hai_Zoll"
+  "HH EY1 P AE1 M @Hey_Pam",
+  "HH AY1 P AE1 M @Hai_Pam",
+  "HH EY1 P EH1 M @Hey_Pamm",
+  "HH AY1 P EH1 M @Hai_Pamm"
 ].join("\n") + "\n";
 
 async function download(url, target) {
@@ -87,12 +86,12 @@ try {
   const archiveBytes = await download(KWS_MODEL_URL, archivePath);
   kwsModelDigest = sha256(archiveBytes);
   if (kwsModelDigest !== KWS_MODEL_SHA256) {
-    throw new Error(`Hey-Sol-KWS-Modell Hash stimmt nicht: ${kwsModelDigest}`);
+    throw new Error(`Hey-Pam-KWS-Modell Hash stimmt nicht: ${kwsModelDigest}`);
   }
 
   const extractedRoot = join(kwsTempDir, "extracted");
   mkdirSync(extractedRoot, { recursive: true });
-  execFileSync("tar", ["-xjf", archivePath, "-C", extractedRoot], {
+  execFileSync("tar", ["--no-same-owner", "-xjf", archivePath, "-C", extractedRoot], {
     stdio: "inherit"
   });
   const extractedModel = join(extractedRoot, KWS_MODEL_DIR);
@@ -114,7 +113,7 @@ try {
   for (const [sourceName, targetName] of selectedFiles) {
     const source = join(extractedModel, sourceName);
     if (!existsSync(source)) {
-      throw new Error(`Hey-Sol-KWS-Datei fehlt: ${sourceName}`);
+      throw new Error(`Hey-Pam-KWS-Datei fehlt: ${sourceName}`);
     }
     copyFileSync(source, join(assets, targetName));
   }
@@ -129,14 +128,13 @@ try {
     "HH",
     "EY1",
     "AY1",
-    "S",
-    "Z",
-    "OW1",
-    "AO1",
-    "L"
+    "P",
+    "AE1",
+    "EH1",
+    "M"
   ]) {
     if (!tokenSet.has(token)) {
-      throw new Error(`Hey-Sol-KWS-Token fehlt: ${token}`);
+      throw new Error(`Hey-Pam-KWS-Token fehlt: ${token}`);
     }
   }
   writeFileSync(join(assets, "sol-kws-keywords.txt"), KWS_KEYWORDS, "utf8");
@@ -184,9 +182,10 @@ if (!activity.includes("registerPlugin(SolSpeakerIdentityPlugin.class)")) {
 
 const sourceText = `SOL HOLO / PAM'S HOLO – LOKALE SPRECHERERKENNUNG\n\n` +
 `Zweck: Lokale Unterscheidung und Freigabe der autorisierten Besitzerstimme.\n` +
-`Status: Der Weckruf „Hey Sol“ wird nur nach lokaler Freigabe des gespeicherten Besitzerprofils ausgeführt.\n` +
+`Owner-Bindung: ${PERSONAL_WAKE_OWNER_ID} · persönlicher Weckname: ${PERSONAL_WAKE_NAME}.\n` +
+`Status: Der Weckruf „${PERSONAL_WAKE_PHRASE}“ wird nur nach lokaler Freigabe des gespeicherten Besitzerprofils ausgeführt.\n` +
 `Profilbildung: Die drei Stimmproben werden je Modell zu einem normalisierten Mittelprofil zusammengeführt.\n` +
-`Sicherheitsprinzip: Der vollständige Prüfsatz bleibt bei Modell B mindestens 0,58 plus Modell A mindestens 0,10. Nach einem erfolgreichen Besitzer-Test wird der führende Satzteil „Hey Sol“ als eigene lokale Kurzsatz-Signatur gespeichert. Beim Weckruf müssen beide unabhängigen Modelle mindestens 0,50 mit dieser bestätigten Signatur erreichen. Fehlende, einseitige oder ungültige Messungen sperren den Weckruf.\n\n` +
+`Sicherheitsprinzip: Der vollständige Prüfsatz bleibt bei Modell B mindestens 0,58 plus Modell A mindestens 0,10. Das vorhandene 3/3-Stimmprofil bleibt bei einem Wechsel des persönlichen Wecknamens erhalten. Nach dem ersten durch das Besitzerprofil freigegebenen „${PERSONAL_WAKE_PHRASE}“ wird die bisherige Kurzsatz-Signatur lokal auf den neuen persönlichen Weckruf aktualisiert. Beim Weckruf müssen beide unabhängigen Modelle zustimmen. Fehlende, einseitige oder ungültige Messungen sperren den Weckruf.\n\n` +
 `sherpa-onnx 1.13.4\nQuelle: ${AAR_URL}\nLizenz: Apache License 2.0\nSHA-256 AAR: ${AAR_SHA256}\n\n` +
 `Speaker-Embedding-Modell A: 3dspeaker_speech_campplus_sv_en_voxceleb_16k.onnx\n` +
 `Quelle: ${CAMPPLUS_MODEL_URL}\nModellfamilie: 3D-Speaker / CAMPPlus\n` +
@@ -196,9 +195,9 @@ const sourceText = `SOL HOLO / PAM'S HOLO – LOKALE SPRECHERERKENNUNG\n\n` +
 `Erwartete und geprüfte SHA-256: ${ERES2NET_MODEL_SHA256}\n\n` +
 `Lokale Weckruferkennung: ${KWS_MODEL_DIR}\n` +
 `Quelle: ${KWS_MODEL_URL}\n` +
-`Zweck: Open-Vocabulary-Erkennung ausschließlich für „Hey Sol“ direkt im lokalen Mikrofonstrom. Enge Lautvarianten decken die deutsche Aussprache von „Hey“ sowie ein langes oder kurzes „o“ in „Sol“ ab; alle Varianten werden intern auf denselben exakten Weckruf normalisiert.\n` +
+`Zweck: Open-Vocabulary-Erkennung ausschließlich für den owner-gebundenen Weckruf „${PERSONAL_WAKE_PHRASE}“ direkt im lokalen Mikrofonstrom. Enge Lautvarianten decken die deutsche Aussprache von „Hey“ und „Pam“ ab; alle Varianten werden intern auf denselben persönlichen Weckruf normalisiert. Andere persönliche Holos erhalten ihren eigenen Namen statt eines gemeinsamen universellen Wecknamens.\n` +
 `Erwartete und geprüfte SHA-256: ${KWS_MODEL_SHA256}\n` +
-`Ausgeliefert werden nur der quantisierte Encoder und Joiner, der Decoder, die Tokenliste und die lokale Hey-Sol-Definition.\n\n` +
+`Ausgeliefert werden nur der quantisierte Encoder und Joiner, der Decoder, die Tokenliste und die lokale Hey-Pam-Definition.\n\n` +
 `Lizenzbasis des 3D-Speaker-Projekts: Apache License 2.0\n\n` +
 `Datenschutz: Die Rohaufnahme wird nur im Arbeitsspeicher verarbeitet und nicht als Audiodatei gespeichert.\n` +
 `Das abgeleitete Stimmprofil wird im privaten App-Speicher des Geräts abgelegt. Android-Backup ist für Sol Holo deaktiviert.\n` +
@@ -218,7 +217,7 @@ if (existsSync(uiFile)) {
 `    const panel = document.createElement('div');\n` +
 `    panel.id = 'speakerIdentityPanel';\n` +
 `    panel.style.cssText = 'margin:10px 0 14px;padding:12px;border:1px solid rgba(160,110,255,.35);border-radius:16px;background:rgba(20,12,35,.55)';\n` +
-`    panel.innerHTML = '<strong>Meine Stimme sicher prüfen 🔐</strong><div style="margin:8px 0;padding:9px;border-radius:10px;background:rgba(90,55,160,.22)">Prüfsatz:<br><b>„Hey Sol. Bitte prüfe jetzt genau meine Stimme.“</b></div><div id="speakerIdentityStatus" style="margin:7px 0 10px;opacity:.9">Wird geprüft …</div><button id="speakerEnrollButton" class="secondaryButton" type="button">Stimmprobe aufnehmen</button><button id="speakerTestButton" class="secondaryButton" type="button" style="margin-top:8px">Sicherheit testen</button><button id="speakerClearButton" type="button" style="margin-top:8px;background:none;border:0;color:inherit;opacity:.7">Stimmprofil löschen</button>';\n` +
+`    panel.innerHTML = '<strong>Meine Stimme sicher prüfen 🔐</strong><div style="margin:8px 0;padding:9px;border-radius:10px;background:rgba(90,55,160,.22)">Prüfsatz:<br><b>„Hey Pam. Bitte prüfe jetzt genau meine Stimme.“</b></div><div id="speakerIdentityStatus" style="margin:7px 0 10px;opacity:.9">Wird geprüft …</div><button id="speakerEnrollButton" class="secondaryButton" type="button">Stimmprobe aufnehmen</button><button id="speakerTestButton" class="secondaryButton" type="button" style="margin-top:8px">Sicherheit testen</button><button id="speakerClearButton" type="button" style="margin-top:8px;background:none;border:0;color:inherit;opacity:.7">Stimmprofil löschen</button>';\n` +
 `    const chooser = document.getElementById('wakeModeChooser');\n` +
 `    (chooser || wakeRow).insertAdjacentElement('afterend', panel);\n` +
 `    const statusEl = document.getElementById('speakerIdentityStatus');\n` +
@@ -229,11 +228,11 @@ if (existsSync(uiFile)) {
 `      const p = plugin();\n` +
 `      if (!p) { statusEl.textContent = 'Nur in der Android-App verfügbar.'; enroll.disabled = true; test.disabled = true; return; }\n` +
 `      const s = await p.getStatus();\n` +
-`      statusEl.textContent = s.profileReady ? (s.wakeVoiceReady ? 'Profil bereit · Kurz-Weckruf geschützt 🔒' : 'Profil bereit · Kurz-Weckruf einmal bestätigen 🔐') : 'Stimmproben: ' + s.sampleCount + '/3';\n` +
+`      statusEl.textContent = s.profileReady ? (s.wakeVoiceReady ? '3/3 gespeichert · Hey Pam geschützt 🔒' : '3/3 gespeichert · jetzt einmal Hey Pam sagen') : 'Stimmproben: ' + s.sampleCount + '/3';\n` +
 `      enroll.disabled = Boolean(s.profileReady);\n` +
 `      enroll.textContent = s.profileReady ? '3/3 Stimmproben gespeichert' : 'Stimmprobe ' + (Number(s.sampleCount || 0) + 1) + '/3 aufnehmen';\n` +
 `      test.disabled = !s.profileReady;\n` +
-`      test.textContent = s.wakeVoiceReady ? 'Sicherheit testen' : 'Hey Sol sicher einrichten';\n` +
+`      test.textContent = s.wakeVoiceReady ? 'Sicherheit testen' : 'Hey Pam zusätzlich prüfen';\n` +
 `    }\n` +
 `    await plugin()?.addListener?.('speakerRecordingReady', () => {\n` +
 `      statusEl.textContent = 'JETZT den vollständigen Prüfsatz sagen … 🎙️';\n` +
@@ -243,7 +242,7 @@ if (existsSync(uiFile)) {
 `      catch (e) { statusEl.textContent = e?.message || String(e); enroll.disabled = false; }\n` +
 `    });\n` +
 `    test.addEventListener('click', async () => {\n` +
-`      try { test.disabled = true; statusEl.textContent = 'Mikrofon wird vorbereitet … bitte noch warten'; const r = await plugin().verifySample(); statusEl.textContent = (r.accepted ? (r.wakeVoiceReady ? 'Stimme freigegeben ✅ · Hey Sol eingerichtet' : 'Stimme freigegeben ✅ · Hey Sol noch nicht sauber erfasst') : 'Keine Freigabe 🔒') + ' · Modell A ' + Number(r.campplusScore || 0).toFixed(3) + ' · Modell B ' + Number(r.eres2netScore || 0).toFixed(3); test.textContent = r.wakeVoiceReady ? 'Sicherheit testen' : 'Hey Sol sicher einrichten'; }\n` +
+`      try { test.disabled = true; statusEl.textContent = 'Mikrofon wird vorbereitet … bitte noch warten'; const r = await plugin().verifySample(); statusEl.textContent = (r.accepted ? (r.wakeVoiceReady ? 'Stimme freigegeben ✅ · Hey Pam geschützt' : 'Stimme freigegeben ✅ · Hey Pam noch nicht sauber erfasst') : 'Keine Freigabe 🔒') + ' · Modell A ' + Number(r.campplusScore || 0).toFixed(3) + ' · Modell B ' + Number(r.eres2netScore || 0).toFixed(3); test.textContent = r.wakeVoiceReady ? 'Sicherheit testen' : 'Hey Pam zusätzlich prüfen'; }\n` +
 `      catch (e) { statusEl.textContent = e?.message || String(e); } finally { test.disabled = false; }\n` +
 `    });\n` +
 `    clear.addEventListener('click', async () => { await plugin()?.clearProfile(); await refresh(); });\n` +
@@ -257,5 +256,5 @@ if (existsSync(uiFile)) {
 console.log(
   `Lokale Sprechererkennung vorbereitet. ` +
   `CAMPPlus=${campplusModelDigest}, ERes2Net=${eres2netModelDigest}, ` +
-  `HeySolKWS=${kwsModelDigest}`
+  `HeyPamKWS=${kwsModelDigest}`
 );

@@ -11,40 +11,41 @@ public final class WakePhraseMatcherTest {
     }
 
     private static void acceptsCanonicalPhrase() {
-        assertMatch("Hey Sol");
+        assertMatch("Hey Pam");
+        if (!"pam-sol".equals(WakePhraseMatcher.OWNER_ID)) {
+            throw new AssertionError("Der Weckname muss an Pams Owner-ID gebunden bleiben");
+        }
     }
 
     private static void acceptsPunctuationAndCase() {
-        assertMatch("HEY, SOL!");
-        assertMatch("Hey Soul.");
+        assertMatch("HEY, PAM!");
+        assertMatch("Hey Pamm.");
     }
 
     private static void acceptsCommonRecognizerSpellings() {
-        assertMatch("Hei Soll");
-        assertMatch("Hai Sohl");
-        assertMatch("Hey Zoll");
-        assertMatch("Hey so");
-        assertMatch("Hey Sohn");
-        assertMatch("Hay Saul");
+        assertMatch("Hei Pam");
+        assertMatch("Hai Pamm");
+        assertMatch("Hay Pam");
+        assertMatch("Hey Päm");
     }
 
     private static void acceptsJoinedRecognizerResult() {
-        assertMatch("HeySol");
-        assertMatch("HeySoul");
-        assertMatch("HaiZoll");
+        assertMatch("HeyPam");
+        assertMatch("HaiPamm");
     }
 
     private static void rejectsOtherPhrasesAndExtraWords() {
-        assertNoMatch("Hallo Sol");
+        assertNoMatch("Hey Sol");
+        assertNoMatch("Hallo Pam");
         assertNoMatch("Hey Steffi");
-        assertNoMatch("Hey Sol bitte");
-        assertNoMatch("Ich sagte Hey Sol");
+        assertNoMatch("Hey Pam bitte");
+        assertNoMatch("Ich sagte Hey Pam");
         assertNoMatch("");
     }
 
     private static void assertMatch(String phrase) {
         String actual = WakePhraseMatcher.canonicalPhrase(phrase);
-        if (!"Hey Sol".equals(actual)) {
+        if (!"Hey Pam".equals(actual)) {
             throw new AssertionError("Muss erkannt werden: " + phrase);
         }
     }
