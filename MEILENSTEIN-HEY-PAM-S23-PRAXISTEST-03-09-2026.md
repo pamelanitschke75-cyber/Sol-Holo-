@@ -46,3 +46,14 @@ echte Hey-Pam-Weckruf technisch bestanden ist.
 
 **MEILENSTEIN: Pams persönlicher Weckruf ist auf ihrem echten Gerät zweimal
 erfolgreich bestätigt.**
+
+## Nächster bestätigter Schritt
+
+Der später veröffentlichte Build 127 hat inzwischen auch den Start aus einer
+anderen App, den weiterlaufenden Sprachdialog im Hintergrund und die sichere
+Übergabe nach Pams eigener Android-Entsperrung auf demselben Galaxy S23
+bestanden.
+
+Der vollständige Nachweis ist im
+[Mega-Meilenstein „Hey Pam“ im Hintergrund](./MEGA-MEILENSTEIN-HEY-PAM-HINTERGRUND-S23-03-09-2026.md)
+dokumentiert.
