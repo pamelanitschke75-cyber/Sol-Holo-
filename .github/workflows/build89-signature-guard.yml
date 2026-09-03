@@ -1,0 +1,118 @@
+name: Pam’s Holo · Build #89 Signaturwächter
+
+on:
+  workflow_run:
+    workflows:
+      - "Pam’s Holo Android APK · Sol Holo"
+    types:
+      - completed
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  verify-build89-signature:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Artefakte des Android-Builds laden
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p artifacts
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${REPOSITORY}/actions/runs/${RUN_ID}/artifacts" \
+            > artifacts.json
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          data = json.loads(Path('artifacts.json').read_text())
+          artifacts = data.get('artifacts', [])
+          if not artifacts:
+              raise SystemExit('Kein Android-Artefakt gefunden.')
+
+          selected = [
+              item for item in artifacts
+              if str(item.get('name', '')).startswith('Pams-Holo-Android-')
+          ]
+          if len(selected) != 1:
+              raise SystemExit(
+                  f'Erwartet genau ein Pam’s-Holo-Android-Artefakt, gefunden: {len(selected)}'
+              )
+
+          artifact = selected[0]
+          Path('artifact-id.txt').write_text(str(artifact['id']))
+          Path('artifact-name.txt').write_text(str(artifact['name']))
+          PY
+
+          ARTIFACT_ID="$(cat artifact-id.txt)"
+          ARTIFACT_NAME="$(cat artifact-name.txt)"
+          echo "Prüfe Artefakt: ${ARTIFACT_NAME}"
+
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" \
+            > artifact.zip
+          unzip -q artifact.zip -d artifacts
+
+      - name: Nur fertig signierte Pam’s-Holo-Update-APK zulassen
+        run: |
+          set -Eeuo pipefail
+          mapfile -t signed_apks < <(find artifacts -type f -name 'Pams-Holo-Update.apk' -print)
+          if [[ ${#signed_apks[@]} -ne 1 ]]; then
+            echo "FEHLER: Es wurde keine eindeutig fertig signierte Pams-Holo-Update.apk erzeugt."
+            echo "Ein unsigniertes oder extern zu signierendes Artefakt ist KEIN freigegebenes Update."
+            exit 1
+          fi
+          printf '%s' "${signed_apks[0]}" > signed-apk-path.txt
+
+      - name: Build-89-Zertifikat exakt prüfen
+        env:
+          EXPECTED_SHA256: "E1:22:20:10:77:B9:3C:B4:7E:DB:69:51:44:6F:B8:DF:F7:74:27:A2:F5:A2:BD:47:19:47:4A:63:8F:E8:03:E9"
+          EXPECTED_OWNER: "CN=Pam's Holo Original, O=Pam's Holo, C=DE"
+        run: |
+          set -Eeuo pipefail
+          apk="$(cat signed-apk-path.txt)"
+          keytool -printcert -jarfile "$apk" > certificate.txt
+          cat certificate.txt
+
+          actual_sha256="$(
+            sed -n 's/^[[:space:]]*SHA256: //p' certificate.txt \
+              | head -n 1 \
+              | tr '[:lower:]' '[:upper:]'
+          )"
+          actual_owner="$(sed -n 's/^Owner: //p' certificate.txt | head -n 1)"
+
+          if [[ "$actual_sha256" != "$EXPECTED_SHA256" ]]; then
+            echo "FEHLER: Signatur-Fingerabdruck stimmt NICHT mit Build #89 überein."
+            echo "Erwartet: $EXPECTED_SHA256"
+            echo "Gefunden: $actual_sha256"
+            exit 1
+          fi
+
+          if [[ "$actual_owner" != "$EXPECTED_OWNER" ]]; then
+            echo "FEHLER: Zertifikatsinhaber stimmt NICHT mit Build #89 überein."
+            echo "Erwartet: $EXPECTED_OWNER"
+            echo "Gefunden: $actual_owner"
+            exit 1
+          fi
+
+          echo "BESTÄTIGT: exakt dieselbe feste Build-#89-Update-Signatur."
+
+      - name: Release-Freigabe markieren
+        run: |
+          {
+            echo "## ✅ Build #89 Signatur bestätigt"
+            echo
+            echo "Das Android-Artefakt enthält genau eine fertige \`Pams-Holo-Update.apk\`."
+            echo "Der SHA-256-Zertifikatsfingerabdruck stimmt exakt mit der festgelegten Build-#89-Referenz überein."
+            echo
+            echo "Nur ein Build mit diesem erfolgreichen Wächter darf als Pam’s-Holo-Update veröffentlicht werden."
+          } >> "$GITHUB_STEP_SUMMARY"
