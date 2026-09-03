@@ -2,6 +2,8 @@ const BACKEND_URL = "https://sol-holo.onrender.com";
 const OWNER_ID = "pam-sol";
 const SESSION_HEADER = "x-sol-holo-trusted-session";
 const SESSION_ACTION = "bind_trusted_app_session";
+const SESSION_PURPOSE = "owner_personal_services";
+const SESSION_PACKAGE = "com.solholo.app";
 const RETRYABLE_CHALLENGE_ERRORS = new Set([
   "TRUSTED_SESSION_CHALLENGE_INVALID",
   "TRUSTED_SESSION_CHALLENGE_EXPIRED"
@@ -116,12 +118,10 @@ function identityBody(identity) {
 }
 
 async function registeredDevice(plugin) {
-  const device = await plugin.getTrustedSessionDevice({
-    ownerId: OWNER_ID
-  });
+  const device = await plugin.getTrustedSessionDevice({ ownerId: OWNER_ID });
   if (
     device?.ownerId !== OWNER_ID ||
-    device?.packageName !== "com.solholo.app" ||
+    device?.packageName !== SESSION_PACKAGE ||
     device?.hardwareBacked !== true ||
     !device?.registrationId
   ) {
@@ -160,14 +160,24 @@ async function freshAuthorization(plugin) {
   return grant.authorizationId;
 }
 
-function challengeForNative(challenge) {
+function challengeForNative(challenge, device) {
   const issuedAtMillis = Number(challenge?.issuedAtMillis);
   const expiresAtMillis = Number(challenge?.expiresAtMillis);
+  const challengeId = String(challenge?.challengeId || "").trim();
+  const nonceBase64Url = String(challenge?.nonceBase64Url || "").trim();
+  const registrationId = String(device?.registrationId || "").trim();
+
   if (
     !Number.isSafeInteger(issuedAtMillis) ||
     !Number.isSafeInteger(expiresAtMillis) ||
     issuedAtMillis <= 0 ||
-    expiresAtMillis <= issuedAtMillis
+    expiresAtMillis <= issuedAtMillis ||
+    expiresAtMillis - issuedAtMillis > 180_000 ||
+    !challengeId ||
+    !nonceBase64Url ||
+    !registrationId ||
+    challenge?.ownerId !== OWNER_ID ||
+    challenge?.registrationId !== registrationId
   ) {
     throw new TrustedSessionClientError(
       "TRUSTED_SESSION_CHALLENGE_INVALID",
@@ -175,10 +185,17 @@ function challengeForNative(challenge) {
     );
   }
 
-  // Decimal strings cross the Capacitor bridge without Android turning an
-  // epoch-millisecond value into a different numeric wrapper or precision.
+  // Package, purpose and action are protocol constants, not server-selectable
+  // inputs. Supplying the fixed values here removes a fragile bridge hop while
+  // keeping the exact canonical payload expected by Android and the backend.
   return {
-    ...challenge,
+    challengeId,
+    nonceBase64Url,
+    ownerId: OWNER_ID,
+    registrationId,
+    packageName: SESSION_PACKAGE,
+    purpose: SESSION_PURPOSE,
+    action: SESSION_ACTION,
     issuedAtMillis: String(issuedAtMillis),
     expiresAtMillis: String(expiresAtMillis)
   };
@@ -191,18 +208,11 @@ function isRetryableChallengeError(error) {
   );
 }
 
-async function completeChallenge({
-  identity,
-  device,
-  challenge,
-  authorizationId,
-  plugin
-}) {
+async function completeChallenge({ identity, device, challenge, authorizationId, plugin }) {
   const expectedGeneration = sessionGeneration;
+  const nativeChallenge = challengeForNative(challenge, device);
   const signed = await plugin.signTrustedSessionChallenge({
-    ...challengeForNative(challenge),
-    ownerId: identity.ownerId,
-    registrationId: device.registrationId,
+    ...nativeChallenge,
     authorizationId
   });
   if (
@@ -235,10 +245,7 @@ async function completeChallenge({
       "Das Backend hat die sichere App-Sitzung nicht bestätigt."
     );
   }
-  if (
-    expectedGeneration !== sessionGeneration ||
-    document.visibilityState === "hidden"
-  ) {
+  if (expectedGeneration !== sessionGeneration || document.visibilityState === "hidden") {
     return { trusted: false, discardedAfterLock: true };
   }
   sessionToken = String(session.sessionToken);
@@ -246,10 +253,7 @@ async function completeChallenge({
   window.dispatchEvent(new CustomEvent("solholo:trusted-session", {
     detail: { trusted: true, expiresAtMillis: sessionExpiresAtMillis }
   }));
-  return {
-    trusted: true,
-    expiresAtMillis: sessionExpiresAtMillis
-  };
+  return { trusted: true, expiresAtMillis: sessionExpiresAtMillis };
 }
 
 function openOwnerProof(authUrl) {
@@ -260,9 +264,7 @@ function openOwnerProof(authUrl) {
       "Die Google-Bestätigung konnte nicht geöffnet werden."
     );
   }
-  try {
-    authWindow.opener = null;
-  } catch {}
+  try { authWindow.opener = null; } catch {}
 }
 
 function wait(milliseconds) {
@@ -293,16 +295,11 @@ async function bootstrapDevice(identity, device) {
       attemptId: start.attemptId,
       registrationId: device.registrationId
     });
-    if (status?.status === "authorized" && status?.registered === true) {
-      return;
-    }
+    if (status?.status === "authorized" && status?.registered === true) return;
     if (status?.status === "failed" || status?.status === "expired") {
       throw new TrustedSessionClientError(
         String(status?.error || "TRUSTED_SESSION_BOOTSTRAP_FAILED"),
-        String(
-          status?.message ||
-          "Die einmalige S23-Bestätigung wurde nicht abgeschlossen."
-        )
+        String(status?.message || "Die einmalige S23-Bestätigung wurde nicht abgeschlossen.")
       );
     }
   }
@@ -317,19 +314,14 @@ async function establishTrustedAppSession({
   authorizationId = "",
   authorizationExpiresAtMillis = 0
 } = {}) {
-  if (sessionIsFresh()) {
-    return { trusted: true, expiresAtMillis: sessionExpiresAtMillis };
-  }
+  if (sessionIsFresh()) return { trusted: true, expiresAtMillis: sessionExpiresAtMillis };
   const identity = selectedIdentity();
   const plugin = securityPlugin();
-  if (!identity || !plugin) {
-    return { trusted: false, unavailable: true };
-  }
+  if (!identity || !plugin) return { trusted: false, unavailable: true };
   const device = await registeredDevice(plugin);
+
   if (!authorizationId) {
-    if (!interactive) {
-      return { trusted: false, needsAuthorization: true };
-    }
+    if (!interactive) return { trusted: false, needsAuthorization: true };
     authorizationId = await freshAuthorization(plugin);
   }
 
@@ -337,49 +329,23 @@ async function establishTrustedAppSession({
   let challengeRetryCount = 0;
   while (true) {
     try {
-      // A challenge is deliberately requested only after a usable Android
-      // authorization exists. It is kept inside this single attempt and can
-      // therefore never be replayed from an earlier click or app unlock.
       const challenge = await requestChallenge(identity, device);
-      return await completeChallenge({
-        identity,
-        device,
-        challenge,
-        authorizationId,
-        plugin
-      });
+      return await completeChallenge({ identity, device, challenge, authorizationId, plugin });
     } catch (error) {
-      if (
-        error?.code === "TRUSTED_SESSION_DEVICE_NOT_BOUND" &&
-        !bootstrapPerformed
-      ) {
+      if (error?.code === "TRUSTED_SESSION_DEVICE_NOT_BOUND" && !bootstrapPerformed) {
         if (!interactive) {
-          offerAuthorization(
-            authorizationId,
-            authorizationExpiresAtMillis
-          );
+          offerAuthorization(authorizationId, authorizationExpiresAtMillis);
           return { trusted: false, needsBootstrap: true };
         }
         bootstrapPerformed = true;
         await bootstrapDevice(identity, device);
-        // Returning from the Google owner proof locks the app. Its normal
-        // Android unlock supplies a separate, still-fresh one-time grant.
-        authorizationId = takeOfferedAuthorization() ||
-          await waitForOfferedAuthorization();
-        if (!authorizationId) {
-          authorizationId = await freshAuthorization(plugin);
-        }
+        authorizationId = takeOfferedAuthorization() || await waitForOfferedAuthorization();
+        if (!authorizationId) authorizationId = await freshAuthorization(plugin);
         continue;
       }
 
-      if (
-        interactive &&
-        challengeRetryCount === 0 &&
-        isRetryableChallengeError(error)
-      ) {
+      if (interactive && challengeRetryCount === 0 && isRetryableChallengeError(error)) {
         challengeRetryCount += 1;
-        // The failed attempt and its one-time grant are never reused. Android
-        // confirms a new grant first; only then is a new challenge requested.
         authorizationId = await freshAuthorization(plugin);
         continue;
       }
@@ -389,32 +355,20 @@ async function establishTrustedAppSession({
 }
 
 export async function ensureTrustedAppSession(options = {}) {
-  if (sessionIsFresh()) {
-    return { trusted: true, expiresAtMillis: sessionExpiresAtMillis };
-  }
+  if (sessionIsFresh()) return { trusted: true, expiresAtMillis: sessionExpiresAtMillis };
   if (ensurePromise) {
-    offerAuthorization(
-      options?.authorizationId,
-      options?.authorizationExpiresAtMillis
-    );
+    offerAuthorization(options?.authorizationId, options?.authorizationExpiresAtMillis);
     const existingResult = await ensurePromise;
-    if (options?.interactive && !existingResult?.trusted) {
-      return ensureTrustedAppSession(options);
-    }
+    if (options?.interactive && !existingResult?.trusted) return ensureTrustedAppSession(options);
     return existingResult;
   }
   ensurePromise = establishTrustedAppSession(options)
     .catch((error) => {
       if (options?.interactive) throw error;
-      console.info(
-        "Sichere App-Sitzung noch nicht aktiv:",
-        error?.code || error?.name || "unbekannt"
-      );
+      console.info("Sichere App-Sitzung noch nicht aktiv:", error?.code || error?.name || "unbekannt");
       return { trusted: false, error: error?.code || "unavailable" };
     })
-    .finally(() => {
-      ensurePromise = null;
-    });
+    .finally(() => { ensurePromise = null; });
   return ensurePromise;
 }
 
@@ -430,14 +384,9 @@ window.SolHoloTrustedSession = Object.freeze({
   ensure: ensureTrustedAppSession,
   headers: trustedAppSessionHeaders,
   clear: clearTrustedAppSession,
-  status: () => ({
-    trusted: sessionIsFresh(),
-    expiresAtMillis: sessionExpiresAtMillis
-  })
+  status: () => ({ trusted: sessionIsFresh(), expiresAtMillis: sessionExpiresAtMillis })
 });
 
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "hidden") {
-    clearTrustedAppSession();
-  }
+  if (document.visibilityState === "hidden") clearTrustedAppSession();
 });
