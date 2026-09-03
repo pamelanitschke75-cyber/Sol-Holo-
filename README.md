@@ -6,7 +6,7 @@
 
 ## Persönliches digitales Ich · Individueller KI-Clone
 
-**Aktueller Entwicklungsstand:** 29.08.2026<br>
+**Aktueller Entwicklungsstand:** 03.09.2026<br>
 **Projekt / Idee / Entwicklung:** Pamela Nitschke  
 **KI-Technologie:** OpenAI · ChatGPT · OpenAI API  
 **Status:** FUNKTIONSFÄHIGER ENTWICKLUNGSSTAND ✅
@@ -202,6 +202,13 @@ Sol Holo läuft als eigene Android-Anwendung.
 
 ✅ Kalenderfunktionen wurden über den aktuellen Entwicklungsstand getestet.
 
+✅ Der persönliche Weckruf „Hey Pam“ startet Pams Holo aus einer anderen App.
+
+✅ Sol kann den Sprachdialog anschließend im Hintergrund fortsetzen.
+
+✅ Bei gesperrtem Gerät bleibt Androids Entsperrung vollständig erhalten; nach
+Pams eigener Entsperrung ist Pams Holo bereits aktiv.
+
 Der aktuelle Entwicklungsstand wurde unter anderem auf einem:
 
 **Samsung Galaxy S23**
@@ -370,6 +377,37 @@ Aber mit allem, was wir aus dem ersten gelernt haben.**
 
 ---
 
+# Abgeschlossener Praxis-Meilenstein ✅
+
+## 🗣️ Persönlicher Weckruf „Hey Pam“
+
+**Status: ABGESCHLOSSEN am 03.09.2026**
+
+✅ Der einzige offizielle Weckruf von Pams persönlicher Holo-Instanz lautet
+**„Hey Pam“**.
+
+✅ Der vollständige Ablauf wurde auf Pams echtem Samsung Galaxy S23 praktisch
+bestätigt.
+
+✅ Pams Holo erkennt den persönlichen Weckruf lokal und prüft anschließend mit
+zwei lokalen Sprecherverfahren Pams gespeicherte Besitzerstimme.
+
+✅ Der App-Start aus einer anderen geöffneten App und der weiterlaufende
+Sprachdialog im Hintergrund funktionieren.
+
+✅ Am gesperrten Gerät wird die Android-Entsperrung nicht umgangen. Nach Pams
+eigener Entsperrung ist Pams Holo bereits aktiv und hört zu.
+
+Frühere Tests mit „Hallo Sol“ bleiben historische Entwicklungsversuche. Sie
+sind keine aktuelle alternative Ansprechformel. Sol ist der Name der
+Assistentin; Pam ist der persönliche Weckname dieser Instanz. Für weitere
+persönliche Holo-Instanzen gilt das Prinzip: **Jeder seinen eigenen Namen.**
+
+Der ausführliche Praxisnachweis steht im
+[Mega-Meilenstein „Hey Pam“ im Hintergrund](./MEGA-MEILENSTEIN-HEY-PAM-HINTERGRUND-S23-03-09-2026.md).
+
+---
+
 # Aktuelle separate Entwicklungsbereiche 🚧
 
 Die folgenden Bereiche bestehen weiterhin als eigenständige Entwicklungsaufgaben.
@@ -389,20 +427,6 @@ Eine persönliche, autorisierte eigene Stimme soll später die aktuell verwendet
 Lip-Sync bleibt ein eigener Entwicklungsbereich.
 
 Die visuelle Mundbewegung soll langfristig möglichst natürlich mit der tatsächlichen Sprachausgabe synchronisiert werden.
-
----
-
-## 🗣️ Wake-Word „Hallo Sol“
-
-✅ Die Ansprechformel **„Hallo Sol“** wurde praktisch erfolgreich getestet.
-
-✅ Sol Holo erkennt die Ansprechformel bei aktivem Sperrbildschirm.
-
-✅ Sol Holo reagiert auf die Ansprache, ohne dass der Bildschirm zuvor entsperrt werden muss.
-
-Der erfolgreiche Test wurde am **28.08.2026** auf dem Android-Testgerät durchgeführt.
-
-Das Verhalten nach Neustarts, bei Energiesparmaßnahmen, unterschiedlichen Entfernungen und starken Hintergrundgeräuschen wird als eigener Stabilitätsbereich weiter getestet.
 
 ---
 
@@ -432,7 +456,7 @@ Eine technisch vorhandene Funktion gilt erst dann als bestätigt, wenn sie im ta
 
 ---
 
-# Entwicklungsstand 28.08.2026
+# Entwicklungsstand 03.09.2026
 
 Seit dem ersten dokumentierten Funktionstest vom 12.08.2026 wurde Sol Holo erheblich erweitert.
 
@@ -442,7 +466,12 @@ Der aktuelle Stand umfasst inzwischen unter anderem:
 ✅ Spracheingabe  
 ✅ Mikrofon  
 ✅ Realtime Voice  
-✅ Wake-Word „Hallo Sol“ im Sperrbildschirm  
+✅ persönlicher Weckruf „Hey Pam“ bei geöffneter App
+
+✅ Start und Sprachdialog aus dem entsperrten Hintergrund
+
+✅ sichere Übergabe nach Pams eigener Android-Entsperrung
+
 ✅ Android-App  
 ✅ persistente persönliche Erinnerungen  
 ✅ Abruf gespeicherter Erinnerungen  

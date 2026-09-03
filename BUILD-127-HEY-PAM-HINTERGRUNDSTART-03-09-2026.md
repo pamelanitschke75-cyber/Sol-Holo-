@@ -2,6 +2,8 @@
 
 Stand: 03.09.2026
 
+Status: **ABGESCHLOSSEN ✅**
+
 ## Bestätigter S23-Befund
 
 Der persönliche Weckruf aus Build 125 funktioniert im Modus „App offen“ auf
@@ -45,10 +47,32 @@ Android-Hintergrundstart der Activity. Er betrifft nicht Pams Stimme.
 
 ## Prüfstatus
 
-- automatisierte Regressionstests: lokal und in GitHub Actions auszuführen
-- Android-Build und Originalsignatur: vor Veröffentlichung zu bestätigen
-- echter Hintergrundtest auf Pams Galaxy S23: **offen**
-- Sperrbildschirmtest: erst nach bestandenem Hintergrundtest
+- automatisierte Regressionstests: **104/104 erfolgreich**
+- Android-Build: **erfolgreich**
+- Originalsignatur aus Build 89: **V1, V2 und V3 gültig**
+- echter Hintergrundtest auf Pams Galaxy S23: **bestanden**
+- weiterlaufender Sprachdialog im Hintergrund: **bestanden**
+- sichere Übergabe am Sperrbildschirm: **bestanden; keine Umgehung der
+  Android-Gerätesperre**
 
-Der zweimal bestandene Modus „App offen“ wird durch diesen noch offenen
-Hintergrundtest nicht zurückgenommen.
+## Praktische Bestätigung nach Veröffentlichung
+
+Pam bestätigte nach Installation des originalsignierten Build 127 den
+vollständigen Ablauf auf ihrem echten Galaxy S23:
+
+- Bei einem zunächst nicht ausreichend bestätigten Stimmversuch meldete der
+  Dienst „Keine Freigabe“ und öffnete die App nicht.
+- Ein erneuter gültiger „Hey Pam“-Versuch wurde freigegeben.
+- Pams Holo startete aus einer anderen App heraus und Sol sprach anschließend
+  im Hintergrund weiter.
+- Bei gesperrtem Gerät blieb Androids Entsperrung erhalten. Erst nach Pams
+  eigener Entsperrung erschien Pams Holo bereits aktiv mit „Ich höre dir zu“.
+
+Der zweimal bestandene Modus „App offen“ bleibt damit bestätigt und wird jetzt
+durch den real bestandenen Hintergrundablauf ergänzt.
+
+Der vollständige Praxisnachweis steht im
+[Mega-Meilenstein „Hey Pam“ im Hintergrund](./MEGA-MEILENSTEIN-HEY-PAM-HINTERGRUND-S23-03-09-2026.md).
+
+Für den persönlichen Weckruf „Hey Pam“ besteht nach Pams ausdrücklicher
+Bestätigung keine offene Entwicklungs- oder Praxistestaufgabe mehr.
