@@ -362,8 +362,12 @@ export function createTrustedAppSessionManager({
       packageName: challenge.packageName,
       challengeId: challenge.challengeId,
       nonceBase64Url: challenge.nonceBase64Url,
-      issuedAtMillis,
-      expiresAtMillis,
+      // Epoch milliseconds cross older Capacitor/Android bridges reliably as
+      // decimal strings. The canonical payload still normalizes them back to
+      // exact safe integers, so this changes transport only, not what is
+      // signed or the server-side expiry enforcement.
+      issuedAtMillis: String(issuedAtMillis),
+      expiresAtMillis: String(expiresAtMillis),
       purpose: TRUSTED_APP_SESSION_PURPOSE,
       action: TRUSTED_APP_SESSION_ACTION
     };

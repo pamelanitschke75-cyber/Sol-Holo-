@@ -86,6 +86,10 @@ test("only an owner-verified device can create a signed trusted session", async 
   await manager.registerDevice(device, { googleAccountVerified: true });
 
   const challenge = await manager.createChallenge(device);
+  assert.equal(typeof challenge.issuedAtMillis, "string");
+  assert.equal(typeof challenge.expiresAtMillis, "string");
+  assert.equal(Number(challenge.issuedAtMillis), currentTime);
+  assert.equal(Number(challenge.expiresAtMillis), currentTime + 120_000);
   const canonical = trustedSessionCanonicalPayload(challenge);
   const signatureBase64Url = sign(
     "sha256",
