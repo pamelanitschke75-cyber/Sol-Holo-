@@ -387,10 +387,10 @@ jobs:
             android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
           ! grep -Fq '@Hey_Sol' \
             android/app/src/main/assets/sol-kws-keywords.txt
-          grep -q "MIN_WAKE_ACTIVE_FRAMES = 12" \
+          grep -q "WakeVoiceTemplateSelector.extract" \
             android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
-          grep -q "MAX_WAKE_SPEECH_GAP_FRAMES = 24" \
-            android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
+          grep -q "KEYWORD_POSTROLL_SAMPLES" \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q "speakerGateReady" \
             android/app/src/main/java/com/solholo/app/HeyHoSolPlugin.java
           grep -q "publishPendingWakeEvent" \

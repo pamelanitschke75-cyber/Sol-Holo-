@@ -2781,10 +2781,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
           showToast("Stimme freigegeben · Sol startet ✨");
         } else if (event?.stage === "owner_rejected") {
           showToast(
-            "„Hey Pam“ gehört · Stimme nicht freigegeben 🔒" + scoreText +
-            (event?.templateUsed
-              ? ""
-              : " · einmal Sicherheit testen")
+            "„Hey Pam“ gehört · Stimme nicht freigegeben 🔒" + scoreText
           );
         }
       });

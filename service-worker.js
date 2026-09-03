@@ -1,4 +1,4 @@
-const CACHE_NAME = "sol-holo-v13-owner-wake-hey-pam";
+const CACHE_NAME = "sol-holo-v14-stable-hey-pam-voice";
 
 const APP_FILES = [
   "/",
