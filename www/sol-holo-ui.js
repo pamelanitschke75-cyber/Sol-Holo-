@@ -2965,9 +2965,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   currentBottomNav.addEventListener("click", (event) => {
     const button = event.target.closest("[data-view]");
     if (button) {
+      event.preventDefault();
       showView(button.dataset.view);
     }
-  });
+  }, true);
 
   document.getElementById("welcomeButton").addEventListener("click", () => {
     onboarding.classList.add("hidden");

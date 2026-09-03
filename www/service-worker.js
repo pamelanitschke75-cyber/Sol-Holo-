@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-116-notes-calendar-session";
+const CACHE_VERSION = "sol-holo-123-s23-hey-sol-navigation";
 
 self.addEventListener("install", () => {
   self.skipWaiting();

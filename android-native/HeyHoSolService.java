@@ -112,7 +112,10 @@ public class HeyHoSolService extends Service {
             }
 
             recorder = new AudioRecord(
-                MediaRecorder.AudioSource.VOICE_RECOGNITION,
+                // sherpa-onnx' Android-Referenz liest den Keyword-Strom aus
+                // der unverfälschten Mikrofonquelle. VOICE_RECOGNITION kann
+                // auf Samsung-Geräten kurze Anlaute wie "Hey" wegfiltern.
+                MediaRecorder.AudioSource.MIC,
                 SECURE_SAMPLE_RATE,
                 AudioFormat.CHANNEL_IN_MONO,
                 AudioFormat.ENCODING_PCM_16BIT,
