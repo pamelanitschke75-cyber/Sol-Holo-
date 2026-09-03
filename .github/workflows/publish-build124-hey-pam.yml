@@ -1,0 +1,91 @@
+name: Publish Pam's Holo Build 124 Hey Pam
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/publish-build124-hey-pam.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Download and verify original-signed APK
+        env:
+          SOURCE_URL: "https://oaisdmntprwestus.blob.core.windows.net/files/00000000-1d2c-8230-9614-ff09cf113cfb/raw?se=2026-09-03T12%3A26%3A05Z&sp=r&sv=2026-02-06&sr=b&scid=01a066e8-dc52-7694-91a9-7dcf66be2a12&skoid=0a4a0f0c-99ac-4752-9d87-cfac036fa93f&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-03T06%3A30%3A59Z&ske=2026-09-04T06%3A30%3A59Z&sks=b&skv=2026-02-06&sig=O1TmyYStbw4HFwSXEOfwsnMKw9%2B0xRhFHsk6njTtst0%3D"
+          EXPECTED_APK_SHA256: "6b1b3dd3e146cdc33c34b51b5021e7535ae9e2f0fc46547d998aff59289829d2"
+          EXPECTED_CERT_SHA256: "e122201077b93cb47edb6951446fb8dff77427a2f5a2bd4719474a638fe803e9"
+        run: |
+          set -Eeuo pipefail
+          apk="Pams-Holo-Build-124-S23-Hey-Pam-original-signiert.apk"
+          curl --fail --location --retry 3 --retry-delay 2 "$SOURCE_URL" --output "$apk"
+          echo "$EXPECTED_APK_SHA256  $apk" | sha256sum --check
+          unzip -tq "$apk"
+
+          android_sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          test -n "$android_sdk"
+          build_tools="$(find "$android_sdk/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          "$build_tools/zipalign" -c -p 4 "$apk"
+          "$build_tools/apksigner" verify --verbose --print-certs "$apk" | tee apk-verification.txt
+          grep -Fq "Verified using v1 scheme (JAR signing): true" apk-verification.txt
+          grep -Fq "Verified using v2 scheme (APK Signature Scheme v2): true" apk-verification.txt
+          grep -Fq "Verified using v3 scheme (APK Signature Scheme v3): true" apk-verification.txt
+          grep -Fq "V3.0 Signer: certificate SHA-256 digest: $EXPECTED_CERT_SHA256" apk-verification.txt
+
+          test "$(unzip -Z1 "$apk" | awk -F/ '/^lib\// {print $2}' | sort -u)" = "arm64-v8a"
+          unzip -p "$apk" assets/capacitor.config.json | grep -Fq '"appId": "com.solholo.app"'
+          unzip -p "$apk" assets/public/SPEAKER_IDENTITY_SOURCES.txt | grep -Fq 'Owner-Bindung: pam-sol'
+          unzip -p "$apk" assets/sol-kws-keywords.txt | grep -Fxq 'HH EY1 P AE1 M @Hey_Pam'
+          unzip -p "$apk" assets/sol-kws-keywords.txt | grep -Fxq 'HH AY1 P AE1 M @Hai_Pam'
+          ! unzip -p "$apk" assets/sol-kws-keywords.txt | grep -Fq '@Hey_Sol'
+
+      - name: Publish public GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_COMMIT: "da484081c5b7da8ab370a2523500dfbf077543f3"
+        run: |
+          set -Eeuo pipefail
+          tag="pams-holo-build-124-s23-hey-pam-original-signiert"
+          apk="Pams-Holo-Build-124-S23-Hey-Pam-original-signiert.apk"
+
+          cat > release-notes.md <<'NOTES'
+          Originalsigniertes Update für Pams Galaxy S23.
+
+          Persönlicher Weckruf:
+          - Pams Holo hört ausschließlich auf „Hey Pam“.
+          - Sol bleibt der Name der Assistentin.
+          - Andere Namen und der alte Weckruf „Hey Sol“ sind nicht im Keyword-Graphen.
+          - Der Weckruf wird erst nach lokaler Freigabe durch Pams bestehendes Besitzerstimmprofil ausgeführt.
+
+          Unverändert:
+          - Paket com.solholo.app
+          - Owner pam-sol
+          - vorhandenes 3/3-Stimmprofil, Einstellungen, Vollzeitgedächtnis und App-Daten
+          - beide lokalen Sprecher-Sicherheitsmodelle
+
+          Technische Prüfung:
+          - GitHub Build 124 vollständig grün
+          - 96/96 App-Tests bestanden
+          - APK-SHA-256: 6b1b3dd3e146cdc33c34b51b5021e7535ae9e2f0fc46547d998aff59289829d2
+          - Zertifikat-SHA-256 wie Build 89: e122201077b93cb47edb6951446fb8dff77427a2f5a2bd4719474a638fe803e9
+          - APK Signature Schemes V1, V2 und V3 bestätigt
+          - nur arm64-v8a für Pams Galaxy S23
+          - S23-Praxisstatus: offen, bis Pam den installierten Build bestätigt
+          NOTES
+
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$tag" "$apk" --clobber --repo "$GITHUB_REPOSITORY"
+            gh release edit "$tag" --target "$TARGET_COMMIT" --title "Pam's Holo Build 124 · Hey Pam · S23 · originalsigniert" --notes-file release-notes.md --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$tag" "$apk" --target "$TARGET_COMMIT" --title "Pam's Holo Build 124 · Hey Pam · S23 · originalsigniert" --notes-file release-notes.md --repo "$GITHUB_REPOSITORY"
+          fi
