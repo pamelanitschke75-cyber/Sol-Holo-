@@ -45,6 +45,15 @@ test("derselbe lokale PCM-Strom erreicht Weckruf- und Sprecherprüfung", () => {
 
 test("Samsung muss keine aufgenommene Datei an SpeechRecognizer übernehmen", () => {
   assert.match(serviceSource, /new SolWakeKeywordSpotter/u);
+  assert.match(
+    serviceSource,
+    /MediaRecorder\.AudioSource\.MIC/u,
+    "Der S23-Weckdienst muss dieselbe Mikrofonquelle wie die Android-KWS-Referenz verwenden"
+  );
+  assert.doesNotMatch(
+    serviceSource,
+    /MediaRecorder\.AudioSource\.VOICE_RECOGNITION/u
+  );
   assert.match(spotterSource, /new KeywordSpotterConfig\(\)/u);
   assert.match(
     spotterSource,
@@ -61,6 +70,12 @@ test("nur Hey Sol erreicht weiterhin beide Besitzerprüfungen", () => {
   assert.match(spotterSource, /WakePhraseMatcher\.canonicalPhrase/u);
   assert.match(installerSource, /HH EY1 S OW1 L @Hey_Sol/u);
   assert.match(installerSource, /HH EY1 Z OW1 L @Hey_Sohl/u);
+  assert.match(installerSource, /HH AY1 S OW1 L @Hai_Sol/u);
+  assert.match(installerSource, /HH AY1 Z OW1 L @Hai_Sohl/u);
+  assert.match(installerSource, /HH EY1 S AO1 L @Hey_Soll/u);
+  assert.match(installerSource, /HH EY1 Z AO1 L @Hey_Zoll/u);
+  assert.match(installerSource, /HH AY1 S AO1 L @Hai_Soll/u);
+  assert.match(installerSource, /HH AY1 Z AO1 L @Hai_Zoll/u);
   assert.doesNotMatch(installerSource, /@Hallo_Sol|@Hello_Sol/u);
   assert.match(serviceSource, /measuredCampplusScore/u);
   assert.match(serviceSource, /measuredEres2netScore/u);

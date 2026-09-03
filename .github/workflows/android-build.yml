@@ -320,6 +320,18 @@ jobs:
             android/app/src/main/assets/sol-kws-keywords.txt
           grep -Fxq "HH EY1 Z OW1 L @Hey_Sohl" \
             android/app/src/main/assets/sol-kws-keywords.txt
+          grep -Fxq "HH AY1 S OW1 L @Hai_Sol" \
+            android/app/src/main/assets/sol-kws-keywords.txt
+          grep -Fxq "HH AY1 Z OW1 L @Hai_Sohl" \
+            android/app/src/main/assets/sol-kws-keywords.txt
+          grep -Fxq "HH EY1 S AO1 L @Hey_Soll" \
+            android/app/src/main/assets/sol-kws-keywords.txt
+          grep -Fxq "HH EY1 Z AO1 L @Hey_Zoll" \
+            android/app/src/main/assets/sol-kws-keywords.txt
+          grep -Fxq "HH AY1 S AO1 L @Hai_Soll" \
+            android/app/src/main/assets/sol-kws-keywords.txt
+          grep -Fxq "HH AY1 Z AO1 L @Hai_Zoll" \
+            android/app/src/main/assets/sol-kws-keywords.txt
           grep -q "securityGateEnabled" \
             android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
           grep -q "CAMPPLUS_SANITY_FLOOR = 0.10f" \
@@ -347,6 +359,10 @@ jobs:
           grep -q "verifyWakeAudio" \
             android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
           grep -q "new SolWakeKeywordSpotter" \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          grep -q "MediaRecorder.AudioSource.MIC" \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          ! grep -q "MediaRecorder.AudioSource.VOICE_RECOGNITION" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q "keywordSpotter.accept" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java

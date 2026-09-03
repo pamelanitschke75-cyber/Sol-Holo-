@@ -21,6 +21,8 @@ public final class WakePhraseMatcherTest {
 
     private static void acceptsCommonRecognizerSpellings() {
         assertMatch("Hei Soll");
+        assertMatch("Hai Sohl");
+        assertMatch("Hey Zoll");
         assertMatch("Hey so");
         assertMatch("Hey Sohn");
         assertMatch("Hay Saul");
@@ -29,6 +31,7 @@ public final class WakePhraseMatcherTest {
     private static void acceptsJoinedRecognizerResult() {
         assertMatch("HeySol");
         assertMatch("HeySoul");
+        assertMatch("HaiZoll");
     }
 
     private static void rejectsOtherPhrasesAndExtraWords() {

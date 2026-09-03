@@ -10,7 +10,7 @@ import java.util.Locale;
 final class WakePhraseMatcher {
     private static final String HEY = "(?:hey|hei|hai|hay)";
     private static final String SOL =
-        "(?:sol|soll|soul|sohl|so|sole|saul|son|sohn)";
+        "(?:sol|soll|soul|sohl|zoll|so|sole|saul|son|sohn)";
 
     private WakePhraseMatcher() {}
 

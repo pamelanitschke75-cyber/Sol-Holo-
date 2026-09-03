@@ -33,7 +33,13 @@ const KWS_MODEL_URL = `https://github.com/k2-fsa/sherpa-onnx/releases/download/k
 const KWS_MODEL_SHA256 = "68447f4fbc67e70eee3a93961f36e81e98f47aef73ce7e7ca00885c6cd3616a6";
 const KWS_KEYWORDS = [
   "HH EY1 S OW1 L @Hey_Sol",
-  "HH EY1 Z OW1 L @Hey_Sohl"
+  "HH EY1 Z OW1 L @Hey_Sohl",
+  "HH AY1 S OW1 L @Hai_Sol",
+  "HH AY1 Z OW1 L @Hai_Sohl",
+  "HH EY1 S AO1 L @Hey_Soll",
+  "HH EY1 Z AO1 L @Hey_Zoll",
+  "HH AY1 S AO1 L @Hai_Soll",
+  "HH AY1 Z AO1 L @Hai_Zoll"
 ].join("\n") + "\n";
 
 async function download(url, target) {
@@ -119,7 +125,16 @@ try {
       .map(line => line.trim().split(/\s+/)[0])
       .filter(Boolean)
   );
-  for (const token of ["HH", "EY1", "S", "Z", "OW1", "L"]) {
+  for (const token of [
+    "HH",
+    "EY1",
+    "AY1",
+    "S",
+    "Z",
+    "OW1",
+    "AO1",
+    "L"
+  ]) {
     if (!tokenSet.has(token)) {
       throw new Error(`Hey-Sol-KWS-Token fehlt: ${token}`);
     }
@@ -181,7 +196,7 @@ const sourceText = `SOL HOLO / PAM'S HOLO – LOKALE SPRECHERERKENNUNG\n\n` +
 `Erwartete und geprüfte SHA-256: ${ERES2NET_MODEL_SHA256}\n\n` +
 `Lokale Weckruferkennung: ${KWS_MODEL_DIR}\n` +
 `Quelle: ${KWS_MODEL_URL}\n` +
-`Zweck: Open-Vocabulary-Erkennung ausschließlich für „Hey Sol“ direkt im lokalen Mikrofonstrom.\n` +
+`Zweck: Open-Vocabulary-Erkennung ausschließlich für „Hey Sol“ direkt im lokalen Mikrofonstrom. Enge Lautvarianten decken die deutsche Aussprache von „Hey“ sowie ein langes oder kurzes „o“ in „Sol“ ab; alle Varianten werden intern auf denselben exakten Weckruf normalisiert.\n` +
 `Erwartete und geprüfte SHA-256: ${KWS_MODEL_SHA256}\n` +
 `Ausgeliefert werden nur der quantisierte Encoder und Joiner, der Decoder, die Tokenliste und die lokale Hey-Sol-Definition.\n\n` +
 `Lizenzbasis des 3D-Speaker-Projekts: Apache License 2.0\n\n` +
