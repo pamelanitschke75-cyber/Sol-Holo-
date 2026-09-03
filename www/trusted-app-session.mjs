@@ -2,6 +2,10 @@ const BACKEND_URL = "https://sol-holo.onrender.com";
 const OWNER_ID = "pam-sol";
 const SESSION_HEADER = "x-sol-holo-trusted-session";
 const SESSION_ACTION = "bind_trusted_app_session";
+const RETRYABLE_CHALLENGE_ERRORS = new Set([
+  "TRUSTED_SESSION_CHALLENGE_INVALID",
+  "TRUSTED_SESSION_CHALLENGE_EXPIRED"
+]);
 
 let sessionToken = "";
 let sessionExpiresAtMillis = 0;
@@ -156,6 +160,37 @@ async function freshAuthorization(plugin) {
   return grant.authorizationId;
 }
 
+function challengeForNative(challenge) {
+  const issuedAtMillis = Number(challenge?.issuedAtMillis);
+  const expiresAtMillis = Number(challenge?.expiresAtMillis);
+  if (
+    !Number.isSafeInteger(issuedAtMillis) ||
+    !Number.isSafeInteger(expiresAtMillis) ||
+    issuedAtMillis <= 0 ||
+    expiresAtMillis <= issuedAtMillis
+  ) {
+    throw new TrustedSessionClientError(
+      "TRUSTED_SESSION_CHALLENGE_INVALID",
+      "Die neue Server-Challenge für die sichere App-Sitzung ist ungültig."
+    );
+  }
+
+  // Decimal strings cross the Capacitor bridge without Android turning an
+  // epoch-millisecond value into a different numeric wrapper or precision.
+  return {
+    ...challenge,
+    issuedAtMillis: String(issuedAtMillis),
+    expiresAtMillis: String(expiresAtMillis)
+  };
+}
+
+function isRetryableChallengeError(error) {
+  return Boolean(
+    RETRYABLE_CHALLENGE_ERRORS.has(String(error?.code || "")) ||
+    Number(error?.status) === 410
+  );
+}
+
 async function completeChallenge({
   identity,
   device,
@@ -165,7 +200,7 @@ async function completeChallenge({
 }) {
   const expectedGeneration = sessionGeneration;
   const signed = await plugin.signTrustedSessionChallenge({
-    ...challenge,
+    ...challengeForNative(challenge),
     ownerId: identity.ownerId,
     registrationId: device.registrationId,
     authorizationId
@@ -291,41 +326,66 @@ async function establishTrustedAppSession({
     return { trusted: false, unavailable: true };
   }
   const device = await registeredDevice(plugin);
-  let challenge;
-  try {
-    challenge = await requestChallenge(identity, device);
-  } catch (error) {
-    if (error?.code !== "TRUSTED_SESSION_DEVICE_NOT_BOUND") {
-      throw error;
-    }
-    if (!interactive) {
-      offerAuthorization(
-        authorizationId,
-        authorizationExpiresAtMillis
-      );
-      return { trusted: false, needsBootstrap: true };
-    }
-    await bootstrapDevice(identity, device);
-    challenge = await requestChallenge(identity, device);
-    // Returning from the Google owner proof locks the app. Its normal Android
-    // unlock supplies a new one-time grant here, so no second prompt is needed.
-    authorizationId = takeOfferedAuthorization() ||
-      await waitForOfferedAuthorization();
-  }
-
   if (!authorizationId) {
     if (!interactive) {
       return { trusted: false, needsAuthorization: true };
     }
     authorizationId = await freshAuthorization(plugin);
   }
-  return completeChallenge({
-    identity,
-    device,
-    challenge,
-    authorizationId,
-    plugin
-  });
+
+  let bootstrapPerformed = false;
+  let challengeRetryCount = 0;
+  while (true) {
+    try {
+      // A challenge is deliberately requested only after a usable Android
+      // authorization exists. It is kept inside this single attempt and can
+      // therefore never be replayed from an earlier click or app unlock.
+      const challenge = await requestChallenge(identity, device);
+      return await completeChallenge({
+        identity,
+        device,
+        challenge,
+        authorizationId,
+        plugin
+      });
+    } catch (error) {
+      if (
+        error?.code === "TRUSTED_SESSION_DEVICE_NOT_BOUND" &&
+        !bootstrapPerformed
+      ) {
+        if (!interactive) {
+          offerAuthorization(
+            authorizationId,
+            authorizationExpiresAtMillis
+          );
+          return { trusted: false, needsBootstrap: true };
+        }
+        bootstrapPerformed = true;
+        await bootstrapDevice(identity, device);
+        // Returning from the Google owner proof locks the app. Its normal
+        // Android unlock supplies a separate, still-fresh one-time grant.
+        authorizationId = takeOfferedAuthorization() ||
+          await waitForOfferedAuthorization();
+        if (!authorizationId) {
+          authorizationId = await freshAuthorization(plugin);
+        }
+        continue;
+      }
+
+      if (
+        interactive &&
+        challengeRetryCount === 0 &&
+        isRetryableChallengeError(error)
+      ) {
+        challengeRetryCount += 1;
+        // The failed attempt and its one-time grant are never reused. Android
+        // confirms a new grant first; only then is a new challenge requested.
+        authorizationId = await freshAuthorization(plugin);
+        continue;
+      }
+      throw error;
+    }
+  }
 }
 
 export async function ensureTrustedAppSession(options = {}) {

@@ -116,7 +116,6 @@ public final class SolAccessSecurityPlugin extends Plugin {
         "owner_personal_services";
     private static final String TRUSTED_SESSION_PACKAGE =
         "com.solholo.app";
-    private static final long TRUSTED_SESSION_CLOCK_SKEW_MS = 60_000L;
     private static final long TRUSTED_SESSION_MAX_CHALLENGE_MS = 3 * 60_000L;
 
     private final SecureRandom secureRandom = new SecureRandom();
@@ -392,8 +391,12 @@ public final class SolAccessSecurityPlugin extends Plugin {
         String packageName = call.getString("packageName", "");
         String purpose = call.getString("purpose", "");
         String action = call.getString("action", "");
-        Long issuedAtMillis = call.getLong("issuedAtMillis", null);
-        Long expiresAtMillis = call.getLong("expiresAtMillis", null);
+        Long issuedAtMillis = SecurityFactorPolicy.parseEpochMillis(
+            call.getData().opt("issuedAtMillis")
+        );
+        Long expiresAtMillis = SecurityFactorPolicy.parseEpochMillis(
+            call.getData().opt("expiresAtMillis")
+        );
 
         long now = System.currentTimeMillis();
         String localRegistrationId = prefs(ownerId).getString(
@@ -422,13 +425,11 @@ public final class SolAccessSecurityPlugin extends Plugin {
                 || !getContext().getPackageName().equals(packageName)
                 || !TRUSTED_SESSION_PURPOSE.equals(purpose)
                 || !TRUSTED_SESSION_ACTION.equals(action)
-                || issuedAtMillis == null
-                || expiresAtMillis == null
-                || issuedAtMillis <= 0L
-                || expiresAtMillis <= issuedAtMillis
-                || expiresAtMillis - issuedAtMillis > TRUSTED_SESSION_MAX_CHALLENGE_MS
-                || issuedAtMillis > now + TRUSTED_SESSION_CLOCK_SKEW_MS
-                || expiresAtMillis <= now - TRUSTED_SESSION_CLOCK_SKEW_MS
+                || !SecurityFactorPolicy.isTrustedSessionChallengeWindowValid(
+                    issuedAtMillis,
+                    expiresAtMillis,
+                    TRUSTED_SESSION_MAX_CHALLENGE_MS
+                )
         ) {
             if (nonce != null) Arrays.fill(nonce, (byte)0);
             call.reject(
