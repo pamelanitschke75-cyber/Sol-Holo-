@@ -1,6 +1,7 @@
 package com.solholo.app;
 
 import android.Manifest;
+import android.app.ActivityOptions;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -44,6 +45,10 @@ public class HeyHoSolService extends Service {
 
     private static final String CHANNEL_ID = "hey_ho_sol_background";
     private static final int NOTIFICATION_ID = 2408;
+    private static final int WAKE_ACTIVITY_REQUEST_CODE = 2409;
+    private static final long WAKE_ACTIVITY_PENDING_DELAY_MILLIS = 320L;
+    private static final long WAKE_ACTIVITY_DIRECT_FALLBACK_DELAY_MILLIS = 900L;
+    private static final long WAKE_ACTIVITY_CONFIRM_DELAY_MILLIS = 2_600L;
     private static final int SECURE_SAMPLE_RATE = SolWakeKeywordSpotter.SAMPLE_RATE;
     private static final int SECURE_RING_SECONDS = 5;
     private static final int KEYWORD_PREROLL_SAMPLES =
@@ -639,7 +644,7 @@ public class HeyHoSolService extends Service {
 
     private void openSolHolo() {
         if (HeyHoSolPlugin.isActivityVisible()) {
-            launchSolHoloActivity();
+            launchSolHoloActivityDirectly();
             return;
         }
         if (!Settings.canDrawOverlays(this)) {
@@ -650,11 +655,67 @@ public class HeyHoSolService extends Service {
         if (!showWakeOverlay()) {
             return;
         }
-        mainHandler.postDelayed(this::launchSolHoloActivity, 320L);
+        mainHandler.postDelayed(
+            this::launchSolHoloActivity,
+            WAKE_ACTIVITY_PENDING_DELAY_MILLIS
+        );
+        mainHandler.postDelayed(
+            this::launchSolHoloActivityDirectlyIfStillHidden,
+            WAKE_ACTIVITY_DIRECT_FALLBACK_DELAY_MILLIS
+        );
         mainHandler.postDelayed(this::removeWakeOverlay, 2_000L);
+        mainHandler.postDelayed(
+            this::confirmWakeActivityVisible,
+            WAKE_ACTIVITY_CONFIRM_DELAY_MILLIS
+        );
     }
 
     private void launchSolHoloActivity() {
+        Intent launchIntent = createWakeLaunchIntent();
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            launchSolHoloActivityDirectly(launchIntent);
+            return;
+        }
+
+        // Ab Android 14 muss der Absender eines PendingIntent seine
+        // Hintergrundstart-Berechtigung ausdrücklich weitergeben. Für Apps,
+        // die Android 15 als Ziel verwenden, gilt dasselbe zusätzlich für den
+        // Ersteller. Pam hat den Hintergrundmodus und die sichtbare
+        // Einblendfreigabe bewusst aktiviert; deshalb werden beide Seiten nur
+        // für diesen owner-geprüften Weckruf freigegeben.
+        ActivityOptions creatorOptions = ActivityOptions.makeBasic();
+        creatorOptions.setPendingIntentCreatorBackgroundActivityStartMode(
+            ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+        );
+        PendingIntent wakePendingIntent = PendingIntent.getActivity(
+            this,
+            WAKE_ACTIVITY_REQUEST_CODE,
+            launchIntent,
+            PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_IMMUTABLE,
+            creatorOptions.toBundle()
+        );
+        ActivityOptions senderOptions = ActivityOptions.makeBasic();
+        senderOptions.setPendingIntentBackgroundActivityStartMode(
+            ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+        );
+
+        try {
+            wakePendingIntent.send(
+                this,
+                0,
+                null,
+                null,
+                null,
+                null,
+                senderOptions.toBundle()
+            );
+        } catch (PendingIntent.CanceledException | RuntimeException error) {
+            saveError("Android konnte den freigegebenen Hintergrundstart nicht ausführen.");
+            launchSolHoloActivityDirectly(launchIntent);
+        }
+    }
+
+    private Intent createWakeLaunchIntent() {
         Intent launchIntent = new Intent(this, MainActivity.class);
         launchIntent.addFlags(
             Intent.FLAG_ACTIVITY_NEW_TASK
@@ -662,11 +723,38 @@ public class HeyHoSolService extends Service {
                 | Intent.FLAG_ACTIVITY_SINGLE_TOP
         );
         launchIntent.putExtra("hey_ho_sol_wake", true);
+        return launchIntent;
+    }
+
+    private void launchSolHoloActivityDirectlyIfStillHidden() {
+        if (!HeyHoSolPlugin.isActivityVisible()) {
+            launchSolHoloActivityDirectly();
+        }
+    }
+
+    private void launchSolHoloActivityDirectly() {
+        launchSolHoloActivityDirectly(createWakeLaunchIntent());
+    }
+
+    private void launchSolHoloActivityDirectly(Intent launchIntent) {
         try {
             startActivity(launchIntent);
         } catch (RuntimeException error) {
             saveError("Android hat das automatische Öffnen im Hintergrund verhindert.");
         }
+    }
+
+    private void confirmWakeActivityVisible() {
+        if (HeyHoSolPlugin.isActivityVisible()) {
+            saveError("");
+            updateBackgroundNotification("Hey Pam erkannt · Sol ist offen");
+            return;
+        }
+
+        saveError(
+            "Hey Pam wurde erkannt, aber Android hat Pams Holo nicht automatisch geöffnet."
+        );
+        updateBackgroundNotification("Hey Pam erkannt · hier tippen zum Öffnen");
     }
 
     private boolean showWakeOverlay() {
@@ -756,7 +844,7 @@ public class HeyHoSolService extends Service {
     }
 
     private Notification buildNotification(String text) {
-        Intent openIntent = new Intent(this, MainActivity.class);
+        Intent openIntent = createWakeLaunchIntent();
         PendingIntent openPendingIntent = PendingIntent.getActivity(
             this,
             0,
@@ -782,6 +870,13 @@ public class HeyHoSolService extends Service {
             .setOngoing(true)
             .setCategory(Notification.CATEGORY_SERVICE)
             .setVisibility(Notification.VISIBILITY_PRIVATE)
+            .addAction(
+                new Notification.Action.Builder(
+                    android.R.drawable.ic_menu_view,
+                    "Sol öffnen",
+                    openPendingIntent
+                ).build()
+            )
             .addAction(
                 new Notification.Action.Builder(
                     android.R.drawable.ic_media_pause,

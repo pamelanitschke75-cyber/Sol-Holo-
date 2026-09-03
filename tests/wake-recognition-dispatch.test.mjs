@@ -177,3 +177,44 @@ test("eine vorhandene Hey-Pam-Vorlage verlangt nach Ablehnung keinen neuen Siche
     /einmal Sicherheit testen/u
   );
 });
+
+test("Android 14 und 15 erhalten beide Freigaben für den Hintergrundstart", () => {
+  assert.match(serviceSource, /import android\.app\.ActivityOptions;/u);
+  assert.match(
+    serviceSource,
+    /setPendingIntentCreatorBackgroundActivityStartMode\(\s*ActivityOptions\.MODE_BACKGROUND_ACTIVITY_START_ALLOWED\s*\)/u
+  );
+  assert.match(
+    serviceSource,
+    /setPendingIntentBackgroundActivityStartMode\(\s*ActivityOptions\.MODE_BACKGROUND_ACTIVITY_START_ALLOWED\s*\)/u
+  );
+  assert.match(
+    serviceSource,
+    /PendingIntent\.getActivity\([\s\S]*?creatorOptions\.toBundle\(\)/u
+  );
+  assert.match(
+    serviceSource,
+    /wakePendingIntent\.send\([\s\S]*?senderOptions\.toBundle\(\)/u
+  );
+  assert.match(
+    serviceSource,
+    /PendingIntent\.FLAG_CANCEL_CURRENT \| PendingIntent\.FLAG_IMMUTABLE/u
+  );
+});
+
+test("blockierter Hintergrundstart bleibt sichtbar und hat einen sicheren Tipp-Rückweg", () => {
+  assert.match(
+    serviceSource,
+    /launchSolHoloActivityDirectlyIfStillHidden/u
+  );
+  assert.match(serviceSource, /confirmWakeActivityVisible/u);
+  assert.match(
+    serviceSource,
+    /Hey Pam erkannt · hier tippen zum Öffnen/u
+  );
+  assert.match(serviceSource, /"Sol öffnen"/u);
+  assert.match(
+    serviceSource,
+    /launchIntent\.putExtra\("hey_ho_sol_wake", true\)/u
+  );
+});

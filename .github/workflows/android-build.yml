@@ -395,6 +395,12 @@ jobs:
             android/app/src/main/java/com/solholo/app/HeyHoSolPlugin.java
           grep -q "publishPendingWakeEvent" \
             android/app/src/main/java/com/solholo/app/HeyHoSolPlugin.java
+          grep -q "setPendingIntentCreatorBackgroundActivityStartMode" \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          grep -q "setPendingIntentBackgroundActivityStartMode" \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          grep -q 'Hey Pam erkannt · hier tippen zum Öffnen' \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q "sendPendingWakePrompt" \
             android/app/src/main/assets/public/index.html
           grep -q "Bitte prüfe jetzt genau meine Stimme" \
