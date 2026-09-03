@@ -4,14 +4,15 @@ public final class WakeVoiceTemplateSelectorTest {
     private static final int FRAME_SAMPLES = 320;
 
     public static void main(String[] args) {
-        selectsHeySolBeforeTheLongSentenceContinues();
+        selectsHeyPamBeforeTheLongSentenceContinues();
+        selectsTheSameHeyPamFromTestAndLiveCapture();
         ignoresAShortLeadingNoise();
         capsContinuousSpeechToTheWakePhraseWindow();
         rejectsSilence();
         System.out.println("WakeVoiceTemplateSelectorTest: OK");
     }
 
-    private static void selectsHeySolBeforeTheLongSentenceContinues() {
+    private static void selectsHeyPamBeforeTheLongSentenceContinues() {
         short[] audio = new short[260 * FRAME_SAMPLES];
         fillFrames(audio, 20, 48, (short)5000);
         fillFrames(audio, 70, 210, (short)5000);
@@ -23,6 +24,38 @@ public final class WakeVoiceTemplateSelectorTest {
             45 * FRAME_SAMPLES,
             "Nur der führende Weckruf darf als Vorlage ausgewählt werden"
         );
+    }
+
+    private static void selectsTheSameHeyPamFromTestAndLiveCapture() {
+        short[] securityTest = new short[260 * FRAME_SAMPLES];
+        fillFrames(securityTest, 20, 48, (short)5000);
+        fillFrames(securityTest, 70, 210, (short)5000);
+
+        short[] liveWakeWithPostroll = new short[60 * FRAME_SAMPLES];
+        fillFrames(liveWakeWithPostroll, 10, 38, (short)5000);
+
+        float[] savedTemplate = WakeVoiceTemplateSelector.extract(
+            securityTest,
+            securityTest.length
+        );
+        float[] liveWake = WakeVoiceTemplateSelector.extract(
+            liveWakeWithPostroll,
+            liveWakeWithPostroll.length
+        );
+
+        if (savedTemplate.length != liveWake.length) {
+            throw new AssertionError(
+                "Sicherheitstest und echter Hey-Pam-Weckruf müssen gleich geschnitten werden"
+            );
+        }
+        for (int index = 0; index < savedTemplate.length; index++) {
+            if (savedTemplate[index] != liveWake[index]) {
+                throw new AssertionError(
+                    "Der echte Hey-Pam-Weckruf weicht an Position " + index
+                        + " von der gespeicherten Vorlage ab"
+                );
+            }
+        }
     }
 
     private static void ignoresAShortLeadingNoise() {

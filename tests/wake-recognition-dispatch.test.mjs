@@ -14,6 +14,10 @@ const speakerPluginSource = await readFile(
   new URL("../android-native/SolSpeakerIdentityPlugin.java", import.meta.url),
   "utf8"
 );
+const uiSource = await readFile(
+  new URL("../www/sol-holo-ui.js", import.meta.url),
+  "utf8"
+);
 const installerSource = await readFile(
   new URL("../scripts/install-speaker-identity.mjs", import.meta.url),
   "utf8"
@@ -41,6 +45,52 @@ test("derselbe lokale PCM-Strom erreicht Weckruf- und Sprecherprüfung", () => {
   );
   assert.match(serviceSource, /session\.finishAndSnapshot\(\)/u);
   assert.match(serviceSource, /SolSpeakerIdentityPlugin\.verifyWakeAudio/u);
+});
+
+test("nach erkanntem Hey Pam bleibt das Mikrofon für das Wortende offen", () => {
+  const pump = methodSource(
+    "private void pump(SecureAudioListener listener)",
+    "short[] finishAndSnapshot()"
+  );
+  assert.match(
+    serviceSource,
+    /KEYWORD_POSTROLL_SAMPLES\s*=\s*SECURE_SAMPLE_RATE \* 350 \/ 1000/u
+  );
+  assert.match(
+    pump,
+    /keywordPostrollEndSample = captured\.totalWritten\(\)\s*\+ KEYWORD_POSTROLL_SAMPLES/u
+  );
+  assert.match(
+    pump,
+    /captured\.totalWritten\(\) >= keywordPostrollEndSample/u
+  );
+  assert.match(
+    pump,
+    /keywordAudioStart = Math\.max\([\s\S]*?\);\s*keywordPostrollEndSample = captured\.totalWritten\(\)/u,
+    "Nach dem Keyword-Treffer muss zuerst der Nachlauf geplant werden"
+  );
+});
+
+test("echter Weckruf und Sicherheitstest verwenden denselben Hey-Pam-Ausschnitt", () => {
+  const verificationStart = speakerPluginSource.indexOf(
+    "static WakeVerification verifyWakeAudio("
+  );
+  const verificationEnd = speakerPluginSource.indexOf(
+    "private static float[] computeEmbedding(",
+    verificationStart
+  );
+  assert.notEqual(verificationStart, -1);
+  assert.notEqual(verificationEnd, -1);
+  const verification = speakerPluginSource.slice(
+    verificationStart,
+    verificationEnd
+  );
+  assert.match(
+    verification,
+    /WakeVoiceTemplateSelector\.extract\(\s*captured,\s*capturedCount\s*\)/u
+  );
+  assert.doesNotMatch(verification, /MIN_WAKE_ACTIVE_FRAMES/u);
+  assert.doesNotMatch(verification, /MAX_WAKE_SPEECH_GAP_FRAMES/u);
 });
 
 test("Samsung muss keine aufgenommene Datei an SpeechRecognizer übernehmen", () => {
@@ -111,5 +161,19 @@ test("bestehende 3-von-3-Profile migrieren nur die kurze Hey-Pam-Vorlage", () =>
     speakerPluginSource,
     /PROFILE_VERSION\s*=\s*4/u,
     "Das vorhandene 3-von-3-Profil darf nicht gelöscht werden"
+  );
+});
+
+test("eine vorhandene Hey-Pam-Vorlage verlangt nach Ablehnung keinen neuen Sicherheitstest", () => {
+  assert.match(speakerPluginSource, /boolean templateUsed = templateScored/u);
+  assert.doesNotMatch(
+    speakerPluginSource,
+    /templateUsed\s*=\s*templateAccepted/u
+  );
+  const rejectionStart = uiSource.indexOf('event?.stage === "owner_rejected"');
+  assert.notEqual(rejectionStart, -1);
+  assert.doesNotMatch(
+    uiSource.slice(rejectionStart, rejectionStart + 500),
+    /einmal Sicherheit testen/u
   );
 });

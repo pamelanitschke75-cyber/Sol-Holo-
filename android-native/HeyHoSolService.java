@@ -48,6 +48,8 @@ public class HeyHoSolService extends Service {
     private static final int SECURE_RING_SECONDS = 5;
     private static final int KEYWORD_PREROLL_SAMPLES =
         SECURE_SAMPLE_RATE * 350 / 1000;
+    private static final int KEYWORD_POSTROLL_SAMPLES =
+        SECURE_SAMPLE_RATE * 350 / 1000;
     private static final int MIN_SECURE_CAPTURE_SAMPLES =
         SECURE_SAMPLE_RATE * 500 / 1000;
     private static final String SECURE_WAKE_PHRASE =
@@ -144,6 +146,7 @@ public class HeyHoSolService extends Service {
         private void pump(SecureAudioListener listener) {
             short[] buffer = new short[1600];
             SolWakeKeywordSpotter.Detection detection = null;
+            long keywordPostrollEndSample = Long.MAX_VALUE;
             String failure = "";
 
             try {
@@ -156,12 +159,19 @@ public class HeyHoSolService extends Service {
                         continue;
                     }
                     captured.append(buffer, count);
-                    detection = keywordSpotter.accept(buffer, count);
-                    if (detection != null) {
-                        keywordAudioStart = Math.max(
-                            0L,
-                            detection.firstTokenSample - KEYWORD_PREROLL_SAMPLES
-                        );
+                    if (detection == null) {
+                        detection = keywordSpotter.accept(buffer, count);
+                        if (detection != null) {
+                            keywordAudioStart = Math.max(
+                                0L,
+                                detection.firstTokenSample - KEYWORD_PREROLL_SAMPLES
+                            );
+                            keywordPostrollEndSample = captured.totalWritten()
+                                + KEYWORD_POSTROLL_SAMPLES;
+                        }
+                    } else if (
+                        captured.totalWritten() >= keywordPostrollEndSample
+                    ) {
                         active.set(false);
                         break;
                     }

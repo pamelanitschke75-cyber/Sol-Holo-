@@ -86,7 +86,7 @@ public final class WakeCaptureEndpointerTest {
         );
         assertTrue(
             detector.acceptPcm16LittleEndian(utterance, utterance.length),
-            "Eine kurze Pause zwischen Hey und Sol muss erlaubt bleiben"
+            "Eine kurze Pause zwischen Hey und Pam muss erlaubt bleiben"
         );
     }
 

@@ -55,11 +55,8 @@ public class SolSpeakerIdentityPlugin extends Plugin {
     private static final int RECORD_MS = 5200;
     private static final int FRAME_SAMPLES = 320;
     private static final int MIN_ACTIVE_FRAMES = 45;
-    private static final int MIN_WAKE_ACTIVE_FRAMES = 12;
     private static final int MAX_SPEECH_GAP_FRAMES = 12;
-    private static final int MAX_WAKE_SPEECH_GAP_FRAMES = 24;
     private static final int SPEECH_PADDING_FRAMES = 6;
-    private static final int WAKE_SPEECH_PADDING_FRAMES = 10;
     private static final float MIN_SPEECH_RMS = 0.008f;
     private static final int REQUIRED_SAMPLES = 3;
 
@@ -467,13 +464,12 @@ public class SolSpeakerIdentityPlugin extends Plugin {
             throw new IllegalStateException("Stimmprofil ist nicht vollständig eingerichtet");
         }
 
-        float[] voicedSamples = extractVoicedSamples(
+        // Use exactly the same short-clause selector that created the saved
+        // owner template. Different segmentation here can turn one identical
+        // "Hey Pam" into two incompatible speaker embeddings.
+        float[] voicedSamples = WakeVoiceTemplateSelector.extract(
             captured,
-            capturedCount,
-            MIN_WAKE_ACTIVE_FRAMES,
-            MAX_WAKE_SPEECH_GAP_FRAMES,
-            WAKE_SPEECH_PADDING_FRAMES,
-            "Hey Pam war zu kurz oder zu leise"
+            capturedCount
         );
         SpeakerEmbeddingExtractor localCampplusExtractor = null;
         SpeakerEmbeddingExtractor localEres2netExtractor = null;
@@ -508,6 +504,7 @@ public class SolSpeakerIdentityPlugin extends Plugin {
             );
             boolean templateAvailable = isWakeVoiceReady(context);
             boolean templateAccepted = false;
+            boolean templateScored = false;
             float templateCampplusScore = Float.NaN;
             float templateEres2netScore = Float.NaN;
 
@@ -523,6 +520,7 @@ public class SolSpeakerIdentityPlugin extends Plugin {
                         WAKE_ERES2NET_TEMPLATE_KEY,
                         eres2netEmbedding
                     );
+                    templateScored = true;
                     templateAccepted = SpeakerVerificationPolicy.isWakeTemplateOwner(
                         templateCampplusScore,
                         templateEres2netScore
@@ -569,11 +567,15 @@ public class SolSpeakerIdentityPlugin extends Plugin {
                     .apply();
             }
 
-            boolean templateUsed = templateAccepted;
-            float campplusScore = templateAccepted
+            // "templateUsed" tells the UI whether a usable personal template
+            // was actually compared. It must not be confused with acceptance;
+            // otherwise every ordinary rejection falsely asks Pam to repeat
+            // the already completed security test.
+            boolean templateUsed = templateScored;
+            float campplusScore = templateScored
                 ? templateCampplusScore
                 : profileCampplus.score;
-            float eres2netScore = templateAccepted
+            float eres2netScore = templateScored
                 ? templateEres2netScore
                 : profileEres2net.score;
 
