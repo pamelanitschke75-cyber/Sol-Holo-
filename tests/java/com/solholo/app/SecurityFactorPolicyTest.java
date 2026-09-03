@@ -33,6 +33,8 @@ public final class SecurityFactorPolicyTest {
         rejectsCrossOwnerEvidenceEvenWhenFactorsOtherwisePass();
         rejectsCrossOwnerWatchProof();
         rejectsCrossOwnerAndReplayedGrant();
+        acceptsExactTrustedSessionTimestampsAcrossBridgeTypes();
+        rejectsInvalidTrustedSessionChallengeWindows();
         rejectsMissingOrUnknownOwnerWithoutFallback();
         bindsEverySignedInstanceToExactlyOneOwner();
         allowsDeviceReplacementOnlyWithCryptographicRecoveryKey();
@@ -466,6 +468,63 @@ public final class SecurityFactorPolicyTest {
         );
     }
 
+    private static void acceptsExactTrustedSessionTimestampsAcrossBridgeTypes() {
+        long issued = 1_788_459_556_000L;
+        assertEquals(
+            issued,
+            SecurityFactorPolicy.parseEpochMillis(Long.valueOf(issued)),
+            "Long-Zeitstempel aus Android muss exakt bleiben"
+        );
+        assertEquals(
+            issued,
+            SecurityFactorPolicy.parseEpochMillis(Double.valueOf(issued)),
+            "Double-Zeitstempel aus der WebView muss exakt normalisiert werden"
+        );
+        assertEquals(
+            issued,
+            SecurityFactorPolicy.parseEpochMillis(String.valueOf(issued)),
+            "Dezimalstring aus der Capacitor-Brücke muss exakt lesbar sein"
+        );
+        assertTrue(
+            SecurityFactorPolicy.isTrustedSessionChallengeWindowValid(
+                issued,
+                issued + 120_000L,
+                180_000L
+            ),
+            "Eine frische zweiminütige Server-Challenge muss akzeptiert werden"
+        );
+    }
+
+    private static void rejectsInvalidTrustedSessionChallengeWindows() {
+        long issued = 1_788_459_556_000L;
+        assertEquals(
+            null,
+            SecurityFactorPolicy.parseEpochMillis(Double.valueOf(issued + 0.5d)),
+            "Bruchteile dürfen keinen kryptografischen Zeitstempel bilden"
+        );
+        assertEquals(
+            null,
+            SecurityFactorPolicy.parseEpochMillis("1788459556000.5"),
+            "Nicht-ganzzahlige Zeitstrings müssen abgewiesen werden"
+        );
+        assertFalse(
+            SecurityFactorPolicy.isTrustedSessionChallengeWindowValid(
+                issued,
+                issued,
+                180_000L
+            ),
+            "Eine leere Challenge-Laufzeit muss abgewiesen werden"
+        );
+        assertFalse(
+            SecurityFactorPolicy.isTrustedSessionChallengeWindowValid(
+                issued,
+                issued + 180_001L,
+                180_000L
+            ),
+            "Eine überlange Challenge-Laufzeit muss abgewiesen werden"
+        );
+    }
+
     private static void rejectsMissingOrUnknownOwnerWithoutFallback() {
         assertReason(
             "OWNER_NOT_ALLOWED",
@@ -643,6 +702,14 @@ public final class SecurityFactorPolicyTest {
 
     private static void assertEquals(int expected, int actual, String message) {
         if (expected != actual) {
+            throw new AssertionError(
+                message + ": expected=" + expected + ", actual=" + actual
+            );
+        }
+    }
+
+    private static void assertEquals(Object expected, Object actual, String message) {
+        if (expected == null ? actual != null : !expected.equals(actual)) {
             throw new AssertionError(
                 message + ": expected=" + expected + ", actual=" + actual
             );

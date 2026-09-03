@@ -326,6 +326,55 @@ public final class SecurityFactorPolicy {
         return new GrantDecision(true, "GRANT_ACCEPTED");
     }
 
+    /**
+     * Reads an epoch-millisecond value without depending on the concrete
+     * numeric wrapper chosen by the Capacitor JSON bridge. Decimal strings are
+     * accepted as an exact transport representation; fractions and overflow
+     * are rejected.
+     */
+    public static Long parseEpochMillis(Object value) {
+        if (value instanceof Number) {
+            Number number = (Number) value;
+            double decimal = number.doubleValue();
+            if (!Double.isFinite(decimal) || Math.rint(decimal) != decimal) {
+                return null;
+            }
+            long parsed = number.longValue();
+            return (double) parsed == decimal ? parsed : null;
+        }
+        if (value instanceof String) {
+            String text = ((String) value).trim();
+            if (!text.matches("[0-9]{1,19}")) {
+                return null;
+            }
+            try {
+                return Long.parseLong(text);
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Validates the signed challenge shape and its bounded lifetime. Absolute
+     * expiry is enforced by the issuing backend; native code additionally
+     * requires a fresh one-time Android grant and therefore does not depend on
+     * a possibly drifting phone wall clock.
+     */
+    public static boolean isTrustedSessionChallengeWindowValid(
+        Long issuedAtMillis,
+        Long expiresAtMillis,
+        long maximumLifetimeMillis
+    ) {
+        return issuedAtMillis != null
+            && expiresAtMillis != null
+            && issuedAtMillis > 0L
+            && expiresAtMillis > issuedAtMillis
+            && maximumLifetimeMillis > 0L
+            && expiresAtMillis - issuedAtMillis <= maximumLifetimeMillis;
+    }
+
     public static Decision evaluate(
         Operation operation,
         String ownerId,
