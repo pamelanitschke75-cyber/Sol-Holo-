@@ -2819,7 +2819,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
   async function consumePendingWakeEvent() {
     const plugin = getHeyHoSolPlugin();
-    if (!plugin) {
+    if (!plugin || document.visibilityState !== "visible") {
       return;
     }
 
@@ -2982,11 +2982,48 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       return;
     }
 
+    // Native Weckereignisse können eintreffen, während die alte WebView noch
+    // hinter einer anderen App pausiert. Der in SharedPreferences gehaltene
+    // Einmal-Weckruf wird beim sichtbaren Resume erneut konsumiert. So fordert
+    // WebRTC das Mikrofon erst an, wenn Pams Sprachfenster wirklich sichtbar ist.
+    if (document.visibilityState !== "visible") {
+      return;
+    }
+
+    if (event?.lockedAtDetection === true) {
+      if (event?.speakerVerified !== true) {
+        console.error("Hey-Pam-Sperrmodus ohne Sprecherfreigabe abgelehnt.");
+        return;
+      }
+
+      const hookDeadline = Date.now() + 1_500;
+      while (
+        typeof window.beginSolHoloVerifiedLockedWakeSession !== "function" &&
+        Date.now() < hookDeadline
+      ) {
+        await new Promise(resolve => window.setTimeout(resolve, 25));
+      }
+
+      const beginLockedVoice =
+        window.beginSolHoloVerifiedLockedWakeSession;
+      if (
+        typeof beginLockedVoice !== "function" ||
+        await beginLockedVoice(event) !== true
+      ) {
+        console.error("Der geprüfte Hey-Pam-Sperrmodus konnte nicht starten.");
+        return;
+      }
+    }
+
     lastWakeDetectedAt = detectedAt;
     pendingWakePrompt = String(
       event?.phrase || "Hey Pam"
     );
-    showToast("Stimme freigegeben · Sol startet ✨");
+    showToast(
+      event?.lockedAtDetection === true
+        ? "Stimme freigegeben · Sol spricht im Sperrmodus ✨"
+        : "Stimme freigegeben · Sol startet ✨"
+    );
     await startSolVoice();
   }
 

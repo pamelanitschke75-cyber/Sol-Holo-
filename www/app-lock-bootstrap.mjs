@@ -4,6 +4,7 @@ import {
 
 const APP_OWNER_ID = "pam-sol";
 const APP_ACCESS_ACTION = "unlock_app";
+const VERIFIED_LOCKED_WAKE_MAX_AGE_MILLIS = 120_000;
 
 const bootScreen = document.getElementById("solHoloBootScreen");
 const app = document.getElementById("app");
@@ -11,9 +12,14 @@ const app = document.getElementById("app");
 let authenticationInProgress = false;
 let unlocked = false;
 let hiddenAtMillis = 0;
+let verifiedLockedVoiceSession = false;
 
 function securityPlugin() {
   return window.Capacitor?.Plugins?.SolAccessSecurity || null;
+}
+
+function wakePlugin() {
+  return window.Capacitor?.Plugins?.HeyHoSol || null;
 }
 
 function isNativeAndroidApp() {
@@ -68,7 +74,9 @@ function lockMarkup({ needsRegistration = false, message = "" } = {}) {
 }
 
 function showLocked(options = {}) {
+  verifiedLockedVoiceSession = false;
   unlocked = false;
+  document.documentElement.classList.remove("solholo-locked-voice");
   document.documentElement.classList.add("solholo-booting");
   bootScreen.hidden = false;
   bootScreen.removeAttribute("aria-hidden");
@@ -77,8 +85,10 @@ function showLocked(options = {}) {
 }
 
 function revealApp() {
+  verifiedLockedVoiceSession = false;
   unlocked = true;
   hiddenAtMillis = 0;
+  document.documentElement.classList.remove("solholo-locked-voice");
   document.documentElement.classList.remove("solholo-booting");
   bootScreen.hidden = true;
   bootScreen.setAttribute("aria-hidden", "true");
@@ -86,7 +96,24 @@ function revealApp() {
 }
 
 function lockAfterBackground() {
-  if (!unlocked || authenticationInProgress) return;
+  if (authenticationInProgress) return;
+  if (verifiedLockedVoiceSession) {
+    const plugin = wakePlugin();
+    if (plugin && typeof plugin.finishLockedVoiceSession === "function") {
+      void plugin.finishLockedVoiceSession().catch(() => {});
+    }
+    showLocked({
+      message:
+        "Das Gespräch im Sperrbildschirm wurde beendet. Deine persönlichen Inhalte bleiben geschützt."
+    });
+    try {
+      if (typeof window.stopLiveConversation === "function") {
+        void window.stopLiveConversation();
+      }
+    } catch {}
+    return;
+  }
+  if (!unlocked) return;
   showLocked({
     message:
       "Pam’s Holo wurde nach dem Verlassen der App wieder sicher gesperrt."
@@ -98,8 +125,72 @@ function lockAfterBackground() {
   } catch {}
 }
 
+function isVerifiedLockedWake(event) {
+  const detectedAt = Number(event?.detectedAt || 0);
+  const ageMillis = Date.now() - detectedAt;
+  return event?.detected === true &&
+    event?.lockedAtDetection === true &&
+    event?.speakerVerified === true &&
+    detectedAt > 0 &&
+    ageMillis >= 0 &&
+    ageMillis <= VERIFIED_LOCKED_WAKE_MAX_AGE_MILLIS;
+}
+
+function enterVerifiedLockedVoiceSession(event) {
+  if (!isVerifiedLockedWake(event)) return false;
+
+  verifiedLockedVoiceSession = true;
+  unlocked = false;
+  hiddenAtMillis = 0;
+  document.documentElement.classList.remove("solholo-booting");
+  document.documentElement.classList.add("solholo-locked-voice");
+  bootScreen.hidden = true;
+  bootScreen.setAttribute("aria-hidden", "true");
+  app?.removeAttribute("aria-hidden");
+  window.dispatchEvent(new CustomEvent(
+    "sol-holo-locked-voice-session",
+    { detail: { active: true, detectedAt: Number(event.detectedAt) } }
+  ));
+  return true;
+}
+
+async function enterPendingVerifiedLockedWake() {
+  const plugin = wakePlugin();
+  if (!plugin || typeof plugin.peekWakeEvent !== "function") return false;
+  try {
+    return enterVerifiedLockedVoiceSession(await plugin.peekWakeEvent());
+  } catch {
+    return false;
+  }
+}
+
+async function restoreVisibleAccess() {
+  if (await enterPendingVerifiedLockedWake()) return;
+  await authenticateAndReveal();
+}
+
+window.beginSolHoloVerifiedLockedWakeSession = async event =>
+  enterVerifiedLockedVoiceSession(event);
+
+window.finishSolHoloVerifiedLockedWakeSession = () => {
+  if (!verifiedLockedVoiceSession) return false;
+  const plugin = wakePlugin();
+  if (plugin && typeof plugin.finishLockedVoiceSession === "function") {
+    void plugin.finishLockedVoiceSession().catch(() => {});
+  }
+  showLocked({
+    message:
+      "Das Sperrbildschirm-Gespräch ist beendet. Pam’s Holo bleibt sicher gesperrt."
+  });
+  window.dispatchEvent(new CustomEvent(
+    "sol-holo-locked-voice-session",
+    { detail: { active: false } }
+  ));
+  return true;
+};
+
 async function authenticateAndReveal({ needsRegistration = false } = {}) {
-  if (authenticationInProgress) return;
+  if (authenticationInProgress || verifiedLockedVoiceSession) return;
   const identity = boundIdentity();
   const plugin = securityPlugin();
   const statusNode = document.getElementById("solHoloAppLockStatus");
@@ -197,7 +288,13 @@ async function initializeAppLock() {
 
   showLocked({ message: "Sicherheitsstatus wird lokal geprüft …" });
   try {
+    if (await enterPendingVerifiedLockedWake()) {
+      return;
+    }
     const status = await plugin.getStatus({ ownerId: APP_OWNER_ID });
+    if (verifiedLockedVoiceSession) {
+      return;
+    }
     if (status?.ownerId !== APP_OWNER_ID) {
       throw new Error("OWNER_SCOPE_MISMATCH");
     }
@@ -226,7 +323,7 @@ document.addEventListener("visibilitychange", () => {
     !unlocked &&
     hiddenAtMillis > 0
   ) {
-    void authenticateAndReveal();
+    void restoreVisibleAccess();
   }
 });
 

@@ -206,9 +206,10 @@ Sol Holo läuft als eigene Android-Anwendung.
 
 ✅ Sol kann den Sprachdialog anschließend im Hintergrund fortsetzen.
 
-⚠️ Die Android-Entsperrung bleibt erhalten. Der am 04.09.2026 erneut geprüfte
-Weckablauf bei gesperrtem Gerät und ausgeschaltetem Display ist bis zum neuen
-Galaxy-S23-Praxistest wieder offen.
+⚠️ Die Android-Gerätesperre bleibt erhalten. Der neue owner-geprüfte
+Sprachmodus startet jedoch direkt darüber und benötigt kein vorheriges
+Entsperren. Dieser Ablauf ist intern geprüft; der Galaxy-S23-Praxistest mit
+gesperrtem Gerät und ausgeschaltetem Display ist noch offen.
 
 Der aktuelle Entwicklungsstand wurde unter anderem auf einem:
 
@@ -397,9 +398,12 @@ zwei lokalen Sprecherverfahren Pams gespeicherte Besitzerstimme.
 ✅ Der App-Start aus einer anderen geöffneten App und der weiterlaufende
 Sprachdialog im Hintergrund funktionieren.
 
-⚠️ Am gesperrten Gerät wird die Android-Entsperrung weiterhin nicht umgangen.
-Die zuverlässige Erkennung mit Display aus und die anschließende Übergabe
-müssen nach der Reparatur erneut auf demselben Galaxy S23 bestätigt werden.
+⚠️ Am gesperrten Gerät wird Androids Gerätesperre weiterhin nicht aufgehoben.
+Nach lokal erkanntem Weckruf und bestätigter Besitzerstimme öffnet sich aber
+der reine Sprachmodus darüber und beginnt das Gespräch ohne Tipp und ohne
+vorheriges Entsperren. Normale App-Inhalte bleiben verdeckt; kritische Aktionen
+behalten ihre eigene Bestätigung. Erkennung, Sofortantwort und Rückkehr hinter
+die Sperre müssen nun auf demselben Galaxy S23 praktisch bestätigt werden.
 
 Frühere Tests mit „Hallo Sol“ bleiben historische Entwicklungsversuche. Sie
 sind keine aktuelle alternative Ansprechformel. Sol ist der Name der

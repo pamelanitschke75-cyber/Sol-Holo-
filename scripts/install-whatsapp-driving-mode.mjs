@@ -72,8 +72,8 @@ if (!mainActivity.includes("registerPlugin(WhatsAppDrivingModePlugin.class)")) {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(WhatsAppDrivingModePlugin.class);
-        super.onCreate(savedInstanceState);
         applyWakeScreenBehavior(getIntent());
+        super.onCreate(savedInstanceState);
     }
 
     @Override
@@ -94,12 +94,16 @@ if (!mainActivity.includes("registerPlugin(WhatsAppDrivingModePlugin.class)")) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true);
             setTurnScreenOn(true);
+            getWindow().addFlags(
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+            );
             return;
         }
 
         getWindow().addFlags(
             WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
                 | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+                | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
         );
     }
 }`
@@ -156,13 +160,13 @@ if (!mainActivity.includes("registerPlugin(HealthConnectPlugin.class)")) {
 }
 
 if (!mainActivity.includes("handleSharedNoteIntent(this, getIntent())")) {
-  const createMarker = "        applyWakeScreenBehavior(getIntent());\n    }";
+  const createMarker = "        super.onCreate(savedInstanceState);\n    }";
   if (!mainActivity.includes(createMarker)) {
     throw new Error("onCreate-Markierung für Samsung Notes nicht gefunden.");
   }
   mainActivity = mainActivity.replace(
     createMarker,
-    "        applyWakeScreenBehavior(getIntent());\n" +
+    "        super.onCreate(savedInstanceState);\n" +
       "        PhoneContactsPlugin.handleSharedNoteIntent(this, getIntent());\n    }"
   );
 }

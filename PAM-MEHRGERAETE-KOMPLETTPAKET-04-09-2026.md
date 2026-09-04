@@ -30,6 +30,11 @@ weil Android, Wear OS und Alexa keine gemeinsame Binärdatei ausführen können:
 - Gilt in Pam’s Holo, auf dem Startbildschirm, in Kalender, WhatsApp,
   Google-Apps, Telefon-App, Netflix, Samsung Notes, jeder anderen App, am
   Sperrbildschirm und bei ausgeschaltetem Display.
+- Nach bestandener lokaler Besitzerstimmenprüfung öffnet sich der reine
+  Sprachmodus direkt über dem Android-Sperrbildschirm und Pam antwortet ohne
+  Tipp und ohne vorheriges Entsperren. Die Gerätesperre selbst bleibt aktiv;
+  normale App-Inhalte bleiben verdeckt und kritische Aktionen behalten ihre
+  eigene Bestätigung.
 - Ein aktiver Telefon-/WhatsApp-Anruf oder eine fremde Aufnahme darf Androids
   Mikrofon vorübergehend belegen. Nach Freigabe muss sich der Weckdienst ohne
   erneutes Drücken selbst verbinden.

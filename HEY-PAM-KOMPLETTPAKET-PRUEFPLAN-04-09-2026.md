@@ -2,9 +2,9 @@
 
 **Stand:** 04.09.2026
 
-**Status:** **BUILD 145 AUF DEM GALAXY S23 NICHT BESTANDEN · BUILD 146 INTERN
-BESTANDEN, ABER WEGEN DER ERWEITERTEN NEUSTART-/UPDATE-ANFORDERUNG NICHT
-FREIGEGEBEN**
+**Status:** **BUILD 145 AUF DEM GALAXY S23 NICHT BESTANDEN · DIREKTER
+SPERRBILDSCHIRM-SPRACHDIALOG INTERN BESTANDEN · NEUER ORIGINALSIGNIERTER BUILD
+UND S23-PRAXISTEST AUSSTEHEND**
 
 Dieser Stand wird nicht als abgeschlossen bezeichnet, bevor die gesamte
 Nutzungskette auf Pams echtem Samsung Galaxy S23 bestanden ist. Einzelne grüne
@@ -25,11 +25,13 @@ auf ein neues Handy gehören zu derselben Gesamtkette.
 2. Eine partielle Android-Wake-Lock hält die lokale Keyword- und
    Sprechererkennung auch bei ausgeschaltetem Display rechenbereit.
 3. Nach lokal erkanntem „Hey Pam“ und bestandener Besitzerstimmenprüfung wacht
-   der Bildschirm mit einem inhaltsarmen Hinweis auf.
-4. PIN, Fingerabdruck, Gesichtserkennung und die Android-Gerätesperre werden
-   nicht umgangen.
-5. Nach Pams echter Geräteentsperrung wird derselbe Weckvorgang automatisch an
-   Pams Holo übergeben. Der Weckvorgang bleibt dafür bis zu 120 Sekunden gültig.
+   der Bildschirm auf und öffnet direkt Pams reinen Sprachmodus.
+4. Pam antwortet sofort per Stimme. Dafür ist weder ein Tipp noch das vorherige
+   Entsperren des Smartphones nötig.
+5. PIN, Fingerabdruck, Gesichtserkennung und die Android-Gerätesperre werden
+   dabei nicht aufgehoben. Der normale App-Inhalt bleibt verdeckt und kritische
+   Aktionen behalten ihre eigene Sicherheitsbestätigung. Nach Gesprächsende
+   verschwindet der Sprachmodus wieder hinter die Gerätesperre.
 6. Nach Ende einer Sprachsitzung oder Rückkehr aus Samsung Notes, Kalender oder
    einer anderen App nimmt derselbe Weckdienst das Lauschen wieder auf.
 
@@ -101,8 +103,8 @@ Teilfälle ändern daran nichts.
 | App geöffnet | „Hey Pam“ startet 3 von 3 Versuchen | mit Build 145 bestanden; nach Sperrfehler jedoch ohne Selbstheilung |
 | Beliebige App im Vordergrund: Kalender, WhatsApp, Google, Telefon-App, Netflix und Samsung Notes | Je App Weckruf einschließlich Sprachdialog; die Paketwahl darf den Weckdienst nicht verändern | mit Build 145 grundsätzlich für eine andere App bestanden; breite Korrektur-Abnahme offen |
 | Rückkehr nach aktivem Telefon-/WhatsApp-Anruf oder anderer Mikrofonbelegung | Ohne erneutes Drücken automatisch wieder hörbereit | neu in Korrektur-Abnahme; offen |
-| Sperrbildschirm sichtbar | Erkennung, sicherer Hinweis, Übergabe nach Pams Entsperrung: 3 von 3 | mit Build 145 nicht bestanden; Korrektur-Build ausstehend |
-| Display vollständig aus | Erkennung, Bildschirmhinweis, sichere Übergabe: 3 von 3 | mit Build 145 nicht bestanden; Korrektur-Build ausstehend |
+| Sperrbildschirm sichtbar | „Hey Pam“, Besitzerstimme und sofortige gesprochene Antwort ohne Tipp/Entsperren: 3 von 3 | mit Build 145 nicht bestanden; direkter Sprachmodus intern geprüft; neuer S23-Test ausstehend |
+| Display vollständig aus | Wecken, Besitzerprüfung und sofortige gesprochene Antwort ohne Tipp/Entsperren: 3 von 3 | mit Build 145 nicht bestanden; direkter Sprachmodus intern geprüft; neuer S23-Test ausstehend |
 | Rückkehr aus Samsung Notes oder Kalender | Sprach-Audio funktioniert und „Hey Pam“ ist danach erneut bereit | offen |
 | Sprachdialog beenden, sperren, erneut wecken | Keine festhängende Pause und keine zweite Mikrofoninstanz | offen |
 | Handy vollständig neu starten | Gespeicherter Hintergrundmodus bleibt; **Jetzt aktivieren** führt nach einem Tipp direkt zur Hörbereitschaft | neu in Korrektur-Build; Praxistest ausstehend |

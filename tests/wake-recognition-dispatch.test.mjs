@@ -456,33 +456,91 @@ test("Sperren und normales Entsperren ersetzen eine festgefahrene Sitzung", () =
   );
 });
 
-test("ein bestätigter Weckruf wartet sicher auf die echte Geräteentsperrung", () => {
+test("ein bestätigter Weckruf startet den Sprachdialog direkt über der Gerätesperre", () => {
   const handleWake = methodSource(
     "private void handleWakePhrase(String phrase)",
     "private boolean isDeviceLocked()"
   );
   assert.match(
     handleWake,
-    /if \(isDeviceLocked\(\)\) \{\s*beginLockedWakeHandoff\(\)/u
+    /boolean deviceLocked = isDeviceLocked\(\)/u
   );
+  assert.match(
+    handleWake,
+    /publishWakeEvent\(this, phrase, deviceLocked\)/u
+  );
+  assert.match(handleWake, /if \(deviceLocked\) \{\s*beginLockedWakeHandoff\(\)/u);
   assert.match(serviceSource, /Intent\.ACTION_USER_PRESENT/u);
   assert.match(serviceSource, /showLockedWakeOverlay\(\)/u);
   assert.match(serviceSource, /wakeScreenForSecureHandoff\(\)/u);
   assert.match(serviceSource, /continueWakeAfterDeviceUnlock\(\)/u);
+  const lockedHandoff = methodSource(
+    "private void beginLockedWakeHandoff()",
+    "private void continueWakeAfterDeviceUnlock()"
+  );
+  assert.match(lockedHandoff, /this::launchSolHoloActivity/u);
   assert.match(
-    serviceSource,
-    /if \(!isDeviceLocked\(\)\) \{\s*continueWakeAfterDeviceUnlock\(\);\s*return;/u,
-    "Ein Entsperren während der Empfänger-Anmeldung darf nicht verloren gehen"
+    lockedHandoff,
+    /this::launchSolHoloActivityDirectlyIfStillHidden/u
+  );
+  assert.ok(
+    lockedHandoff.indexOf("this::launchSolHoloActivity")
+      < lockedHandoff.indexOf("if (!isDeviceLocked())"),
+    "Der Sprachdialog muss schon vor dem Entsperren gestartet werden"
   );
   assert.match(
     serviceSource,
-    /Entsperre dein Handy sicher – Sol wartet bereits\./u
+    /if \(!isDeviceLocked\(\)\) \{\s*continueWakeAfterDeviceUnlock\(\);\s*return;/u,
+    "Entsperren während des Starts bleibt ein zusätzlicher Fallback"
+  );
+  assert.match(
+    serviceSource,
+    /Stimme bestätigt – Sol spricht jetzt mit dir\./u
+  );
+  assert.match(
+    pluginSource,
+    /PENDING_SPEAKER_VERIFIED_KEY/u
+  );
+  assert.match(pluginSource, /public void peekWakeEvent\(PluginCall call\)/u);
+  assert.match(pluginSource, /event\.put\("lockedAtDetection", lockedAtDetection\)/u);
+  assert.match(pluginSource, /event\.put\("speakerVerified", speakerVerified && fresh\)/u);
+  assert.match(
+    uiSource,
+    /event\?\.lockedAtDetection === true[\s\S]*event\?\.speakerVerified !== true/u
+  );
+  assert.match(
+    uiSource,
+    /if \(document\.visibilityState !== "visible"\) \{\s*return;/u,
+    "Das Gespräch darf das WebRTC-Mikrofon erst in der sichtbaren Sperrbildschirm-Activity übernehmen"
+  );
+  assert.match(
+    uiSource,
+    /async function consumePendingWakeEvent\(\) \{[\s\S]*?if \(!plugin \|\| document\.visibilityState !== "visible"\) \{\s*return;/u,
+    "Eine noch unsichtbare WebView darf den einmaligen Weckruf nicht verbrauchen"
+  );
+  assert.match(
+    uiSource,
+    /await beginLockedVoice\(event\) !== true[\s\S]*await startSolVoice\(\)/u
   );
   assert.doesNotMatch(
     serviceSource,
     /requestDismissKeyguard|FLAG_DISMISS_KEYGUARD/u,
     "Pams Android-Gerätesperre darf nicht umgangen werden"
   );
+  assert.match(drivingInstallerSource, /WindowManager\.LayoutParams\.FLAG_KEEP_SCREEN_ON/u);
+  const generatedCreateStart = drivingInstallerSource.indexOf(
+    "public void onCreate(Bundle savedInstanceState)"
+  );
+  const generatedWakeFlags = drivingInstallerSource.indexOf(
+    "applyWakeScreenBehavior(getIntent());",
+    generatedCreateStart
+  );
+  const generatedSuperCreate = drivingInstallerSource.indexOf(
+    "super.onCreate(savedInstanceState);",
+    generatedCreateStart
+  );
+  assert.ok(generatedWakeFlags > generatedCreateStart);
+  assert.ok(generatedSuperCreate > generatedWakeFlags);
 });
 
 test("die sichere Entsperr-Übergabe verwirft den Weckruf nicht nach 30 Sekunden", () => {

@@ -922,8 +922,9 @@ public class HeyHoSolService extends Service {
     private void handleWakePhrase(String phrase) {
         pauseRecognition();
         pausedForConversation = false;
-        HeyHoSolPlugin.publishWakeEvent(this, phrase);
-        if (isDeviceLocked()) {
+        boolean deviceLocked = isDeviceLocked();
+        HeyHoSolPlugin.publishWakeEvent(this, phrase, deviceLocked);
+        if (deviceLocked) {
             beginLockedWakeHandoff();
         } else {
             updateBackgroundNotification("Weckruf erkannt · Sol öffnet sich");
@@ -942,10 +943,27 @@ public class HeyHoSolService extends Service {
 
     private void beginLockedWakeHandoff() {
         lockedWakeHandoffPending = true;
-        updateBackgroundNotification("Hey Pam erkannt · bitte sicher entsperren");
+        updateBackgroundNotification("Hey Pam erkannt · Sol spricht im Sperrmodus");
         showWakeDetectedNotification();
         showLockedWakeOverlay();
         wakeScreenForSecureHandoff();
+
+        // Der owner-geprüfte Weckruf öffnet ausschließlich Pams sichtbaren
+        // Sprachmodus über dem Android-Sperrbildschirm. Android selbst bleibt
+        // gesperrt; kritische Aktionen behalten ihre eigene Bestätigung.
+        mainHandler.postDelayed(
+            this::launchSolHoloActivity,
+            WAKE_ACTIVITY_PENDING_DELAY_MILLIS
+        );
+        mainHandler.postDelayed(
+            this::launchSolHoloActivityDirectlyIfStillHidden,
+            WAKE_ACTIVITY_DIRECT_FALLBACK_DELAY_MILLIS
+        );
+        mainHandler.postDelayed(this::removeWakeOverlay, 2_000L);
+        mainHandler.postDelayed(
+            this::confirmWakeActivityVisible,
+            WAKE_ACTIVITY_CONFIRM_DELAY_MILLIS
+        );
         if (!isDeviceLocked()) {
             continueWakeAfterDeviceUnlock();
             return;
@@ -1205,7 +1223,7 @@ public class HeyHoSolService extends Service {
 
     private boolean showLockedWakeOverlay() {
         return showWakeOverlay(
-            "SH∞  Hey Pam erkannt · bitte entsperren",
+            "SH∞  Stimme erkannt · Sol startet ✨",
             true
         );
     }
@@ -1327,7 +1345,7 @@ public class HeyHoSolService extends Service {
         builder
             .setSmallIcon(getApplicationInfo().icon)
             .setContentTitle("Hey Pam erkannt")
-            .setContentText("Entsperre dein Handy sicher – Sol wartet bereits.")
+            .setContentText("Stimme bestätigt – Sol spricht jetzt mit dir.")
             .setContentIntent(openPendingIntent)
             .setAutoCancel(true)
             .setCategory(Notification.CATEGORY_REMINDER)

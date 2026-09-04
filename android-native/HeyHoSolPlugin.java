@@ -45,7 +45,12 @@ public class HeyHoSolPlugin extends Plugin {
     public static final String MODE_KEY = "hey_ho_sol_mode";
     public static final String PENDING_PHRASE_KEY = "hey_ho_sol_pending_phrase";
     public static final String PENDING_TIME_KEY = "hey_ho_sol_pending_time";
+    public static final String PENDING_LOCKED_KEY = "hey_ho_sol_pending_locked";
+    public static final String PENDING_SPEAKER_VERIFIED_KEY =
+        "hey_ho_sol_pending_speaker_verified";
     public static final String LAST_ERROR_KEY = "hey_ho_sol_last_error";
+
+    private static final long PENDING_WAKE_MAX_AGE_MILLIS = 120_000L;
 
     public static final String MODE_OFF = "off";
     public static final String MODE_FOREGROUND = "foreground";
@@ -299,25 +304,42 @@ public class HeyHoSolPlugin extends Plugin {
     @PluginMethod
     public void consumeWakeEvent(PluginCall call) {
         Context context = getContext();
-        String phrase = context
-            .getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
-            .getString(PENDING_PHRASE_KEY, "");
-        long detectedAt = context
-            .getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
-            .getLong(PENDING_TIME_KEY, 0L);
+        JSObject result = pendingWakeEvent(context);
 
         context
             .getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
             .edit()
             .remove(PENDING_PHRASE_KEY)
             .remove(PENDING_TIME_KEY)
+            .remove(PENDING_LOCKED_KEY)
+            .remove(PENDING_SPEAKER_VERIFIED_KEY)
             .apply();
 
-        JSObject result = new JSObject();
-        result.put("detected", !phrase.isEmpty());
-        result.put("phrase", phrase);
-        result.put("detectedAt", detectedAt);
         call.resolve(result);
+    }
+
+    @PluginMethod
+    public void peekWakeEvent(PluginCall call) {
+        call.resolve(pendingWakeEvent(getContext()));
+    }
+
+    @PluginMethod
+    public void finishLockedVoiceSession(PluginCall call) {
+        runOnMainThread(() -> {
+            Activity activity = getActivity();
+            if (activity != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                    activity.setShowWhenLocked(false);
+                    activity.setTurnScreenOn(false);
+                }
+                activity.getWindow().clearFlags(
+                    android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+                        | android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+                        | android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+                );
+            }
+            call.resolve();
+        });
     }
 
     @PluginMethod
@@ -439,16 +461,52 @@ public class HeyHoSolPlugin extends Plugin {
         }
     }
 
-    public static void publishWakeEvent(Context context, String phrase) {
+    public static void publishWakeEvent(
+        Context context,
+        String phrase,
+        boolean lockedAtDetection
+    ) {
         long detectedAt = System.currentTimeMillis();
         context
             .getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
             .edit()
             .putString(PENDING_PHRASE_KEY, phrase)
             .putLong(PENDING_TIME_KEY, detectedAt)
+            .putBoolean(PENDING_LOCKED_KEY, lockedAtDetection)
+            // This method is called only after both the local keyword model
+            // and Pams enrolled speaker profile accepted the same PCM sample.
+            .putBoolean(PENDING_SPEAKER_VERIFIED_KEY, true)
             .apply();
 
         publishPendingWakeEvent();
+    }
+
+    private static JSObject pendingWakeEvent(Context context) {
+        String phrase = context
+            .getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+            .getString(PENDING_PHRASE_KEY, "");
+        long detectedAt = context
+            .getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+            .getLong(PENDING_TIME_KEY, 0L);
+        boolean lockedAtDetection = context
+            .getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+            .getBoolean(PENDING_LOCKED_KEY, false);
+        boolean speakerVerified = context
+            .getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+            .getBoolean(PENDING_SPEAKER_VERIFIED_KEY, false);
+        long now = System.currentTimeMillis();
+        boolean fresh = detectedAt > 0L
+            && now >= detectedAt
+            && now - detectedAt <= PENDING_WAKE_MAX_AGE_MILLIS;
+
+        JSObject event = new JSObject();
+        event.put("detected", !phrase.isEmpty() && fresh);
+        event.put("phrase", phrase);
+        event.put("detectedAt", detectedAt);
+        event.put("expiresAtMillis", detectedAt + PENDING_WAKE_MAX_AGE_MILLIS);
+        event.put("lockedAtDetection", lockedAtDetection);
+        event.put("speakerVerified", speakerVerified && fresh);
+        return event;
     }
 
     public static void publishPendingWakeEvent() {
@@ -457,20 +515,11 @@ public class HeyHoSolPlugin extends Plugin {
             return;
         }
 
-        Context context = plugin.getContext();
-        String phrase = context
-            .getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
-            .getString(PENDING_PHRASE_KEY, "");
-        long detectedAt = context
-            .getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
-            .getLong(PENDING_TIME_KEY, 0L);
-        if (phrase.isEmpty() || detectedAt <= 0L) {
+        JSObject event = pendingWakeEvent(plugin.getContext());
+        if (!Boolean.TRUE.equals(event.getBool("detected"))) {
             return;
         }
 
-        JSObject event = new JSObject();
-        event.put("phrase", phrase);
-        event.put("detectedAt", detectedAt);
         plugin.notifyListeners("wakePhraseDetected", event, true);
     }
 

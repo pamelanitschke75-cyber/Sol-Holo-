@@ -38,6 +38,14 @@ body{
   visibility:hidden;
 }
 
+.solholo-locked-voice #app{
+  visibility:hidden;
+}
+
+.solholo-locked-voice #app.voice-mode{
+  visibility:visible;
+}
+
 .solholo-booting #solHoloBootScreen{
   position:fixed;
   z-index:99999;
@@ -8624,6 +8632,15 @@ stopLipSync();
 
     await window.resumeHeyHoSolAfterConversation();
   }
+
+
+  if(
+    resumeWake &&
+    typeof window.finishSolHoloVerifiedLockedWakeSession === "function"
+  ){
+
+    window.finishSolHoloVerifiedLockedWakeSession();
+  }
 }
 
 
@@ -9851,8 +9868,8 @@ if(
 
 </script>
 
-<script src="./sol-holo-ui.js?v=42"></script>
-<script type="module" src="./app-lock-bootstrap.mjs?v=4"></script>
+<script src="./sol-holo-ui.js?v=43"></script>
+<script type="module" src="./app-lock-bootstrap.mjs?v=5"></script>
 <script type="module" src="./consent-ui-bootstrap.mjs?v=2"></script>
 <script type="module" src="./sol-holo-backup.mjs?v=1"></script>
 <script>
