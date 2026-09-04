@@ -8515,7 +8515,7 @@ LIVE STOP
 ==========================================================
 */
 
-function stopLiveConversation(
+async function stopLiveConversation(
   options = {}
 ){
 
@@ -8586,8 +8586,7 @@ stopLipSync();
     null;
 
 
-  const audioRouteRestore =
-    restoreSolAudioRoute();
+  await restoreSolAudioRoute();
 
 
   liveButton.classList.remove(
@@ -8613,11 +8612,8 @@ stopLipSync();
     typeof window.resumeHeyHoSolAfterConversation === "function"
   ){
 
-    void window.resumeHeyHoSolAfterConversation();
+    await window.resumeHeyHoSolAfterConversation();
   }
-
-
-  return audioRouteRestore;
 }
 
 

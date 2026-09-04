@@ -397,7 +397,11 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         if (minBuffer <= 0) throw new IllegalStateException("Audio-Puffer nicht verfügbar");
 
         AudioRecord recorder = new AudioRecord(
-            MediaRecorder.AudioSource.VOICE_RECOGNITION,
+            // Enrollment, the explicit security test and the background
+            // wake service must use the same unmodified source. Samsung's
+            // VOICE_RECOGNITION processing can otherwise create a template
+            // that does not match the later MIC wake capture.
+            MediaRecorder.AudioSource.MIC,
             SAMPLE_RATE,
             AudioFormat.CHANNEL_IN_MONO,
             AudioFormat.ENCODING_PCM_16BIT,

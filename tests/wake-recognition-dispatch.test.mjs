@@ -114,6 +114,24 @@ test("Samsung muss keine aufgenommene Datei an SpeechRecognizer übernehmen", ()
   assert.doesNotMatch(serviceSource, /ParcelFileDescriptor|prepareRecognitionSource/u);
 });
 
+test("Sicherheitstest und echter Weckruf verwenden dieselbe Mikrofonquelle", () => {
+  const captureStart = speakerPluginSource.indexOf(
+    "private CapturedVoice captureVoice()"
+  );
+  const captureEnd = speakerPluginSource.indexOf(
+    "static WakeVerification verifyWakeAudio(",
+    captureStart
+  );
+  assert.notEqual(captureStart, -1);
+  assert.notEqual(captureEnd, -1);
+  const captureSource = speakerPluginSource.slice(captureStart, captureEnd);
+  assert.match(captureSource, /MediaRecorder\.AudioSource\.MIC/u);
+  assert.doesNotMatch(
+    captureSource,
+    /MediaRecorder\.AudioSource\.VOICE_RECOGNITION/u
+  );
+});
+
 test("nur Pams owner-gebundenes Hey Pam erreicht beide Besitzerprüfungen", () => {
   assert.match(
     serviceSource,

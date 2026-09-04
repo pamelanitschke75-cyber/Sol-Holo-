@@ -406,6 +406,10 @@ jobs:
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           ! grep -q "MediaRecorder.AudioSource.VOICE_RECOGNITION" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          grep -q "MediaRecorder.AudioSource.MIC" \
+            android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
+          ! grep -q "MediaRecorder.AudioSource.VOICE_RECOGNITION" \
+            android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
           grep -q "keywordSpotter.accept" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q "new PcmRingBuffer" \

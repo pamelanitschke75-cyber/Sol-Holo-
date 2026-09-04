@@ -97,3 +97,21 @@ test("returning from Notes or Android settings restores route and conversation",
     /stopLiveConversation\(\{\s*resumeWake:false\s*\}\)/u
   );
 });
+
+test("the wake listener resumes only after the conversation route is restored", () => {
+  const stopStart = appHtml.indexOf("async function stopLiveConversation(");
+  const stopEnd = appHtml.indexOf(
+    "/*\n==========================================================",
+    stopStart
+  );
+  assert.ok(stopStart >= 0);
+  assert.ok(stopEnd > stopStart);
+  const stopSource = appHtml.slice(stopStart, stopEnd);
+  const restoreIndex = stopSource.indexOf("await restoreSolAudioRoute();");
+  const resumeIndex = stopSource.indexOf(
+    "await window.resumeHeyHoSolAfterConversation();"
+  );
+  assert.ok(restoreIndex >= 0);
+  assert.ok(resumeIndex > restoreIndex);
+  assert.doesNotMatch(stopSource, /void window\.resumeHeyHoSolAfterConversation/u);
+});
