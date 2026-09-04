@@ -2377,7 +2377,13 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   window.executeSolHoloHealthTool = executeHealthTool;
 
   function samsungNoteTextFromNaturalRequest(message) {
-    const cleanMessage = String(message || "").trim();
+    const cleanMessage = String(message || "")
+      .trim()
+      .replace(
+        /^(?:(?:hey|hallo|hello)\s+(?:pam|sol)|sol)\s*[,;:!.-]?\s*/i,
+        ""
+      )
+      .trim();
     const patterns = [
       /^(?:schreib(?:e)?|notier(?:e)?|trag(?:e)?|pack(?:e)?|setz(?:e)?)\s+(?:mir\s+)?(?:bitte\s+)?(.+?)\s+(?:bitte\s+)?(?:in|zu)\s+(?:(?:meine|die)\s+)?(?:samsungs?(?:\s+|-))?(?:notes?|noten|notizen)(?:\s+(?:rein|hinein|ein))?[.!?]*$/i,
       /^(?:schreib(?:e)?|notier(?:e)?|trag(?:e)?|pack(?:e)?|setz(?:e)?)\s+(?:mir\s+)?(?:bitte\s+)?(?:in|zu)\s+(?:(?:meine|die)\s+)?(?:samsungs?(?:\s+|-))?(?:notes?|noten|notizen)(?:\s+(?:rein|hinein|ein))?\s*[:,-]?\s*(?:bitte\s+)?(.+?)[.!?]*$/i
@@ -2399,7 +2405,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   function samsungNoteInsertionFromNaturalRequest(message) {
     const cleanMessage = String(message || "")
       .trim()
-      .replace(/^(?:(?:hey\s+)?sol)\s*[,;:!.-]?\s*/i, "")
+      .replace(
+        /^(?:(?:hey|hallo|hello)\s+(?:pam|sol)|sol)\s*[,;:!.-]?\s*/i,
+        ""
+      )
       .trim();
     const match = cleanMessage.match(
       /^(?:bitte\s+)?(?:setz(?:e)?|schreib(?:e)?|pack(?:e)?|füg(?:e)?)\s+(?:mir\s+)?(?:bitte\s+)?(.+?)\s+unter\s+(.+?)(?:\s+hinzu)?(?:\s+(?:in|bei|zu)\s+(?:(?:meine|die)\s+)?(?:samsungs?(?:\s+|-))?(?:notes?|noten|notizen))?[.!?]*$/i
@@ -2442,7 +2451,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   window.handleSolHoloLocalAction = async (message) => {
     const cleanMessage = String(message || "").trim();
     const noteMessage = cleanMessage
-      .replace(/^(?:(?:hey\s+)?sol)\s*[,;:!.-]?\s*/i, "")
+      .replace(
+        /^(?:(?:hey|hallo|hello)\s+(?:pam|sol)|sol)\s*[,;:!.-]?\s*/i,
+        ""
+      )
       .trim();
 
     const finishNoteCreation = async (text) => {
@@ -2654,7 +2666,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   window.handleSolHoloRealtimeNoteTranscript = async (message) => {
     const cleanMessage = String(message || "").trim();
     const noteMessage = cleanMessage
-      .replace(/^(?:(?:hey\s+)?sol)\s*[,;:!.-]?\s*/i, "")
+      .replace(
+        /^(?:(?:hey|hallo|hello)\s+(?:pam|sol)|sol)\s*[,;:!.-]?\s*/i,
+        ""
+      )
       .trim();
     const noteIntent =
       pendingPersonalNoteText ||
