@@ -75,6 +75,14 @@ public class HeyHoSolService extends Service {
     private static volatile boolean pausedForConversation;
     private static volatile HeyHoSolService activeService;
 
+    private String currentMode = HeyHoSolPlugin.MODE_OFF;
+    private boolean destroyed;
+    private boolean wakeHandled;
+    private boolean recognitionStarted;
+    private boolean speakerVerificationPending;
+    private boolean foregroundNotificationActive;
+    private long recognitionGeneration;
+
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final ExecutorService speakerExecutor =
         Executors.newSingleThreadExecutor();
@@ -97,13 +105,6 @@ public class HeyHoSolService extends Service {
         }
     };
 
-    private String currentMode = HeyHoSolPlugin.MODE_OFF;
-    private boolean destroyed;
-    private boolean wakeHandled;
-    private boolean recognitionStarted;
-    private boolean speakerVerificationPending;
-    private boolean foregroundNotificationActive;
-    private long recognitionGeneration;
     private SecureAudioSession secureAudioSession;
     private WindowManager wakeOverlayManager;
     private View wakeOverlayView;
