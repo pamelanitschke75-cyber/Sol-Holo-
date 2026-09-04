@@ -2,6 +2,22 @@ name: Pam’s Holo Android APK · Sol Holo
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/android-build.yml"
+      - "assets/**"
+      - "www/**"
+      - "android-native/**"
+      - "scripts/**"
+      - "modules/**"
+      - "tests/**"
+      - "licenses/**"
+      - "server.mjs"
+      - "video-upload-security.mjs"
+      - "package.json"
+      - "package-lock.json"
   push:
     branches:
       - main
@@ -26,6 +42,9 @@ on:
       - "www/sol-holo-ui.css"
       - "www/sol-holo-wow.css"
       - "www/sol-holo-chat-115.css"
+      - "www/sol-holo-backup-core.mjs"
+      - "www/sol-holo-backup.css"
+      - "www/sol-holo-backup.mjs"
       - "www/sol-holo-ui.js"
       - "www/service-worker.js"
       - "www/third-party/**"
@@ -254,6 +273,28 @@ jobs:
 
       - name: Mehrfaktor-Zugriffssicherheit einbinden
         run: node scripts/install-access-security.mjs
+
+      - name: Verschlüsselte Sicherung und Ausschlüsse prüfen
+        run: |
+          set -Eeuo pipefail
+          app_java="android/app/src/main/java/com/solholo/app/MainActivity.java"
+          backup_java="android/app/src/main/java/com/solholo/app/SolBackupPlugin.java"
+          backup_rules="android/app/src/main/res/xml/sol_holo_backup_rules.xml"
+          extraction_rules="android/app/src/main/res/xml/sol_holo_data_extraction_rules.xml"
+          public_assets="android/app/src/main/assets/public"
+
+          test -s "$backup_java"
+          test -s "$public_assets/sol-holo-backup-core.mjs"
+          test -s "$public_assets/sol-holo-backup.mjs"
+          test -s "$public_assets/sol-holo-backup.css"
+          grep -q "registerPlugin(SolBackupPlugin.class)" "$app_java"
+          grep -q "Intent.ACTION_CREATE_DOCUMENT" "$backup_java"
+          grep -q "Intent.ACTION_OPEN_DOCUMENT" "$backup_java"
+          grep -q "sol_holo_access_security_v1_pam-sol.xml" "$backup_rules"
+          grep -q "sol_holo_speaker_identity.xml" "$backup_rules"
+          grep -q "sol_holo_access_security_v1_pam-sol.xml" "$extraction_rules"
+          grep -q "sol_holo_speaker_identity.xml" "$extraction_rules"
+          ! grep -q "READ_EXTERNAL_STORAGE\|WRITE_EXTERNAL_STORAGE" "$backup_java"
 
       - name: Direkte Samsung-Notes-Übergabe prüfen
         run: |

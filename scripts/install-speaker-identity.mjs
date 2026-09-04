@@ -200,7 +200,7 @@ const sourceText = `SOL HOLO / PAM'S HOLO – LOKALE SPRECHERERKENNUNG\n\n` +
 `Ausgeliefert werden nur der quantisierte Encoder und Joiner, der Decoder, die Tokenliste und die lokale Hey-Pam-Definition.\n\n` +
 `Lizenzbasis des 3D-Speaker-Projekts: Apache License 2.0\n\n` +
 `Datenschutz: Die Rohaufnahme wird nur im Arbeitsspeicher verarbeitet und nicht als Audiodatei gespeichert.\n` +
-`Das abgeleitete Stimmprofil wird im privaten App-Speicher des Geräts abgelegt. Android-Backup ist für Sol Holo deaktiviert.\n` +
+`Das abgeleitete Stimmprofil wird im privaten App-Speicher des Geräts abgelegt und ausdrücklich aus Android-Cloud-Backup und Geräteübertragung ausgeschlossen.\n` +
 `Keine Verbindung, Partnerschaft oder Billigung durch Google, Xiaomi, k2-fsa oder ModelScope wird behauptet.\n`;
 writeFileSync(join(publicAssets, "SPEAKER_IDENTITY_SOURCES.txt"), sourceText, "utf8");
 
