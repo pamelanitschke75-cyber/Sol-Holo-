@@ -115,12 +115,20 @@ test("Watch-Weckruf nutzt nur den vorhandenen geprüften Handy-Übergabepfad", (
   assert.doesNotMatch(wearMethod, /startForegroundService|startService/u);
 });
 
-test("CI baut und signiert Handy und Watch mit derselben dauerhaften Identität", () => {
-  assert.match(workflow, /app:assembleRelease wear:assembleRelease/u);
+test("CI liefert eine Pam-Holo-Identität für Handy und Watch", () => {
+  assert.match(workflow, /app:assembleRelease/u);
+  assert.match(workflow, /wear:assembleRelease/u);
+  assert.match(workflow, /app:bundleRelease/u);
+  assert.match(workflow, /wear:bundleRelease/u);
   assert.match(workflow, /wear-release-unsigned\.apk/u);
   assert.match(workflow, /Pams-Holo-Watch8\.apk/u);
+  assert.match(workflow, /Pams-Holo-Handy-Play\.aab/u);
+  assert.match(workflow, /Pams-Holo-Watch8-Play\.aab/u);
+  assert.match(workflow, /jarsigner[\s\S]*?-verify "\$phone_signed_aab"/u);
   assert.match(workflow, /phone_certificate_sha256/u);
   assert.match(workflow, /watch_certificate_sha256/u);
+  assert.match(workflow, /phone_aab_certificate_sha256/u);
+  assert.match(workflow, /watch_aab_certificate_sha256/u);
   assert.match(
     workflow,
     /test "\$phone_certificate_sha256" = "\$watch_certificate_sha256"/u

@@ -588,9 +588,14 @@ jobs:
           print("Alle Mikrofon-Berechtigungen sind gesetzt.")
           PY
 
-      - name: Pam’s Holo Handy- und Watch8-APKs bauen
+      - name: Pam’s Holo Handy- und Watch8-Pakete bauen
         working-directory: android
-        run: ./gradlew app:assembleRelease wear:assembleRelease
+        run: |
+          ./gradlew \
+            app:assembleRelease \
+            wear:assembleRelease \
+            app:bundleRelease \
+            wear:bundleRelease
 
       - name: Lizenzhinweise im gebauten APK verifizieren
         run: |
@@ -640,6 +645,32 @@ jobs:
           unzip -l "$apk" | grep -F "assets/sol-kws-keywords.txt"
           unzip -l "$apk" | grep -F "assets/WEAR_DATA_LAYER_SOURCES.txt"
 
+      - name: Google-Play-Pakete vor der Signierung prüfen
+        run: |
+          set -Eeuo pipefail
+
+          phone_aab="android/app/build/outputs/bundle/release/app-release.aab"
+          watch_aab="android/wear/build/outputs/bundle/release/wear-release.aab"
+
+          for aab in "$phone_aab" "$watch_aab"; do
+            test -s "$aab"
+            unzip -tq "$aab"
+            unzip -Z1 "$aab" | grep -Fx "BundleConfig.pb" >/dev/null
+            unzip -Z1 "$aab" \
+              | grep -Fx "base/manifest/AndroidManifest.xml" >/dev/null
+          done
+
+          unzip -Z1 "$watch_aab" \
+            | grep -Fx "base/assets/sol-kws-encoder.int8.onnx" >/dev/null
+          unzip -Z1 "$watch_aab" \
+            | grep -Fx "base/assets/sol-kws-decoder.onnx" >/dev/null
+          unzip -Z1 "$watch_aab" \
+            | grep -Fx "base/assets/sol-kws-joiner.int8.onnx" >/dev/null
+          unzip -Z1 "$watch_aab" \
+            | grep -Fx "base/assets/sol-kws-tokens.txt" >/dev/null
+          unzip -Z1 "$watch_aab" \
+            | grep -Fx "base/assets/sol-kws-keywords.txt" >/dev/null
+
       - name: Signaturmodus sicher bestimmen
         id: signing_mode
         env:
@@ -663,7 +694,7 @@ jobs:
             echo "Keine Wegwerf-Signatur: APK wird nur als unsignierte Signierquelle bereitgestellt."
           fi
 
-      - name: Pam’s Holo Handy- und Watch8-APKs dauerhaft signieren und prüfen
+      - name: Pam’s Holo Handy-, Watch8- und Play-Pakete dauerhaft signieren und prüfen
         if: steps.signing_mode.outputs.mode == 'update'
         env:
           SOL_HOLO_KEYSTORE_BASE64: ${{ secrets.SOL_HOLO_KEYSTORE_BASE64 }}
@@ -675,11 +706,15 @@ jobs:
 
           phone_unsigned_apk="android/app/build/outputs/apk/release/app-release-unsigned.apk"
           watch_unsigned_apk="android/wear/build/outputs/apk/release/wear-release-unsigned.apk"
+          phone_unsigned_aab="android/app/build/outputs/bundle/release/app-release.aab"
+          watch_unsigned_aab="android/wear/build/outputs/bundle/release/wear-release.aab"
           phone_aligned_apk="$RUNNER_TEMP/Sol-Holo-phone-aligned.apk"
           watch_aligned_apk="$RUNNER_TEMP/Sol-Holo-watch-aligned.apk"
           keystore_file="$RUNNER_TEMP/Sol-Holo-Update-Key.jks"
           phone_signed_apk="android/app/build/outputs/apk/release/Pams-Holo-Update.apk"
           watch_signed_apk="android/wear/build/outputs/apk/release/Pams-Holo-Watch8.apk"
+          phone_signed_aab="android/app/build/outputs/bundle/release/Pams-Holo-Handy-Play.aab"
+          watch_signed_aab="android/wear/build/outputs/bundle/release/Pams-Holo-Watch8-Play.aab"
           android_sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
           test -n "$android_sdk"
           build_tools="$(find "$android_sdk/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
@@ -696,8 +731,11 @@ jobs:
 
           test -f "$phone_unsigned_apk"
           test -f "$watch_unsigned_apk"
+          test -f "$phone_unsigned_aab"
+          test -f "$watch_unsigned_aab"
           test -x "$build_tools/zipalign"
           test -x "$build_tools/apksigner"
+          command -v jarsigner >/dev/null
 
           printf '%s' "$SOL_HOLO_KEYSTORE_BASE64" \
             | base64 --decode > "$keystore_file"
@@ -731,6 +769,22 @@ jobs:
             --pass-encoding utf-8 \
             --out "$watch_signed_apk" \
             "$watch_aligned_apk"
+
+          jarsigner \
+            -keystore "$keystore_file" \
+            -storepass:env SOL_HOLO_KEYSTORE_PASSWORD \
+            -keypass:env SOL_HOLO_KEY_PASSWORD \
+            -signedjar "$phone_signed_aab" \
+            "$phone_unsigned_aab" \
+            "$SOL_HOLO_KEY_ALIAS"
+
+          jarsigner \
+            -keystore "$keystore_file" \
+            -storepass:env SOL_HOLO_KEYSTORE_PASSWORD \
+            -keypass:env SOL_HOLO_KEY_PASSWORD \
+            -signedjar "$watch_signed_aab" \
+            "$watch_unsigned_aab" \
+            "$SOL_HOLO_KEY_ALIAS"
 
           phone_signer_report="$(
             "$build_tools/apksigner" verify --verbose --print-certs "$phone_signed_apk"
@@ -770,6 +824,39 @@ jobs:
           printf '%s\n' "$watch_signer_report" \
             | grep -Fq 'Verified using v3 scheme (APK Signature Scheme v3): true'
 
+          phone_aab_verify_report="$(
+            jarsigner -J-Duser.language=en -J-Duser.country=US \
+              -verify "$phone_signed_aab"
+          )"
+          watch_aab_verify_report="$(
+            jarsigner -J-Duser.language=en -J-Duser.country=US \
+              -verify "$watch_signed_aab"
+          )"
+          printf '%s\n' "$phone_aab_verify_report"
+          printf '%s\n' "$watch_aab_verify_report"
+          [[ "$phone_aab_verify_report" == *"jar verified."* ]]
+          [[ "$watch_aab_verify_report" == *"jar verified."* ]]
+
+          phone_aab_certificate_sha256="$(
+            keytool -J-Duser.language=en -J-Duser.country=US \
+              -printcert -jarfile "$phone_signed_aab" \
+              | sed -n 's/^[[:space:]]*SHA256: //p' \
+              | tr '[:upper:]' '[:lower:]' \
+              | tr -d ':' \
+              | sort -u
+          )"
+          watch_aab_certificate_sha256="$(
+            keytool -J-Duser.language=en -J-Duser.country=US \
+              -printcert -jarfile "$watch_signed_aab" \
+              | sed -n 's/^[[:space:]]*SHA256: //p' \
+              | tr '[:upper:]' '[:lower:]' \
+              | tr -d ':' \
+              | sort -u
+          )"
+          test "$phone_aab_certificate_sha256" = "$expected_certificate_sha256"
+          test "$watch_aab_certificate_sha256" = "$expected_certificate_sha256"
+          test "$phone_aab_certificate_sha256" = "$watch_aab_certificate_sha256"
+
           phone_package_report="$("$build_tools/aapt" dump badging "$phone_signed_apk")"
           watch_package_report="$("$build_tools/aapt" dump badging "$watch_signed_apk")"
           watch_version_code="$((GITHUB_RUN_NUMBER * 10 + 1))"
@@ -787,15 +874,23 @@ jobs:
 
           phone_unsigned_apk="android/app/build/outputs/apk/release/app-release-unsigned.apk"
           watch_unsigned_apk="android/wear/build/outputs/apk/release/wear-release-unsigned.apk"
+          phone_unsigned_aab="android/app/build/outputs/bundle/release/app-release.aab"
+          watch_unsigned_aab="android/wear/build/outputs/bundle/release/wear-release.aab"
           phone_signing_source="android/app/build/outputs/apk/release/Sol-Holo-Signierquelle-unsigned.apk"
           watch_signing_source="android/wear/build/outputs/apk/release/Pams-Holo-Watch8-Signierquelle-unsigned.apk"
+          phone_play_signing_source="android/app/build/outputs/bundle/release/Pams-Holo-Handy-Play-Signierquelle-unsigned.aab"
+          watch_play_signing_source="android/wear/build/outputs/bundle/release/Pams-Holo-Watch8-Play-Signierquelle-unsigned.aab"
 
           test -s "$phone_unsigned_apk"
           test -s "$watch_unsigned_apk"
           cp -- "$phone_unsigned_apk" "$phone_signing_source"
           cp -- "$watch_unsigned_apk" "$watch_signing_source"
+          cp -- "$phone_unsigned_aab" "$phone_play_signing_source"
+          cp -- "$watch_unsigned_aab" "$watch_play_signing_source"
           test -s "$phone_signing_source"
           test -s "$watch_signing_source"
+          test -s "$phone_play_signing_source"
+          test -s "$watch_play_signing_source"
 
       - name: Pam’s Holo Android APK bereitstellen
         uses: actions/upload-artifact@v4
@@ -806,4 +901,8 @@ jobs:
             android/app/build/outputs/apk/release/Sol-Holo-Signierquelle-unsigned.apk
             android/wear/build/outputs/apk/release/Pams-Holo-Watch8.apk
             android/wear/build/outputs/apk/release/Pams-Holo-Watch8-Signierquelle-unsigned.apk
+            android/app/build/outputs/bundle/release/Pams-Holo-Handy-Play.aab
+            android/app/build/outputs/bundle/release/Pams-Holo-Handy-Play-Signierquelle-unsigned.aab
+            android/wear/build/outputs/bundle/release/Pams-Holo-Watch8-Play.aab
+            android/wear/build/outputs/bundle/release/Pams-Holo-Watch8-Play-Signierquelle-unsigned.aab
           if-no-files-found: error
