@@ -79,6 +79,10 @@ public class HeyHoSolService extends Service {
     private static volatile boolean pausedForConversation;
     private static volatile HeyHoSolService activeService;
 
+    interface VerifiedWearWakeCallback {
+        void onResult(boolean dispatched, String message);
+    }
+
     private String currentMode = HeyHoSolPlugin.MODE_OFF;
     private boolean destroyed;
     private boolean wakeHandled;
@@ -442,6 +446,53 @@ public class HeyHoSolService extends Service {
         } else if (HeyHoSolPlugin.isActivityVisible()) {
             context.startService(intent);
         }
+    }
+
+    static void acceptVerifiedWearWake(
+        String phrase,
+        VerifiedWearWakeCallback callback
+    ) {
+        HeyHoSolService service = activeService;
+        if (service == null || !running) {
+            callback.onResult(
+                false,
+                "Bitte Pams Hintergrund-Hören am Handy einmal aktivieren."
+            );
+            return;
+        }
+        String canonicalPhrase = WakePhraseMatcher.canonicalPhrase(phrase);
+        if (canonicalPhrase.isEmpty()) {
+            callback.onResult(false, "Der persönliche Weckruf wurde abgelehnt.");
+            return;
+        }
+
+        service.mainHandler.post(() -> {
+            if (service.destroyed || !running) {
+                callback.onResult(
+                    false,
+                    "Bitte Pams Hintergrund-Hören am Handy einmal aktivieren."
+                );
+                return;
+            }
+            if (service.pausedForConversation) {
+                callback.onResult(false, "Pam spricht bereits mit dir.");
+                return;
+            }
+            if (service.speakerVerificationPending || service.wakeHandled) {
+                callback.onResult(false, "Pam verarbeitet gerade einen Weckruf.");
+                return;
+            }
+
+            service.wakeHandled = true;
+            service.listening = false;
+            service.processingAudio = false;
+            service.saveError("");
+            service.handleWakePhrase(canonicalPhrase);
+            callback.onResult(
+                true,
+                "Pam ist da · sie spricht jetzt über dein Handy."
+            );
+        });
     }
 
     public static boolean isRunning() {
