@@ -54,6 +54,26 @@ test("Sol routes a live conversation to personal audio before speaker fallback",
   assert.ok(speakerFallback > externalSelection);
 });
 
+test("Netflix und andere Medien geben Pam während des Gesprächs den Audiokanal", () => {
+  assert.match(
+    nativeRoute,
+    /AudioManager\.AUDIOFOCUS_GAIN_TRANSIENT/u
+  );
+  assert.match(nativeRoute, /requestConversationAudioFocus\(\)/u);
+  assert.match(nativeRoute, /setWillPauseWhenDucked\(true\)/u);
+  assert.match(nativeRoute, /releaseConversationAudioFocus\(\)/u);
+  assert.match(nativeRoute, /abandonAudioFocusRequest/u);
+
+  const focusRequest = nativeRoute.indexOf(
+    "boolean audioFocusGranted = requestConversationAudioFocus();"
+  );
+  const routeSelection = nativeRoute.indexOf(
+    "RouteSelection route = applyPreferredConversationRoute();"
+  );
+  assert.ok(focusRequest >= 0);
+  assert.ok(routeSelection > focusRequest);
+});
+
 test("the web voice session uses the headset-first native route", () => {
   assert.match(
     appHtml,

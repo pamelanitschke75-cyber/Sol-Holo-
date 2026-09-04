@@ -180,7 +180,7 @@ test("bestehende 3-von-3-Profile migrieren nur die kurze Hey-Pam-Vorlage", () =>
   );
   assert.match(
     speakerPluginSource,
-    /if \(profileAccepted && !templateAccepted\)/u
+    /profileAccepted && !templateAccepted/u
   );
   assert.match(
     speakerPluginSource,
@@ -206,7 +206,10 @@ test("bestehende 3-von-3-Profile migrieren nur die kurze Hey-Pam-Vorlage", () =>
 });
 
 test("eine vorhandene Hey-Pam-Vorlage verlangt nach Ablehnung keinen neuen Sicherheitstest", () => {
-  assert.match(speakerPluginSource, /boolean templateUsed = templateScored/u);
+  assert.match(
+    speakerPluginSource,
+    /boolean templateUsed = templateScore\.scored/u
+  );
   assert.doesNotMatch(
     speakerPluginSource,
     /templateUsed\s*=\s*templateAccepted/u
@@ -223,6 +226,30 @@ test("eine vorhandene Hey-Pam-Vorlage verlangt nach Ablehnung keinen neuen Siche
   );
   assert.match(uiSource, /listener_ready/u);
   assert.match(uiSource, /du musst nichts drücken/u);
+});
+
+test("alle drei Kurzproben bilden Pams robuste Alltags-Stimmbandbreite", () => {
+  assert.match(
+    speakerPluginSource,
+    /MAX_WAKE_VARIATIONS\s*=\s*3/u
+  );
+  assert.match(
+    speakerPluginSource,
+    /putWakeVariation\(editor, next, capturedVoice\.wakePhrase\)/u
+  );
+  assert.match(speakerPluginSource, /scoreAgainstWakeTemplates/u);
+  assert.match(speakerPluginSource, /scoreWakeAgainstProfile/u);
+  assert.match(speakerPluginSource, /rememberVerifiedWakeVariation/u);
+  assert.match(
+    speakerPluginSource,
+    /if \(!duplicate && emptySlot > 0\)/u,
+    "Automatisches Lernen darf nur freie Variantenplätze füllen"
+  );
+  assert.doesNotMatch(
+    speakerPluginSource,
+    /PROFILE_VERSION\s*=\s*4/u,
+    "Das vorhandene 3-von-3-Profil muss beim Update erhalten bleiben"
+  );
 });
 
 test("nach Ablehnung wird eine vollständig frische Mikrofonsitzung automatisch geplant", () => {

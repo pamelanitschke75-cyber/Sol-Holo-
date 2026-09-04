@@ -1,8 +1,10 @@
 package com.solholo.app;
 
 import android.content.Context;
+import android.media.AudioAttributes;
 import android.media.AudioDeviceCallback;
 import android.media.AudioDeviceInfo;
+import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.os.Build;
 import android.os.Handler;
@@ -26,9 +28,18 @@ public class SolAudioRoutePlugin extends Plugin {
     private boolean routeCaptured;
     private boolean deviceCallbackRegistered;
     private boolean legacyBluetoothScoStarted;
+    private boolean conversationAudioFocusHeld;
+    private AudioFocusRequest conversationAudioFocusRequest;
     private int previousMode = AudioManager.MODE_NORMAL;
     private boolean previousSpeakerphoneOn;
     private boolean previousBluetoothScoOn;
+
+    private final AudioManager.OnAudioFocusChangeListener audioFocusListener =
+        focusChange -> {
+            if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
+                conversationAudioFocusHeld = false;
+            }
+        };
 
     private final Runnable routeRefreshRunnable = () -> {
         if (routeCaptured) {
@@ -107,6 +118,7 @@ public class SolAudioRoutePlugin extends Plugin {
         }
 
         capturePreviousRoute();
+        boolean audioFocusGranted = requestConversationAudioFocus();
         registerDeviceCallback();
         RouteSelection route = applyPreferredConversationRoute();
         mainHandler.removeCallbacks(routeRefreshRunnable);
@@ -125,7 +137,51 @@ public class SolAudioRoutePlugin extends Plugin {
         result.put("speakerSelected", route.selected && !route.external);
         result.put("deviceType", route.deviceType);
         result.put("deviceName", route.deviceName);
+        result.put("audioFocusGranted", audioFocusGranted);
         call.resolve(result);
+    }
+
+    @SuppressWarnings("deprecation")
+    private boolean requestConversationAudioFocus() {
+        if (audioManager == null) {
+            return false;
+        }
+        if (conversationAudioFocusHeld) {
+            return true;
+        }
+
+        int result;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (conversationAudioFocusRequest == null) {
+                AudioAttributes attributes = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build();
+                conversationAudioFocusRequest = new AudioFocusRequest.Builder(
+                    AudioManager.AUDIOFOCUS_GAIN_TRANSIENT
+                )
+                    .setAudioAttributes(attributes)
+                    .setOnAudioFocusChangeListener(
+                        audioFocusListener,
+                        mainHandler
+                    )
+                    .setAcceptsDelayedFocusGain(false)
+                    .setWillPauseWhenDucked(true)
+                    .build();
+            }
+            result = audioManager.requestAudioFocus(
+                conversationAudioFocusRequest
+            );
+        } else {
+            result = audioManager.requestAudioFocus(
+                audioFocusListener,
+                AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN_TRANSIENT
+            );
+        }
+        conversationAudioFocusHeld =
+            result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+        return conversationAudioFocusHeld;
     }
 
     private void capturePreviousRoute() {
@@ -424,7 +480,11 @@ public class SolAudioRoutePlugin extends Plugin {
 
     @SuppressWarnings("deprecation")
     private void restorePreviousRoute() {
-        if (audioManager == null || !routeCaptured) {
+        if (audioManager == null) {
+            return;
+        }
+        if (!routeCaptured) {
+            releaseConversationAudioFocus();
             return;
         }
 
@@ -443,6 +503,25 @@ public class SolAudioRoutePlugin extends Plugin {
         audioManager.setSpeakerphoneOn(previousSpeakerphoneOn);
         audioManager.setMode(previousMode);
         legacyBluetoothScoStarted = false;
+        releaseConversationAudioFocus();
+    }
+
+    @SuppressWarnings("deprecation")
+    private void releaseConversationAudioFocus() {
+        if (audioManager == null || !conversationAudioFocusHeld) {
+            return;
+        }
+        if (
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                && conversationAudioFocusRequest != null
+        ) {
+            audioManager.abandonAudioFocusRequest(
+                conversationAudioFocusRequest
+            );
+        } else {
+            audioManager.abandonAudioFocus(audioFocusListener);
+        }
+        conversationAudioFocusHeld = false;
     }
 
     @Override

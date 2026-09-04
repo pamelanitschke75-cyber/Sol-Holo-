@@ -10,6 +10,8 @@ public final class SpeakerVerificationPolicyTest {
         acceptsPamsShortWakeWithUnstableCampplus();
         rejectsSteffisPreviouslyMeasuredRangeForShortWake();
         acceptsVerifiedWakeTemplateOnlyWhenBothModelsAgree();
+        toleratesChangedOwnerVoiceWhenOneModelRemainsStrong();
+        rejectsChangedVoiceWhenTheSecondModelIsNotPlausible();
         keepsFullSentencePolicyStrict();
         rejectsShortWakeWhenOnlyOneModelAgrees();
         rejectsStrongCampplusWhenEres2netDisagrees();
@@ -71,16 +73,42 @@ public final class SpeakerVerificationPolicyTest {
             "Pams passender Hey-Pam-Abgleich muss freigegeben werden"
         );
         assertFalse(
-            SpeakerVerificationPolicy.isWakeTemplateOwner(0.72f, 0.49f),
-            "Modell A allein darf die Weckruf-Vorlage nicht freigeben"
+            SpeakerVerificationPolicy.isWakeTemplateOwner(0.71f, 0.49f),
+            "Ein Grenzwert in Modell A darf Modell B nicht allein ersetzen"
         );
         assertFalse(
-            SpeakerVerificationPolicy.isWakeTemplateOwner(0.49f, 0.82f),
-            "Modell B allein darf die Weckruf-Vorlage nicht freigeben"
+            SpeakerVerificationPolicy.isWakeTemplateOwner(0.29f, 0.82f),
+            "Ein Grenzwert in Modell B darf Modell A nicht allein ersetzen"
         );
         assertFalse(
             SpeakerVerificationPolicy.isWakeTemplateOwner(Float.NaN, 0.82f),
             "Ungültige Weckrufwerte müssen gesperrt werden"
+        );
+    }
+
+    private static void toleratesChangedOwnerVoiceWhenOneModelRemainsStrong() {
+        assertTrue(
+            SpeakerVerificationPolicy.isWakeTemplateOwner(0.335f, 0.774f),
+            "Eine heisere oder erkältete Besitzerstimme darf bei sehr starkem Modell B nicht an Modell A scheitern"
+        );
+        assertTrue(
+            SpeakerVerificationPolicy.isWakeTemplateOwner(0.76f, 0.44f),
+            "Eine veränderte Besitzerstimme darf bei sehr starkem Modell A nicht an einem noch plausiblen Modell B scheitern"
+        );
+    }
+
+    private static void rejectsChangedVoiceWhenTheSecondModelIsNotPlausible() {
+        assertFalse(
+            SpeakerVerificationPolicy.isWakeTemplateOwner(0.29f, 0.90f),
+            "Auch ein sehr starkes Modell B darf eine unplausible zweite Messung nicht übergehen"
+        );
+        assertFalse(
+            SpeakerVerificationPolicy.isWakeTemplateOwner(0.90f, 0.41f),
+            "Auch ein sehr starkes Modell A darf eine unplausible zweite Messung nicht übergehen"
+        );
+        assertFalse(
+            SpeakerVerificationPolicy.isWakeTemplateOwner(0.401f, 0.418f),
+            "Steffis bisher höchster gemessener Bereich muss trotz Alltagstoleranz gesperrt bleiben"
         );
     }
 
