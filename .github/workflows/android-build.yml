@@ -133,8 +133,17 @@ jobs:
       - name: NPM-Sicherheitsbericht ausgeben
         continue-on-error: true
         run: |
-          npm audit --json > npm-audit-all.json || true
-          npm audit --omit=dev --json > npm-audit-runtime.json || true
+          empty_audit='{"metadata":{"vulnerabilities":{}},"vulnerabilities":{}}'
+
+          timeout 60s npm audit --json > npm-audit-all.json || true
+          if [ ! -s npm-audit-all.json ]; then
+            printf '%s\n' "$empty_audit" > npm-audit-all.json
+          fi
+
+          timeout 60s npm audit --omit=dev --json > npm-audit-runtime.json || true
+          if [ ! -s npm-audit-runtime.json ]; then
+            printf '%s\n' "$empty_audit" > npm-audit-runtime.json
+          fi
           node - <<'NODE'
           const fs = require('fs');
 
