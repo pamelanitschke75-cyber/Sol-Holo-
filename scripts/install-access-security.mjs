@@ -37,7 +37,8 @@ for (const required of [mainActivityPath, buildGradlePath, manifestPath]) {
 mkdirSync(javaTarget, { recursive: true });
 for (const fileName of [
   "SecurityFactorPolicy.java",
-  "SolAccessSecurityPlugin.java"
+  "SolAccessSecurityPlugin.java",
+  "SolBackupPlugin.java"
 ]) {
   const source = join(nativeSource, fileName);
   if (!existsSync(source)) {
@@ -82,6 +83,21 @@ if (!activity.includes(registration)) {
   writeFileSync(mainActivityPath, activity, "utf8");
 }
 
+const backupRegistration =
+  "        registerPlugin(SolBackupPlugin.class);";
+if (!activity.includes(backupRegistration)) {
+  if (!activity.includes(registration)) {
+    throw new Error(
+      "Sicherheitsplugin muss vor dem Backup-Plugin registriert sein."
+    );
+  }
+  activity = activity.replace(
+    registration,
+    `${registration}\n${backupRegistration}`
+  );
+  writeFileSync(mainActivityPath, activity, "utf8");
+}
+
 /*
  * Wiederherstellungsgrundlage
  * --------------------------
@@ -89,7 +105,7 @@ if (!activity.includes(registration)) {
  * dürfen Android Auto Backup bzw. Geräteübertragung verwenden. Zwei
  * Sicherheitsbereiche werden absichtlich NICHT übernommen:
  *
- * 1. sol_holo_access_security_v1
+ * 1. sol_holo_access_security_v1_pam-sol
  *    enthält Metadaten zu einem Android-Keystore-Geräteschlüssel. Der private
  *    Schlüssel ist hardwaregebunden und kann nicht sicher auf ein neues Gerät
  *    kopiert werden. Eine wiederhergestellte Metadatei ohne den zugehörigen
@@ -114,6 +130,7 @@ writeFileSync(
     `    <include domain="database" path="." />\n` +
     `    <include domain="sharedpref" path="." />\n` +
     `    <exclude domain="sharedpref" path="sol_holo_access_security_v1.xml" />\n` +
+    `    <exclude domain="sharedpref" path="sol_holo_access_security_v1_pam-sol.xml" />\n` +
     `    <exclude domain="sharedpref" path="sol_holo_speaker_identity.xml" />\n` +
     `</full-backup-content>\n`,
   "utf8"
@@ -128,6 +145,7 @@ writeFileSync(
     `        <include domain="database" path="." />\n` +
     `        <include domain="sharedpref" path="." />\n` +
     `        <exclude domain="sharedpref" path="sol_holo_access_security_v1.xml" />\n` +
+    `        <exclude domain="sharedpref" path="sol_holo_access_security_v1_pam-sol.xml" />\n` +
     `        <exclude domain="sharedpref" path="sol_holo_speaker_identity.xml" />\n` +
     `    </cloud-backup>\n` +
     `    <device-transfer>\n` +
@@ -135,6 +153,7 @@ writeFileSync(
     `        <include domain="database" path="." />\n` +
     `        <include domain="sharedpref" path="." />\n` +
     `        <exclude domain="sharedpref" path="sol_holo_access_security_v1.xml" />\n` +
+    `        <exclude domain="sharedpref" path="sol_holo_access_security_v1_pam-sol.xml" />\n` +
     `        <exclude domain="sharedpref" path="sol_holo_speaker_identity.xml" />\n` +
     `    </device-transfer>\n` +
     `</data-extraction-rules>\n`,
