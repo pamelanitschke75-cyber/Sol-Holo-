@@ -477,6 +477,14 @@ jobs:
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q 'isClientSilenced()' \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          grep -q 'PendingIntent.getForegroundService' \
+            android/app/src/main/java/com/solholo/app/HeyPamRestartReceiver.java
+          grep -q 'android.intent.action.BOOT_COMPLETED' \
+            android/app/src/main/AndroidManifest.xml
+          grep -q 'android.intent.action.MY_PACKAGE_REPLACED' \
+            android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.RECEIVE_BOOT_COMPLETED' \
+            android/app/src/main/AndroidManifest.xml
           grep -q 'PowerManager.PARTIAL_WAKE_LOCK' \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q 'android.permission.WAKE_LOCK' \

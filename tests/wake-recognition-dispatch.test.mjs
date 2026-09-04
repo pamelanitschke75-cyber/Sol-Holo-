@@ -269,6 +269,47 @@ test("Androids stummgeschalteter Mikrofonstrom wird ausdrücklich erkannt", () =
   assert.match(serviceSource, /android\.os\.Process\.THREAD_PRIORITY_AUDIO/u);
 });
 
+test("die sichtbare Fremd-App hat keinen Einfluss auf Pams Hintergrund-Weckruf", () => {
+  const pauseStart = pluginSource.indexOf("protected void handleOnPause()");
+  const pauseEnd = pluginSource.indexOf(
+    "protected void handleOnDestroy()",
+    pauseStart
+  );
+  assert.notEqual(pauseStart, -1);
+  assert.notEqual(pauseEnd, -1);
+  const pauseSource = pluginSource.slice(pauseStart, pauseEnd);
+
+  assert.match(pauseSource, /MODE_FOREGROUND\.equals\(savedMode\(\)\)/u);
+  assert.doesNotMatch(
+    pauseSource,
+    /MODE_BACKGROUND[\s\S]*?stopService/u,
+    "Beim Wechsel zu Kalender, WhatsApp, Google, Telefon, Netflix oder einer anderen App darf der Hintergrunddienst nicht beendet werden"
+  );
+  assert.doesNotMatch(
+    serviceSource,
+    /getRunningAppProcesses|getRunningTasks|UsageStatsManager|queryIntentActivities/u,
+    "Die Weckentscheidung darf nicht von der gerade sichtbaren Fremd-App abhängen"
+  );
+});
+
+test("nach einer fremden Mikrofonbelegung verbindet sich Hey Pam selbst wieder", () => {
+  const health = methodSource(
+    "private void verifyRecognitionHealth()",
+    "private void pauseRecognition()"
+  );
+  assert.match(health, /session\.isClientSilenced\(\)/u);
+  assert.match(health, /scheduleRestart\(350L\)/u);
+  assert.match(
+    serviceSource,
+    /postDelayed\(restartRunnable, delayMillis\)/u
+  );
+  assert.doesNotMatch(
+    health,
+    /MODE_OFF|saveMode\(HeyHoSolPlugin\.MODE_OFF\)/u,
+    "Eine vorübergehende Mikrofonbelegung darf Pams Hintergrundmodus nicht abschalten"
+  );
+});
+
 test("erneutes Tippen auf Hintergrund erzwingt sichtbar einen frischen Start", () => {
   assert.match(serviceSource, /boolean explicitRearmRequested = ACTION_START\.equals\(action\)/u);
   assert.match(

@@ -268,6 +268,21 @@ function markup() {
           owner-gebundenes Servergedächtnis bleibt davon unberührt erhalten.
         </p>
 
+        <section class="solBackupCard" aria-labelledby="solPhoneChangeTitle">
+          <h3 id="solPhoneChangeTitle">Neues Handy – kurz und sicher</h3>
+          <ol class="solBackupHint">
+            <li>Originalsignierte Pam’s-Holo-App installieren.</li>
+            <li>Diese verschlüsselte Sicherung auswählen und wiederherstellen.</li>
+            <li>Das neue Handy bestätigen und Pams Stimme 3× neu aufnehmen.</li>
+            <li>Hintergrund einmal aktivieren – danach greifen auch Neustart und Update.</li>
+          </ol>
+          <p class="solBackupHint">
+            Erinnerungen und Einstellungen bleiben erhalten. Geräteschlüssel und
+            Stimmprofil werden aus Sicherheitsgründen niemals auf ein anderes
+            Handy kopiert.
+          </p>
+        </section>
+
         <section class="solBackupCard" aria-labelledby="solBackupCreateTitle">
           <h3 id="solBackupCreateTitle">Neue Sicherung</h3>
           <label for="solBackupPassword">

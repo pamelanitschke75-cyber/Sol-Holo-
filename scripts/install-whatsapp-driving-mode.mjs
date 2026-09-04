@@ -35,6 +35,7 @@ for (const fileName of [
   "HealthConnectPlugin.java",
   "HealthPrivacyActivity.java",
   "HeyHoSolPlugin.java",
+  "HeyPamRestartReceiver.java",
   "HeyHoSolService.java",
   "WakeCaptureEndpointer.java",
   "WakeRecognitionLifecyclePolicy.java",
@@ -218,6 +219,7 @@ for (const permission of [
   '<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />',
   '<uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />',
   '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
+  '<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />',
   '<uses-permission android:name="android.permission.READ_CONTACTS" />',
   '<uses-permission android:name="android.permission.READ_PHONE_STATE" />',
   '<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />',
@@ -398,6 +400,31 @@ if (!manifest.includes(".HeyHoSolService")) {
   manifest = manifest.replace(
     applicationEnd,
     wakeService + "\n" + applicationEnd
+  );
+}
+
+if (!manifest.includes(".HeyPamRestartReceiver")) {
+  const applicationEnd = "    </application>";
+  if (!manifest.includes(applicationEnd)) {
+    throw new Error("Application-Ende für Hey-Pam-Wiederanlauf nicht gefunden.");
+  }
+
+  const restartReceiver = [
+    "        <receiver",
+    '            android:name=".HeyPamRestartReceiver"',
+    '            android:enabled="true"',
+    '            android:exported="true">',
+    "            <intent-filter>",
+    '                <action android:name="android.intent.action.BOOT_COMPLETED" />',
+    '                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />',
+    "            </intent-filter>",
+    "        </receiver>",
+    ""
+  ].join("\n");
+
+  manifest = manifest.replace(
+    applicationEnd,
+    restartReceiver + "\n" + applicationEnd
   );
 }
 

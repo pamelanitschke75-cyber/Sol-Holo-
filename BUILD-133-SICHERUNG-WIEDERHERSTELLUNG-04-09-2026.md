@@ -34,6 +34,23 @@ wird vor jeder lokalen Änderung abgelehnt.
 Das bereits servergespeicherte, owner-gebundene Vollzeitgedächtnis wird nicht
 verschoben oder gelöscht. Es bleibt unabhängig von der lokalen Datei erhalten.
 
+## Sicherer Handywechsel
+
+Die Sicherungsansicht enthält einen festen, kurzen Ablauf für ein neues Handy:
+
+1. originalsignierte Pam’s-Holo-App installieren,
+2. verschlüsselte Sicherungsdatei auswählen und mit Pams Passwort
+   wiederherstellen,
+3. das neue Gerät mit Android-Systemschutz bestätigen und Pams Stimme dreimal
+   neu aufnehmen,
+4. den Hintergrundmodus einmal aktivieren.
+
+Danach gelten der automatische Sperrwechsel sowie der klare Ein-Tipp-
+Wiederanlauf nach Handy-Neustarts und App-Aktualisierungen auch auf dem neuen
+Gerät. Geräteschlüssel und biometrische Stimmmerkmale werden bewusst nicht vom
+alten Handy kopiert; damit kann ein kopiertes Backup kein fremdes Gerät als Pam
+ausgeben.
+
 ## Strikt ausgeschlossen
 
 - Android-Geräteschlüssel und dauerhafter APK-Signierschlüssel

@@ -654,6 +654,7 @@ public class HeyHoSolService extends Service {
                 }
             });
             listening = true;
+            HeyPamRestartReceiver.cancelReminder(this);
             saveError("");
             HeyHoSolPlugin.publishStatusEvent();
             HeyHoSolPlugin.publishWakeDiagnostic("listener_ready");
@@ -1427,6 +1428,7 @@ public class HeyHoSolService extends Service {
         pauseRecognition();
         mainHandler.removeCallbacks(lockedWakeTimeoutRunnable);
         lockedWakeHandoffPending = false;
+        HeyPamRestartReceiver.cancelReminder(this);
         removeWakeOverlay();
         cancelWakeDetectedNotification();
         if (foregroundNotificationActive) {

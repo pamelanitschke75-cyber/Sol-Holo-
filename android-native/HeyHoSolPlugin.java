@@ -401,6 +401,7 @@ public class HeyHoSolPlugin extends Plugin {
             .apply();
 
         if (MODE_OFF.equals(mode)) {
+            HeyPamRestartReceiver.cancelReminder(getContext());
             getContext().stopService(new Intent(getContext(), HeyHoSolService.class));
             publishStatusEvent();
             return;

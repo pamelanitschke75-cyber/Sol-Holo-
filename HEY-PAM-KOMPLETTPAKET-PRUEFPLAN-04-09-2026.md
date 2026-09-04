@@ -2,12 +2,20 @@
 
 **Stand:** 04.09.2026
 
-**Status:** **BUILD 145 AUF DEM GALAXY S23 NICHT BESTANDEN · KORREKTUR DES
-SPERRWECHSELS UND DER STUMMEN MIKROFONSITZUNG IN ARBEIT**
+**Status:** **BUILD 145 AUF DEM GALAXY S23 NICHT BESTANDEN · BUILD 146 INTERN
+BESTANDEN, ABER WEGEN DER ERWEITERTEN NEUSTART-/UPDATE-ANFORDERUNG NICHT
+FREIGEGEBEN**
 
 Dieser Stand wird nicht als abgeschlossen bezeichnet, bevor die gesamte
 Nutzungskette auf Pams echtem Samsung Galaxy S23 bestanden ist. Einzelne grüne
 Teiltests reichen dafür ausdrücklich nicht aus.
+
+**Eine verbindliche Abnahmebedingung:** Unabhängig davon, ob Pam’s Holo, der
+Startbildschirm, Kalender, WhatsApp, eine Google-App, die Telefon-App, Netflix,
+Samsung Notes, irgendeine andere App, der Sperrbildschirm oder ein
+ausgeschaltetes Display zu sehen ist, muss „Hey Pam“ Pams Holo wecken und den
+Sprachdialog mit Pam starten. Neustart, Aktualisierung und der geführte Umzug
+auf ein neues Handy gehören zu derselben Gesamtkette.
 
 ## Reparierte Gesamtkette
 
@@ -56,6 +64,25 @@ Teilfälle ändern daran nichts.
 5. Die Aufnahme wird auf unterstützten Android-Versionen ausdrücklich als
    privacy-sensitive markiert. Owner-Phrase, vorhandenes Stimmprofil und beide
    unabhängigen Sprecherprüfungen bleiben unverändert zwingend.
+6. Nach einem Handy-Neustart oder einer App-Aktualisierung bleibt der gewählte
+   Hintergrundmodus gespeichert. Android 14 und neuer verbietet einer normalen
+   App den stillen Start eines Mikrofon-Vordergrunddienstes aus einem
+   System-Broadcast. Deshalb erscheint ein eindeutiger Systemhinweis. Ein Tipp
+   auf **Jetzt aktivieren** startet den gespeicherten Hintergrundmodus direkt;
+   der Profilbildschirm und der Hintergrund-Schalter sind dafür nicht nötig.
+7. Der Hinweis bleibt stehen, bis der lokale Hördienst seine echte
+   Hörbereitschaft bestätigt. Pams 3/3-Stimmproben werden dabei weder gelöscht
+   noch neu angefordert.
+8. Für einen Handywechsel enthält die verschlüsselte Sicherung einen festen
+   Vier-Schritt-Ablauf. Erinnerungen und erlaubte Einstellungen werden
+   wiederhergestellt; das neue Gerät und Pams Stimme werden bewusst frisch
+   bestätigt. Danach ist der Hintergrundmodus wieder Teil derselben
+   Neustart-/Update-Kette.
+9. Welche fremde App gerade im Vordergrund steht, ist kein Eingang der
+   Weckentscheidung. Der Hintergrunddienst bleibt beim Verlassen von Pam’s Holo
+   aktiv. Belegt ein echter Telefon-/WhatsApp-Anruf oder eine andere Aufnahme
+   Androids Mikrofon vorübergehend, erkennt der PCM-Gesundheitscheck die
+   Stummschaltung und verbindet den Weckruf nach der Freigabe selbst wieder.
 
 ## Unverändert zu erhalten
 
@@ -72,12 +99,15 @@ Teilfälle ändern daran nichts.
 | Prüfung auf Pams Galaxy S23 | Mindestanforderung | Status |
 |---|---:|---|
 | App geöffnet | „Hey Pam“ startet 3 von 3 Versuchen | mit Build 145 bestanden; nach Sperrfehler jedoch ohne Selbstheilung |
-| Andere App im Vordergrund, Gerät entsperrt | 3 von 3 Versuchen einschließlich Sprachdialog | mit Build 145 bestanden |
+| Beliebige App im Vordergrund: Kalender, WhatsApp, Google, Telefon-App, Netflix und Samsung Notes | Je App Weckruf einschließlich Sprachdialog; die Paketwahl darf den Weckdienst nicht verändern | mit Build 145 grundsätzlich für eine andere App bestanden; breite Korrektur-Abnahme offen |
+| Rückkehr nach aktivem Telefon-/WhatsApp-Anruf oder anderer Mikrofonbelegung | Ohne erneutes Drücken automatisch wieder hörbereit | neu in Korrektur-Abnahme; offen |
 | Sperrbildschirm sichtbar | Erkennung, sicherer Hinweis, Übergabe nach Pams Entsperrung: 3 von 3 | mit Build 145 nicht bestanden; Korrektur-Build ausstehend |
 | Display vollständig aus | Erkennung, Bildschirmhinweis, sichere Übergabe: 3 von 3 | mit Build 145 nicht bestanden; Korrektur-Build ausstehend |
 | Rückkehr aus Samsung Notes oder Kalender | Sprach-Audio funktioniert und „Hey Pam“ ist danach erneut bereit | offen |
 | Sprachdialog beenden, sperren, erneut wecken | Keine festhängende Pause und keine zweite Mikrofoninstanz | offen |
-| Update über vorhandene Installation | App-Daten, Einstellungen und Stimmprofil bleiben erhalten | mit Build 145 bestanden; beim Korrektur-Build erneut prüfen |
+| Handy vollständig neu starten | Gespeicherter Hintergrundmodus bleibt; **Jetzt aktivieren** führt nach einem Tipp direkt zur Hörbereitschaft | neu in Korrektur-Build; Praxistest ausstehend |
+| Update über vorhandene Installation | App-Daten, Einstellungen und Stimmprofil bleiben erhalten; Hinweis führt nach einem Tipp direkt zur Hörbereitschaft | Datenerhalt mit Build 145 bestanden; Wiederanlauf neu in Korrektur-Build |
+| Wechsel auf ein neues Handy | Originalsignierte App, verschlüsselte Datenwiederherstellung, neue Gerätebestätigung, 3/3-Stimmaufnahme und Hintergrundaktivierung sind vollständig geführt | neu im Komplettpaket; Praxistest auf einem Ersatzgerät ausstehend |
 | APK-Identität | Paket-ID, höherer `versionCode` und exaktes Build-89-Zertifikat | für Build 145 bestanden; beim Korrektur-Build erneut prüfen |
 
 Erst wenn jede Zeile bestanden ist, darf der Status in **KOMPLETTPAKET
