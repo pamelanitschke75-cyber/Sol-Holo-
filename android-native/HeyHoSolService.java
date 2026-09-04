@@ -19,7 +19,9 @@ import android.graphics.PixelFormat;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.media.AudioFormat;
+import android.media.AudioManager;
 import android.media.AudioRecord;
+import android.media.AudioRecordingConfiguration;
 import android.media.MediaRecorder;
 import android.os.Build;
 import android.os.Handler;
@@ -36,9 +38,11 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class HeyHoSolService extends Service {
     public static final String ACTION_START = "com.solholo.app.HEY_HO_SOL_START";
@@ -88,6 +92,7 @@ public class HeyHoSolService extends Service {
         Executors.newSingleThreadExecutor();
     private long scheduledRestartGeneration;
     private long observedAudioSampleCount;
+    private long observedNonZeroSampleCount;
     private final Runnable restartRunnable = () -> {
         if (
             !destroyed
@@ -109,17 +114,33 @@ public class HeyHoSolService extends Service {
     private WindowManager wakeOverlayManager;
     private View wakeOverlayView;
     private PowerManager.WakeLock recognitionWakeLock;
-    private boolean unlockReceiverRegistered;
+    private boolean systemStateReceiverRegistered;
+    private boolean lockedWakeHandoffPending;
     private final Runnable lockedWakeTimeoutRunnable =
         this::finishLockedWakeHandoff;
-    private final BroadcastReceiver unlockReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver systemStateReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (
-                intent != null
-                    && Intent.ACTION_USER_PRESENT.equals(intent.getAction())
-            ) {
-                mainHandler.post(() -> continueWakeAfterDeviceUnlock());
+            if (intent == null) {
+                return;
+            }
+            String action = intent.getAction();
+            if (Intent.ACTION_SCREEN_OFF.equals(action)) {
+                mainHandler.post(
+                    () -> rearmAfterScreenTransition(
+                        "Display gesperrt · Mikrofon wird frisch verbunden"
+                    )
+                );
+            } else if (Intent.ACTION_USER_PRESENT.equals(action)) {
+                mainHandler.post(() -> {
+                    if (lockedWakeHandoffPending) {
+                        continueWakeAfterDeviceUnlock();
+                    } else {
+                        rearmAfterScreenTransition(
+                            "Entsperrt · Hey Pam wird frisch verbunden"
+                        );
+                    }
+                });
             }
         }
     };
@@ -135,6 +156,7 @@ public class HeyHoSolService extends Service {
 
     private static final class SecureAudioSession {
         private final AudioRecord recorder;
+        private final int audioSessionId;
         private final SolWakeKeywordSpotter keywordSpotter;
         private final PcmRingBuffer captured = new PcmRingBuffer(
             SECURE_SAMPLE_RATE * SECURE_RING_SECONDS
@@ -142,6 +164,9 @@ public class HeyHoSolService extends Service {
         private final AtomicBoolean active = new AtomicBoolean(false);
         private final AtomicBoolean released = new AtomicBoolean(false);
         private final AtomicBoolean cancelled = new AtomicBoolean(false);
+        private final AtomicBoolean clientSilenced = new AtomicBoolean(false);
+        private final AtomicLong nonZeroSamples = new AtomicLong(0L);
+        private AudioManager.AudioRecordingCallback recordingCallback;
         private Thread pumpThread;
 
         SecureAudioSession(Context context) throws IOException {
@@ -156,21 +181,34 @@ public class HeyHoSolService extends Service {
                 throw new IllegalStateException("Sicherer Audio-Puffer ist nicht verfügbar");
             }
 
-            recorder = new AudioRecord(
+            AudioFormat audioFormat = new AudioFormat.Builder()
+                .setSampleRate(SECURE_SAMPLE_RATE)
+                .setChannelMask(AudioFormat.CHANNEL_IN_MONO)
+                .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                .build();
+            AudioRecord.Builder recorderBuilder = new AudioRecord.Builder()
                 // sherpa-onnx' Android-Referenz liest den Keyword-Strom aus
                 // der unverfälschten Mikrofonquelle. VOICE_RECOGNITION kann
                 // auf Samsung-Geräten kurze Anlaute wie "Hey" wegfiltern.
-                MediaRecorder.AudioSource.MIC,
-                SECURE_SAMPLE_RATE,
-                AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT,
-                Math.max(minBuffer * 2, SECURE_SAMPLE_RATE)
-            );
+                .setAudioSource(MediaRecorder.AudioSource.MIC)
+                .setAudioFormat(audioFormat)
+                .setBufferSizeInBytes(
+                    Math.max(minBuffer * 2, SECURE_SAMPLE_RATE)
+                );
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                // Pam hat diesen lokalen Besitzer-Weckruf ausdrücklich
+                // aktiviert. Als privacy-sensitive Aufnahme darf Android ihn
+                // nicht unbemerkt zugunsten eines Assistenten stummschalten.
+                recorderBuilder.setPrivacySensitive(true);
+            }
+            recorder = recorderBuilder.build();
             if (recorder.getState() != AudioRecord.STATE_INITIALIZED) {
                 recorder.release();
                 keywordSpotter.close();
                 throw new IllegalStateException("Sichere Mikrofonaufnahme konnte nicht starten");
             }
+            audioSessionId = recorder.getAudioSessionId();
+            registerSilenceCallback(context);
         }
 
         void start(SecureAudioListener listener) {
@@ -186,6 +224,12 @@ public class HeyHoSolService extends Service {
         }
 
         private void pump(SecureAudioListener listener) {
+            try {
+                android.os.Process.setThreadPriority(
+                    android.os.Process.THREAD_PRIORITY_AUDIO
+                );
+            } catch (RuntimeException ignored) {
+            }
             short[] buffer = new short[1600];
             SolWakeKeywordSpotter.Detection detection = null;
             long keywordPostrollEndSample = Long.MAX_VALUE;
@@ -203,6 +247,13 @@ public class HeyHoSolService extends Service {
                     if (count == 0) {
                         continue;
                     }
+                    long audibleSamples = 0L;
+                    for (int index = 0; index < count; index++) {
+                        if (buffer[index] != 0) {
+                            audibleSamples++;
+                        }
+                    }
+                    nonZeroSamples.addAndGet(audibleSamples);
                     captured.append(buffer, count);
                     if (detection == null) {
                         detection = keywordSpotter.accept(buffer, count);
@@ -256,6 +307,14 @@ public class HeyHoSolService extends Service {
             return captured.totalWritten();
         }
 
+        long totalNonZeroSamples() {
+            return nonZeroSamples.get();
+        }
+
+        boolean isClientSilenced() {
+            return clientSilenced.get();
+        }
+
         void cancel() {
             cancelled.set(true);
             active.set(false);
@@ -284,11 +343,57 @@ public class HeyHoSolService extends Service {
             if (!released.compareAndSet(false, true)) {
                 return;
             }
+            if (
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                    && recordingCallback != null
+            ) {
+                try {
+                    recorder.unregisterAudioRecordingCallback(recordingCallback);
+                } catch (RuntimeException ignored) {
+                }
+                recordingCallback = null;
+            }
             try {
                 recorder.stop();
             } catch (RuntimeException ignored) {
             }
             recorder.release();
+        }
+
+        private void registerSilenceCallback(Context context) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                return;
+            }
+            recordingCallback = new AudioManager.AudioRecordingCallback() {
+                @Override
+                public void onRecordingConfigChanged(
+                    List<AudioRecordingConfiguration> configurations
+                ) {
+                    if (released.get()) {
+                        return;
+                    }
+                    for (AudioRecordingConfiguration configuration : configurations) {
+                        if (
+                            configuration.getClientAudioSessionId()
+                                == audioSessionId
+                        ) {
+                            clientSilenced.set(configuration.isClientSilenced());
+                            return;
+                        }
+                    }
+                }
+            };
+            try {
+                recorder.registerAudioRecordingCallback(
+                    context.getMainExecutor(),
+                    recordingCallback
+                );
+            } catch (RuntimeException error) {
+                recordingCallback = null;
+                recorder.release();
+                keywordSpotter.close();
+                throw error;
+            }
         }
     }
 
@@ -361,6 +466,7 @@ public class HeyHoSolService extends Service {
         activeService = this;
         running = true;
         createNotificationChannel();
+        registerSystemStateReceiver();
     }
 
     @Override
@@ -503,7 +609,6 @@ public class HeyHoSolService extends Service {
         } catch (IOException | RuntimeException error) {
             saveError("Die lokale Hey-Pam-Erkennung konnte nicht vorbereitet werden.");
             updateBackgroundNotification("Hey-Pam-Modell konnte nicht starten");
-            releaseRecognitionWakeLock();
             scheduleRestart(2_000L);
             return;
         }
@@ -554,6 +659,7 @@ public class HeyHoSolService extends Service {
             HeyHoSolPlugin.publishWakeDiagnostic("listener_ready");
             updateBackgroundNotification("Sag: „" + SECURE_WAKE_PHRASE + "“");
             observedAudioSampleCount = session.totalCapturedSamples();
+            observedNonZeroSampleCount = session.totalNonZeroSamples();
             mainHandler.postDelayed(
                 recognitionHealthRunnable,
                 RECOGNITION_HEALTH_INTERVAL_MILLIS
@@ -567,7 +673,6 @@ public class HeyHoSolService extends Service {
             listening = false;
             processingAudio = false;
             saveError("Der sichere lokale Sprachdienst konnte nicht gestartet werden.");
-            releaseRecognitionWakeLock();
             scheduleRestart(1_500L);
         }
     }
@@ -620,7 +725,6 @@ public class HeyHoSolService extends Service {
         recognitionStarted = false;
         listening = false;
         processingAudio = false;
-        releaseRecognitionWakeLock();
         saveError(
             reason == null || reason.trim().isEmpty()
                 ? "Lokale Hey-Pam-Erkennung wurde unterbrochen."
@@ -720,7 +824,17 @@ public class HeyHoSolService extends Service {
         processingAudio = false;
         speakerVerificationPending = false;
         cancelSecureAudioSession();
-        releaseRecognitionWakeLock();
+        if (
+            WakeRecognitionLifecyclePolicy.shouldKeepWakeLockForRestart(
+                HeyHoSolPlugin.MODE_BACKGROUND.equals(currentMode),
+                destroyed,
+                pausedForConversation
+            )
+        ) {
+            acquireRecognitionWakeLock();
+        } else {
+            releaseRecognitionWakeLock();
+        }
         HeyHoSolPlugin.publishStatusEvent();
         HeyHoSolPlugin.publishWakeDiagnostic("listener_rearming");
         if (!destroyed && !pausedForConversation) {
@@ -747,6 +861,13 @@ public class HeyHoSolService extends Service {
             return;
         }
 
+        if (session.isClientSilenced()) {
+            saveError("Android hatte den lokalen Mikrofonstrom stummgeschaltet.");
+            updateBackgroundNotification("Mikrofon wird automatisch neu verbunden …");
+            scheduleRestart(350L);
+            return;
+        }
+
         long capturedSamples = session.totalCapturedSamples();
         if (capturedSamples <= observedAudioSampleCount) {
             saveError("Der lokale Mikrofonstrom war stehen geblieben.");
@@ -755,7 +876,16 @@ public class HeyHoSolService extends Service {
             return;
         }
 
+        long nonZeroSamples = session.totalNonZeroSamples();
+        if (nonZeroSamples <= observedNonZeroSampleCount) {
+            saveError("Der lokale Mikrofonstrom lieferte nur Stille.");
+            updateBackgroundNotification("Mikrofon wird automatisch neu verbunden …");
+            scheduleRestart(350L);
+            return;
+        }
+
         observedAudioSampleCount = capturedSamples;
+        observedNonZeroSampleCount = nonZeroSamples;
         mainHandler.postDelayed(
             recognitionHealthRunnable,
             RECOGNITION_HEALTH_INTERVAL_MILLIS
@@ -810,9 +940,9 @@ public class HeyHoSolService extends Service {
     }
 
     private void beginLockedWakeHandoff() {
+        lockedWakeHandoffPending = true;
         updateBackgroundNotification("Hey Pam erkannt · bitte sicher entsperren");
         showWakeDetectedNotification();
-        registerUnlockReceiver();
         showLockedWakeOverlay();
         wakeScreenForSecureHandoff();
         if (!isDeviceLocked()) {
@@ -830,7 +960,7 @@ public class HeyHoSolService extends Service {
         if (destroyed || isDeviceLocked()) {
             return;
         }
-        unregisterUnlockReceiver();
+        lockedWakeHandoffPending = false;
         mainHandler.removeCallbacks(lockedWakeTimeoutRunnable);
 
         // Keep the owner-visible overlay up until Android has accepted the
@@ -849,42 +979,62 @@ public class HeyHoSolService extends Service {
     }
 
     private void finishLockedWakeHandoff() {
-        unregisterUnlockReceiver();
+        lockedWakeHandoffPending = false;
         removeWakeOverlay();
         cancelWakeDetectedNotification();
-        updateBackgroundNotification("Hey Pam bereit · ich höre lokal zu");
+        updateBackgroundNotification("Hey Pam wird wieder hörbereit gemacht …");
+        scheduleRestart(0L);
     }
 
-    private void registerUnlockReceiver() {
-        if (unlockReceiverRegistered) {
+    private void registerSystemStateReceiver() {
+        if (systemStateReceiverRegistered) {
             return;
         }
-        IntentFilter filter = new IntentFilter(Intent.ACTION_USER_PRESENT);
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_SCREEN_OFF);
+        filter.addAction(Intent.ACTION_USER_PRESENT);
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 registerReceiver(
-                    unlockReceiver,
+                    systemStateReceiver,
                     filter,
                     Context.RECEIVER_NOT_EXPORTED
                 );
             } else {
-                registerReceiver(unlockReceiver, filter);
+                registerReceiver(systemStateReceiver, filter);
             }
-            unlockReceiverRegistered = true;
+            systemStateReceiverRegistered = true;
         } catch (RuntimeException error) {
-            saveError("Android konnte die sichere Entsperr-Übergabe nicht vorbereiten.");
+            saveError("Android konnte den Sperrwechsel nicht überwachen.");
         }
     }
 
-    private void unregisterUnlockReceiver() {
-        if (!unlockReceiverRegistered) {
+    private void unregisterSystemStateReceiver() {
+        if (!systemStateReceiverRegistered) {
             return;
         }
-        unlockReceiverRegistered = false;
+        systemStateReceiverRegistered = false;
         try {
-            unregisterReceiver(unlockReceiver);
+            unregisterReceiver(systemStateReceiver);
         } catch (RuntimeException ignored) {
         }
+    }
+
+    private void rearmAfterScreenTransition(String notificationText) {
+        if (
+            !WakeRecognitionLifecyclePolicy.shouldRearmForScreenTransition(
+                HeyHoSolPlugin.MODE_BACKGROUND.equals(currentMode),
+                destroyed,
+                pausedForConversation,
+                speakerVerificationPending,
+                wakeHandled,
+                lockedWakeHandoffPending
+            )
+        ) {
+            return;
+        }
+        updateBackgroundNotification(notificationText);
+        scheduleRestart(350L);
     }
 
     @SuppressWarnings("deprecation")
@@ -1036,7 +1186,7 @@ public class HeyHoSolService extends Service {
     private void confirmWakeActivityVisible() {
         if (HeyHoSolPlugin.isActivityVisible()) {
             saveError("");
-            unregisterUnlockReceiver();
+            lockedWakeHandoffPending = false;
             cancelWakeDetectedNotification();
             updateBackgroundNotification("Hey Pam erkannt · Sol ist offen");
             return;
@@ -1276,7 +1426,7 @@ public class HeyHoSolService extends Service {
         pausedForConversation = false;
         pauseRecognition();
         mainHandler.removeCallbacks(lockedWakeTimeoutRunnable);
-        unregisterUnlockReceiver();
+        lockedWakeHandoffPending = false;
         removeWakeOverlay();
         cancelWakeDetectedNotification();
         if (foregroundNotificationActive) {
@@ -1308,7 +1458,8 @@ public class HeyHoSolService extends Service {
         mainHandler.removeCallbacksAndMessages(null);
         cancelSecureAudioSession();
         releaseRecognitionWakeLock();
-        unregisterUnlockReceiver();
+        lockedWakeHandoffPending = false;
+        unregisterSystemStateReceiver();
         removeWakeOverlay();
         cancelWakeDetectedNotification();
         speakerExecutor.shutdownNow();

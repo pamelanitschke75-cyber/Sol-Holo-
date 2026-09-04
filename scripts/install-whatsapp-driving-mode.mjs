@@ -37,6 +37,7 @@ for (const fileName of [
   "HeyHoSolPlugin.java",
   "HeyHoSolService.java",
   "WakeCaptureEndpointer.java",
+  "WakeRecognitionLifecyclePolicy.java",
   "WakePhraseMatcher.java",
   "PhoneContactsPlugin.java",
   "SolAudioRoutePlugin.java",

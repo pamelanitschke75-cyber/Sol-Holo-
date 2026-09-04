@@ -250,9 +250,23 @@ test("eine fälschlich aktive Anzeige wird durch den PCM-Gesundheitscheck repari
     "private void pauseRecognition()"
   );
   assert.match(health, /session\.totalCapturedSamples\(\)/u);
+  assert.match(health, /session\.totalNonZeroSamples\(\)/u);
+  assert.match(health, /session\.isClientSilenced\(\)/u);
   assert.match(health, /capturedSamples <= observedAudioSampleCount/u);
+  assert.match(health, /nonZeroSamples <= observedNonZeroSampleCount/u);
   assert.match(health, /scheduleRestart\(700L\)/u);
+  assert.match(health, /scheduleRestart\(350L\)/u);
   assert.match(serviceSource, /RECOGNITION_HEALTH_INTERVAL_MILLIS = 4_000L/u);
+});
+
+test("Androids stummgeschalteter Mikrofonstrom wird ausdrücklich erkannt", () => {
+  assert.match(serviceSource, /new AudioRecord\.Builder\(\)/u);
+  assert.match(serviceSource, /setPrivacySensitive\(true\)/u);
+  assert.match(serviceSource, /registerAudioRecordingCallback/u);
+  assert.match(serviceSource, /AudioManager\.AudioRecordingCallback/u);
+  assert.match(serviceSource, /configuration\.getClientAudioSessionId\(\)/u);
+  assert.match(serviceSource, /configuration\.isClientSilenced\(\)/u);
+  assert.match(serviceSource, /android\.os\.Process\.THREAD_PRIORITY_AUDIO/u);
 });
 
 test("erneutes Tippen auf Hintergrund erzwingt sichtbar einen frischen Start", () => {
@@ -350,6 +364,27 @@ test("Hey Pam bleibt bei ausgeschaltetem Bildschirm aufnahmebereit", () => {
   assert.match(
     drivingInstallerSource,
     /android\.permission\.WAKE_LOCK/u
+  );
+  assert.match(serviceSource, /Intent\.ACTION_SCREEN_OFF/u);
+  assert.match(serviceSource, /rearmAfterScreenTransition/u);
+  const restart = methodSource(
+    "private void scheduleRestart(long delayMillis)",
+    "private void verifyRecognitionHealth()"
+  );
+  assert.match(restart, /shouldKeepWakeLockForRestart/u);
+  assert.match(restart, /acquireRecognitionWakeLock\(\)/u);
+});
+
+test("Sperren und normales Entsperren ersetzen eine festgefahrene Sitzung", () => {
+  assert.match(serviceSource, /filter\.addAction\(Intent\.ACTION_SCREEN_OFF\)/u);
+  assert.match(serviceSource, /filter\.addAction\(Intent\.ACTION_USER_PRESENT\)/u);
+  assert.match(
+    serviceSource,
+    /if \(lockedWakeHandoffPending\) \{\s*continueWakeAfterDeviceUnlock\(\);\s*\} else \{\s*rearmAfterScreenTransition/u
+  );
+  assert.match(
+    serviceSource,
+    /private void rearmAfterScreenTransition[\s\S]*?scheduleRestart\(350L\)/u
   );
 });
 

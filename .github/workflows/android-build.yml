@@ -109,6 +109,10 @@ jobs:
             android-native/PcmRingBuffer.java \
             tests/java/com/solholo/app/PcmRingBufferTest.java
           java -cp "$test_dir" com.solholo.app.PcmRingBufferTest
+          javac -d "$test_dir" \
+            android-native/WakeRecognitionLifecyclePolicy.java \
+            tests/java/com/solholo/app/WakeRecognitionLifecyclePolicyTest.java
+          java -cp "$test_dir" com.solholo.app.WakeRecognitionLifecyclePolicyTest
 
       - name: Mehrfaktor-Sicherheitslogik testen
         run: |
@@ -466,6 +470,12 @@ jobs:
           grep -q 'Hey Pam erkannt · hier tippen zum Öffnen' \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q 'Intent.ACTION_USER_PRESENT' \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          grep -q 'Intent.ACTION_SCREEN_OFF' \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          grep -q 'setPrivacySensitive(true)' \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          grep -q 'isClientSilenced()' \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q 'PowerManager.PARTIAL_WAKE_LOCK' \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
