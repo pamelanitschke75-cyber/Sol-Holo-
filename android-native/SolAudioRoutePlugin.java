@@ -21,12 +21,6 @@ public class SolAudioRoutePlugin extends Plugin {
     private static final long ROUTE_REFRESH_DELAY_MILLIS = 280L;
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
-    private final Runnable routeRefreshRunnable = () -> {
-        if (routeCaptured) {
-            applyPreferredConversationRoute();
-        }
-    };
-
     private AudioManager audioManager;
     private AudioDeviceCallback audioDeviceCallback;
     private boolean routeCaptured;
@@ -35,6 +29,12 @@ public class SolAudioRoutePlugin extends Plugin {
     private int previousMode = AudioManager.MODE_NORMAL;
     private boolean previousSpeakerphoneOn;
     private boolean previousBluetoothScoOn;
+
+    private final Runnable routeRefreshRunnable = () -> {
+        if (routeCaptured) {
+            applyPreferredConversationRoute();
+        }
+    };
 
     private static final class RouteSelection {
         final boolean selected;
