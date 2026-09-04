@@ -22,6 +22,14 @@ const installerSource = await readFile(
   new URL("../scripts/install-speaker-identity.mjs", import.meta.url),
   "utf8"
 );
+const drivingInstallerSource = await readFile(
+  new URL("../scripts/install-whatsapp-driving-mode.mjs", import.meta.url),
+  "utf8"
+);
+const pluginSource = await readFile(
+  new URL("../android-native/HeyHoSolPlugin.java", import.meta.url),
+  "utf8"
+);
 
 function methodSource(startMarker, endMarker) {
   const start = serviceSource.indexOf(startMarker);
@@ -234,5 +242,92 @@ test("blockierter Hintergrundstart bleibt sichtbar und hat einen sicheren Tipp-R
   assert.match(
     serviceSource,
     /launchIntent\.putExtra\("hey_ho_sol_wake", true\)/u
+  );
+});
+
+test("der bereits laufende Mikrofondienst wird beim Sperren direkt fortgesetzt", () => {
+  const resumeStart = serviceSource.indexOf(
+    "public static void resume(Context context, String mode)"
+  );
+  const resumeEnd = serviceSource.indexOf(
+    "public static boolean isRunning()",
+    resumeStart
+  );
+  assert.notEqual(resumeStart, -1);
+  assert.notEqual(resumeEnd, -1);
+  const resumeSource = serviceSource.slice(resumeStart, resumeEnd);
+
+  assert.match(resumeSource, /HeyHoSolService service = activeService/u);
+  assert.match(
+    resumeSource,
+    /service\.mainHandler\.post\(\(\) -> service\.resumeInPlace\(mode\)\)/u
+  );
+  assert.ok(
+    resumeSource.indexOf("resumeInPlace(mode)")
+      < resumeSource.indexOf("startForegroundService"),
+    "Ein laufender Dienst muss vor jedem neuen FGS-Start direkt fortgesetzt werden"
+  );
+  assert.match(
+    resumeSource,
+    /if \(!HeyHoSolPlugin\.isActivityVisible\(\)\) \{\s*return;/u,
+    "Ein entfernter Mikrofon-FGS darf nicht heimlich aus dem gesperrten Hintergrund neu entstehen"
+  );
+});
+
+test("ein entfernter Mikrofondienst wird aus dem Sperrbildschirm nicht neu erzeugt", () => {
+  assert.match(
+    pluginSource,
+    /if \(!activityVisible && !HeyHoSolService\.isRunning\(\)\) \{\s*return;/u
+  );
+});
+
+test("Hey Pam bleibt bei ausgeschaltetem Bildschirm aufnahmebereit", () => {
+  assert.match(serviceSource, /PowerManager\.PARTIAL_WAKE_LOCK/u);
+  assert.match(serviceSource, /:hey-pam-listening/u);
+  assert.match(serviceSource, /acquireRecognitionWakeLock\(\)/u);
+  assert.match(serviceSource, /releaseRecognitionWakeLock\(\)/u);
+  assert.match(
+    drivingInstallerSource,
+    /android\.permission\.WAKE_LOCK/u
+  );
+});
+
+test("ein bestätigter Weckruf wartet sicher auf die echte Geräteentsperrung", () => {
+  const handleWake = methodSource(
+    "private void handleWakePhrase(String phrase)",
+    "private boolean isDeviceLocked()"
+  );
+  assert.match(
+    handleWake,
+    /if \(isDeviceLocked\(\)\) \{\s*beginLockedWakeHandoff\(\)/u
+  );
+  assert.match(serviceSource, /Intent\.ACTION_USER_PRESENT/u);
+  assert.match(serviceSource, /showLockedWakeOverlay\(\)/u);
+  assert.match(serviceSource, /wakeScreenForSecureHandoff\(\)/u);
+  assert.match(serviceSource, /continueWakeAfterDeviceUnlock\(\)/u);
+  assert.match(
+    serviceSource,
+    /if \(!isDeviceLocked\(\)\) \{\s*continueWakeAfterDeviceUnlock\(\);\s*return;/u,
+    "Ein Entsperren während der Empfänger-Anmeldung darf nicht verloren gehen"
+  );
+  assert.match(
+    serviceSource,
+    /Entsperre dein Handy sicher – Sol wartet bereits\./u
+  );
+  assert.doesNotMatch(
+    serviceSource,
+    /requestDismissKeyguard|FLAG_DISMISS_KEYGUARD/u,
+    "Pams Android-Gerätesperre darf nicht umgangen werden"
+  );
+});
+
+test("die sichere Entsperr-Übergabe verwirft den Weckruf nicht nach 30 Sekunden", () => {
+  assert.match(
+    uiSource,
+    /const wakeHandoffMaxAgeMillis = 120_000/u
+  );
+  assert.match(
+    uiSource,
+    /Date\.now\(\) - detectedAt > wakeHandoffMaxAgeMillis/u
   );
 });

@@ -98,7 +98,7 @@ test("returning from Notes or Android settings restores route and conversation",
   );
 });
 
-test("the wake listener resumes only after the conversation route is restored", () => {
+test("the native route restore resumes the wake listener before WebView suspension", () => {
   const stopStart = appHtml.indexOf("async function stopLiveConversation(");
   const stopEnd = appHtml.indexOf(
     "/*\n==========================================================",
@@ -107,11 +107,17 @@ test("the wake listener resumes only after the conversation route is restored", 
   assert.ok(stopStart >= 0);
   assert.ok(stopEnd > stopStart);
   const stopSource = appHtml.slice(stopStart, stopEnd);
-  const restoreIndex = stopSource.indexOf("await restoreSolAudioRoute();");
+  const restoreIndex = stopSource.indexOf(
+    "await restoreSolAudioRoute({\n      resumeWake"
+  );
   const resumeIndex = stopSource.indexOf(
     "await window.resumeHeyHoSolAfterConversation();"
   );
   assert.ok(restoreIndex >= 0);
   assert.ok(resumeIndex > restoreIndex);
+  assert.match(nativeRoute, /call\.getBoolean\("resumeWake", false\)/u);
+  assert.match(nativeRoute, /HeyHoSolService\.resume\(getContext\(\), mode\)/u);
+  assert.match(nativeRoute, /result\.put\("wakeResumeHandled", wakeResumeHandled\)/u);
+  assert.match(stopSource, /!wakeResumeHandled/u);
   assert.doesNotMatch(stopSource, /void window\.resumeHeyHoSolAfterConversation/u);
 });

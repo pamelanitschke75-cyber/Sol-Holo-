@@ -455,6 +455,16 @@ jobs:
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q 'Hey Pam erkannt · hier tippen zum Öffnen' \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          grep -q 'Intent.ACTION_USER_PRESENT' \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          grep -q 'PowerManager.PARTIAL_WAKE_LOCK' \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          grep -q 'android.permission.WAKE_LOCK' \
+            android/app/src/main/AndroidManifest.xml
+          grep -q 'wakeResumeHandled' \
+            android/app/src/main/java/com/solholo/app/SolAudioRoutePlugin.java
+          grep -q 'HeyHoSolService.resume(getContext(), mode)' \
+            android/app/src/main/java/com/solholo/app/SolAudioRoutePlugin.java
           grep -q "sendPendingWakePrompt" \
             android/app/src/main/assets/public/index.html
           grep -q "Bitte prüfe jetzt genau meine Stimme" \

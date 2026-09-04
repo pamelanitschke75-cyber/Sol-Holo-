@@ -395,8 +395,31 @@ public class SolAudioRoutePlugin extends Plugin {
     public void restore(PluginCall call) {
         runOnMainThread(() -> {
             restorePreviousRoute();
-            call.resolve();
+            boolean wakeResumeHandled = resumeWakeAfterRouteRestore(call);
+            JSObject result = new JSObject();
+            result.put("wakeResumeHandled", wakeResumeHandled);
+            call.resolve(result);
         });
+    }
+
+    private boolean resumeWakeAfterRouteRestore(PluginCall call) {
+        if (!Boolean.TRUE.equals(call.getBoolean("resumeWake", false))) {
+            return false;
+        }
+        String mode = getContext()
+            .getSharedPreferences(
+                HeyHoSolPlugin.PREFERENCES_NAME,
+                Context.MODE_PRIVATE
+            )
+            .getString(
+                HeyHoSolPlugin.MODE_KEY,
+                HeyHoSolPlugin.MODE_OFF
+            );
+        if (HeyHoSolPlugin.MODE_OFF.equals(mode)) {
+            return false;
+        }
+        HeyHoSolService.resume(getContext(), mode);
+        return true;
     }
 
     @SuppressWarnings("deprecation")

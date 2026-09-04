@@ -6462,18 +6462,24 @@ async function routeSolAudioForConversation(){
 }
 
 
-async function restoreSolAudioRoute(){
+async function restoreSolAudioRoute(
+  options = {}
+){
 
   const plugin = getSolAudioRoutePlugin();
 
   if(!plugin){
-    return;
+    return false;
   }
 
   try{
-    await plugin.restore();
+    const result = await plugin.restore({
+      resumeWake: options.resumeWake === true
+    });
+    return result?.wakeResumeHandled === true;
   }catch(error){
     console.warn("Sol-Audioroute wiederherstellen:", error);
+    return false;
   }
 }
 
@@ -8586,7 +8592,10 @@ stopLipSync();
     null;
 
 
-  await restoreSolAudioRoute();
+  const wakeResumeHandled =
+    await restoreSolAudioRoute({
+      resumeWake
+    });
 
 
   liveButton.classList.remove(
@@ -8609,6 +8618,7 @@ stopLipSync();
 
   if(
     resumeWake &&
+    !wakeResumeHandled &&
     typeof window.resumeHeyHoSolAfterConversation === "function"
   ){
 
@@ -9841,7 +9851,7 @@ if(
 
 </script>
 
-<script src="./sol-holo-ui.js?v=41"></script>
+<script src="./sol-holo-ui.js?v=42"></script>
 <script type="module" src="./app-lock-bootstrap.mjs?v=4"></script>
 <script type="module" src="./consent-ui-bootstrap.mjs?v=2"></script>
 <script type="module" src="./sol-holo-backup.mjs?v=1"></script>

@@ -420,7 +420,7 @@ public class HeyHoSolPlugin extends Plugin {
             return;
         }
 
-        if (MODE_FOREGROUND.equals(mode) && !activityVisible) {
+        if (!activityVisible && !HeyHoSolService.isRunning()) {
             return;
         }
 

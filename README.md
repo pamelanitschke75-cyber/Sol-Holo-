@@ -206,8 +206,9 @@ Sol Holo läuft als eigene Android-Anwendung.
 
 ✅ Sol kann den Sprachdialog anschließend im Hintergrund fortsetzen.
 
-✅ Bei gesperrtem Gerät bleibt Androids Entsperrung vollständig erhalten; nach
-Pams eigener Entsperrung ist Pams Holo bereits aktiv.
+⚠️ Die Android-Entsperrung bleibt erhalten. Der am 04.09.2026 erneut geprüfte
+Weckablauf bei gesperrtem Gerät und ausgeschaltetem Display ist bis zum neuen
+Galaxy-S23-Praxistest wieder offen.
 
 Der aktuelle Entwicklungsstand wurde unter anderem auf einem:
 
@@ -377,17 +378,18 @@ Aber mit allem, was wir aus dem ersten gelernt haben.**
 
 ---
 
-# Abgeschlossener Praxis-Meilenstein ✅
+# Praxisstand mit wieder geöffneter Sperrbildschirm-Prüfung ⚠️
 
 ## 🗣️ Persönlicher Weckruf „Hey Pam“
 
-**Status: ABGESCHLOSSEN am 03.09.2026**
+**Status: APP OFFEN UND ENTSPERRTER HINTERGRUND BESTÄTIGT · SPERRBILDSCHIRM
+SEIT 04.09.2026 WIEDER OFFEN**
 
 ✅ Der einzige offizielle Weckruf von Pams persönlicher Holo-Instanz lautet
 **„Hey Pam“**.
 
-✅ Der vollständige Ablauf wurde auf Pams echtem Samsung Galaxy S23 praktisch
-bestätigt.
+✅ Der Ablauf bei geöffneter App und im entsperrten Hintergrund wurde auf Pams
+echtem Samsung Galaxy S23 praktisch bestätigt.
 
 ✅ Pams Holo erkennt den persönlichen Weckruf lokal und prüft anschließend mit
 zwei lokalen Sprecherverfahren Pams gespeicherte Besitzerstimme.
@@ -395,8 +397,9 @@ zwei lokalen Sprecherverfahren Pams gespeicherte Besitzerstimme.
 ✅ Der App-Start aus einer anderen geöffneten App und der weiterlaufende
 Sprachdialog im Hintergrund funktionieren.
 
-✅ Am gesperrten Gerät wird die Android-Entsperrung nicht umgangen. Nach Pams
-eigener Entsperrung ist Pams Holo bereits aktiv und hört zu.
+⚠️ Am gesperrten Gerät wird die Android-Entsperrung weiterhin nicht umgangen.
+Die zuverlässige Erkennung mit Display aus und die anschließende Übergabe
+müssen nach der Reparatur erneut auf demselben Galaxy S23 bestätigt werden.
 
 Frühere Tests mit „Hallo Sol“ bleiben historische Entwicklungsversuche. Sie
 sind keine aktuelle alternative Ansprechformel. Sol ist der Name der
@@ -456,7 +459,7 @@ Eine technisch vorhandene Funktion gilt erst dann als bestätigt, wenn sie im ta
 
 ---
 
-# Entwicklungsstand 03.09.2026
+# Entwicklungsstand 04.09.2026
 
 Seit dem ersten dokumentierten Funktionstest vom 12.08.2026 wurde Sol Holo erheblich erweitert.
 
@@ -470,7 +473,8 @@ Der aktuelle Stand umfasst inzwischen unter anderem:
 
 ✅ Start und Sprachdialog aus dem entsperrten Hintergrund
 
-✅ sichere Übergabe nach Pams eigener Android-Entsperrung
+⚠️ sichere Übergabe nach Pams eigener Android-Entsperrung technisch repariert,
+echter Wiederholungstest noch offen
 
 ✅ Android-App  
 ✅ persistente persönliche Erinnerungen  

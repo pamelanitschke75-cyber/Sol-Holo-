@@ -399,6 +399,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   let wakeListenersRegistered = false;
   let lastWakeDetectedAt = 0;
   let pendingWakePrompt = "";
+  const wakeHandoffMaxAgeMillis = 120_000;
   let phoneStatus = {
     supported: false,
     contactsPermissionGranted: false,
@@ -2938,7 +2939,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     const detectedAt = Number(event?.detectedAt || Date.now());
     if (
       detectedAt <= lastWakeDetectedAt ||
-      Date.now() - detectedAt > 30_000
+      Date.now() - detectedAt > wakeHandoffMaxAgeMillis
     ) {
       return;
     }

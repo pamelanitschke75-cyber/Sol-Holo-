@@ -2,13 +2,16 @@ package com.solholo.app;
 
 import android.Manifest;
 import android.app.ActivityOptions;
+import android.app.KeyguardManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
 import android.graphics.Color;
@@ -22,6 +25,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.provider.Settings;
 import android.view.Gravity;
 import android.view.View;
@@ -44,11 +48,15 @@ public class HeyHoSolService extends Service {
     public static final String MODE_EXTRA = "mode";
 
     private static final String CHANNEL_ID = "hey_ho_sol_background";
+    private static final String WAKE_DETECTED_CHANNEL_ID =
+        "hey_ho_sol_detected";
     private static final int NOTIFICATION_ID = 2408;
+    private static final int WAKE_DETECTED_NOTIFICATION_ID = 2410;
     private static final int WAKE_ACTIVITY_REQUEST_CODE = 2409;
     private static final long WAKE_ACTIVITY_PENDING_DELAY_MILLIS = 320L;
     private static final long WAKE_ACTIVITY_DIRECT_FALLBACK_DELAY_MILLIS = 900L;
     private static final long WAKE_ACTIVITY_CONFIRM_DELAY_MILLIS = 2_600L;
+    private static final long LOCKED_WAKE_HANDOFF_TIMEOUT_MILLIS = 120_000L;
     private static final int SECURE_SAMPLE_RATE = SolWakeKeywordSpotter.SAMPLE_RATE;
     private static final int SECURE_RING_SECONDS = 5;
     private static final int KEYWORD_PREROLL_SAMPLES =
@@ -64,6 +72,7 @@ public class HeyHoSolService extends Service {
     private static volatile boolean listening;
     private static volatile boolean processingAudio;
     private static volatile boolean pausedForConversation;
+    private static volatile HeyHoSolService activeService;
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final ExecutorService speakerExecutor =
@@ -85,6 +94,21 @@ public class HeyHoSolService extends Service {
     private SecureAudioSession secureAudioSession;
     private WindowManager wakeOverlayManager;
     private View wakeOverlayView;
+    private PowerManager.WakeLock recognitionWakeLock;
+    private boolean unlockReceiverRegistered;
+    private final Runnable lockedWakeTimeoutRunnable =
+        this::finishLockedWakeHandoff;
+    private final BroadcastReceiver unlockReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (
+                intent != null
+                    && Intent.ACTION_USER_PRESENT.equals(intent.getAction())
+            ) {
+                mainHandler.post(() -> continueWakeAfterDeviceUnlock());
+            }
+        }
+    };
 
     private interface SecureAudioListener {
         void onKeyword(
@@ -254,6 +278,11 @@ public class HeyHoSolService extends Service {
     }
 
     public static void pause(Context context) {
+        HeyHoSolService service = activeService;
+        if (service != null) {
+            service.mainHandler.post(service::pauseForConversationInPlace);
+            return;
+        }
         if (!running) {
             return;
         }
@@ -264,6 +293,19 @@ public class HeyHoSolService extends Service {
 
     public static void resume(Context context, String mode) {
         if (HeyHoSolPlugin.MODE_OFF.equals(mode)) {
+            return;
+        }
+        HeyHoSolService service = activeService;
+        if (service != null) {
+            service.mainHandler.post(() -> service.resumeInPlace(mode));
+            return;
+        }
+
+        // A microphone foreground service may only be created while the app
+        // is visible. If Android removed the existing service while the phone
+        // was locked, the next visible Activity resume starts it again. This
+        // avoids an illegal and unreliable background FGS restart.
+        if (!HeyHoSolPlugin.isActivityVisible()) {
             return;
         }
         Intent intent = new Intent(context, HeyHoSolService.class)
@@ -295,6 +337,7 @@ public class HeyHoSolService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        activeService = this;
         running = true;
         createNotificationChannel();
     }
@@ -335,16 +378,38 @@ public class HeyHoSolService extends Service {
         }
 
         if (ACTION_PAUSE.equals(action)) {
-            pausedForConversation = true;
-            pauseRecognition();
-            updateBackgroundNotification("Pausiert, solange Sol mit dir spricht");
-            HeyHoSolPlugin.publishStatusEvent();
+            pauseForConversationInPlace();
             return serviceRestartMode();
         }
 
-        pausedForConversation = false;
-        startRecognition();
+        resumeInPlace(currentMode);
         return serviceRestartMode();
+    }
+
+    private void pauseForConversationInPlace() {
+        if (destroyed) {
+            return;
+        }
+        pausedForConversation = true;
+        pauseRecognition();
+        updateBackgroundNotification("Pausiert, solange Sol mit dir spricht");
+        HeyHoSolPlugin.publishStatusEvent();
+    }
+
+    private void resumeInPlace(String mode) {
+        if (destroyed || HeyHoSolPlugin.MODE_OFF.equals(mode)) {
+            return;
+        }
+        currentMode = mode;
+        pausedForConversation = false;
+        if (
+            HeyHoSolPlugin.MODE_BACKGROUND.equals(currentMode)
+                && !foregroundNotificationActive
+        ) {
+            startBackgroundNotification("Lokaler Hey-Pam-Schutz startet …");
+        }
+        startRecognition();
+        HeyHoSolPlugin.publishStatusEvent();
     }
 
     private int serviceRestartMode() {
@@ -395,12 +460,15 @@ public class HeyHoSolService extends Service {
             return;
         }
 
+        acquireRecognitionWakeLock();
+
         SecureAudioSession session;
         try {
             session = new SecureAudioSession(getApplicationContext());
         } catch (IOException | RuntimeException error) {
             saveError("Die lokale Hey-Pam-Erkennung konnte nicht vorbereitet werden.");
             updateBackgroundNotification("Hey-Pam-Modell konnte nicht starten");
+            releaseRecognitionWakeLock();
             scheduleRestart(2_000L);
             return;
         }
@@ -458,6 +526,7 @@ public class HeyHoSolService extends Service {
             listening = false;
             processingAudio = false;
             saveError("Der sichere lokale Sprachdienst konnte nicht gestartet werden.");
+            releaseRecognitionWakeLock();
             scheduleRestart(1_500L);
         }
     }
@@ -509,6 +578,7 @@ public class HeyHoSolService extends Service {
         recognitionStarted = false;
         listening = false;
         processingAudio = false;
+        releaseRecognitionWakeLock();
         saveError(
             reason == null || reason.trim().isEmpty()
                 ? "Lokale Hey-Pam-Erkennung wurde unterbrochen."
@@ -601,6 +671,7 @@ public class HeyHoSolService extends Service {
         recognitionStarted = false;
         listening = false;
         processingAudio = false;
+        releaseRecognitionWakeLock();
         HeyHoSolPlugin.publishStatusEvent();
         if (!destroyed && !pausedForConversation) {
             mainHandler.removeCallbacks(restartRunnable);
@@ -617,6 +688,7 @@ public class HeyHoSolService extends Service {
         processingAudio = false;
         speakerVerificationPending = false;
         cancelSecureAudioSession();
+        releaseRecognitionWakeLock();
     }
 
     private SecureAudioSession detachSecureAudioSession() {
@@ -636,10 +708,143 @@ public class HeyHoSolService extends Service {
         pauseRecognition();
         pausedForConversation = false;
         HeyHoSolPlugin.publishWakeEvent(this, phrase);
-        updateBackgroundNotification("Weckruf erkannt · Sol öffnet sich");
-        openSolHolo();
+        if (isDeviceLocked()) {
+            beginLockedWakeHandoff();
+        } else {
+            updateBackgroundNotification("Weckruf erkannt · Sol öffnet sich");
+            openSolHolo();
+        }
         mainHandler.postDelayed(fallbackResumeRunnable, 12_000L);
         HeyHoSolPlugin.publishStatusEvent();
+    }
+
+    private boolean isDeviceLocked() {
+        KeyguardManager keyguard = (KeyguardManager)getSystemService(
+            Context.KEYGUARD_SERVICE
+        );
+        return keyguard != null && keyguard.isKeyguardLocked();
+    }
+
+    private void beginLockedWakeHandoff() {
+        updateBackgroundNotification("Hey Pam erkannt · bitte sicher entsperren");
+        showWakeDetectedNotification();
+        registerUnlockReceiver();
+        showLockedWakeOverlay();
+        wakeScreenForSecureHandoff();
+        if (!isDeviceLocked()) {
+            continueWakeAfterDeviceUnlock();
+            return;
+        }
+        mainHandler.removeCallbacks(lockedWakeTimeoutRunnable);
+        mainHandler.postDelayed(
+            lockedWakeTimeoutRunnable,
+            LOCKED_WAKE_HANDOFF_TIMEOUT_MILLIS
+        );
+    }
+
+    private void continueWakeAfterDeviceUnlock() {
+        if (destroyed || isDeviceLocked()) {
+            return;
+        }
+        unregisterUnlockReceiver();
+        mainHandler.removeCallbacks(lockedWakeTimeoutRunnable);
+
+        // Keep the owner-visible overlay up until Android has accepted the
+        // Activity launch. On Android 15+ this also supplies the visible-window
+        // condition required for a background launch with SYSTEM_ALERT_WINDOW.
+        launchSolHoloActivity();
+        mainHandler.postDelayed(
+            this::launchSolHoloActivityDirectlyIfStillHidden,
+            WAKE_ACTIVITY_DIRECT_FALLBACK_DELAY_MILLIS
+        );
+        mainHandler.postDelayed(this::removeWakeOverlay, 2_000L);
+        mainHandler.postDelayed(
+            this::confirmWakeActivityVisible,
+            WAKE_ACTIVITY_CONFIRM_DELAY_MILLIS
+        );
+    }
+
+    private void finishLockedWakeHandoff() {
+        unregisterUnlockReceiver();
+        removeWakeOverlay();
+        cancelWakeDetectedNotification();
+        updateBackgroundNotification("Hey Pam bereit · ich höre lokal zu");
+    }
+
+    private void registerUnlockReceiver() {
+        if (unlockReceiverRegistered) {
+            return;
+        }
+        IntentFilter filter = new IntentFilter(Intent.ACTION_USER_PRESENT);
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(
+                    unlockReceiver,
+                    filter,
+                    Context.RECEIVER_NOT_EXPORTED
+                );
+            } else {
+                registerReceiver(unlockReceiver, filter);
+            }
+            unlockReceiverRegistered = true;
+        } catch (RuntimeException error) {
+            saveError("Android konnte die sichere Entsperr-Übergabe nicht vorbereiten.");
+        }
+    }
+
+    private void unregisterUnlockReceiver() {
+        if (!unlockReceiverRegistered) {
+            return;
+        }
+        unlockReceiverRegistered = false;
+        try {
+            unregisterReceiver(unlockReceiver);
+        } catch (RuntimeException ignored) {
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    private void wakeScreenForSecureHandoff() {
+        PowerManager power = (PowerManager)getSystemService(POWER_SERVICE);
+        if (power == null || power.isInteractive()) {
+            return;
+        }
+        PowerManager.WakeLock screenWakeLock = power.newWakeLock(
+            PowerManager.SCREEN_BRIGHT_WAKE_LOCK
+                | PowerManager.ACQUIRE_CAUSES_WAKEUP
+                | PowerManager.ON_AFTER_RELEASE,
+            getPackageName() + ":hey-pam-screen"
+        );
+        screenWakeLock.setReferenceCounted(false);
+        screenWakeLock.acquire(5_000L);
+    }
+
+    private void acquireRecognitionWakeLock() {
+        if (!HeyHoSolPlugin.MODE_BACKGROUND.equals(currentMode)) {
+            return;
+        }
+        PowerManager.WakeLock held = recognitionWakeLock;
+        if (held != null && held.isHeld()) {
+            return;
+        }
+        PowerManager power = (PowerManager)getSystemService(POWER_SERVICE);
+        if (power == null) {
+            return;
+        }
+        recognitionWakeLock = power.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            getPackageName() + ":hey-pam-listening"
+        );
+        recognitionWakeLock.setReferenceCounted(false);
+        recognitionWakeLock.acquire();
+    }
+
+    private void releaseRecognitionWakeLock() {
+        PowerManager.WakeLock held = recognitionWakeLock;
+        recognitionWakeLock = null;
+        if (held != null && held.isHeld()) {
+            held.release();
+        }
     }
 
     private void openSolHolo() {
@@ -747,6 +952,8 @@ public class HeyHoSolService extends Service {
     private void confirmWakeActivityVisible() {
         if (HeyHoSolPlugin.isActivityVisible()) {
             saveError("");
+            unregisterUnlockReceiver();
+            cancelWakeDetectedNotification();
             updateBackgroundNotification("Hey Pam erkannt · Sol ist offen");
             return;
         }
@@ -758,9 +965,20 @@ public class HeyHoSolService extends Service {
     }
 
     private boolean showWakeOverlay() {
+        return showWakeOverlay("SH∞  Sol ist da ✦", false);
+    }
+
+    private boolean showLockedWakeOverlay() {
+        return showWakeOverlay(
+            "SH∞  Hey Pam erkannt · bitte entsperren",
+            true
+        );
+    }
+
+    private boolean showWakeOverlay(String message, boolean overLockScreen) {
         removeWakeOverlay();
         TextView overlay = new TextView(this);
-        overlay.setText("SH∞  Sol ist da ✦");
+        overlay.setText(message);
         overlay.setTextColor(Color.WHITE);
         overlay.setTextSize(17f);
         overlay.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
@@ -777,13 +995,20 @@ public class HeyHoSolService extends Service {
         overlay.setAlpha(0f);
         overlay.setElevation(dp(12));
 
+        int overlayFlags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+            | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+            | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
+        if (overLockScreen) {
+            overlayFlags |= WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+                | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+                | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON;
+        }
+
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
-                | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            overlayFlags,
             PixelFormat.TRANSLUCENT
         );
         params.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
@@ -840,6 +1065,58 @@ public class HeyHoSolService extends Service {
         NotificationManager manager = getSystemService(NotificationManager.class);
         if (manager != null) {
             manager.createNotificationChannel(channel);
+            NotificationChannel detectedChannel = new NotificationChannel(
+                WAKE_DETECTED_CHANNEL_ID,
+                "Erkannter Sol-Weckruf",
+                NotificationManager.IMPORTANCE_HIGH
+            );
+            detectedChannel.setDescription(
+                "Zeigt die sichere Übergabe nach einem bestätigten Hey Pam an."
+            );
+            detectedChannel.setSound(null, null);
+            manager.createNotificationChannel(detectedChannel);
+        }
+    }
+
+    private Notification buildWakeDetectedNotification() {
+        Intent openIntent = createWakeLaunchIntent();
+        PendingIntent openPendingIntent = PendingIntent.getActivity(
+            this,
+            WAKE_ACTIVITY_REQUEST_CODE,
+            openIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+        Notification.Builder builder = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+            ? new Notification.Builder(this, WAKE_DETECTED_CHANNEL_ID)
+            : new Notification.Builder(this).setPriority(Notification.PRIORITY_HIGH);
+        builder
+            .setSmallIcon(getApplicationInfo().icon)
+            .setContentTitle("Hey Pam erkannt")
+            .setContentText("Entsperre dein Handy sicher – Sol wartet bereits.")
+            .setContentIntent(openPendingIntent)
+            .setAutoCancel(true)
+            .setCategory(Notification.CATEGORY_REMINDER)
+            .setVisibility(Notification.VISIBILITY_PUBLIC);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            builder.setTimeoutAfter(LOCKED_WAKE_HANDOFF_TIMEOUT_MILLIS);
+        }
+        return builder.build();
+    }
+
+    private void showWakeDetectedNotification() {
+        NotificationManager manager = getSystemService(NotificationManager.class);
+        if (manager != null) {
+            manager.notify(
+                WAKE_DETECTED_NOTIFICATION_ID,
+                buildWakeDetectedNotification()
+            );
+        }
+    }
+
+    private void cancelWakeDetectedNotification() {
+        NotificationManager manager = getSystemService(NotificationManager.class);
+        if (manager != null) {
+            manager.cancel(WAKE_DETECTED_NOTIFICATION_ID);
         }
     }
 
@@ -914,7 +1191,10 @@ public class HeyHoSolService extends Service {
     private void stopWakeService() {
         pausedForConversation = false;
         pauseRecognition();
+        mainHandler.removeCallbacks(lockedWakeTimeoutRunnable);
+        unregisterUnlockReceiver();
         removeWakeOverlay();
+        cancelWakeDetectedNotification();
         if (foregroundNotificationActive) {
             stopForeground(STOP_FOREGROUND_REMOVE);
             foregroundNotificationActive = false;
@@ -932,6 +1212,9 @@ public class HeyHoSolService extends Service {
     @Override
     public void onDestroy() {
         destroyed = true;
+        if (activeService == this) {
+            activeService = null;
+        }
         running = false;
         listening = false;
         processingAudio = false;
@@ -940,7 +1223,10 @@ public class HeyHoSolService extends Service {
         speakerVerificationPending = false;
         mainHandler.removeCallbacksAndMessages(null);
         cancelSecureAudioSession();
+        releaseRecognitionWakeLock();
+        unregisterUnlockReceiver();
         removeWakeOverlay();
+        cancelWakeDetectedNotification();
         speakerExecutor.shutdownNow();
         HeyHoSolPlugin.publishStatusEvent();
         super.onDestroy();

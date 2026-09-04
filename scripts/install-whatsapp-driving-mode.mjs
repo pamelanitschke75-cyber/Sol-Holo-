@@ -221,6 +221,7 @@ for (const permission of [
   '<uses-permission android:name="android.permission.READ_PHONE_STATE" />',
   '<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />',
   '<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />',
+  '<uses-permission android:name="android.permission.WAKE_LOCK" />',
   '<uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" />',
   '<uses-permission android:name="android.permission.health.READ_BASAL_BODY_TEMPERATURE" />',
   '<uses-permission android:name="android.permission.health.READ_BASAL_METABOLIC_RATE" />',
