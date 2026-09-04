@@ -440,6 +440,12 @@ public final class WatchWakeService extends Service {
         request.setUrgent();
         Wearable.getDataClient(this).putDataItem(request)
             .addOnSuccessListener(item -> {
+                android.net.Uri candidateUri = item.getUri();
+                mainHandler.postDelayed(
+                    () -> Wearable.getDataClient(getApplicationContext())
+                        .deleteDataItems(candidateUri),
+                    WearWakePayloadPolicy.MAX_AGE_MILLIS
+                );
                 if (sessionId.equals(pendingSession())) {
                     publishStatus(
                         this,

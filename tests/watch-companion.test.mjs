@@ -77,6 +77,10 @@ test("Hey Pam wird auf der Watch lokal und mit begrenztem PCM erkannt", () => {
   assert.match(watchService, /POSTROLL_SAMPLES/u);
   assert.match(watchService, /node\.isNearby\(\)/u);
   assert.match(watchService, /request\.setUrgent\(\)/u);
+  assert.match(
+    watchService,
+    /deleteDataItems\(candidateUri\)[\s\S]*?WearWakePayloadPolicy\.MAX_AGE_MILLIS/u
+  );
   assert.match(payloadPolicy, /MAX_AGE_MILLIS = 30_000L/u);
   assert.match(payloadPolicy, /MAX_SAMPLE_COUNT = SAMPLE_RATE \* 2_400/u);
   assert.match(payloadPolicy, /MAX_PCM_BYTES = MAX_SAMPLE_COUNT \* 2/u);

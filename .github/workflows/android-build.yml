@@ -765,8 +765,8 @@ jobs:
             | grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true'
           printf '%s\n' "$phone_signer_report" \
             | grep -Fq 'Verified using v3 scheme (APK Signature Scheme v3): true'
-          printf '%s\n' "$watch_signer_report" \
-            | grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true'
+          # Die Watch8 hat minSdk 30. apksigner verwendet dafür standardmäßig
+          # ausschließlich das stärkere v3-Schema; v2 ist dort bewusst false.
           printf '%s\n' "$watch_signer_report" \
             | grep -Fq 'Verified using v3 scheme (APK Signature Scheme v3): true'
 
