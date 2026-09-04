@@ -7,6 +7,7 @@ public final class PcmRingBufferTest {
         retainsAllSamplesBeforeCapacity();
         retainsOnlyNewestSamplesAfterWrap();
         extractsFromAbsoluteKeywordStart();
+        extractsRecentWindowWithoutDecoderTimestamp();
         clampsExpiredAndFuturePositions();
         rejectsInvalidInput();
         System.out.println("PcmRingBufferTest: OK");
@@ -34,6 +35,17 @@ public final class PcmRingBufferTest {
         assertArray(new short[] { 13, 14, 15, 16 }, buffer.snapshotFrom(3));
     }
 
+    private static void extractsRecentWindowWithoutDecoderTimestamp() {
+        PcmRingBuffer buffer = new PcmRingBuffer(8);
+        buffer.append(new short[] { 10, 11, 12, 13 }, 4);
+        buffer.append(new short[] { 14, 15, 16 }, 3);
+        assertArray(new short[] { 14, 15, 16 }, buffer.snapshotLatest(3));
+        assertArray(
+            new short[] { 10, 11, 12, 13, 14, 15, 16 },
+            buffer.snapshotLatest(99)
+        );
+    }
+
     private static void clampsExpiredAndFuturePositions() {
         PcmRingBuffer buffer = new PcmRingBuffer(3);
         buffer.append(new short[] { 1, 2, 3, 4, 5 }, 5);
@@ -50,6 +62,15 @@ public final class PcmRingBufferTest {
         }
         if (!rejected) {
             throw new AssertionError("Zero capacity must be rejected");
+        }
+        rejected = false;
+        try {
+            new PcmRingBuffer(2).snapshotLatest(0);
+        } catch (IllegalArgumentException expected) {
+            rejected = true;
+        }
+        if (!rejected) {
+            throw new AssertionError("A non-positive tail window must be rejected");
         }
     }
 

@@ -74,12 +74,26 @@ test("nach erkanntem Hey Pam bleibt das Mikrofon für das Wortende offen", () =>
   );
   assert.match(
     pump,
-    /keywordAudioStart = Math\.max\([\s\S]*?\);\s*keywordPostrollEndSample = captured\.totalWritten\(\)/u,
-    "Nach dem Keyword-Treffer muss zuerst der Nachlauf geplant werden"
+    /if \(detection != null\) \{\s*keywordPostrollEndSample = captured\.totalWritten\(\)\s*\+ KEYWORD_POSTROLL_SAMPLES/u,
+    "Nach dem Keyword-Treffer muss der Nachlauf geplant werden"
   );
 });
 
-test("echter Weckruf und Sicherheitstest verwenden denselben Hey-Pam-Ausschnitt", () => {
+test("langer Hintergrundbetrieb kann den erkannten Hey-Pam-Ausschnitt nicht verschieben", () => {
+  const snapshotStart = serviceSource.indexOf("short[] finishAndSnapshot()");
+  const snapshotEnd = serviceSource.indexOf("void cancel()", snapshotStart);
+  assert.notEqual(snapshotStart, -1);
+  assert.notEqual(snapshotEnd, -1);
+  const snapshot = serviceSource.slice(snapshotStart, snapshotEnd);
+  assert.match(
+    snapshot,
+    /captured\.snapshotLatest\(KEYWORD_CAPTURE_WINDOW_SAMPLES\)/u
+  );
+  assert.doesNotMatch(serviceSource, /firstTokenSample|keywordAudioStart/u);
+  assert.doesNotMatch(spotterSource, /getTimestamps\(\)/u);
+});
+
+test("der echte Weckruf verwendet den jüngsten vollständigen Hey-Pam-Ausschnitt", () => {
   const verificationStart = speakerPluginSource.indexOf(
     "static WakeVerification verifyWakeAudio("
   );
@@ -95,7 +109,7 @@ test("echter Weckruf und Sicherheitstest verwenden denselben Hey-Pam-Ausschnitt"
   );
   assert.match(
     verification,
-    /WakeVoiceTemplateSelector\.extract\(\s*captured,\s*capturedCount\s*\)/u
+    /WakeVoiceTemplateSelector\.extractLatest\(\s*captured,\s*capturedCount\s*\)/u
   );
   assert.doesNotMatch(verification, /MIN_WAKE_ACTIVE_FRAMES/u);
   assert.doesNotMatch(verification, /MAX_WAKE_SPEECH_GAP_FRAMES/u);
@@ -120,6 +134,7 @@ test("Samsung muss keine aufgenommene Datei an SpeechRecognizer übernehmen", ()
   assert.match(spotterSource, /stream\.acceptWaveform/u);
   assert.doesNotMatch(serviceSource, /SpeechRecognizer|RecognizerIntent/u);
   assert.doesNotMatch(serviceSource, /ParcelFileDescriptor|prepareRecognitionSource/u);
+  assert.match(spotterSource, /setKeywordsThreshold\(0\.20f\)/u);
 });
 
 test("Sicherheitstest und echter Weckruf verwenden dieselbe Mikrofonquelle", () => {
@@ -202,6 +217,52 @@ test("eine vorhandene Hey-Pam-Vorlage verlangt nach Ablehnung keinen neuen Siche
     uiSource.slice(rejectionStart, rejectionStart + 500),
     /einmal Sicherheit testen/u
   );
+  assert.match(
+    uiSource.slice(rejectionStart, rejectionStart + 900),
+    /Sol startet das Hören automatisch neu/u
+  );
+  assert.match(uiSource, /listener_ready/u);
+  assert.match(uiSource, /du musst nichts drücken/u);
+});
+
+test("nach Ablehnung wird eine vollständig frische Mikrofonsitzung automatisch geplant", () => {
+  const restart = methodSource(
+    "private void scheduleRestart(long delayMillis)",
+    "private void verifyRecognitionHealth()"
+  );
+  assert.match(restart, /recognitionGeneration\+\+/u);
+  assert.match(restart, /cancelSecureAudioSession\(\)/u);
+  assert.match(restart, /speakerVerificationPending = false/u);
+  assert.match(restart, /postDelayed\(restartRunnable, delayMillis\)/u);
+
+  const rejectionStart = serviceSource.indexOf('"owner_rejected"');
+  const rejectionEnd = serviceSource.indexOf("});", rejectionStart);
+  assert.notEqual(rejectionStart, -1);
+  assert.match(
+    serviceSource.slice(rejectionStart, rejectionEnd + 3),
+    /scheduleRestart\(900L\)/u
+  );
+});
+
+test("eine fälschlich aktive Anzeige wird durch den PCM-Gesundheitscheck repariert", () => {
+  const health = methodSource(
+    "private void verifyRecognitionHealth()",
+    "private void pauseRecognition()"
+  );
+  assert.match(health, /session\.totalCapturedSamples\(\)/u);
+  assert.match(health, /capturedSamples <= observedAudioSampleCount/u);
+  assert.match(health, /scheduleRestart\(700L\)/u);
+  assert.match(serviceSource, /RECOGNITION_HEALTH_INTERVAL_MILLIS = 4_000L/u);
+});
+
+test("erneutes Tippen auf Hintergrund erzwingt sichtbar einen frischen Start", () => {
+  assert.match(serviceSource, /boolean explicitRearmRequested = ACTION_START\.equals\(action\)/u);
+  assert.match(
+    serviceSource,
+    /if \(explicitRearmRequested\) \{[\s\S]*?scheduleRestart\(0L\);[\s\S]*?return serviceRestartMode\(\);/u
+  );
+  assert.match(uiSource, /await waitForWakeListening\(plugin, mode\)/u);
+  assert.match(uiSource, /Hintergrund ist bereit · du musst nicht erneut drücken/u);
 });
 
 test("Android 14 und 15 erhalten beide Freigaben für den Hintergrundstart", () => {

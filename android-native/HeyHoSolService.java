@@ -59,10 +59,11 @@ public class HeyHoSolService extends Service {
     private static final long LOCKED_WAKE_HANDOFF_TIMEOUT_MILLIS = 120_000L;
     private static final int SECURE_SAMPLE_RATE = SolWakeKeywordSpotter.SAMPLE_RATE;
     private static final int SECURE_RING_SECONDS = 5;
-    private static final int KEYWORD_PREROLL_SAMPLES =
-        SECURE_SAMPLE_RATE * 350 / 1000;
+    private static final int KEYWORD_CAPTURE_WINDOW_SAMPLES =
+        SECURE_SAMPLE_RATE * 2_400 / 1000;
     private static final int KEYWORD_POSTROLL_SAMPLES =
         SECURE_SAMPLE_RATE * 350 / 1000;
+    private static final long RECOGNITION_HEALTH_INTERVAL_MILLIS = 4_000L;
     private static final int MIN_SECURE_CAPTURE_SAMPLES =
         SECURE_SAMPLE_RATE * 500 / 1000;
     private static final String SECURE_WAKE_PHRASE =
@@ -77,7 +78,19 @@ public class HeyHoSolService extends Service {
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final ExecutorService speakerExecutor =
         Executors.newSingleThreadExecutor();
-    private final Runnable restartRunnable = this::startRecognition;
+    private long scheduledRestartGeneration;
+    private long observedAudioSampleCount;
+    private final Runnable restartRunnable = () -> {
+        if (
+            !destroyed
+                && !pausedForConversation
+                && scheduledRestartGeneration == recognitionGeneration
+        ) {
+            startRecognition();
+        }
+    };
+    private final Runnable recognitionHealthRunnable =
+        this::verifyRecognitionHealth;
     private final Runnable fallbackResumeRunnable = () -> {
         if (running && !pausedForConversation) {
             startRecognition();
@@ -129,7 +142,6 @@ public class HeyHoSolService extends Service {
         private final AtomicBoolean released = new AtomicBoolean(false);
         private final AtomicBoolean cancelled = new AtomicBoolean(false);
         private Thread pumpThread;
-        private volatile long keywordAudioStart;
 
         SecureAudioSession(Context context) throws IOException {
             keywordSpotter = new SolWakeKeywordSpotter(context);
@@ -184,17 +196,16 @@ public class HeyHoSolService extends Service {
                     if (count == AudioRecord.ERROR_DEAD_OBJECT) {
                         throw new IllegalStateException("Mikrofonverbindung wurde unterbrochen");
                     }
-                    if (count <= 0) {
+                    if (count < 0) {
+                        throw new IllegalStateException("Mikrofonaufnahme ist ausgefallen");
+                    }
+                    if (count == 0) {
                         continue;
                     }
                     captured.append(buffer, count);
                     if (detection == null) {
                         detection = keywordSpotter.accept(buffer, count);
                         if (detection != null) {
-                            keywordAudioStart = Math.max(
-                                0L,
-                                detection.firstTokenSample - KEYWORD_PREROLL_SAMPLES
-                            );
                             keywordPostrollEndSample = captured.totalWritten()
                                 + KEYWORD_POSTROLL_SAMPLES;
                         }
@@ -232,7 +243,16 @@ public class HeyHoSolService extends Service {
             active.set(false);
             stopAndReleaseRecorder();
             joinPump();
-            return captured.snapshotFrom(keywordAudioStart);
+            // sherpa-onnx resets its decoder after a pause. Its Java token
+            // timestamps are relative to that decoder segment, while this
+            // ring buffer uses absolute sample positions. Taking the recent
+            // bounded tail keeps the actually detected phrase instead of an
+            // unrelated older section after long background listening.
+            return captured.snapshotLatest(KEYWORD_CAPTURE_WINDOW_SAMPLES);
+        }
+
+        long totalCapturedSamples() {
+            return captured.totalWritten();
         }
 
         void cancel() {
@@ -345,6 +365,12 @@ public class HeyHoSolService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         String action = intent == null ? ACTION_START : intent.getAction();
+        boolean explicitRearmRequested = ACTION_START.equals(action)
+            && (
+                recognitionStarted
+                    || speakerVerificationPending
+                    || secureAudioSession != null
+            );
         String requestedMode = intent == null
             ? savedMode()
             : intent.getStringExtra(MODE_EXTRA);
@@ -379,6 +405,13 @@ public class HeyHoSolService extends Service {
 
         if (ACTION_PAUSE.equals(action)) {
             pauseForConversationInPlace();
+            return serviceRestartMode();
+        }
+
+        if (explicitRearmRequested) {
+            pausedForConversation = false;
+            updateBackgroundNotification("Hintergrund-Hören wird frisch gestartet …");
+            scheduleRestart(0L);
             return serviceRestartMode();
         }
 
@@ -449,6 +482,7 @@ public class HeyHoSolService extends Service {
     private void startRecognition() {
         mainHandler.removeCallbacks(restartRunnable);
         mainHandler.removeCallbacks(fallbackResumeRunnable);
+        mainHandler.removeCallbacks(recognitionHealthRunnable);
         if (
             destroyed
                 || pausedForConversation
@@ -516,7 +550,13 @@ public class HeyHoSolService extends Service {
             listening = true;
             saveError("");
             HeyHoSolPlugin.publishStatusEvent();
+            HeyHoSolPlugin.publishWakeDiagnostic("listener_ready");
             updateBackgroundNotification("Sag: „" + SECURE_WAKE_PHRASE + "“");
+            observedAudioSampleCount = session.totalCapturedSamples();
+            mainHandler.postDelayed(
+                recognitionHealthRunnable,
+                RECOGNITION_HEALTH_INTERVAL_MILLIS
+            );
         } catch (RuntimeException error) {
             if (secureAudioSession == session) {
                 secureAudioSession = null;
@@ -556,6 +596,7 @@ public class HeyHoSolService extends Service {
         wakeHandled = true;
         listening = false;
         processingAudio = true;
+        mainHandler.removeCallbacks(recognitionHealthRunnable);
         HeyHoSolPlugin.publishStatusEvent();
         verifySpeakerBeforeWake(phrase, generation);
     }
@@ -662,26 +703,68 @@ public class HeyHoSolService extends Service {
                     rejectionReason
                 );
                 updateBackgroundNotification("Keine Freigabe · Weckruf wartet weiter");
-                scheduleRestart(650L);
+                scheduleRestart(900L);
             });
         });
     }
 
     private void scheduleRestart(long delayMillis) {
+        mainHandler.removeCallbacks(restartRunnable);
+        mainHandler.removeCallbacks(recognitionHealthRunnable);
+        recognitionGeneration++;
+        scheduledRestartGeneration = recognitionGeneration;
+        wakeHandled = false;
         recognitionStarted = false;
         listening = false;
         processingAudio = false;
+        speakerVerificationPending = false;
+        cancelSecureAudioSession();
         releaseRecognitionWakeLock();
         HeyHoSolPlugin.publishStatusEvent();
+        HeyHoSolPlugin.publishWakeDiagnostic("listener_rearming");
         if (!destroyed && !pausedForConversation) {
-            mainHandler.removeCallbacks(restartRunnable);
             mainHandler.postDelayed(restartRunnable, delayMillis);
         }
+    }
+
+    private void verifyRecognitionHealth() {
+        if (
+            destroyed
+                || pausedForConversation
+                || !recognitionStarted
+                || !listening
+                || speakerVerificationPending
+        ) {
+            return;
+        }
+
+        SecureAudioSession session = secureAudioSession;
+        if (session == null) {
+            saveError("Der lokale Weckruf hatte keinen aktiven Mikrofonstrom.");
+            updateBackgroundNotification("Mikrofon startet automatisch neu …");
+            scheduleRestart(700L);
+            return;
+        }
+
+        long capturedSamples = session.totalCapturedSamples();
+        if (capturedSamples <= observedAudioSampleCount) {
+            saveError("Der lokale Mikrofonstrom war stehen geblieben.");
+            updateBackgroundNotification("Mikrofon startet automatisch neu …");
+            scheduleRestart(700L);
+            return;
+        }
+
+        observedAudioSampleCount = capturedSamples;
+        mainHandler.postDelayed(
+            recognitionHealthRunnable,
+            RECOGNITION_HEALTH_INTERVAL_MILLIS
+        );
     }
 
     private void pauseRecognition() {
         mainHandler.removeCallbacks(restartRunnable);
         mainHandler.removeCallbacks(fallbackResumeRunnable);
+        mainHandler.removeCallbacks(recognitionHealthRunnable);
         recognitionGeneration++;
         recognitionStarted = false;
         listening = false;

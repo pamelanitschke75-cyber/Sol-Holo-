@@ -2,8 +2,8 @@
 
 **Stand:** 04.09.2026
 
-**Status:** **TECHNISCH REPARIERT · ORIGINALSIGNIERTER BUILD UND ECHTER
-GALAXY-S23-GESAMTTEST NOCH OFFEN**
+**Status:** **BUILD 143 AUF DEM GALAXY S23 NICHT BESTANDEN · KORREKTUR DES
+WIEDERANLAUFS UND DER LIVE-AUDIOAUSWAHL IN ARBEIT**
 
 Dieser Stand wird nicht als abgeschlossen bezeichnet, bevor die gesamte
 Nutzungskette auf Pams echtem Samsung Galaxy S23 bestanden ist. Einzelne grüne
@@ -25,6 +25,40 @@ Teiltests reichen dafür ausdrücklich nicht aus.
 6. Nach Ende einer Sprachsitzung oder Rückkehr aus Samsung Notes, Kalender oder
    einer anderen App nimmt derselbe Weckdienst das Lauschen wieder auf.
 
+## Reeller Zwischenbefund mit Build 143
+
+- Das Update über die vorhandene Installation war erfolgreich. Einstellungen,
+  Hintergrundmodus sowie Pams vorhandene `3/3`-Stimmproben blieben erhalten.
+- Beim ersten Weckruf in der geöffneten App wurde „Hey Pam“ gehört, Pams Stimme
+  jedoch abgelehnt.
+- Der unmittelbar folgende Versuch löste keine sichtbare Reaktion aus, obwohl
+  die Oberfläche weiterhin „Hintergrund aktiv“ anzeigte.
+- Erst nach erneutem Tippen auf **Hintergrund** wurde Pams Stimme freigegeben
+  und Sols Sprachansicht gestartet.
+
+Damit ist Build 143 ausdrücklich **nicht bestanden**. Der manuelle erneute Tipp
+ist nur der bestätigte Fehlerhinweis, nicht der akzeptierte Endzustand.
+
+## Daraus abgeleitete Korrektur
+
+1. Der Java-Wrapper von sherpa-onnx liefert Token-Zeitstempel relativ zu einem
+   intern nach Sprechpausen zurückgesetzten Decoderabschnitt. Diese relativen
+   Werte dürfen nicht als absolute Position in einem dauerhaft laufenden
+   PCM-Ringpuffer verwendet werden. Die Sprecherprüfung erhält deshalb nur noch
+   das begrenzte jüngste Audiofenster des tatsächlich erkannten Weckrufs.
+2. Aus diesem Fenster wird der jüngste vollständige Sprachabschnitt ausgewählt,
+   damit ältere Geräusche oder Gespräche nicht anstelle von „Hey Pam“ geprüft
+   werden.
+3. Nach jeder Ablehnung wird eine vollständig frische Mikrofon- und
+   Keyword-Sitzung automatisch erzeugt. Ein PCM-Gesundheitscheck ersetzt auch
+   einen stehen gebliebenen Audiostrom selbstständig.
+4. Ein erneuter bewusster Tipp auf **Hintergrund** erzwingt zusätzlich einen
+   echten Neustart und wartet sichtbar bis zur Hörbereitschaft. Dieser Tipp darf
+   für den späteren Normalbetrieb aber nicht erforderlich sein.
+5. Die akustische Keyword-Schwelle wird moderat auf `0,20` gestellt. Sie allein
+   erteilt keine Freigabe; die owner-gebundene Phrase und beide unabhängigen
+   Sprecherprüfungen bleiben vor jedem Start zwingend.
+
 ## Unverändert zu erhalten
 
 - Paket-ID `com.solholo.app`
@@ -39,14 +73,14 @@ Teiltests reichen dafür ausdrücklich nicht aus.
 
 | Prüfung auf Pams Galaxy S23 | Mindestanforderung | Status |
 |---|---:|---|
-| App geöffnet | „Hey Pam“ startet 3 von 3 Versuchen | offen |
+| App geöffnet | „Hey Pam“ startet 3 von 3 Versuchen | Build 143 nicht bestanden; Korrektur-Build ausstehend |
 | Andere App im Vordergrund, Gerät entsperrt | 3 von 3 Versuchen einschließlich Sprachdialog | offen |
 | Sperrbildschirm sichtbar | Erkennung, sicherer Hinweis, Übergabe nach Pams Entsperrung: 3 von 3 | offen |
 | Display vollständig aus | Erkennung, Bildschirmhinweis, sichere Übergabe: 3 von 3 | offen |
 | Rückkehr aus Samsung Notes oder Kalender | Sprach-Audio funktioniert und „Hey Pam“ ist danach erneut bereit | offen |
 | Sprachdialog beenden, sperren, erneut wecken | Keine festhängende Pause und keine zweite Mikrofoninstanz | offen |
-| Update über vorhandene Installation | App-Daten, Einstellungen und Stimmprofil bleiben erhalten | offen |
-| APK-Identität | Paket-ID, höherer `versionCode` und exaktes Build-89-Zertifikat | offen |
+| Update über vorhandene Installation | App-Daten, Einstellungen und Stimmprofil bleiben erhalten | mit Build 143 bestanden; beim Korrektur-Build erneut prüfen |
+| APK-Identität | Paket-ID, höherer `versionCode` und exaktes Build-89-Zertifikat | für Build 143 bestanden; beim Korrektur-Build erneut prüfen |
 
 Erst wenn jede Zeile bestanden ist, darf der Status in **KOMPLETTPAKET
 BESTANDEN** geändert und die Reparatur als abgeschlossen zusammengeführt

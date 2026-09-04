@@ -468,10 +468,11 @@ public class SolSpeakerIdentityPlugin extends Plugin {
             throw new IllegalStateException("Stimmprofil ist nicht vollständig eingerichtet");
         }
 
-        // Use exactly the same short-clause selector that created the saved
-        // owner template. Different segmentation here can turn one identical
-        // "Hey Pam" into two incompatible speaker embeddings.
-        float[] voicedSamples = WakeVoiceTemplateSelector.extract(
+        // The live ring window can still contain an older spoken fragment
+        // before the detected phrase. Enrollment deliberately stores the
+        // leading "Hey Pam" clause; the live path deliberately selects the
+        // latest complete clause from its bounded tail window.
+        float[] voicedSamples = WakeVoiceTemplateSelector.extractLatest(
             captured,
             capturedCount
         );

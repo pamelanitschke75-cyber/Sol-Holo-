@@ -441,8 +441,18 @@ jobs:
             android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
           ! grep -Fq '@Hey_Sol' \
             android/app/src/main/assets/sol-kws-keywords.txt
-          grep -q "WakeVoiceTemplateSelector.extract" \
+          grep -q "WakeVoiceTemplateSelector.extractLatest" \
             android/app/src/main/java/com/solholo/app/SolSpeakerIdentityPlugin.java
+          grep -q "snapshotLatest(KEYWORD_CAPTURE_WINDOW_SAMPLES)" \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          ! grep -q "firstTokenSample" \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          grep -q "setKeywordsThreshold(0.20f)" \
+            android/app/src/main/java/com/solholo/app/SolWakeKeywordSpotter.java
+          grep -q "verifyRecognitionHealth" \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
+          grep -q 'publishWakeDiagnostic("listener_ready")' \
+            android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q "KEYWORD_POSTROLL_SAMPLES" \
             android/app/src/main/java/com/solholo/app/HeyHoSolService.java
           grep -q "speakerGateReady" \

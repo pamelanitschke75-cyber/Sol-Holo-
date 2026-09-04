@@ -397,6 +397,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   };
   let wakeActionRunning = false;
   let wakeListenersRegistered = false;
+  let wakeRecoveryNoticePending = false;
   let lastWakeDetectedAt = 0;
   let pendingWakePrompt = "";
   const wakeHandoffMaxAgeMillis = 120_000;
@@ -2794,11 +2795,20 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         if (event?.stage === "phrase_heard") {
           showToast("„Hey Pam“ gehört · deine Stimme wird geprüft …");
         } else if (event?.stage === "owner_accepted") {
+          wakeRecoveryNoticePending = false;
           showToast("Stimme freigegeben · Sol startet ✨");
         } else if (event?.stage === "owner_rejected") {
+          wakeRecoveryNoticePending = true;
           showToast(
-            "„Hey Pam“ gehört · Stimme nicht freigegeben 🔒" + scoreText
+            "„Hey Pam“ gehört · Stimme nicht freigegeben 🔒" + scoreText +
+            " · Sol startet das Hören automatisch neu."
           );
+        } else if (
+          event?.stage === "listener_ready" &&
+          wakeRecoveryNoticePending
+        ) {
+          wakeRecoveryNoticePending = false;
+          showToast("Hey Pam ist wieder bereit · du musst nichts drücken.");
         }
       });
     } catch (error) {
@@ -2847,6 +2857,26 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     return wakeStatus;
   }
 
+  async function waitForWakeListening(plugin, mode, timeoutMs = 20_000) {
+    const deadline = Date.now() + timeoutMs;
+    await new Promise((resolve) => window.setTimeout(resolve, 350));
+    let status = await plugin.getStatus();
+    renderWakeStatus(status);
+
+    while (
+      status.mode === mode &&
+      !status.listening &&
+      !status.lastError &&
+      Date.now() < deadline
+    ) {
+      await new Promise((resolve) => window.setTimeout(resolve, 250));
+      status = await plugin.getStatus();
+      renderWakeStatus(status);
+    }
+
+    return status;
+  }
+
   async function setWakeMode(mode) {
     if (wakeActionRunning) {
       return;
@@ -2862,7 +2892,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     renderWakeStatus(wakeStatus);
 
     try {
-      const status = await plugin.setMode({ mode });
+      let status = await plugin.setMode({ mode });
       renderWakeStatus(status);
 
       if (mode === "background") {
@@ -2875,11 +2905,19 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
           return;
         }
 
+        status = await waitForWakeListening(plugin, mode);
         showToast(
-          "Hintergrund-Hören und automatisches Öffnen sind aktiv."
+          status.listening
+            ? "Hintergrund ist bereit · du musst nicht erneut drücken."
+            : "Das Mikrofon startet noch automatisch · bitte kurz warten."
         );
       } else if (mode === "foreground") {
-        showToast("Sol hört nur auf den Weckruf, solange die App geöffnet ist.");
+        status = await waitForWakeListening(plugin, mode);
+        showToast(
+          status.listening
+            ? "App-Weckruf ist bereit · sag „Hey Pam“."
+            : "Das Mikrofon startet noch automatisch · bitte kurz warten."
+        );
       } else {
         showToast("Der Sol-Weckruf ist ausgeschaltet.");
       }
