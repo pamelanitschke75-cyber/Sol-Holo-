@@ -59,8 +59,6 @@ public class HeyHoSolService extends Service {
         SECURE_SAMPLE_RATE * 500 / 1000;
     private static final String SECURE_WAKE_PHRASE =
         WakePhraseMatcher.CANONICAL_PHRASE;
-    private static final String READY_NOTIFICATION_TEXT =
-        "Bereit · Sag: „" + SECURE_WAKE_PHRASE + "“";
 
     private static volatile boolean running;
     private static volatile boolean listening;
@@ -330,7 +328,7 @@ public class HeyHoSolService extends Service {
         }
 
         if (HeyHoSolPlugin.MODE_BACKGROUND.equals(currentMode)) {
-            startBackgroundNotification(currentBackgroundNotificationText());
+            startBackgroundNotification("Lokaler Hey-Pam-Schutz startet …");
         } else if (foregroundNotificationActive) {
             stopForeground(STOP_FOREGROUND_REMOVE);
             foregroundNotificationActive = false;
@@ -389,14 +387,11 @@ public class HeyHoSolService extends Service {
         if (
             destroyed
                 || pausedForConversation
+                || recognitionStarted
                 || speakerVerificationPending
                 || !hasMicrophonePermission()
                 || !SolSpeakerIdentityPlugin.isProfileReady(this)
         ) {
-            return;
-        }
-        if (recognitionStarted) {
-            updateBackgroundNotification(currentBackgroundNotificationText());
             return;
         }
 
@@ -453,7 +448,7 @@ public class HeyHoSolService extends Service {
             listening = true;
             saveError("");
             HeyHoSolPlugin.publishStatusEvent();
-            updateBackgroundNotification(READY_NOTIFICATION_TEXT);
+            updateBackgroundNotification("Sag: „" + SECURE_WAKE_PHRASE + "“");
         } catch (RuntimeException error) {
             if (secureAudioSession == session) {
                 secureAudioSession = null;
@@ -904,22 +899,6 @@ public class HeyHoSolService extends Service {
             startForeground(NOTIFICATION_ID, notification);
         }
         foregroundNotificationActive = true;
-    }
-
-    private String currentBackgroundNotificationText() {
-        if (pausedForConversation) {
-            return "Pausiert, solange Sol mit dir spricht";
-        }
-        if (processingAudio || speakerVerificationPending) {
-            return "Hey Pam erkannt · Stimme wird abgeglichen";
-        }
-        if (listening) {
-            return READY_NOTIFICATION_TEXT;
-        }
-        if (recognitionStarted) {
-            return "Mikrofon startet …";
-        }
-        return "Lokaler Hey-Pam-Schutz startet …";
     }
 
     private void updateBackgroundNotification(String text) {

@@ -132,49 +132,6 @@ test("Sicherheitstest und echter Weckruf verwenden dieselbe Mikrofonquelle", () 
   );
 });
 
-test("Hintergrund zeigt erst den wirklich aufnahmebereiten Weckruf als bereit", () => {
-  const onStart = methodSource(
-    "public int onStartCommand(Intent intent, int flags, int startId)",
-    "private int serviceRestartMode()"
-  );
-  const startRecognition = methodSource(
-    "private void startRecognition()",
-    "private void onLocalKeywordDetected("
-  );
-
-  assert.match(
-    serviceSource,
-    /READY_NOTIFICATION_TEXT\s*=\s*\n?\s*"Bereit · Sag: „" \+ SECURE_WAKE_PHRASE/u
-  );
-  assert.match(
-    onStart,
-    /startBackgroundNotification\(currentBackgroundNotificationText\(\)\)/u
-  );
-  assert.match(
-    startRecognition,
-    /if \(recognitionStarted\) \{[\s\S]*?updateBackgroundNotification\(currentBackgroundNotificationText\(\)\)/u
-  );
-  assert.match(
-    startRecognition,
-    /listening = true;[\s\S]*?updateBackgroundNotification\(READY_NOTIFICATION_TEXT\)/u
-  );
-});
-
-test("die Oberfläche wartet auf den echten Listener statt nur auf den Dienststart", () => {
-  assert.match(
-    uiSource,
-    /async function waitForWakeListening\(plugin, mode, timeoutMs = 20_000\)/u
-  );
-  assert.match(
-    uiSource,
-    /status\.mode === mode\s*&&\s*!status\.listening/u
-  );
-  assert.match(
-    uiSource,
-    /status = await waitForWakeListening\(plugin, mode\);[\s\S]*?status\.listening\s*\? "Hintergrund-Hören ist bereit/u
-  );
-});
-
 test("nur Pams owner-gebundenes Hey Pam erreicht beide Besitzerprüfungen", () => {
   assert.match(
     serviceSource,
