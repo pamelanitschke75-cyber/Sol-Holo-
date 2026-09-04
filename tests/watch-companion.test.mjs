@@ -125,7 +125,10 @@ test("CI baut und signiert Handy und Watch mit derselben dauerhaften Identität"
     workflow,
     /test "\$phone_certificate_sha256" = "\$watch_certificate_sha256"/u
   );
-  assert.match(workflow, /uses-feature:'android\.hardware\.type\.watch'/u);
+  assert.match(
+    workflow,
+    /uses-feature: name='android\.hardware\.type\.watch'/u
+  );
 });
 
 test("der erste Watch-Schritt verspricht keinen Lautsprecher-Dialog auf der Uhr", () => {

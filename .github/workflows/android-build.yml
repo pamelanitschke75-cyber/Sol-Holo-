@@ -778,7 +778,7 @@ jobs:
           printf '%s\n' "$watch_package_report" \
             | grep -Fq "package: name='com.solholo.app' versionCode='${watch_version_code}'"
           printf '%s\n' "$watch_package_report" \
-            | grep -Fq "uses-feature:'android.hardware.type.watch'"
+            | grep -Fq "uses-feature: name='android.hardware.type.watch'"
 
       - name: APK nur zur dauerhaften externen Signierung bereitstellen
         if: steps.signing_mode.outputs.mode == 'extern_signieren'
