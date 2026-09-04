@@ -623,7 +623,7 @@ jobs:
           expected_certificate_sha256="e122201077b93cb47edb6951446fb8dff77427a2f5a2bd4719474a638fe803e9"
           actual_certificate_sha256="$(
             printf '%s\n' "$signer_report" \
-              | sed -n 's/^Signer #.* certificate SHA-256 digest: //p' \
+              | sed -n 's/^.*certificate SHA-256 digest: //p' \
               | tr '[:upper:]' '[:lower:]' \
               | tr -d ':' \
               | sort -u
