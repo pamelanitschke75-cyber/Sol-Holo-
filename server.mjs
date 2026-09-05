@@ -5781,6 +5781,123 @@ function formatConfirmedMemoryRows(
 }
 
 /*
+  Erkennt persönliche Rückfragen, bevor Realtime eine freie Antwort erzeugt.
+  Dadurch ist der ownergebundene Speicherabruf Teil des Ausführungswegs und
+  nicht nur eine freiwillige Tool-Entscheidung des Sprachmodells.
+*/
+function personalRecallSearchQuery(
+  message
+) {
+  const text =
+    normalizeNaturalIntentText(
+      message
+    )
+      .replace(
+        /^(?:(?:hey\s+)?sol)\s*[,;:!.-]?\s*/u,
+        ""
+      )
+      .replace(/[?!.,;:]+$/u, "")
+      .trim();
+
+  if (!text) {
+    return "";
+  }
+
+  const patterns = [
+    /^wei(?:ss|ß)t\s+du\s+noch[,]?\s+was\s+ich\s+dir(?:\s+(?:heute|gestern|vorgestern|damals))?\s+(?:uber|von)\s+(.+?)\s+(?:erzahlt|gesagt)(?:\s+habe)?$/u,
+    /^ich\s+habe\s+dir(?:\s+(?:heute|gestern|vorgestern|damals))?\s+(?:etwas|was)\s+(?:uber|von)\s+(.+?)\s+(?:erzahlt|gesagt)[,\s]+(?:wei(?:ss|ß)t|erinnerst)\s+du\b.*$/u,
+    /^wei(?:ss|ß)t\s+du\s+noch[,]?\s+(?:etwas|was)\s+(?:uber|von)\s+(.+)$/u,
+    /^hast\s+du\s+dir\s+(.+?)\s+gemerkt$/u,
+    /^was\s+wei(?:ss|ß)t\s+du(?:\s+noch)?\s+(?:uber|von)\s+(.+)$/u,
+    /^erinnerst\s+du\s+dich(?:\s+noch)?\s+(?:an\s+)?(.+)$/u,
+    /^kannst\s+du\s+dich(?:\s+noch)?\s+(?:an\s+)?(.+?)\s+erinnern$/u,
+    /^was\s+habe\s+ich\s+dir(?:\s+(?:heute|gestern|vorgestern|damals))?\s+(?:uber|von)\s+(.+?)\s+(?:erzahlt|gesagt)(?:\s+habe)?$/u,
+    /^wer\s+ist\s+(?:die\s+|der\s+|das\s+)?(.+)$/u,
+    /^kennst\s+du(?:\s+noch)?\s+(?:die\s+|den\s+|das\s+)?(.+)$/u
+  ];
+
+  for (const pattern of patterns) {
+    const query =
+      String(
+        text.match(pattern)?.[1] ||
+        ""
+      ).trim();
+
+    if (query.length >= 2) {
+      return query.slice(0, 240);
+    }
+  }
+
+  if (
+    /^(?:was|wie|wann|wo|welch\w*)\b/u.test(text) &&
+    /\b(?:gestern|vorgestern|damals|fruher|letzt\w*)\b/u.test(text)
+  ) {
+    return text.slice(0, 240);
+  }
+
+  return "";
+}
+
+async function buildPersonalRecallResult(
+  identity,
+  message
+) {
+  const query =
+    personalRecallSearchQuery(
+      message
+    );
+
+  if (!query) {
+    return null;
+  }
+
+  const [confirmedMemories, fulltimeMemories] =
+    await Promise.all([
+      identityMemoryStore.searchConfirmed({
+        ownerId:
+          identity.ownerId,
+        speakerId:
+          identity.speakerId,
+        searchText:
+          query,
+        limit:
+          8
+      }),
+      loadRelevantOwnerFulltimeMemory(
+        identity,
+        query,
+        16
+      )
+    ]);
+
+  const memoryText =
+    [
+      formatConfirmedMemoryRows(
+        confirmedMemories,
+        identity.displayName
+      ),
+      formatPersonalMemoryRows(
+        fulltimeMemories
+      )
+    ]
+      .filter(Boolean)
+      .join("\n")
+      .slice(0, 16_000);
+
+  return {
+    handled:
+      true,
+    found:
+      Boolean(memoryText),
+    query,
+    count:
+      confirmedMemories.length +
+      fulltimeMemories.length,
+    memoryText
+  };
+}
+
+/*
   ==========================================================
   PRIVATES VOLLZEITGEDÄCHTNIS – SICHTBARER CHATVERLAUF
   ==========================================================
@@ -6069,12 +6186,12 @@ app.post(
             searchText:
               query,
             limit:
-              40
+              8
           }),
           loadRelevantOwnerFulltimeMemory(
             tokenIdentity,
             query,
-            60
+            16
           )
         ]);
 
@@ -6332,6 +6449,7 @@ app.post(
             conversation.conversationId,
           identity:
             publicIdentity(identity),
+          recall: null,
           calendar: null,
           weather: null
         });
@@ -6413,13 +6531,21 @@ app.post(
       let calendarResult =
         null;
 
-      calendarResult =
-        await handleCalendarWriteRequest(
-          transcript,
+      const recallResult =
+        await buildPersonalRecallResult(
           identity,
-          hasTrustedGooglePersonalReadGate(req),
-          conversation.conversationId
+          transcript
         );
+
+      calendarResult =
+        recallResult?.handled
+          ? null
+          : await handleCalendarWriteRequest(
+              transcript,
+              identity,
+              hasTrustedGooglePersonalReadGate(req),
+              conversation.conversationId
+            );
 
       if (
         calendarResult?.handled &&
@@ -6434,6 +6560,7 @@ app.post(
       }
 
       const weatherResult =
+        recallResult?.handled ||
         calendarResult?.handled
           ? null
           : await handleLiveWeatherRequest(
@@ -6467,7 +6594,14 @@ app.post(
             ),
           calendarSuccess:
             calendarResult?.success ??
-            null,
+              null,
+          recallHandled:
+            Boolean(
+              recallResult?.handled
+            ),
+          recallFound:
+            recallResult?.found ??
+              null,
           weatherHandled:
             Boolean(
               weatherResult?.handled
@@ -6495,6 +6629,9 @@ app.post(
           conversation.conversationId,
         identity:
           publicIdentity(identity),
+
+        recall:
+          recallResult,
 
         calendar:
           calendarResult,
@@ -6692,6 +6829,10 @@ app.post("/realtime/token", async (req, res) => {
         req.body?.voice
       );
 
+    const manualResponseRouting =
+      req.body?.manualResponseRouting ===
+        true;
+
     let conversation;
 
     try {
@@ -6812,6 +6953,15 @@ bestätigten Erinnerungen des aktuell gebundenen Owners.
 Erst wenn auch diese Suche keine passende Erinnerung
 liefert, darfst du sagen, dass du dazu momentan keine
 gespeicherte Information findest.
+
+Wenn eine Nutzernachricht mit [LOKALES_ERINNERUNGSERGEBNIS] beginnt,
+hat die App die persönliche ownergebundene Suche bereits verbindlich
+ausgeführt. Beantworte die unmittelbar vorausgehende persönliche Frage
+knapp und natürlich ausschließlich anhand der danach gelieferten Treffer.
+Rufe search_personal_memory dann nicht erneut auf. Bevorzuge Aussagen von
+${identity.displayName} gegenüber älteren Sol-Antworten. Behaupte nicht,
+etwas sei vergessen worden, wenn passende Treffer geliefert wurden. Bitte
+${identity.displayName} nicht, dieselbe Information noch einmal zu erzählen.
 
 Erfinde niemals eine Erinnerung.
 
@@ -7414,7 +7564,7 @@ der anderen Holo-Instanz. Pam und Steffi besitzen kein gemeinsames Profil.
                 850,
 
               create_response:
-                true,
+                !manualResponseRouting,
 
               interrupt_response:
                 false
@@ -7522,6 +7672,9 @@ der anderen Holo-Instanz. Pam und Steffi besitzen kein gemeinsames Profil.
 
       sol_memory_token:
         memorySearchToken,
+
+      manual_response_routing:
+        manualResponseRouting,
 
       conversationId:
         conversation.conversationId,
