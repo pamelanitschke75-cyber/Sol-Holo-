@@ -205,13 +205,35 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         '<span class="rowMeta">Samsung Health &amp; andere Quellen · nur lesen</span>' +
       '</span>' +
       '<span id="healthConnectStatus" class="serviceStatus setup">Wird geprüft …</span>' +
-    '</button>'
+    '</button>' +
+    '<button id="openClawAlltagPreviewRow" class="serviceRow" type="button">' +
+      '<span class="rowIcon">⌘</span>' +
+      '<span class="rowText">' +
+        '<span class="rowTitle">Alltagsworker · fiktiver Test</span>' +
+        '<span class="rowMeta">Nur Testdaten lesen · Vorschlag sichtbar zurückgeben</span>' +
+      '</span>' +
+      '<span id="openClawAlltagPreviewStatus" class="serviceStatus setup">Bewusst starten</span>' +
+    '</button>' +
+    '<section id="openClawAlltagPreviewResult" class="openClawPreviewResult" ' +
+      'aria-labelledby="openClawAlltagPreviewResultTitle" aria-live="polite" hidden>' +
+      '<div class="openClawPreviewHeader">' +
+        '<span aria-hidden="true">⌘</span>' +
+        '<div>' +
+          '<strong id="openClawAlltagPreviewResultTitle">Alltagsworker-Vorschau</strong>' +
+          '<small id="openClawAlltagPreviewMeta">Fiktive Daten · nur lesen</small>' +
+        '</div>' +
+      '</div>' +
+      '<div id="openClawAlltagPreviewContent"></div>' +
+      '<p class="openClawPreviewGuard">Keine echten Daten · nichts gespeichert · keine Aktion ausgeführt.</p>' +
+    '</section>'
   );
 
   document.querySelector("#servicesView .permissionNote").textContent =
     "Pam’s Holo liest keine WhatsApp-Nachricht, keinen Kontakt, kein Bild, keine " +
     "Notiz und keinen Health-Wert ohne deine sichtbare Auswahl oder Freigabe. " +
-    "Ein SmartThings-Gerät wird nur nach deiner Bestätigung geschaltet.";
+    "Ein SmartThings-Gerät wird nur nach deiner Bestätigung geschaltet. " +
+    "Der Alltagsworker erhält in dieser Phase ausschließlich fest eingebaute " +
+    "fiktive Testdaten.";
 
   const drawerVoiceSettings = document.querySelector("#drawer .drawerVoiceSettings");
   if (drawerVoiceSettings) {
@@ -678,6 +700,8 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     allGranted: false
   };
   let healthActionRunning = false;
+  let openClawAlltagPreviewRunning = false;
+  let openClawAlltagPreviewCompleted = false;
 
   function showToast(text) {
     uiToast.textContent = String(text || "");
@@ -686,6 +710,193 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     toastTimer = window.setTimeout(() => {
       uiToast.classList.remove("visible");
     }, 4200);
+  }
+
+  function setOpenClawAlltagPreviewStatus(text, state = "setup") {
+    const status = document.getElementById("openClawAlltagPreviewStatus");
+    if (!status) return;
+    status.textContent = text;
+    status.classList.remove("connected", "setup");
+    if (state) status.classList.add(state);
+  }
+
+  function renderOpenClawAlltagPreview(data, errorMessage = "") {
+    const panel = document.getElementById("openClawAlltagPreviewResult");
+    const content = document.getElementById("openClawAlltagPreviewContent");
+    const meta = document.getElementById("openClawAlltagPreviewMeta");
+    if (!panel || !content || !meta) return;
+
+    panel.hidden = false;
+    content.replaceChildren();
+
+    if (errorMessage) {
+      meta.textContent = "Sicher abgelehnt · nichts ausgeführt";
+      const message = document.createElement("p");
+      message.className = "openClawPreviewError";
+      message.textContent = errorMessage;
+      content.append(message);
+      return;
+    }
+
+    const result = data?.result;
+    if (
+      result?.worker !== "worker-alltag" ||
+      result?.status !== "completed-proposal" ||
+      result?.controls?.external_action_performed !== false ||
+      result?.controls?.data_written !== false ||
+      result?.controls?.boundary_crossed !== false ||
+      result?.controls?.human_review_required !== true
+    ) {
+      renderOpenClawAlltagPreview(
+        null,
+        "Die Antwort entsprach nicht dem sicheren Vorschauformat und wurde verworfen."
+      );
+      return;
+    }
+
+    meta.textContent = "worker-alltag · fiktive Daten · nur lesen";
+
+    const addList = (title, entries) => {
+      const section = document.createElement("section");
+      const heading = document.createElement("strong");
+      heading.textContent = title;
+      const list = document.createElement("ul");
+      for (const entry of entries) {
+        const item = document.createElement("li");
+        item.textContent = String(entry);
+        list.append(item);
+      }
+      section.append(heading, list);
+      content.append(section);
+    };
+
+    addList("Gelesene Testfakten", Array.isArray(result.facts) ? result.facts : []);
+    addList(
+      "Offene Punkte",
+      Array.isArray(result.uncertainties) ? result.uncertainties : []
+    );
+
+    const proposalSection = document.createElement("section");
+    const proposalTitle = document.createElement("strong");
+    proposalTitle.textContent = "Unverbindlicher Vorschlag";
+    const proposal = document.createElement("p");
+    proposal.textContent = String(result.proposal || "");
+    proposalSection.append(proposalTitle, proposal);
+    content.append(proposalSection);
+  }
+
+  async function runOpenClawAlltagPreview() {
+    if (openClawAlltagPreviewRunning || openClawAlltagPreviewCompleted) {
+      return;
+    }
+
+    const identity = requireActivePersonalOwner();
+    if (
+      !identity ||
+      identity.ownerId !== "pam-sol" ||
+      identity.speakerId !== "pam"
+    ) {
+      renderOpenClawAlltagPreview(
+        null,
+        "Der Test bleibt gesperrt, weil die feste Pam-Holo-ID nicht bestätigt ist."
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Jetzt genau den fiktiven Alltagstest starten?\n\n" +
+      "worker-alltag darf ausschließlich die eingebauten Testdaten lesen und " +
+      "einen sichtbaren Vorschlag zurückgeben. Es werden keine echten Daten " +
+      "gesendet, nichts gespeichert und keine Aktion ausgeführt."
+    );
+    if (!confirmed) {
+      setOpenClawAlltagPreviewStatus("Nicht gestartet", "setup");
+      showToast("Alltagstest abgebrochen · nichts wurde gesendet.");
+      return;
+    }
+
+    const row = document.getElementById("openClawAlltagPreviewRow");
+    openClawAlltagPreviewRunning = true;
+    row.disabled = true;
+    setOpenClawAlltagPreviewStatus("S23 bestätigen …", "setup");
+
+    try {
+      const session = await window.SolHoloTrustedSession?.ensure?.({
+        interactive: true
+      });
+      if (session?.trusted !== true) {
+        throw new Error(
+          "Die sichere S23-Sitzung wurde nicht bestätigt. Der Test blieb gesperrt."
+        );
+      }
+
+      setOpenClawAlltagPreviewStatus("worker-alltag liest …", "setup");
+      document.getElementById("openClawAlltagPreviewResult").hidden = true;
+
+      const response = await fetch(
+        `${BACKEND_URL}/openclaw/alltag-preview`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(window.SolHoloTrustedSession?.headers?.() || {})
+          },
+          body: JSON.stringify({
+            confirmation: "RUN_FIXED_SYNTHETIC_ALLTAG_PREVIEW",
+            ownerId: identity.ownerId,
+            selectedSpeakerId: identity.speakerId
+          }),
+          cache: "no-store",
+          credentials: "omit",
+          referrerPolicy: "no-referrer"
+        }
+      );
+      const text = await response.text();
+      let data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        data = {};
+      }
+      if (!response.ok) {
+        throw new Error(
+          String(
+            data?.message ||
+            "Der lokale OpenClaw-Labor-Runner ist noch nicht freigeschaltet."
+          )
+        );
+      }
+      if (
+        data?.identity?.ownerId !== identity.ownerId ||
+        data?.preview !== true ||
+        data?.productive !== false ||
+        data?.persisted !== false
+      ) {
+        throw new Error(
+          "Die sichere Zuordnung der Laborantwort konnte nicht bestätigt werden."
+        );
+      }
+
+      renderOpenClawAlltagPreview(data);
+      openClawAlltagPreviewCompleted = true;
+      setOpenClawAlltagPreviewStatus("Vorschlag da ✅", "connected");
+      showToast("worker-alltag hat den fiktiven Vorschlag sicher zurückgegeben ✅️");
+    } catch (error) {
+      console.error(
+        "OpenClaw-Alltag-Vorschau:",
+        error?.name || "Fehler"
+      );
+      const message = String(
+        error?.message ||
+        "Die fiktive Alltag-Vorschau wurde sicher abgebrochen."
+      );
+      renderOpenClawAlltagPreview(null, message);
+      setOpenClawAlltagPreviewStatus("Weiter gesperrt", "setup");
+      showToast(message);
+    } finally {
+      openClawAlltagPreviewRunning = false;
+      row.disabled = openClawAlltagPreviewCompleted;
+    }
   }
 
   function normalizeNoteSearchText(value) {
@@ -3222,6 +3433,13 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     void loadHealthStatus();
     renderSamsungNotesStatus();
   });
+
+  document.getElementById("openClawAlltagPreviewRow").addEventListener(
+    "click",
+    () => {
+      void runOpenClawAlltagPreview();
+    }
+  );
 
   document.getElementById("googleAccountRow").addEventListener("click", async () => {
     const identity = requireActivePersonalOwner();

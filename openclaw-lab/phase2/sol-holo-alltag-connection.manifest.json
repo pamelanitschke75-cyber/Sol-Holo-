@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0",
+  "phase": "2b",
+  "name": "Sol Holo – sichtbare Verbindung zur Alltag-Laborvorschau",
+  "status": "implemented-disabled-by-default",
+  "productive": false,
+  "active_worker": "worker-alltag",
+  "data_class": "synthetic",
+  "capability": "read",
+  "automatic_routing": false,
+  "android_control": {
+    "visible": true,
+    "free_text": false,
+    "explicit_confirmation_required": true,
+    "trusted_app_session_required": true
+  },
+  "backend": {
+    "route": "/openclaw/alltag-preview",
+    "owner_scope": "pam-sol",
+    "speaker_scope": "pam",
+    "persists_request_or_result": false
+  },
+  "transport": {
+    "kind": "authenticated-loopback-http",
+    "host_allowlist": ["127.0.0.1", "::1"],
+    "path": "/v1/alltag-preview",
+    "redirects_allowed": false,
+    "response_limit_bytes": 32768
+  },
+  "required_feature_flags": {
+    "OPENCLAW_SOL_HOLO_ALLTAG_PREVIEW_ENABLED": "1",
+    "OPENCLAW_LAB_ALLTAG_PREVIEW_ENABLED": "1"
+  },
+  "required_result_controls": {
+    "external_action_performed": false,
+    "data_written": false,
+    "boundary_crossed": false,
+    "human_review_required": true
+  },
+  "still_forbidden": [
+    "personal_data",
+    "free_text",
+    "calendar",
+    "notes",
+    "contacts",
+    "messages",
+    "device_control",
+    "medical_guidance",
+    "automatic_routing",
+    "external_network",
+    "productive_actions"
+  ]
+}

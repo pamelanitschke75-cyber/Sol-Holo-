@@ -1,7 +1,7 @@
 # Sol Holo × OpenClaw Lab
 
 Stand: 05.09.2026  
-Status: **Phase 1 verifiziert; Phase 2 startet mit einer einzelnen Alltag-Laborvorschau; nicht produktiv**
+Status: **Phase 1 verifiziert; Phase 2b verbindet die einzelne Alltag-Laborvorschau sichtbar und standardmäßig ausgeschaltet mit Pam’s Holo; nicht produktiv**
 
 OpenClaw `2026.9.1` läuft als getrenntes Labor. Sechs Fach-Worker sind angelegt: Alltag, Geschäftliches, Tiere, Kochen, Sicherheit und Medizin. Jeder Worker sieht ausschließlich das Werkzeug `read`, sein eigenes Workspace und klar markierte erfundene Testdaten.
 
@@ -11,40 +11,42 @@ Sol Holo beziehungsweise Pam's Holo bleibt Kopf, Persönlichkeit, Stimme und per
 
 `foundation.manifest.json` ist die zentrale, maschinenlesbare Bereichsliste. Sie hält die sechs Worker, ihre getrennten Workspaces und die unveränderlichen Phase-1-Grenzen fest. Unbekannte Bereiche werden nicht automatisch zugeordnet, und der Koordinator besitzt weder Werkzeuge noch automatische Routing-Freigabe.
 
-Zwei JSON-Schemas legen die spätere Übergabe fest, ohne sie bereits technisch mit Sol Holo zu verbinden:
+Zwei JSON-Schemas legen die kontrollierte Übergabe fest:
 
 - `contracts/task-envelope.schema.json`: nur ein ausdrücklich benannter Worker, synthetische Daten, relative Pfade, Fähigkeit `read`, Modus `proposal-only` und keine externe Aktion;
 - `contracts/worker-result.schema.json`: Fakten, Unsicherheiten und Vorschlag getrennt; Schreiben, Grenzübertritt und externe Aktion müssen ausdrücklich `false` sein.
 
-Die Phase-1-Beispiele unter `examples/` zeigen den vollständigen Vertrag am sensiblen Bereich Sicherheit. Sie sind ausschließlich Dokumentation und Testdaten, kein aktiver Router. Ein späterer produktiver Adapter bleibt ausgeschaltet und benötigt einen eigenen Entwurf, eigene Tests und Pams ausdrückliche Bestätigung.
+Die Phase-1-Beispiele unter `examples/` zeigen den vollständigen Vertrag am sensiblen Bereich Sicherheit. Sie sind ausschließlich Dokumentation und Testdaten, kein aktiver Router. Ein produktiver Adapter bleibt ausgeschaltet und benötigt einen eigenen Entwurf, eigene Tests und Pams ausdrückliche Bestätigung.
 
 ## Phase 2 – erster einzelner Alltag-Test
 
 Nach Pams ausdrücklicher Freigabe wird genau eine fiktive Alltag-Aufgabe als Vorschau geprüft. `phase2/alltag-preview.manifest.json` begrenzt sie auf `worker-alltag`, `testdaten/alltag-fiktiv.md`, Fähigkeit `read` und ein Ergebnis ohne externe Aktion. `phase2/alltag-preview-gate.mjs` verlangt einen manuellen Einmal-Marker und den bewusst gesetzten, standardmäßig ausgeschalteten Schalter `OPENCLAW_LAB_ALLTAG_PREVIEW_ENABLED=1`.
 
-Das Gate akzeptiert keine freie Texteingabe, keine echten Daten, keinen anderen Pfad, keinen anderen Worker und keine zweite Freigabe im selben Gate-Prozess. Die echte Sol-Holo-App, ihr Backend und Android bleiben unverbunden und unverändert.
+Das Gate akzeptiert keine freie Texteingabe, keine echten Daten, keinen anderen Pfad, keinen anderen Worker und keine zweite Freigabe im selben Gate-Prozess.
 
-Es besteht weiterhin **keine technische Verbindung** zur produktiven Sol-Holo-App; geprüft wird nur der interne Laborvertrag.
+Der [GitHub-Actions-Lauf #5](https://github.com/pamelanitschke75-cyber/Sol-Holo-/actions/runs/33966844004) bestätigte die Vorschau in der echten Docker-Sandbox: ein eigener Lesezugriff, ein strukturiertes Vorschauergebnis, keine externe Aktion, kein Schreiben, kein Bereichswechsel und weiterhin menschliche Prüfung. Alle bisherigen 18 Rechteprüfungen der sechs Worker blieben ebenfalls grün.
 
-Der [GitHub-Actions-Lauf #4](https://github.com/pamelanitschke75-cyber/Sol-Holo-/actions/runs/33966629551) bestätigte die Vorschau in der echten Docker-Sandbox: ein eigener Lesezugriff, ein strukturiertes Vorschauergebnis, keine externe Aktion, kein Schreiben, kein Bereichswechsel und weiterhin menschliche Prüfung. Alle bisherigen 18 Rechteprüfungen der sechs Worker blieben ebenfalls grün.
+## Phase 2b – sichtbare Testverbindung in Pam’s Holo
+
+Pam’s Holo zeigt in den Verbindungen nun eine ausdrücklich als fiktiv bezeichnete Alltagsworker-Zeile. Erst ein bewusster Bestätigungsdialog und die gerätegebundene vertrauenswürdige App-Sitzung dürfen den fest eingebauten Testauftrag an `/openclaw/alltag-preview` senden. Der Client kann weder Freitext noch echte Daten in diesen Auftrag einsetzen.
+
+Das Backend besitzt zwei voneinander unabhängige, standardmäßig ausgeschaltete Feature-Schalter. Sind beide bewusst aktiv, darf es ausschließlich einen authentifizierten Runner auf `127.0.0.1` oder `::1` unter dem festen Pfad `/v1/alltag-preview` ansprechen. Der Runner autorisiert den Auftrag erneut mit dem Einmal-Gate und startet genau `worker-alltag` in der bestehenden gehärteten Docker-Sandbox. Antworten werden größenbegrenzt und nochmals gegen den Ergebnisvertrag geprüft, bevor die App sie ausschließlich sichtbar darstellt.
+
+`phase2/sol-holo-alltag-connection.manifest.json` beschreibt diese Verbindung maschinenlesbar. Der Quellstand ist absichtlich noch nicht produktiv aktiviert: Ohne beide Feature-Schalter, lokalen Runner und langes Bridge-Token lehnt der Server die Anfrage geschlossen ab. Kalender, Notes, Kontakte, Nachrichten, Geräte, Medizin, echte Alltagsdaten und automatische Weiterleitung bleiben außerhalb der Freigabe.
 
 ## Harte Grenze
 
-```text
-Pam / Pam's Holo / pam-sol
-        │
-        │  nur simulierter Laborvertrag; keine Produktivverbindung
-        ▼
-OpenClaw-Lab
-  ├─ Worker Alltag
-  ├─ Worker Geschäftliches
-  ├─ Worker Tiere
-  ├─ Worker Kochen
-  ├─ Worker Sicherheit
-  └─ Worker Medizin
+```mermaid
+flowchart TD
+  A["Pam · bewusste Bestätigung"] --> B["Pam’s Holo · feste Testanfrage"]
+  B --> C["Backend · Trusted-App-Gate"]
+  C --> D["Loopback-Bridge · Einmal-Gate"]
+  D --> E["worker-alltag · Docker · read-only"]
 ```
 
-Das Labor darf nichts an `main`, der laufenden Render-Instanz, der Android-App oder persönlichen Sol-Holo-Daten auslösen. Eine spätere Verbindung benötigt einen gesonderten Entwurf, technische Tests und Pams ausdrückliche Bestätigung.
+Der Pfeil ist ausschließlich die standardmäßig ausgeschaltete fiktive Vorschauverbindung. Der Worker darf nichts an `main`, der laufenden Render-Instanz, der Android-App oder persönlichen Sol-Holo-Daten verändern.
+
+Zu Kamera, Mikrofon, Sensoren, Geräten, Konten und persönlichen Speichern besteht weiterhin **keine technische Verbindung**. Für Sicherheit und Medizin bleibt zusätzlich jede produktive Entscheidung oder Aktion gesperrt und menschliche Prüfung zwingend.
 
 ## Derzeitige Grenzen
 
@@ -54,7 +56,9 @@ Das Labor darf nichts an `main`, der laufenden Render-Instanz, der Android-App o
 - Worker-Toolmenge exakt `read`; keine Schreib-, Shell-, Browser-, Nachrichten-, Memory-, Agenten-, Netzwerk- oder Automationswerkzeuge;
 - jedes Worker-Workspace wird in der vorgesehenen Docker-Sandbox schreibgeschützt eingebunden;
 - keine Kanäle, Bindings, Plugins, MCP-Server oder Agent-Skills;
-- keine Google-, Samsung-, Render-, Android- oder `pam-sol`-Verbindung;
+- keine Übergabe von Google-, Samsung-, Render-, Android- oder persönlichen `pam-sol`-Inhalten an einen Worker;
+- sichtbarer Android-Testknopf ohne Freitext; Serverzugang nur nach gerätegebundener Trusted-App-Sitzung;
+- Bridge nur authentifiziert über Loopback und nur für den festen Alltag-Vorschaupfad;
 - Update-Prüfung, Modellkatalog-Abruf, Telemetrie und Heartbeat deaktiviert;
 - lokaler deterministischer Testtreiber auf `127.0.0.1:19006`, kein externer Modellanbieter und kein Zugangsschlüssel;
 - ausschließlich synthetische Testdaten, keine Erinnerungen, Bilder, Stimmen oder privaten Daten.
@@ -95,9 +99,10 @@ Die ursprünglichen lokalen Tooltests liefen mit demselben Rechteprofil und eine
 
 1. **Phase 0 – Nullzugriff:** Konfiguration, Boot und Außenruhe prüfen. *(abgeschlossen)*
 2. **Phase 1 – Hand, Fuß, Sicherheit und Medizin:** sechs getrennte Lese-Worker mit künstlichen Testdaten. *(von Pam nach grünen Policy- und Containerprüfungen abgeschlossen)*
-3. **Phase 2 – Vorschau:** der Alltag-Worker erzeugt für genau einen manuell freigegebenen fiktiven Test einen Vorschlag, führt aber nichts extern aus. *(technischer Pflichtlauf bestanden; Draft bleibt offen)*
-4. **Phase 3 – Einzelaktion mit Freigabe:** genau eine klar begrenzte Aktion nach bewusster Bestätigung.
-5. **Phase 4 – Sol-Holo-Adapter:** erst nach gesonderter Prüfung hinter einem standardmäßig ausgeschalteten Feature-Flag.
+3. **Phase 2 – Vorschau:** der Alltag-Worker erzeugt für genau einen manuell freigegebenen fiktiven Test einen Vorschlag, führt aber nichts extern aus. *(technischer Pflichtlauf bestanden und gemergt)*
+4. **Phase 2b – sichtbare Sol-Holo-Testverbindung:** fester Android-Testknopf, Trusted-App-Gate, authentifizierte Loopback-Bridge und erneut validiertes Ergebnis. *(implementiert, standardmäßig aus; neuer Docker-Pflichtlauf erforderlich)*
+5. **Phase 3 – Einzelaktion mit Freigabe:** genau eine klar begrenzte Aktion nach bewusster Bestätigung.
+6. **Phase 4 – produktiver Sol-Holo-Adapter:** erst nach gesonderter Prüfung und neuer ausdrücklicher Freigabe.
 
 Nur Pam entscheidet, wann eine Stufe als abgeschlossen gilt und ob die nächste Stufe beginnt.
 
@@ -125,18 +130,23 @@ Die Konfiguration erwartet drei Laufzeitwerte außerhalb des Repositorys:
 - `foundation.manifest.json` – zentrale Bereichsliste und unveränderliche Phase-1-Grenzen
 - `contracts/*` – Aufgaben- und Ergebnisvertrag für eine spätere, noch inaktive Übergabe
 - `phase2/*` – standardmäßig ausgeschaltetes Einmal-Gate für die Alltag-Laborvorschau
+- `phase2/alltag-preview-bridge.mjs` – authentifizierter, ausschließlich lokal gebundener Runner für genau diesen Test
+- `phase2/sol-holo-alltag-connection.manifest.json` – maschinenlesbare Grenzen der sichtbaren Verbindung
 - `examples/*` – rein synthetische Vertrags- und Vorschau-Beispiele mit menschlicher Prüfung
 - `workspace/*` – neutrale Regeln für den werkzeuglosen Labor-Koordinator
 - `workspaces/*` – sechs getrennte Worker mit festen neutralen Identitäten und fiktiven Testdaten
 - `tests/mock-openai-server.mjs` – lokaler deterministischer Policy-Prüfer
 - `tests/check-foundation.mjs` – prüft Register, Verträge, Worker-Dateien und zentrale Sperren gemeinsam
 - `tests/check-alltag-preview.mjs` – prüft Einmal-Freigabe und zehn technische Ablehnungsfälle
-- `tests/run-container-policy-suite.mjs` – prüft sechs echte Docker-Sandboxes einschließlich Mounts und Schreibsperren
+- `tests/run-container-policy-suite.mjs` – prüft sechs echte Docker-Sandboxes einschließlich der sichtbaren Loopback-Verbindung, Mounts und Schreibsperren
+- `../modules/openclaw-alltag-preview.mjs` – fester Sol-Holo-Auftrag, Doppelschalter, Loopback-Transport und Ergebnisvalidierung
+- `../tests/openclaw-alltag-preview*.test.mjs` – Backend- und UI-Grenztests ohne persönliche Daten
 - `docker/Dockerfile.sandbox` – minimales, reproduzierbares Labor-Image
 - `SECURITY.md` – Bedrohungsmodell und Freigaberegeln
 - `PHASE-1-HAND-UND-FUSS-05-09-2026.md` – nachvollziehbarer Phase-1-Eintrag
 - `PHASE-1-ERWEITERUNG-SICHERHEIT-MEDIZIN-05-09-2026.md` – Sondergrenzen der beiden sensiblen Worker
 - `PHASE-1-GRUNDGERUEST-05-09-2026.md` – gemeinsames Register, Verträge und Container-Prüfweg
+- `PHASE-2B-SICHTBARE-ALLTAG-VERBINDUNG-05-09-2026.md` – Freigabeumfang und Stopplinien der sichtbaren Testverbindung
 - `.github/workflows/openclaw-lab-security.yml` – isolierte Prüfung im Draft-PR auf einem Docker-Runner
 
 Vor einem späteren echten Start wird die Beispieldatei außerhalb des Repositorys als private Konfiguration abgelegt, mit einem echten zufälligen Token versehen und auf Dateirechte `600` begrenzt. Die eingecheckte Vorlage enthält absichtlich kein Geheimnis.
