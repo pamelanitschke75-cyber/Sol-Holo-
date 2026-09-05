@@ -41,7 +41,7 @@ test("Live-Wetter nutzt die vorhandene OpenAI-Websuche und zeigt Quellen", () =>
   assert.match(html, /messageSources/u);
   assert.match(html, /LOKALES_WETTERERGEBNIS/u);
   assert.match(ui, /\/weather\/status/u);
-  assert.match(serviceWorker, /sol-holo-128-raffituekke-alltagsaktionen/u);
+  assert.match(serviceWorker, /sol-holo-129-verbindlicher-erinnerungsabruf/u);
 });
 
 test("Realtime erfindet keine Backend-Freigabe als Wetter-Hindernis", () => {
@@ -54,6 +54,39 @@ test("Realtime erfindet keine Backend-Freigabe als Wetter-Hindernis", () => {
   assert.doesNotMatch(prompt, /Backend-Freigabe|Backend[^\n]{0,80}(?:freigegeben|freigeschaltet|aktiviert)/iu);
   assert.match(prompt, /OpenAI-Live-Websuche/u);
   assert.match(prompt, /spekuliere nicht über technische\nFehlerursachen/u);
+});
+
+test("persönliche Sprachfragen laden das Vollzeitgedächtnis verbindlich", () => {
+  const serverDetector = new Function(
+    `${sourceFunction("normalizeNaturalIntentText", "looksLikeLiveWeatherRequest")}\n` +
+    `${sourceFunction("personalRecallSearchQuery", "buildPersonalRecallResult").replace(/\basync\s*$/u, "")}\n` +
+    "return personalRecallSearchQuery;"
+  )();
+  const uiStart = ui.indexOf("function normalizeNoteSearchText");
+  const uiEnd = ui.indexOf("function googleMapsDestinationFromMessage", uiStart);
+  const clientDetector = new Function(
+    `${ui.slice(uiStart, uiEnd)}\nreturn personalRecallQueryFromMessage;`
+  )();
+
+  assert.equal(serverDetector("Sol, was weißt du über Salt?"), "salt");
+  assert.equal(clientDetector("Sol, was weißt du über Salt?"), "salt");
+  assert.equal(
+    serverDetector("Weißt du noch, was ich dir gestern über Salt erzählt habe?"),
+    "salt"
+  );
+  assert.equal(
+    clientDetector("Ich habe dir gestern etwas über Salt erzählt, weißt du das noch?"),
+    "salt"
+  );
+  assert.equal(clientDetector("Wie ist das Wetter in München?"), "");
+  assert.match(server, /buildPersonalRecallResult\(\s*identity,\s*transcript/u);
+  assert.match(server, /recall:\s*\n\s*recallResult/u);
+  assert.match(server, /LOKALES_ERINNERUNGSERGEBNIS/u);
+  assert.match(server, /create_response:\s*\n\s*!manualResponseRouting/u);
+  assert.match(html, /manualResponseRouting:\s*\n\s*true/u);
+  assert.match(html, /data\?\.recall\?\.handled/u);
+  assert.match(html, /handleRealtimeUserTranscript/u);
+  assert.match(html, /LOKALES_ERINNERUNGSERGEBNIS/u);
 });
 
 test("ein ausdrücklicher Kalenderauftrag wird ohne zweite Inhaltsfreigabe ausgeführt", () => {
