@@ -792,6 +792,11 @@ body{
   color:#f0c97a;
 }
 
+#openClawAlltagPreviewRow[hidden],
+#openClawAlltagPreviewResult[hidden]{
+  display:none !important;
+}
+
 .openClawPreviewResult{
   grid-column:1 / -1;
   padding:15px;

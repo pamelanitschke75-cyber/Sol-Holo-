@@ -10,6 +10,10 @@ const html = fs.readFileSync(
   new URL("../www/index.html", import.meta.url),
   "utf8"
 );
+const styles = fs.readFileSync(
+  new URL("../www/sol-holo-ui.css", import.meta.url),
+  "utf8"
+);
 const server = fs.readFileSync(
   new URL("../server.mjs", import.meta.url),
   "utf8"
@@ -32,6 +36,10 @@ test("the Android UI keeps the synthetic preview as a hidden lab action", () => 
   assert.match(row, /Nur Testdaten lesen/u);
   assert.match(row, /data-lab-only="true"/u);
   assert.match(row, /hidden/u);
+  assert.match(
+    styles,
+    /#openClawAlltagPreviewRow\[hidden\][\s\S]*?display:none !important;/u
+  );
   assert.doesNotMatch(row, /data-sol-prompt/u);
   assert.doesNotMatch(row, /input|textarea/u);
 });
@@ -82,6 +90,6 @@ test("the backend route is owner-gated before the preview service runs", () => {
 });
 
 test("the Android asset versions include the new preview UI", () => {
-  assert.match(html, /sol-holo-ui\.css\?v=36/u);
+  assert.match(html, /sol-holo-ui\.css\?v=37/u);
   assert.match(html, /sol-holo-ui\.js\?v=43/u);
 });
