@@ -24,9 +24,17 @@ test("Speichern auf Zuruf ist als gemeinsame Alltagsfreigabe sichtbar", () => {
     /<button id="explicitSaveRow"[\s\S]*?<\/button>/u
   )?.[0];
   assert.ok(row, "Speichern-auf-Zuruf-Zeile fehlt");
-  assert.match(row, /Listen, Aufgaben, Termine, Notizen, Wünsche/u);
-  assert.match(row, /serviceStatus connected">Aktiv/u);
+  assert.match(row, /Alltagsworker · Speichern auf Zuruf/u);
+  assert.match(row, /Echte Alltagsinhalte/u);
+  assert.match(row, /serviceStatus connected">Aktiv ✅/u);
   assert.match(row, /data-open-view="notes"/u);
+
+  const labRow = ui.match(
+    /<button id="openClawAlltagPreviewRow"[\s\S]*?<\/button>/u
+  )?.[0];
+  assert.ok(labRow, "interne Sicherheitstest-Zeile fehlt");
+  assert.match(labRow, /data-lab-only="true"/u);
+  assert.match(labRow, /hidden/u);
 });
 
 test("explizite Speicheraufträge und benannte Listen werden lokal erkannt", () => {
@@ -130,5 +138,5 @@ test("Sprachaufträge verwenden denselben lokalen Speicherweg", () => {
   );
   assert.match(realtimeHandler, /explicitSaveRequestFromMessage/u);
   assert.match(html, /LOKALES_SPEICHERERGEBNIS/u);
-  assert.match(html, /sol-holo-ui\.js\?v=42/u);
+  assert.match(html, /sol-holo-ui\.js\?v=43/u);
 });
