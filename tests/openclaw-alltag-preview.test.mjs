@@ -243,6 +243,7 @@ test("the OpenAI executor sends only the fixed synthetic source", async () => {
   assert.equal(captured.body.model, "gpt-5");
   assert.equal(captured.body.store, false);
   assert.equal(captured.body.max_output_tokens, 900);
+  assert.deepEqual(captured.body.reasoning, { effort: "minimal" });
   assert.equal(Object.hasOwn(captured.body, "tools"), false);
   assert.match(captured.body.input, /FIKTIVE TESTDATEN – Alltag/u);
   assert.match(captured.body.input, /Haferdrink/u);
@@ -265,7 +266,7 @@ test("the OpenAI executor sends only the fixed synthetic source", async () => {
       .human_review_required.enum,
     [true]
   );
-  assert.equal(captured.options.timeout, 30_000);
+  assert.equal(captured.options.timeout, 75_000);
   assert.equal(captured.options.maxRetries, 0);
 });
 
