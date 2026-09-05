@@ -65,6 +65,12 @@ Die sechs Worker Alltag, Geschäftliches, Tiere, Kochen, Sicherheit und Medizin 
 
 Ein Worker darf ausschließlich lesen und textlich antworten. Selbst eine harmlose Dateiänderung muss technisch blockiert bleiben. Kommunikation zwischen den Workern ist deaktiviert.
 
+## Phase-2-Regel für den Alltag-Worker
+
+Die erste Vorschau erweitert keine Werkzeugrechte. Sie lässt genau eine festgelegte fiktive Aufgabe an `worker-alltag` passieren und verlangt dafür gleichzeitig den standardmäßig ausgeschalteten Feature-Schalter und einen manuellen Einmal-Freigabemarker. Der Marker wird nicht in die Worker-Nachricht übernommen.
+
+Das Gate verweigert einen anderen Worker, eine andere Datenklasse, einen anderen Pfad, eine geänderte Frage, eine externe Aktion und die zweite Verwendung desselben Gate-Prozesses. Das Ergebnis wird gegen Task-ID, Worker, Quelle und die vier negativen Kontrollbehauptungen geprüft. Sol-Holo-Adapter, Backend, Android, persönliche Daten und automatische Weiterleitung bleiben ausgeschaltet.
+
 ## Sondergrenze Sicherheit
 
 - Der Worker liest nur ausdrücklich beschriebene fiktive Beobachtungen. Er besitzt keinen Zugriff auf Kamera, Mikrofon, Standort, Sensoren, Alarme, Schlösser oder andere Geräte.

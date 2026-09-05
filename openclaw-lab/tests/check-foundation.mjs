@@ -57,7 +57,7 @@ const config = read("openclaw.lab.example.json5");
 const mockServer = read("tests/mock-openai-server.mjs");
 
 assert.equal(manifest.phase, 1);
-assert.equal(manifest.status, "draft");
+assert.equal(manifest.status, "verified");
 assert.equal(manifest.productive, false);
 assert.equal(manifest.data_class, "synthetic-only");
 assert.equal(manifest.execution_mode, "proposal-only");
@@ -179,5 +179,5 @@ assert.equal(resultExample.controls.boundary_crossed, false);
 assert.equal(resultExample.controls.human_review_required, true);
 
 process.stdout.write(
-  `GRUNDGERUEST_OK workers=${workers.length} contracts=2 examples=2 data=synthetic sandbox=docker network=none writes=false external=false\n`,
+  `GRUNDGERUEST_OK workers=${workers.length} contracts=2 phase1_examples=2 status=verified data=synthetic sandbox=docker network=none writes=false external=false\n`,
 );

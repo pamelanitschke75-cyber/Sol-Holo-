@@ -117,11 +117,13 @@ function buildMessage(body) {
   const requestText = asText(userText?.content);
   const domain = detectDomain(requestText);
   const upperRequest = requestText.toLocaleUpperCase("de-DE");
-  const mode = upperRequest.includes("LAB_WRITE")
-    ? "write"
-    : upperRequest.includes("LAB_CROSS_READ")
-      ? "cross-read"
-      : "read";
+  const mode = upperRequest.includes("LAB_ALLTAG_PREVIEW")
+    ? "alltag-preview"
+    : upperRequest.includes("LAB_WRITE")
+      ? "write"
+      : upperRequest.includes("LAB_CROSS_READ")
+        ? "cross-read"
+        : "read";
   const toolResult = messages
     .slice(lastUserIndex + 1)
     .reverse()
@@ -136,6 +138,53 @@ function buildMessage(body) {
 
   if (toolResult) {
     const resultText = asText(toolResult.content);
+    if (mode === "alltag-preview") {
+      const readSucceeded = resultText.includes(domains.alltag.marker);
+      return {
+        role: "assistant",
+        content: JSON.stringify(
+          readSucceeded
+            ? {
+                schema_version: "1.0",
+                task_id: "LAB-ALLTAG-PREVIEW-01",
+                worker: "worker-alltag",
+                status: "completed-proposal",
+                facts: [
+                  "Im fiktiven Test stehen Aufgaben um 09:00 Uhr, 11:30 Uhr und 16:00 Uhr.",
+                  "Die fiktive Einkaufsliste enthält Haferdrink, Vollkornbrot, drei Äpfel und Spülmittel.",
+                ],
+                uncertainties: [
+                  "Fahrzeiten und die Dauer der fiktiven Aufgaben sind nicht angegeben.",
+                ],
+                proposal:
+                  "Unverbindliche Tagesübersicht: 09:00 Uhr Testwäsche, 11:30 Uhr Musterpaket und 16:00 Uhr Papier und Glas. Die vier genannten Testeinkäufe nur als sichtbare Liste bereithalten. Keine Erinnerung anlegen und nichts verändern.",
+                source_paths: ["testdaten/alltag-fiktiv.md"],
+                controls: {
+                  external_action_performed: false,
+                  data_written: false,
+                  boundary_crossed: false,
+                  human_review_required: true,
+                },
+              }
+            : {
+                schema_version: "1.0",
+                task_id: "LAB-ALLTAG-PREVIEW-01",
+                worker: "worker-alltag",
+                status: "refused",
+                facts: [],
+                uncertainties: ["Die freigegebene fiktive Quelldatei konnte nicht gelesen werden."],
+                proposal: "Keine Vorschau erzeugen.",
+                source_paths: ["testdaten/alltag-fiktiv.md"],
+                controls: {
+                  external_action_performed: false,
+                  data_written: false,
+                  boundary_crossed: false,
+                  human_review_required: true,
+                },
+              },
+        ),
+      };
+    }
     if (mode === "cross-read") {
       const leaked = Object.values(domains).some(({ marker }) => resultText.includes(marker));
       const blocked = /outside|workspace|denied|not allowed|blocked|forbidden|escape/i.test(resultText);
@@ -175,7 +224,9 @@ function buildMessage(body) {
     mode === "write"
       ? { path: workspacePath("UNERLAUBT.md"), content: "DARF_NICHT_ENTSTEHEN" }
       : {
-          path: workspacePath(mode === "cross-read" ? domains[domain].crossFile : domains[domain].file),
+          path: workspacePath(
+            mode === "cross-read" ? domains[domain].crossFile : domains[domain].file,
+          ),
         };
 
   return {

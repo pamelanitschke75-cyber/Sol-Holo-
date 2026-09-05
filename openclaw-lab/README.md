@@ -1,7 +1,7 @@
 # Sol Holo × OpenClaw Lab
 
 Stand: 05.09.2026  
-Status: **Phase 1 – gemeinsames Grundgerüst technisch geprüft, abgeschottet, Draft und nicht produktiv**
+Status: **Phase 1 verifiziert; Phase 2 startet mit einer einzelnen Alltag-Laborvorschau; nicht produktiv**
 
 OpenClaw `2026.9.1` läuft als getrenntes Labor. Sechs Fach-Worker sind angelegt: Alltag, Geschäftliches, Tiere, Kochen, Sicherheit und Medizin. Jeder Worker sieht ausschließlich das Werkzeug `read`, sein eigenes Workspace und klar markierte erfundene Testdaten.
 
@@ -16,14 +16,22 @@ Zwei JSON-Schemas legen die spätere Übergabe fest, ohne sie bereits technisch 
 - `contracts/task-envelope.schema.json`: nur ein ausdrücklich benannter Worker, synthetische Daten, relative Pfade, Fähigkeit `read`, Modus `proposal-only` und keine externe Aktion;
 - `contracts/worker-result.schema.json`: Fakten, Unsicherheiten und Vorschlag getrennt; Schreiben, Grenzübertritt und externe Aktion müssen ausdrücklich `false` sein.
 
-Die Beispiele unter `examples/` zeigen den vollständigen Vertrag am sensiblen Bereich Sicherheit. Sie sind ausschließlich Dokumentation und Testdaten, kein aktiver Router. Ein späterer Adapter bleibt ausgeschaltet und benötigt einen eigenen Entwurf, eigene Tests und Pams ausdrückliche Bestätigung.
+Die Phase-1-Beispiele unter `examples/` zeigen den vollständigen Vertrag am sensiblen Bereich Sicherheit. Sie sind ausschließlich Dokumentation und Testdaten, kein aktiver Router. Ein späterer produktiver Adapter bleibt ausgeschaltet und benötigt einen eigenen Entwurf, eigene Tests und Pams ausdrückliche Bestätigung.
+
+## Phase 2 – erster einzelner Alltag-Test
+
+Nach Pams ausdrücklicher Freigabe wird genau eine fiktive Alltag-Aufgabe als Vorschau geprüft. `phase2/alltag-preview.manifest.json` begrenzt sie auf `worker-alltag`, `testdaten/alltag-fiktiv.md`, Fähigkeit `read` und ein Ergebnis ohne externe Aktion. `phase2/alltag-preview-gate.mjs` verlangt einen manuellen Einmal-Marker und den bewusst gesetzten, standardmäßig ausgeschalteten Schalter `OPENCLAW_LAB_ALLTAG_PREVIEW_ENABLED=1`.
+
+Das Gate akzeptiert keine freie Texteingabe, keine echten Daten, keinen anderen Pfad, keinen anderen Worker und keine zweite Freigabe im selben Gate-Prozess. Die echte Sol-Holo-App, ihr Backend und Android bleiben unverbunden und unverändert.
+
+Es besteht weiterhin **keine technische Verbindung** zur produktiven Sol-Holo-App; geprüft wird nur der interne Laborvertrag.
 
 ## Harte Grenze
 
 ```text
 Pam / Pam's Holo / pam-sol
         │
-        │  noch keine technische Verbindung
+        │  nur simulierter Laborvertrag; keine Produktivverbindung
         ▼
 OpenClaw-Lab
   ├─ Worker Alltag
@@ -84,8 +92,8 @@ Die ursprünglichen lokalen Tooltests liefen mit demselben Rechteprofil und eine
 ## Sicherheitsstufen
 
 1. **Phase 0 – Nullzugriff:** Konfiguration, Boot und Außenruhe prüfen. *(abgeschlossen)*
-2. **Phase 1 – Hand, Fuß, Sicherheit und Medizin:** sechs getrennte Lese-Worker mit künstlichen Testdaten. *(Policy- und Containerprüfungen bestanden; Pams Phasenabschluss bleibt offen)*
-3. **Phase 2 – Vorschau:** ein Worker erzeugt einen Vorschlag, führt aber nichts extern aus.
+2. **Phase 1 – Hand, Fuß, Sicherheit und Medizin:** sechs getrennte Lese-Worker mit künstlichen Testdaten. *(von Pam nach grünen Policy- und Containerprüfungen abgeschlossen)*
+3. **Phase 2 – Vorschau:** der Alltag-Worker erzeugt für genau einen manuell freigegebenen fiktiven Test einen Vorschlag, führt aber nichts extern aus. *(im Draft-Prüflauf)*
 4. **Phase 3 – Einzelaktion mit Freigabe:** genau eine klar begrenzte Aktion nach bewusster Bestätigung.
 5. **Phase 4 – Sol-Holo-Adapter:** erst nach gesonderter Prüfung hinter einem standardmäßig ausgeschalteten Feature-Flag.
 
@@ -114,11 +122,13 @@ Die Konfiguration erwartet drei Laufzeitwerte außerhalb des Repositorys:
 - `openclaw.lab.example.json5` – abgeschottete Beispielkonfiguration ohne Geheimnisse
 - `foundation.manifest.json` – zentrale Bereichsliste und unveränderliche Phase-1-Grenzen
 - `contracts/*` – Aufgaben- und Ergebnisvertrag für eine spätere, noch inaktive Übergabe
-- `examples/*` – rein synthetisches Vertragsbeispiel mit menschlicher Prüfung
+- `phase2/*` – standardmäßig ausgeschaltetes Einmal-Gate für die Alltag-Laborvorschau
+- `examples/*` – rein synthetische Vertrags- und Vorschau-Beispiele mit menschlicher Prüfung
 - `workspace/*` – neutrale Regeln für den werkzeuglosen Labor-Koordinator
 - `workspaces/*` – sechs getrennte Worker mit festen neutralen Identitäten und fiktiven Testdaten
 - `tests/mock-openai-server.mjs` – lokaler deterministischer Policy-Prüfer
 - `tests/check-foundation.mjs` – prüft Register, Verträge, Worker-Dateien und zentrale Sperren gemeinsam
+- `tests/check-alltag-preview.mjs` – prüft Einmal-Freigabe und zehn technische Ablehnungsfälle
 - `tests/run-container-policy-suite.mjs` – prüft sechs echte Docker-Sandboxes einschließlich Mounts und Schreibsperren
 - `docker/Dockerfile.sandbox` – minimales, reproduzierbares Labor-Image
 - `SECURITY.md` – Bedrohungsmodell und Freigaberegeln

@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "task_id": "LAB-ALLTAG-PREVIEW-01",
+  "target_worker": "worker-alltag",
+  "data_class": "synthetic",
+  "execution_mode": "proposal-only",
+  "requested_capability": "read",
+  "external_action_allowed": false,
+  "payload": {
+    "source_paths": ["testdaten/alltag-fiktiv.md"]
+  },
+  "question": "Lies nur die fiktiven Alltagsdaten, ordne die Aufgaben und Einkaufsliste und erstelle eine unverbindliche Tagesübersicht.",
+  "manual_approval": {
+    "approved": true,
+    "scope": "single-preview",
+    "approval_id": "OWNER-APPROVAL-20260905-ALLTAG-01"
+  }
+}

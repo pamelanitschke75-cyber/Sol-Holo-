@@ -44,6 +44,9 @@ jobs:
       - name: Check the machine-readable foundation
         run: node openclaw-lab/tests/check-foundation.mjs
 
+      - name: Check the manual Alltag preview gate
+        run: node openclaw-lab/tests/check-alltag-preview.mjs
+
       - name: Validate configuration and security audit
         shell: bash
         run: |
@@ -73,4 +76,6 @@ jobs:
           openclaw-lab/docker
 
       - name: Run the real Docker isolation suite
+        env:
+          OPENCLAW_LAB_ALLTAG_PREVIEW_ENABLED: "1"
         run: node openclaw-lab/tests/run-container-policy-suite.mjs

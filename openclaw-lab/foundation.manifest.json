@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "phase": 1,
   "name": "Sol Holo OpenClaw Lab – Grundgerüst",
-  "status": "draft",
+  "status": "verified",
   "productive": false,
   "data_class": "synthetic-only",
   "execution_mode": "proposal-only",
