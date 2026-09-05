@@ -8214,7 +8214,10 @@ async function handleRealtimeLocalNoteTranscript(
 
 
     chatStatus.textContent =
-      "Samsung Notes mit dem Notiztext geöffnet.";
+      String(
+        localAction.status ||
+        "Lokaler Auftrag sicher ausgeführt."
+      );
 
 
     if(
@@ -8241,7 +8244,7 @@ async function handleRealtimeLocalNoteTranscript(
             content:[{
               type:"input_text",
               text:
-                `[LOKALES_NOTIZERGEBNIS] ${localAnswer}`
+                `[LOKALES_SPEICHERERGEBNIS] ${localAnswer}`
             }]
           }
         })
@@ -9613,7 +9616,7 @@ if(
 
 </script>
 
-<script src="./sol-holo-ui.js?v=41"></script>
+<script src="./sol-holo-ui.js?v=42"></script>
 <script type="module" src="./app-lock-bootstrap.mjs?v=4"></script>
 <script type="module" src="./consent-ui-bootstrap.mjs?v=2"></script>
 <script type="module" src="./sol-holo-backup.mjs?v=1"></script>
