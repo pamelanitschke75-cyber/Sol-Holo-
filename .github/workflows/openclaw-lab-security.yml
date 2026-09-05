@@ -5,6 +5,13 @@ on:
     branches: [main]
     paths:
       - "openclaw-lab/**"
+      - "modules/openclaw-alltag-preview.mjs"
+      - "server.mjs"
+      - "tests/openclaw-alltag-preview*.test.mjs"
+      - "www/index.html"
+      - "www/service-worker.js"
+      - "www/sol-holo-ui.css"
+      - "www/sol-holo-ui.js"
       - ".github/workflows/openclaw-lab-security.yml"
   workflow_dispatch:
 
@@ -46,6 +53,9 @@ jobs:
 
       - name: Check the manual Alltag preview gate
         run: node openclaw-lab/tests/check-alltag-preview.mjs
+
+      - name: Check the visible Sol Holo preview boundary
+        run: node --test tests/openclaw-alltag-preview*.test.mjs
 
       - name: Validate configuration and security audit
         shell: bash

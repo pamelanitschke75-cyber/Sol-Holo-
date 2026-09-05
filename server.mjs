@@ -51,6 +51,11 @@ import {
   isCalendarCancellation,
   isCalendarConfirmation
 } from "./modules/pending-calendar-action.mjs";
+import {
+  OpenClawAlltagPreviewError,
+  createOpenClawAlltagPreviewService,
+  openClawAlltagPreviewHttpStatus
+} from "./modules/openclaw-alltag-preview.mjs";
 
 const app = express();
 
@@ -80,6 +85,9 @@ const trustedAppSessions =
   createTrustedAppSessionManager({
     database: db
   });
+
+const openClawAlltagPreview =
+  createOpenClawAlltagPreviewService();
 
 const pendingCalendarActions =
   createPendingCalendarActionStore();
@@ -2364,6 +2372,77 @@ function requireTrustedOwnerIdentity(
 
   return identity;
 }
+
+/*
+  ==========================================================
+  OPENCLAW – SICHTBARE FIKTIVE ALLTAG-LABORVORSCHAU
+  ==========================================================
+
+  Dieser Endpunkt nimmt absichtlich keinen Freitext und keine persönlichen
+  Inhalte an. Erst die sichere App-Sitzung, die feste sichtbare Bestätigung
+  und zwei standardmäßig ausgeschaltete Server-Schalter öffnen genau den
+  einen synthetischen Leseauftrag für worker-alltag.
+*/
+app.post(
+  "/openclaw/alltag-preview",
+  async (req, res) => {
+    res.set({
+      "Cache-Control":
+        "no-store, max-age=0",
+      Pragma:
+        "no-cache"
+    });
+
+    const identity =
+      requireTrustedOwnerIdentity(
+        req,
+        res
+      );
+
+    if (!identity) {
+      return;
+    }
+
+    try {
+      const preview =
+        await openClawAlltagPreview
+          .run(req.body);
+
+      return res.json({
+        ...preview,
+        identity:
+          publicIdentity(identity)
+      });
+    } catch (error) {
+      const knownError =
+        error instanceof
+          OpenClawAlltagPreviewError;
+      const code = knownError
+        ? error.code
+        : "ALLTAG_PREVIEW_FAILED";
+
+      console.warn(
+        `OpenClaw-Alltag-Vorschau abgelehnt: ${code}`
+      );
+
+      return res
+        .status(
+          knownError
+            ? openClawAlltagPreviewHttpStatus(error)
+            : 500
+        )
+        .json({
+          error: code,
+          message: knownError
+            ? error.message
+            : "Die fiktive Alltag-Vorschau konnte nicht sicher abgeschlossen werden.",
+          preview: false,
+          productive: false,
+          persisted: false
+        });
+    }
+  }
+);
 
 async function handleGooglePersonalRead(req, res, operation, action) {
   // Die Render-URL ist öffentlich erreichbar. Persönliche Mail-, Kontakt-

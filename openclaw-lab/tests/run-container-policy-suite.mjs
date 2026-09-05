@@ -7,9 +7,9 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import {
-  createAlltagPreviewGate,
-  validateAlltagPreviewResult,
-} from "../phase2/alltag-preview-gate.mjs";
+  SOL_HOLO_ALLTAG_PREVIEW_CONFIRMATION,
+  createOpenClawAlltagPreviewService,
+} from "../../modules/openclaw-alltag-preview.mjs";
 
 const execFileAsync = promisify(execFile);
 const testDir = path.dirname(fileURLToPath(import.meta.url));
@@ -40,6 +40,8 @@ const commandEnv = {
   OPENCLAW_STATE_DIR: stateDir,
   OPENCLAW_GATEWAY_TOKEN: "phase1-ci-placeholder-not-a-secret",
 };
+const bridgePort = 19007;
+const bridgeToken = "sol-holo-ci-loopback-bridge-token-00000001";
 
 async function run(program, args, options = {}) {
   try {
@@ -133,6 +135,41 @@ function waitForMockReady(child, timeoutMs = 10_000) {
   });
 }
 
+function waitForBridgeReady(child, timeoutMs = 10_000) {
+  return new Promise((resolve, reject) => {
+    const deadline = Date.now() + timeoutMs;
+    const probe = () => {
+      const request = http.get(
+        {
+          host: "127.0.0.1",
+          port: bridgePort,
+          path: "/health",
+          headers: { Authorization: `Bearer ${bridgeToken}` },
+        },
+        (response) => {
+          response.resume();
+          if (response.statusCode === 200) resolve();
+          else retry();
+        },
+      );
+      request.once("error", retry);
+      request.setTimeout(500, () => request.destroy());
+    };
+    const retry = () => {
+      if (child.exitCode !== null) {
+        reject(new Error(`Alltag-Bridge endete vorzeitig mit ${child.exitCode}`));
+        return;
+      }
+      if (Date.now() >= deadline) {
+        reject(new Error("Alltag-Bridge wurde nicht rechtzeitig bereit"));
+        return;
+      }
+      setTimeout(probe, 100);
+    };
+    probe();
+  });
+}
+
 async function runPolicyProbe(domain, mode, expectedMarker) {
   const worker = `worker-${domain}`;
   const message = `${mode} ${domain}: Führe ausschließlich den deterministischen Labor-Rechtetest aus.`;
@@ -161,46 +198,30 @@ async function runPolicyProbe(domain, mode, expectedMarker) {
 }
 
 async function runAlltagPreview() {
-  const task = JSON.parse(
-    fs.readFileSync(path.join(labRoot, "examples/task-alltag-preview.example.json"), "utf8"),
-  );
   const expected = JSON.parse(
     fs.readFileSync(path.join(labRoot, "examples/result-alltag-preview.example.json"), "utf8"),
   );
-  const gate = createAlltagPreviewGate();
-  const dispatch = gate.authorize(task);
-  assert.equal(dispatch.agent_id, "worker-alltag");
-
-  const result = await run(
-    openclaw,
-    [
-      "agent",
-      "--local",
-      "--agent",
-      dispatch.agent_id,
-      "--session-key",
-      sessions.get("alltag"),
-      "--message",
-      dispatch.message,
-      "--thinking",
-      "off",
-      "--timeout",
-      "90",
-      "--json",
-    ],
-    { timeout: 100_000 },
-  );
-  const envelope = lastJsonObject(`${result.stdout}\n${result.stderr}`);
-  assert.ok(Array.isArray(envelope.payloads), "OpenClaw-Ergebnis enthält keine Payload-Liste");
-  const resultText = envelope.payloads
-    .map((payload) => payload?.text)
-    .find((text) => typeof text === "string" && text.includes('"task_id":"LAB-ALLTAG-PREVIEW-01"'));
-  assert.ok(resultText, "Strukturiertes Alltag-Vorschauergebnis fehlt");
-  const previewResult = JSON.parse(resultText);
-  validateAlltagPreviewResult(previewResult, task);
-  assert.deepEqual(previewResult, expected);
+  let approvalCounter = 0;
+  const service = createOpenClawAlltagPreviewService({
+    enabled: true,
+    bridgeUrl: `http://127.0.0.1:${bridgePort}/v1/alltag-preview`,
+    bridgeToken,
+    randomId: () => `SOL-HOLO-CONTAINER-${String(++approvalCounter).padStart(3, "0")}`,
+  });
+  const request = {
+    confirmation: SOL_HOLO_ALLTAG_PREVIEW_CONFIRMATION,
+    ownerId: "pam-sol",
+    selectedSpeakerId: "pam",
+  };
+  const response = await service.run(request);
+  assert.equal(response.preview, true);
+  assert.equal(response.productive, false);
+  assert.equal(response.persisted, false);
+  assert.equal(response.automaticRouting, false);
+  assert.deepEqual(response.result, expected);
+  await assert.rejects(service.run(request), (error) => error?.code === "APPROVAL_REPLAY");
   process.stdout.write(
-    "ALLTAG_PREVIEW_CONTAINER_OK worker=worker-alltag read=1 proposal=1 external=false writes=false human_review=true\n",
+    "ALLTAG_PREVIEW_SOL_HOLO_OK worker=worker-alltag ui_request=fixed trusted_gate=tested bridge=loopback read=1 proposal=1 external=false writes=false human_review=true replay=blocked\n",
   );
 }
 
@@ -265,6 +286,8 @@ async function inspectContainer(container) {
 
 let mock;
 let mockOutput = "";
+let bridge;
+let bridgeOutput = "";
 let primaryError;
 
 try {
@@ -295,6 +318,28 @@ try {
     await runPolicyProbe(domain, "LAB_WRITE", `LAB_WRITE_BLOCKED:${domain}`);
   }
 
+  bridge = spawn(
+    process.execPath,
+    [path.join(labRoot, "phase2", "alltag-preview-bridge.mjs")],
+    {
+      cwd: labRoot,
+      env: {
+        ...commandEnv,
+        OPENCLAW_LAB_ALLTAG_PREVIEW_ENABLED: "1",
+        OPENCLAW_LAB_ALLTAG_PREVIEW_SESSION_KEY: sessions.get("alltag"),
+        OPENCLAW_LAB_BRIDGE_PORT: String(bridgePort),
+        OPENCLAW_LAB_BRIDGE_TOKEN: bridgeToken,
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+  bridge.stdout.on("data", (chunk) => {
+    bridgeOutput += chunk.toString();
+  });
+  bridge.stderr.on("data", (chunk) => {
+    bridgeOutput += chunk.toString();
+  });
+  await waitForBridgeReady(bridge);
   await runAlltagPreview();
 
   const listResult = await run(openclaw, ["sandbox", "list", "--json"]);
@@ -331,7 +376,9 @@ try {
   primaryError = error;
   process.stderr.write(`${error.stack ?? error}\n`);
   if (mockOutput) process.stderr.write(`MOCK_LOG\n${mockOutput}\n`);
+  if (bridgeOutput) process.stderr.write(`BRIDGE_LOG\n${bridgeOutput}\n`);
 } finally {
+  if (bridge && bridge.exitCode === null) bridge.kill("SIGTERM");
   if (mock && mock.exitCode === null) mock.kill("SIGTERM");
   try {
     await run(openclaw, ["sandbox", "recreate", "--all", "--force"], {
