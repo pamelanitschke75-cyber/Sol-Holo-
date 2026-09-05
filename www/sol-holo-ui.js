@@ -206,6 +206,14 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       '</span>' +
       '<span id="healthConnectStatus" class="serviceStatus setup">Wird geprüft …</span>' +
     '</button>' +
+    '<button id="explicitSaveRow" class="serviceRow" type="button" data-open-view="notes">' +
+      '<span class="rowIcon">✓</span>' +
+      '<span class="rowText">' +
+        '<span class="rowTitle">Sol Holo · Speichern auf Zuruf</span>' +
+        '<span class="rowMeta">Listen, Aufgaben, Termine, Notizen, Wünsche &amp; Fakten</span>' +
+      '</span>' +
+      '<span id="explicitSaveStatus" class="serviceStatus connected">Aktiv</span>' +
+    '</button>' +
     '<button id="openClawAlltagPreviewRow" class="serviceRow" type="button">' +
       '<span class="rowIcon">⌘</span>' +
       '<span class="rowText">' +
@@ -231,7 +239,9 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   document.querySelector("#servicesView .permissionNote").textContent =
     "Pam’s Holo liest keine WhatsApp-Nachricht, keinen Kontakt, kein Bild, keine " +
     "Notiz und keinen Health-Wert ohne deine sichtbare Auswahl oder Freigabe. " +
-    "Ein SmartThings-Gerät wird nur nach deiner Bestätigung geschaltet. " +
+    "Ein ausdrücklicher Speicherauftrag gilt für normale Alltagsinhalte als Freigabe; " +
+    "Passwörter, PIN, TAN, Token und Schlüssel bleiben gesperrt. " +
+    "Geräte werden erst nach einer einmaligen Gerätefreigabe steuerbar. " +
     "Der Alltagsworker erhält in dieser Phase ausschließlich fest eingebaute " +
     "fiktive Testdaten.";
 
@@ -648,7 +658,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     const permissionCopy = document.querySelector("#servicesView .permissionNote");
     if (permissionCopy) {
       permissionCopy.textContent = identity
-        ? `${instanceName} liest keine Nachricht, keinen Kontakt, kein Bild, keine Notiz und keinen Health-Wert ohne ${displayName}s sichtbare Auswahl oder Freigabe. Geräteaktionen brauchen eine ausdrückliche Bestätigung.`
+        ? `${instanceName} speichert normale Alltagsinhalte nur auf ${displayName}s ausdrücklichen Zuruf. Passwörter, PIN, TAN, Token und Schlüssel bleiben gesperrt. Freigegebene Alltagsgeräte dürfen später auf ausdrücklichen Auftrag gesteuert werden; neue oder riskante Geräteaktionen brauchen eine zusätzliche Bestätigung.`
         : "Die feste Holo-ID ist nicht verfügbar. Keine persönliche Verbindung wird geladen.";
     }
 
@@ -915,13 +925,106 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
     if (namedSecret.test(cleanText) || apiSecret.test(cleanText) || jwtToken.test(cleanText)) {
       return (
-        "Diese Notiz enthält möglicherweise Zugangsdaten wie Passwort, PIN, " +
+        "Dieser Inhalt enthält möglicherweise Zugangsdaten wie Passwort, PIN, " +
         "TAN, API-Key, Token, Banking- oder Authenticator-Daten. " +
-        "Das ausgewählte persönliche Holo speichert sie zu deinem Schutz nicht."
+        "Das ausgewählte persönliche Holo speichert ihn zu deinem Schutz nicht."
       );
     }
 
     return "";
+  }
+
+  function cleanExplicitSaveContent(value) {
+    return String(value || "")
+      .replace(/^[\s:,-]+|[\s.!?]+$/g, "")
+      .replace(/^dass\s+/i, "")
+      .trim()
+      .slice(0, 10_000);
+  }
+
+  function explicitListTitle(value) {
+    const normalized = normalizeNoteSearchText(value)
+      .replace(/[\s_-]+/g, "");
+    const titles = {
+      aufgabenliste: "Aufgabenliste",
+      besorgungsliste: "Besorgungsliste",
+      einkaufliste: "Einkaufsliste",
+      einkaufsliste: "Einkaufsliste",
+      packliste: "Packliste",
+      todoliste: "Aufgabenliste",
+      wunschliste: "Wunschliste"
+    };
+    return titles[normalized] || "Liste";
+  }
+
+  function savedContentCategory(value) {
+    const text = normalizeNoteSearchText(value);
+    if (/\b(?:erinner|weck|alarm)\w*\b/u.test(text)) return "Erinnerung";
+    if (/\b(?:termin|datum|uhrzeit|uhr|treffen|arzttermin|geburtstag|besprechung)\w*\b/u.test(text)) return "Termin";
+    if (/\b(?:aufgabe|todo|erledig|muss|soll)\w*\b/u.test(text)) return "Aufgabe";
+    if (/\b(?:wunsch|wunsche|mochte|vorliebe|mag)\w*\b/u.test(text)) return "Wunsch oder Vorliebe";
+    return "Gespeicherter Inhalt";
+  }
+
+  function explicitSaveRequestFromMessage(message) {
+    const cleanMessage = String(message || "")
+      .trim()
+      .replace(/^(?:(?:hey\s+)?sol)\s*[,;:!.-]?\s*/i, "")
+      .trim();
+
+    if (!cleanMessage || /\b(?:samsung\s*)?(?:notes?|noten)\b/i.test(cleanMessage)) {
+      return null;
+    }
+
+    const listPatterns = [
+      /^(?:bitte\s+)?(?:setz(?:e)?|pack(?:e)?|f(?:u|ü)g(?:e)?|trag(?:e)?|nimm|speicher(?:e)?)\s+(?:mir\s+)?(?:bitte\s+)?(.+?)\s+(?:auf|in|zu(?:r)?)\s+(?:(?:meine|die|der)\s+)?(einkaufs?liste|besorgungsliste|aufgabenliste|to[-\s]?do[-\s]?liste|packliste|wunschliste)(?:\s+(?:ein|hinzu|drauf))?[.!?]*$/i,
+      /^(?:bitte\s+)?f(?:u|ü)g(?:e)?\s+(?:(?:meiner|der)\s+)?(einkaufs?liste|besorgungsliste|aufgabenliste|to[-\s]?do[-\s]?liste|packliste|wunschliste)\s+(.+?)\s+hinzu[.!?]*$/i
+    ];
+
+    for (let index = 0; index < listPatterns.length; index += 1) {
+      const match = cleanMessage.match(listPatterns[index]);
+      if (!match) continue;
+      const content = cleanExplicitSaveContent(index === 0 ? match[1] : match[2]);
+      const rawListTitle = index === 0 ? match[2] : match[1];
+      if (content) {
+        return {
+          category: explicitListTitle(rawListTitle),
+          content,
+          kind: "list-item",
+          listTitle: explicitListTitle(rawListTitle)
+        };
+      }
+    }
+
+    const directMatch = cleanMessage.match(
+      /^(?:bitte\s+)?(?:speicher(?:e)?|merk(?:e)?(?:\s+dir\b[,:]?)?|notier(?:e)?|halt(?:e)?\s+(?:das\s+)?fest)\s+(?:mir\s+)?(?:bitte\s+)?[:,-]?\s*(.+?)[.!?]*$/i
+    );
+    const content = cleanExplicitSaveContent(directMatch?.[1] || "");
+    if (!content) return null;
+
+    return {
+      category: savedContentCategory(content),
+      content,
+      kind: "content"
+    };
+  }
+
+  function explicitSaveUsesPreviousMessage(request) {
+    return request?.kind === "content" &&
+      /^(?:das|dies|es|diesen\s+inhalt|diese\s+info(?:rmation)?|das\s+bitte)$/i.test(
+        String(request.content || "").trim()
+      );
+  }
+
+  function recentPlainUserMessageForSave() {
+    const message = String(previousPlainUserMessage || "").trim();
+    const isUsable =
+      message &&
+      Date.now() - previousPlainUserMessageAt <= 5 * 60 * 1000 &&
+      message.length <= 10_000 &&
+      !/[?]\s*$/.test(message) &&
+      !/^(?:ja|nein|okay|ok|danke|bitte)[.!?]*$/i.test(message);
+    return isUsable ? message : "";
   }
 
   function noteTitleFromText(text, preferredTitle = "") {
@@ -1149,6 +1252,103 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       success: true,
       note,
       answer: `Notiz gespeichert: ${note.title}`
+    };
+  }
+
+  function appendPersonalListItem(listTitle, item) {
+    const ownerId = activePersonalOwner();
+    if (!ownerId) {
+      return {
+        success: false,
+        identityRequired: true,
+        answer: "Die feste Holo-ID ist nicht verfügbar. Es wurde nichts gespeichert."
+      };
+    }
+
+    const cleanItem = cleanExplicitSaveContent(item);
+    if (!cleanItem) {
+      return {
+        success: false,
+        answer: "Der Eintrag ist leer. Es wurde nichts gespeichert."
+      };
+    }
+
+    const securityWarning = noteSecurityWarning(cleanItem);
+    if (securityWarning) {
+      return { success: false, securityBlocked: true, answer: securityWarning };
+    }
+
+    const cleanListTitle = explicitListTitle(listTitle);
+    const normalizedTitle = normalizeNoteSearchText(cleanListTitle);
+    const existing = personalNotes.find(
+      (note) => normalizeNoteSearchText(note.title) === normalizedTitle
+    );
+    const existingLines = String(existing?.text || "")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const normalizedItem = normalizeNoteSearchText(cleanItem);
+    const duplicate = existingLines.some(
+      (line) => normalizeNoteSearchText(line.replace(/^[•*\-]\s*/, "")) === normalizedItem
+    );
+
+    if (duplicate) {
+      return {
+        success: true,
+        duplicate: true,
+        note: existing,
+        answer: `„${cleanItem}“ steht bereits auf deiner ${cleanListTitle}.`
+      };
+    }
+
+    const now = Date.now();
+    const randomPart = globalThis.crypto?.randomUUID?.() ||
+      Math.random().toString(36).slice(2, 12);
+    const updated = normalizeStoredNote({
+      id: existing?.id || `note-${randomPart}`,
+      title: cleanListTitle,
+      text: [...existingLines, `• ${cleanItem}`].join("\n"),
+      source: "Auf Zuruf gespeichert",
+      createdAt: existing?.createdAt || now,
+      updatedAt: now
+    });
+    const remaining = personalNotes.filter((note) => note.id !== existing?.id);
+
+    if (!storePersonalNotes([updated, ...remaining])) {
+      return {
+        success: false,
+        answer: `Die ${cleanListTitle} konnte auf diesem Handy gerade nicht gespeichert werden.`
+      };
+    }
+
+    renderPersonalNotes();
+    showToast(`${cleanListTitle} gespeichert ✅️`);
+    return {
+      success: true,
+      note: updated,
+      answer: `„${cleanItem}“ steht jetzt dauerhaft auf deiner ${cleanListTitle} ✅️`
+    };
+  }
+
+  function saveExplicitRequest(request) {
+    if (request?.kind === "list-item") {
+      return appendPersonalListItem(request.listTitle, request.content);
+    }
+
+    const content = cleanExplicitSaveContent(request?.content);
+    const category = String(request?.category || "Gespeicherter Inhalt");
+    const result = createPersonalNote(content, {
+      source: "Auf Zuruf gespeichert",
+      title: `${category}: ${noteTitleFromText(content)}`
+    });
+    if (!result.success) return result;
+
+    const preview = content.length > 180
+      ? `${content.slice(0, 177).trimEnd()} …`
+      : content;
+    return {
+      ...result,
+      answer: `${category} dauerhaft gespeichert ✅️: ${preview}`
     };
   }
 
@@ -2649,12 +2849,45 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   window.extractSolHoloSamsungNoteText = samsungNoteTextFromNaturalRequest;
   window.extractSolHoloSamsungNoteInsertion =
     samsungNoteInsertionFromNaturalRequest;
+  window.extractSolHoloExplicitSaveRequest = explicitSaveRequestFromMessage;
 
   window.handleSolHoloLocalAction = async (message) => {
     const cleanMessage = String(message || "").trim();
     const noteMessage = cleanMessage
       .replace(/^(?:(?:hey\s+)?sol)\s*[,;:!.-]?\s*/i, "")
       .trim();
+
+    let explicitSaveRequest = explicitSaveRequestFromMessage(noteMessage);
+    if (explicitSaveRequest) {
+      if (explicitSaveUsesPreviousMessage(explicitSaveRequest)) {
+        const previousMessage = recentPlainUserMessageForSave();
+        if (!previousMessage) {
+          return {
+            handled: true,
+            status: "Noch nichts gespeichert.",
+            answer: "Gern. Was genau soll ich dauerhaft speichern?"
+          };
+        }
+        explicitSaveRequest = {
+          ...explicitSaveRequest,
+          category: savedContentCategory(previousMessage),
+          content: previousMessage
+        };
+      }
+      const result = saveExplicitRequest(explicitSaveRequest);
+      if (result?.success) {
+        pendingPersonalNoteText = false;
+        previousPlainUserMessage = "";
+        previousPlainUserMessageAt = 0;
+      }
+      return {
+        handled: true,
+        status: result?.success
+          ? "Auf Zuruf dauerhaft gespeichert."
+          : "Speichern sicher abgelehnt.",
+        answer: result.answer
+      };
+    }
 
     const finishNoteCreation = async (text) => {
       const result = await executeNotesTool("create_personal_note", {
@@ -2751,15 +2984,9 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     if (
       /^(?:(?:mach|mache|schreib|schreibe)\s+(?:mir\s+)?(?:bitte\s+)?(?:eine\s+)?)?(?:einfache\s+|neue\s+)?notiz(?:\s+bitte)?[.!?]*$/i.test(simpleNoteRequest)
     ) {
-      const previousMessageIsUsable =
-        previousPlainUserMessage &&
-        Date.now() - previousPlainUserMessageAt <= 5 * 60 * 1000 &&
-        previousPlainUserMessage.length <= 1000 &&
-        !/[?]\s*$/.test(previousPlainUserMessage) &&
-        !/^(?:ja|nein|okay|ok|danke|bitte)[.!?]*$/i.test(previousPlainUserMessage);
-
-      if (previousMessageIsUsable) {
-        return finishNoteCreation(previousPlainUserMessage);
+      const previousMessage = recentPlainUserMessageForSave();
+      if (previousMessage) {
+        return finishNoteCreation(previousMessage);
       }
 
       pendingPersonalNoteText = true;
@@ -2869,6 +3096,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       .trim();
     const noteIntent =
       pendingPersonalNoteText ||
+      Boolean(explicitSaveRequestFromMessage(noteMessage)) ||
       Boolean(samsungNoteInsertionFromNaturalRequest(noteMessage)) ||
       /\bnotiz(?:en)?\b|\bnotier(?:e|en|st|t)?\b|\bnotes?\b|\bnoten\b/i.test(noteMessage);
 
