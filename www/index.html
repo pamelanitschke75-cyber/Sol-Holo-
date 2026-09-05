@@ -2937,6 +2937,9 @@ let microphoneStream =
 let realtimeMemoryToken =
   "";
 
+let realtimeManualResponseRouting =
+  false;
+
 const handledRealtimeMemoryToolCalls =
   new Set();
 
@@ -8188,6 +8191,29 @@ function cancelRealtimeResponse(){
 }
 
 
+function requestRealtimeResponse(){
+
+  if(
+    !dc ||
+    dc.readyState !==
+      "open"
+  ){
+
+    return false;
+  }
+
+
+  dc.send(
+    JSON.stringify({
+      type:"response.create"
+    })
+  );
+
+
+  return true;
+}
+
+
 function speakExecutedRealtimeResult(
   marker,
   answer
@@ -8222,11 +8248,7 @@ function speakExecutedRealtimeResult(
   );
 
 
-  dc.send(
-    JSON.stringify({
-      type:"response.create"
-    })
-  );
+  requestRealtimeResponse();
 }
 
 
@@ -8270,6 +8292,65 @@ function showExecutedRealtimeResult({
 }
 
 
+function speakPersonalRecallResult(
+  question,
+  recall
+){
+
+  if(
+    !dc ||
+    dc.readyState !==
+      "open"
+  ){
+
+    return false;
+  }
+
+
+  const cleanQuestion =
+    String(
+      question ||
+      ""
+    ).trim().slice(0, 1200);
+
+
+  const memoryText =
+    String(
+      recall?.memoryText ||
+      ""
+    ).trim().slice(0, 16000);
+
+
+  const resultText =
+    recall?.found &&
+    memoryText
+      ? `Frage: ${cleanQuestion}\n\nGefundene persönliche Aussagen:\n${memoryText}`
+      : `Frage: ${cleanQuestion}\n\nKeine passende persönliche Aussage wurde gefunden.`;
+
+
+  cancelRealtimeResponse();
+
+
+  dc.send(
+    JSON.stringify({
+      type:"conversation.item.create",
+      item:{
+        type:"message",
+        role:"user",
+        content:[{
+          type:"input_text",
+          text:
+            `[LOKALES_ERINNERUNGSERGEBNIS]\n${resultText}`
+        }]
+      }
+    })
+  );
+
+
+  return requestRealtimeResponse();
+}
+
+
 let realtimeWeatherPlacePending =
   false;
 
@@ -8291,7 +8372,7 @@ async function sendLiveTranscriptToMemory(
     memoryStatus.textContent =
       "🧠 Die feste Holo-ID ist nicht verfügbar. Memory bleibt gesperrt.";
 
-    return;
+    return false;
   }
 
   const cleanTranscript =
@@ -8304,7 +8385,7 @@ async function sendLiveTranscriptToMemory(
     !cleanTranscript
   ){
 
-    return;
+    return false;
   }
 
 
@@ -8327,9 +8408,18 @@ async function sendLiveTranscriptToMemory(
     );
 
 
+  const isPersonalRecallCommand =
+    role === "user" &&
+    Boolean(
+      window.isSolHoloPersonalRecallRequest
+        ?.(cleanTranscript)
+    );
+
+
   if(
     isCalendarCommand ||
-    isWeatherCommand
+    isWeatherCommand ||
+    isPersonalRecallCommand
   ){
 
     cancelRealtimeResponse();
@@ -8504,7 +8594,7 @@ async function sendLiveTranscriptToMemory(
       });
 
 
-      return;
+      return true;
     }
 
 
@@ -8534,31 +8624,39 @@ async function sendLiveTranscriptToMemory(
       });
 
 
-      return;
+      return true;
     }
 
 
     if(
       role === "user" &&
-      (
-        isCalendarCommand ||
-        isWeatherCommand
-      ) &&
-      dc &&
-      dc.readyState ===
-        "open"
+      data?.recall?.handled
     ){
 
-      realtimeWeatherPlacePending =
-        false;
+      const spoken =
+        speakPersonalRecallResult(
+          cleanTranscript,
+          data.recall
+        );
 
 
-      dc.send(
-        JSON.stringify({
-          type:"response.create"
-        })
-      );
+      chatStatus.textContent =
+        data.recall?.found
+          ? "Persönliche Erinnerung verbindlich gefunden."
+          : "Keine passende persönliche Erinnerung gefunden.";
+
+
+      memoryStatus.textContent =
+        data.recall?.found
+          ? `🧠 ${Number(data.recall?.count || 0)} passende persönliche Erinnerung${Number(data.recall?.count || 0) === 1 ? "" : "en"} geladen.`
+          : "🧠 Persönlich gesucht · kein passender Eintrag.";
+
+
+      return spoken;
     }
+
+
+    return false;
 
   }catch(
     error
@@ -8572,6 +8670,9 @@ async function sendLiveTranscriptToMemory(
 
     memoryStatus.textContent =
       "🧠 Memory-Fehler.";
+
+
+    return false;
   }
 }
 
@@ -8657,6 +8758,34 @@ async function handleRealtimeLocalNoteTranscript(
 }
 
 
+async function handleRealtimeUserTranscript(
+  transcript,
+  fulltimeEventId = ""
+){
+
+  const [memoryHandled, localHandled] =
+    await Promise.all([
+      sendLiveTranscriptToMemory(
+        transcript,
+        "user",
+        fulltimeEventId
+      ),
+      handleRealtimeLocalNoteTranscript(
+        transcript
+      )
+    ]);
+
+
+  if(
+    !memoryHandled &&
+    !localHandled
+  ){
+
+    requestRealtimeResponse();
+  }
+}
+
+
 /*
 ==========================================================
 MIKROFON
@@ -8733,6 +8862,9 @@ function stopLiveConversation(){
 
   realtimeMemoryToken =
     "";
+
+  realtimeManualResponseRouting =
+    false;
 
   handledRealtimeMemoryToolCalls.clear();
 
@@ -9409,12 +9541,15 @@ async function startLiveConversation(){
           headers:
             backendJsonHeaders(),
 
-          body:
-            JSON.stringify({
-              voice:
-                selectedSolVoice,
+            body:
+              JSON.stringify({
+                voice:
+                  selectedSolVoice,
 
-              selectedSpeakerId,
+                manualResponseRouting:
+                  true,
+
+                selectedSpeakerId,
 
               ownerId:
                 identity.ownerId,
@@ -9488,6 +9623,10 @@ async function startLiveConversation(){
         tokenData?.sol_memory_token ||
         ""
       ).trim();
+
+    realtimeManualResponseRouting =
+      tokenData?.manual_response_routing ===
+        true;
 
     const confirmedVoice =
       String(
@@ -9807,18 +9946,34 @@ async function startLiveConversation(){
               transcript
             ){
 
-              sendLiveTranscriptToMemory(
-                transcript,
-                "user",
+              const transcriptEventId =
                 realtimeEvent?.event_id ||
-                  realtimeEvent?.item_id ||
-                  ""
-              );
+                realtimeEvent?.item_id ||
+                "";
 
 
-              void handleRealtimeLocalNoteTranscript(
-                transcript
-              );
+              if(
+                realtimeManualResponseRouting
+              ){
+
+                void handleRealtimeUserTranscript(
+                  transcript,
+                  transcriptEventId
+                );
+
+              }else{
+
+                sendLiveTranscriptToMemory(
+                  transcript,
+                  "user",
+                  transcriptEventId
+                );
+
+
+                void handleRealtimeLocalNoteTranscript(
+                  transcript
+                );
+              }
             }
           }
 
@@ -10204,7 +10359,7 @@ if(
 
 </script>
 
-<script src="./sol-holo-ui.js?v=44"></script>
+<script src="./sol-holo-ui.js?v=45"></script>
 <script type="module" src="./app-lock-bootstrap.mjs?v=4"></script>
 <script type="module" src="./consent-ui-bootstrap.mjs?v=2"></script>
 <script type="module" src="./sol-holo-backup.mjs?v=1"></script>

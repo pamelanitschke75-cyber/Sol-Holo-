@@ -1019,6 +1019,41 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     );
   }
 
+  function personalRecallQueryFromMessage(value) {
+    const text = normalizeNoteSearchText(value)
+      .replace(/^(?:(?:hey\s+)?sol)\s*[,;:!.-]?\s*/u, "")
+      .replace(/[?!.,;:]+$/u, "")
+      .trim();
+    if (!text) return "";
+
+    const patterns = [
+      /^wei(?:ss|ß)t\s+du\s+noch[,]?\s+was\s+ich\s+dir(?:\s+(?:heute|gestern|vorgestern|damals))?\s+(?:uber|von)\s+(.+?)\s+(?:erzahlt|gesagt)(?:\s+habe)?$/u,
+      /^ich\s+habe\s+dir(?:\s+(?:heute|gestern|vorgestern|damals))?\s+(?:etwas|was)\s+(?:uber|von)\s+(.+?)\s+(?:erzahlt|gesagt)[,\s]+(?:wei(?:ss|ß)t|erinnerst)\s+du\b.*$/u,
+      /^wei(?:ss|ß)t\s+du\s+noch[,]?\s+(?:etwas|was)\s+(?:uber|von)\s+(.+)$/u,
+      /^hast\s+du\s+dir\s+(.+?)\s+gemerkt$/u,
+      /^was\s+wei(?:ss|ß)t\s+du(?:\s+noch)?\s+(?:uber|von)\s+(.+)$/u,
+      /^erinnerst\s+du\s+dich(?:\s+noch)?\s+(?:an\s+)?(.+)$/u,
+      /^kannst\s+du\s+dich(?:\s+noch)?\s+(?:an\s+)?(.+?)\s+erinnern$/u,
+      /^was\s+habe\s+ich\s+dir(?:\s+(?:heute|gestern|vorgestern|damals))?\s+(?:uber|von)\s+(.+?)\s+(?:erzahlt|gesagt)(?:\s+habe)?$/u,
+      /^wer\s+ist\s+(?:die\s+|der\s+|das\s+)?(.+)$/u,
+      /^kennst\s+du(?:\s+noch)?\s+(?:die\s+|den\s+|das\s+)?(.+)$/u
+    ];
+
+    for (const pattern of patterns) {
+      const query = String(text.match(pattern)?.[1] || "").trim();
+      if (query.length >= 2) return query.slice(0, 240);
+    }
+
+    if (
+      /^(?:was|wie|wann|wo|welch\w*)\b/u.test(text) &&
+      /\b(?:gestern|vorgestern|damals|fruher|letzt\w*)\b/u.test(text)
+    ) {
+      return text.slice(0, 240);
+    }
+
+    return "";
+  }
+
   function googleMapsDestinationFromMessage(value) {
     const cleanMessage = String(value || "")
       .trim()
@@ -3056,6 +3091,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     calendarWriteDestinationFromMessage;
   window.isSolHoloLiveWeatherRequest =
     liveWeatherRequestFromMessage;
+  window.extractSolHoloPersonalRecallQuery =
+    personalRecallQueryFromMessage;
+  window.isSolHoloPersonalRecallRequest =
+    (message) => Boolean(personalRecallQueryFromMessage(message));
 
   window.handleSolHoloLocalAction = async (message) => {
     const cleanMessage = String(message || "").trim();
@@ -3323,23 +3362,11 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       .trim();
     if (
       calendarWriteDestinationFromMessage(noteMessage) ||
-      liveWeatherRequestFromMessage(noteMessage)
+      liveWeatherRequestFromMessage(noteMessage) ||
+      personalRecallQueryFromMessage(noteMessage)
     ) {
       return { handled: false };
     }
-    const mapsDestination = googleMapsDestinationFromMessage(noteMessage);
-    const localIntent =
-      pendingPersonalNoteText ||
-      mapsDestination !== null ||
-      Boolean(explicitSaveRequestFromMessage(noteMessage)) ||
-      Boolean(samsungNoteInsertionFromNaturalRequest(noteMessage));
-
-    if (!localIntent) {
-      previousPlainUserMessage = noteMessage;
-      previousPlainUserMessageAt = Date.now();
-      return { handled: false };
-    }
-
     return window.handleSolHoloLocalAction(cleanMessage);
   };
 
