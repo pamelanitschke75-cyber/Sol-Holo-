@@ -6,6 +6,10 @@ import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
+import {
+  createAlltagPreviewGate,
+  validateAlltagPreviewResult,
+} from "../phase2/alltag-preview-gate.mjs";
 
 const execFileAsync = promisify(execFile);
 const testDir = path.dirname(fileURLToPath(import.meta.url));
@@ -156,6 +160,50 @@ async function runPolicyProbe(domain, mode, expectedMarker) {
   process.stdout.write(`POLICY_OK worker=${worker} test=${mode}\n`);
 }
 
+async function runAlltagPreview() {
+  const task = JSON.parse(
+    fs.readFileSync(path.join(labRoot, "examples/task-alltag-preview.example.json"), "utf8"),
+  );
+  const expected = JSON.parse(
+    fs.readFileSync(path.join(labRoot, "examples/result-alltag-preview.example.json"), "utf8"),
+  );
+  const gate = createAlltagPreviewGate();
+  const dispatch = gate.authorize(task);
+  assert.equal(dispatch.agent_id, "worker-alltag");
+
+  const result = await run(
+    openclaw,
+    [
+      "agent",
+      "--local",
+      "--agent",
+      dispatch.agent_id,
+      "--session-key",
+      sessions.get("alltag"),
+      "--message",
+      dispatch.message,
+      "--thinking",
+      "off",
+      "--timeout",
+      "90",
+      "--json",
+    ],
+    { timeout: 100_000 },
+  );
+  const envelope = lastJsonObject(`${result.stdout}\n${result.stderr}`);
+  assert.ok(Array.isArray(envelope.payloads), "OpenClaw-Ergebnis enthält keine Payload-Liste");
+  const resultText = envelope.payloads
+    .map((payload) => payload?.text)
+    .find((text) => typeof text === "string" && text.includes('"task_id":"LAB-ALLTAG-PREVIEW-01"'));
+  assert.ok(resultText, "Strukturiertes Alltag-Vorschauergebnis fehlt");
+  const previewResult = JSON.parse(resultText);
+  validateAlltagPreviewResult(previewResult, task);
+  assert.deepEqual(previewResult, expected);
+  process.stdout.write(
+    "ALLTAG_PREVIEW_CONTAINER_OK worker=worker-alltag read=1 proposal=1 external=false writes=false human_review=true\n",
+  );
+}
+
 async function inspectContainer(container) {
   assert.equal(container.running, true, `${container.containerName}: Container läuft nicht`);
   assert.equal(container.imageMatch, true, `${container.containerName}: Image stimmt nicht`);
@@ -247,6 +295,8 @@ try {
     await runPolicyProbe(domain, "LAB_WRITE", `LAB_WRITE_BLOCKED:${domain}`);
   }
 
+  await runAlltagPreview();
+
   const listResult = await run(openclaw, ["sandbox", "list", "--json"]);
   const list = lastJsonObject(`${listResult.stdout}\n${listResult.stderr}`);
   process.stdout.write(
@@ -275,7 +325,7 @@ try {
   }
 
   process.stdout.write(
-    `CONTAINER_POLICY_SUITE_OK workers=6 reads=6 cross_reads_blocked=6 writes_blocked=6 containers=6\n`,
+    `CONTAINER_POLICY_SUITE_OK workers=6 reads=6 cross_reads_blocked=6 writes_blocked=6 previews=1 containers=6\n`,
   );
 } catch (error) {
   primaryError = error;

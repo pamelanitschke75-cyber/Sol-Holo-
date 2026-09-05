@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "phase": 2,
+  "name": "Sol Holo OpenClaw Lab – Alltag-Vorschau",
+  "status": "lab-preview",
+  "productive": false,
+  "active_worker": "worker-alltag",
+  "connection_scope": "openclaw-lab-only",
+  "automatic_routing": false,
+  "feature_flag": {
+    "name": "OPENCLAW_LAB_ALLTAG_PREVIEW_ENABLED",
+    "enabled_value": "1",
+    "default_enabled": false
+  },
+  "manual_approval": {
+    "required": true,
+    "scope": "single-preview",
+    "reusable": false,
+    "approval_id_pattern": "^OWNER-APPROVAL-[A-Z0-9][A-Z0-9_-]{2,63}$"
+  },
+  "allowed_task": {
+    "task_id": "LAB-ALLTAG-PREVIEW-01",
+    "data_class": "synthetic",
+    "execution_mode": "proposal-only",
+    "requested_capability": "read",
+    "external_action_allowed": false,
+    "source_paths": ["testdaten/alltag-fiktiv.md"],
+    "question": "Lies nur die fiktiven Alltagsdaten, ordne die Aufgaben und Einkaufsliste und erstelle eine unverbindliche Tagesübersicht."
+  },
+  "required_result_controls": {
+    "external_action_performed": false,
+    "data_written": false,
+    "boundary_crossed": false,
+    "human_review_required": true
+  },
+  "inactive_interfaces": {
+    "sol_holo_adapter": false,
+    "production_backend": false,
+    "android_app": false,
+    "personal_data": false,
+    "channels": false,
+    "bindings": false,
+    "device_control": false,
+    "automations": false
+  }
+}

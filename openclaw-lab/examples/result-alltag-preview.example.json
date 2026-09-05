@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "task_id": "LAB-ALLTAG-PREVIEW-01",
+  "worker": "worker-alltag",
+  "status": "completed-proposal",
+  "facts": [
+    "Im fiktiven Test stehen Aufgaben um 09:00 Uhr, 11:30 Uhr und 16:00 Uhr.",
+    "Die fiktive Einkaufsliste enthält Haferdrink, Vollkornbrot, drei Äpfel und Spülmittel."
+  ],
+  "uncertainties": [
+    "Fahrzeiten und die Dauer der fiktiven Aufgaben sind nicht angegeben."
+  ],
+  "proposal": "Unverbindliche Tagesübersicht: 09:00 Uhr Testwäsche, 11:30 Uhr Musterpaket und 16:00 Uhr Papier und Glas. Die vier genannten Testeinkäufe nur als sichtbare Liste bereithalten. Keine Erinnerung anlegen und nichts verändern.",
+  "source_paths": ["testdaten/alltag-fiktiv.md"],
+  "controls": {
+    "external_action_performed": false,
+    "data_written": false,
+    "boundary_crossed": false,
+    "human_review_required": true
+  }
+}
