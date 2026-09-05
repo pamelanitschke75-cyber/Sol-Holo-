@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-128-raffituekke-alltagsaktionen";
+const CACHE_VERSION = "sol-holo-129-verbindlicher-erinnerungsabruf";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
