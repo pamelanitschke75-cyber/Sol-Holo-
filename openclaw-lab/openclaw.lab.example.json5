@@ -1,0 +1,88 @@
+{
+  update: {
+    checkOnStart: false,
+  },
+
+  telemetry: {
+    enabled: false,
+  },
+
+  models: {
+    catalogRefresh: {
+      enabled: false,
+    },
+  },
+
+  gateway: {
+    mode: "local",
+    bind: "loopback",
+    port: 19005,
+    controlUi: {
+      enabled: false,
+      basePath: "/openclaw-lab",
+    },
+    auth: {
+      mode: "token",
+      token: "${OPENCLAW_GATEWAY_TOKEN}",
+    },
+  },
+
+  agents: {
+    ownership: "explicit",
+    defaults: {
+      heartbeat: {
+        every: "0m",
+        target: "none",
+      },
+      sandbox: {
+        mode: "all",
+        backend: "docker",
+        scope: "session",
+        workspaceAccess: "none",
+        docker: {
+          image: "openclaw-sandbox:bookworm-slim",
+          readOnlyRoot: true,
+          tmpfs: ["/tmp", "/var/tmp", "/run"],
+          network: "none",
+          capDrop: ["ALL"],
+        },
+      },
+    },
+    entries: {
+      "sol-holo-lab": {
+        name: "Sol Holo OpenClaw Lab",
+        workspace: "/opt/sol-holo/openclaw-lab/workspace",
+        agentDir: "/opt/sol-holo/openclaw-lab/state/agents/sol-holo-lab",
+      },
+    },
+  },
+
+  tools: {
+    profile: "minimal",
+    deny: ["*"],
+    fs: {
+      workspaceOnly: true,
+    },
+    exec: {
+      security: "deny",
+      ask: "always",
+    },
+    elevated: {
+      enabled: false,
+    },
+    sessions: {
+      visibility: "self",
+    },
+    agentToAgent: {
+      enabled: false,
+    },
+  },
+
+  plugins: {
+    enabled: false,
+  },
+
+  skills: {
+    allowBundled: [],
+  },
+}
