@@ -34,12 +34,26 @@ function sourceFunction(name, nextName) {
 test("Live-Wetter nutzt die vorhandene OpenAI-Websuche und zeigt Quellen", () => {
   assert.match(server, /type:\s*"web_search"/u);
   assert.match(server, /tool_choice:\s*"required"/u);
+  assert.match(server, /LIVE_WEB_SEARCH_MODEL\s*=\s*\n\s*"gpt-4\.1-mini"/u);
+  assert.match(server, /liveSearchModel:\s*\n\s*LIVE_WEB_SEARCH_MODEL/u);
   assert.match(server, /additionalProviderRequired:\s*false/u);
   assert.match(server, /collectResponseWebSources/u);
   assert.match(html, /messageSources/u);
   assert.match(html, /LOKALES_WETTERERGEBNIS/u);
   assert.match(ui, /\/weather\/status/u);
   assert.match(serviceWorker, /sol-holo-128-raffituekke-alltagsaktionen/u);
+});
+
+test("Realtime erfindet keine Backend-Freigabe als Wetter-Hindernis", () => {
+  const promptStart = server.indexOf("const realtimeInstructions = `");
+  const promptEnd = server.indexOf("const sessionConfig", promptStart);
+  const prompt = server.slice(promptStart, promptEnd);
+
+  assert.notEqual(promptStart, -1);
+  assert.notEqual(promptEnd, -1);
+  assert.doesNotMatch(prompt, /Backend-Freigabe|Backend[^\n]{0,80}(?:freigegeben|freigeschaltet|aktiviert)/iu);
+  assert.match(prompt, /OpenAI-Live-Websuche/u);
+  assert.match(prompt, /spekuliere nicht über technische\nFehlerursachen/u);
 });
 
 test("ein ausdrücklicher Kalenderauftrag wird ohne zweite Inhaltsfreigabe ausgeführt", () => {
