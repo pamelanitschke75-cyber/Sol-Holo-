@@ -1,7 +1,7 @@
 # Sol Holo × OpenClaw Lab
 
 Stand: 05.09.2026  
-Status: **Phase 1 verifiziert; Phase 2b verbindet die einzelne Alltag-Laborvorschau sichtbar und standardmäßig ausgeschaltet mit Pam’s Holo; nicht produktiv**
+Status: **Phase 1 verifiziert; Phase 2c ergänzt für die einzelne Alltag-Laborvorschau einen OpenAI-Testweg über vorhandene Dienste; standardmäßig ausgeschaltet und nicht produktiv**
 
 OpenClaw `2026.9.1` läuft als getrenntes Labor. Sechs Fach-Worker sind angelegt: Alltag, Geschäftliches, Tiere, Kochen, Sicherheit und Medizin. Jeder Worker sieht ausschließlich das Werkzeug `read`, sein eigenes Workspace und klar markierte erfundene Testdaten.
 
@@ -34,17 +34,25 @@ Das Backend besitzt zwei voneinander unabhängige, standardmäßig ausgeschaltet
 
 `phase2/sol-holo-alltag-connection.manifest.json` beschreibt diese Verbindung maschinenlesbar. Der Quellstand ist absichtlich noch nicht produktiv aktiviert: Ohne beide Feature-Schalter, lokalen Runner und langes Bridge-Token lehnt der Server die Anfrage geschlossen ab. Kalender, Notes, Kontakte, Nachrichten, Geräte, Medizin, echte Alltagsdaten und automatische Weiterleitung bleiben außerhalb der Freigabe.
 
+## Phase 2c – vorhandener OpenAI-Testweg
+
+Als Alternative zu einer dauerhaft laufenden Docker-Bridge kann der bestehende Render-Dienst für genau denselben festen Fantasietest den bereits eingerichteten OpenAI-Zugang verwenden. Dieser Weg benötigt keinen neuen Anbieter, kein neues Konto und keinen zusätzlichen Server. Er wird ausschließlich gewählt, wenn `OPENCLAW_ALLTAG_PREVIEW_EXECUTOR=openai` sowie die beiden unabhängigen OpenAI-Vorschau-Schalter bewusst gesetzt sind. Eingecheckt ist keiner dieser Laufzeitwerte.
+
+An OpenAI gehen nur die feste Frage und der Inhalt der eingecheckten Datei `testdaten/alltag-fiktiv.md`. Freitext aus der App, Owner-, Geräte- und Sitzungskennungen sowie Umgebungsgeheimnisse werden nicht aufgenommen. Die Anfrage besitzt keine Werkzeuge, setzt `store: false` und verlangt ein striktes JSON-Schema. Das Ergebnis durchläuft anschließend unverändert die bestehende zweite Worker-Vertragsprüfung.
+
+Dieser Ausführungsweg ist eine OpenAI-gestützte Vertragsvorschau und behauptet ausdrücklich nicht, OpenClaw dauerhaft in Docker auf Render auszuführen. Die echte OpenClaw-Containerisolation wird weiterhin separat im GitHub-Actions-Pflichtlauf nachgewiesen. `phase2/sol-holo-openai-alltag-preview.manifest.json` hält diese Trennung maschinenlesbar fest.
+
 ## Harte Grenze
 
 ```mermaid
 flowchart TD
   A["Pam · bewusste Bestätigung"] --> B["Pam’s Holo · feste Testanfrage"]
   B --> C["Backend · Trusted-App-Gate"]
-  C --> D["Loopback-Bridge · Einmal-Gate"]
-  D --> E["worker-alltag · Docker · read-only"]
+  C --> D["OpenAI · feste Quelle · striktes Schema"]
+  C --> E["Loopback · Docker-Pflichtnachweis"]
 ```
 
-Der Pfeil ist ausschließlich die standardmäßig ausgeschaltete fiktive Vorschauverbindung. Der Worker darf nichts an `main`, der laufenden Render-Instanz, der Android-App oder persönlichen Sol-Holo-Daten verändern.
+Beide Pfade sind ausschließlich für die standardmäßig ausgeschaltete fiktive Vorschau vorgesehen. Der OpenAI-Pfad besitzt keine Werkzeuge; der Docker-Pfad bleibt der getrennte OpenClaw-Sicherheitsnachweis. Keiner darf `main`, die laufende Render-Instanz, die Android-App oder persönliche Sol-Holo-Daten verändern.
 
 Zu Kamera, Mikrofon, Sensoren, Geräten, Konten und persönlichen Speichern besteht weiterhin **keine technische Verbindung**. Für Sicherheit und Medizin bleibt zusätzlich jede produktive Entscheidung oder Aktion gesperrt und menschliche Prüfung zwingend.
 
@@ -59,6 +67,8 @@ Zu Kamera, Mikrofon, Sensoren, Geräten, Konten und persönlichen Speichern best
 - keine Übergabe von Google-, Samsung-, Render-, Android- oder persönlichen `pam-sol`-Inhalten an einen Worker;
 - sichtbarer Android-Testknopf ohne Freitext; Serverzugang nur nach gerätegebundener Trusted-App-Sitzung;
 - Bridge nur authentifiziert über Loopback und nur für den festen Alltag-Vorschaupfad;
+- alternativer OpenAI-Testweg nur mit eigener dreifacher Aktivierung, fester synthetischer Quelle, ohne Tools und mit `store: false`;
+- kein neuer Anbieter, kein neues Konto und kein zusätzlicher Render-Dienst für Phase 2c;
 - Update-Prüfung, Modellkatalog-Abruf, Telemetrie und Heartbeat deaktiviert;
 - lokaler deterministischer Testtreiber auf `127.0.0.1:19006`, kein externer Modellanbieter und kein Zugangsschlüssel;
 - ausschließlich synthetische Testdaten, keine Erinnerungen, Bilder, Stimmen oder privaten Daten.
@@ -101,8 +111,9 @@ Die ursprünglichen lokalen Tooltests liefen mit demselben Rechteprofil und eine
 2. **Phase 1 – Hand, Fuß, Sicherheit und Medizin:** sechs getrennte Lese-Worker mit künstlichen Testdaten. *(von Pam nach grünen Policy- und Containerprüfungen abgeschlossen)*
 3. **Phase 2 – Vorschau:** der Alltag-Worker erzeugt für genau einen manuell freigegebenen fiktiven Test einen Vorschlag, führt aber nichts extern aus. *(technischer Pflichtlauf bestanden und gemergt)*
 4. **Phase 2b – sichtbare Sol-Holo-Testverbindung:** fester Android-Testknopf, Trusted-App-Gate, authentifizierte Loopback-Bridge und erneut validiertes Ergebnis. *(implementiert, standardmäßig aus; neuer Docker-Pflichtlauf erforderlich)*
-5. **Phase 3 – Einzelaktion mit Freigabe:** genau eine klar begrenzte Aktion nach bewusster Bestätigung.
-6. **Phase 4 – produktiver Sol-Holo-Adapter:** erst nach gesonderter Prüfung und neuer ausdrücklicher Freigabe.
+5. **Phase 2c – OpenAI-Testweg über vorhandene Dienste:** feste Fantasiedaten, keine Tools, striktes Schema und zweite Vertragsprüfung. *(Entwurf, standardmäßig aus; kein Live-OpenClaw-Dockerlauf behauptet)*
+6. **Phase 3 – Einzelaktion mit Freigabe:** genau eine klar begrenzte Aktion nach bewusster Bestätigung.
+7. **Phase 4 – produktiver Sol-Holo-Adapter:** erst nach gesonderter Prüfung und neuer ausdrücklicher Freigabe.
 
 Nur Pam entscheidet, wann eine Stufe als abgeschlossen gilt und ob die nächste Stufe beginnt.
 
@@ -132,6 +143,7 @@ Die Konfiguration erwartet drei Laufzeitwerte außerhalb des Repositorys:
 - `phase2/*` – standardmäßig ausgeschaltetes Einmal-Gate für die Alltag-Laborvorschau
 - `phase2/alltag-preview-bridge.mjs` – authentifizierter, ausschließlich lokal gebundener Runner für genau diesen Test
 - `phase2/sol-holo-alltag-connection.manifest.json` – maschinenlesbare Grenzen der sichtbaren Verbindung
+- `phase2/sol-holo-openai-alltag-preview.manifest.json` – maschinenlesbare Grenzen des ausgeschalteten OpenAI-Testwegs über vorhandene Dienste
 - `examples/*` – rein synthetische Vertrags- und Vorschau-Beispiele mit menschlicher Prüfung
 - `workspace/*` – neutrale Regeln für den werkzeuglosen Labor-Koordinator
 - `workspaces/*` – sechs getrennte Worker mit festen neutralen Identitäten und fiktiven Testdaten
@@ -139,7 +151,7 @@ Die Konfiguration erwartet drei Laufzeitwerte außerhalb des Repositorys:
 - `tests/check-foundation.mjs` – prüft Register, Verträge, Worker-Dateien und zentrale Sperren gemeinsam
 - `tests/check-alltag-preview.mjs` – prüft Einmal-Freigabe und zehn technische Ablehnungsfälle
 - `tests/run-container-policy-suite.mjs` – prüft sechs echte Docker-Sandboxes einschließlich der sichtbaren Loopback-Verbindung, Mounts und Schreibsperren
-- `../modules/openclaw-alltag-preview.mjs` – fester Sol-Holo-Auftrag, Doppelschalter, Loopback-Transport und Ergebnisvalidierung
+- `../modules/openclaw-alltag-preview.mjs` – fester Sol-Holo-Auftrag, getrennte Aktivierungssperren, Loopback- und OpenAI-Testweg sowie Ergebnisvalidierung
 - `../tests/openclaw-alltag-preview*.test.mjs` – Backend- und UI-Grenztests ohne persönliche Daten
 - `docker/Dockerfile.sandbox` – minimales, reproduzierbares Labor-Image
 - `SECURITY.md` – Bedrohungsmodell und Freigaberegeln
@@ -147,6 +159,7 @@ Die Konfiguration erwartet drei Laufzeitwerte außerhalb des Repositorys:
 - `PHASE-1-ERWEITERUNG-SICHERHEIT-MEDIZIN-05-09-2026.md` – Sondergrenzen der beiden sensiblen Worker
 - `PHASE-1-GRUNDGERUEST-05-09-2026.md` – gemeinsames Register, Verträge und Container-Prüfweg
 - `PHASE-2B-SICHTBARE-ALLTAG-VERBINDUNG-05-09-2026.md` – Freigabeumfang und Stopplinien der sichtbaren Testverbindung
+- `PHASE-2C-OPENAI-ALLTAG-VORSCHAU-05-09-2026.md` – Freigabeumfang und Stopplinien des vorhandenen OpenAI-Testwegs
 - `.github/workflows/openclaw-lab-security.yml` – isolierte Prüfung im Draft-PR auf einem Docker-Runner
 
 Vor einem späteren echten Start wird die Beispieldatei außerhalb des Repositorys als private Konfiguration abgelegt, mit einem echten zufälligen Token versehen und auf Dateirechte `600` begrenzt. Die eingecheckte Vorlage enthält absichtlich kein Geheimnis.
