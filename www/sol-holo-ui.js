@@ -209,12 +209,13 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     '<button id="explicitSaveRow" class="serviceRow" type="button" data-open-view="notes">' +
       '<span class="rowIcon">✓</span>' +
       '<span class="rowText">' +
-        '<span class="rowTitle">Sol Holo · Speichern auf Zuruf</span>' +
-        '<span class="rowMeta">Listen, Aufgaben, Termine, Notizen, Wünsche &amp; Fakten</span>' +
+        '<span class="rowTitle">Alltagsworker · Speichern auf Zuruf</span>' +
+        '<span class="rowMeta">Echte Alltagsinhalte · nur auf deinen ausdrücklichen Auftrag</span>' +
       '</span>' +
-      '<span id="explicitSaveStatus" class="serviceStatus connected">Aktiv</span>' +
+      '<span id="explicitSaveStatus" class="serviceStatus connected">Aktiv ✅</span>' +
     '</button>' +
-    '<button id="openClawAlltagPreviewRow" class="serviceRow" type="button">' +
+    '<button id="openClawAlltagPreviewRow" class="serviceRow" type="button" ' +
+      'data-lab-only="true" aria-hidden="true" tabindex="-1" hidden>' +
       '<span class="rowIcon">⌘</span>' +
       '<span class="rowText">' +
         '<span class="rowTitle">Alltagsworker · fiktiver Test</span>' +
@@ -239,11 +240,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   document.querySelector("#servicesView .permissionNote").textContent =
     "Pam’s Holo liest keine WhatsApp-Nachricht, keinen Kontakt, kein Bild, keine " +
     "Notiz und keinen Health-Wert ohne deine sichtbare Auswahl oder Freigabe. " +
-    "Ein ausdrücklicher Speicherauftrag gilt für normale Alltagsinhalte als Freigabe; " +
+    "Speichern auf Zuruf ist aktiv: Ein ausdrücklicher Speicherauftrag gilt für " +
+    "normale Alltagsinhalte als Freigabe; " +
     "Passwörter, PIN, TAN, Token und Schlüssel bleiben gesperrt. " +
-    "Geräte werden erst nach einer einmaligen Gerätefreigabe steuerbar. " +
-    "Der Alltagsworker erhält in dieser Phase ausschließlich fest eingebaute " +
-    "fiktive Testdaten.";
+    "Geräte werden erst nach einer einmaligen Gerätefreigabe steuerbar.";
 
   const drawerVoiceSettings = document.querySelector("#drawer .drawerVoiceSettings");
   if (drawerVoiceSettings) {
@@ -651,7 +651,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     );
     if (servicesCopy) {
       servicesCopy.textContent = identity
-        ? `${instanceName} verbindet nur ${displayName}s eigene, einzeln freigegebene Dienste. Keine Verbindung wird mit der anderen Person geteilt.`
+        ? `${instanceName} verbindet nur ${displayName}s eigene Dienste. Konto, Zuhause und Geräte werden einmalig ausgewählt; keine Verbindung wird mit einer anderen Person geteilt.`
         : "Die feste Holo-ID ist nicht verfügbar. Dienstverbindungen bleiben gesperrt.";
     }
 
