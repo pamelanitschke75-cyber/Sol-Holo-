@@ -1,0 +1,52 @@
+name: Publish Pam's Holo Build 169
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/publish-build-169.yml
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download verified Build 169 artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 33982822484 \
+            --repo "${{ github.repository }}" \
+            --name "Pams-Holo-Android-update" \
+            --dir artifact
+
+      - name: Prepare APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk_path="$(find artifact -type f -name '*.apk' -print -quit)"
+          test -n "$apk_path"
+          cp "$apk_path" "Pams-Holo-Update-Build-169-Labortest-ausgeblendet.apk"
+          sha256sum "Pams-Holo-Update-Build-169-Labortest-ausgeblendet.apk"
+
+      - name: Publish direct APK download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="build-169-labortest-ausgeblendet"
+          asset="Pams-Holo-Update-Build-169-Labortest-ausgeblendet.apk"
+          if gh release view "$tag" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release upload "$tag" "$asset" --clobber --repo "${{ github.repository }}"
+          else
+            gh release create "$tag" "$asset" \
+              --repo "${{ github.repository }}" \
+              --target "bc8b7e15757dc1cc8662986eedfb5c73a6091cf9" \
+              --title "Pam's Holo – Labortest ausgeblendet Build 169" \
+              --notes "Originalsigniertes Android-Update aus dem erfolgreichen main-Build #169. Die fiktive Lesetest-Karte bleibt durch eine Android-WebView-feste CSS-Regel aus den normalen Diensten ausgeblendet. Installation als Update; vorhandene App nicht deinstallieren."
+          fi
