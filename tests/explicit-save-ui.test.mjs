@@ -154,10 +154,10 @@ test("Sprachaufträge verwenden denselben lokalen Speicherweg", () => {
     ui.indexOf("window.handleSolHoloRealtimeNoteTranscript = async"),
     ui.indexOf("function getHeyHoSolPlugin")
   );
-  assert.match(realtimeHandler, /explicitSaveRequestFromMessage/u);
+  assert.match(realtimeHandler, /handleSolHoloLocalAction/u);
   assert.match(html, /LOKALES_NOTIZERGEBNIS/u);
   assert.match(html, /LOKALES_NAVIGATIONSERGEBNIS/u);
-  assert.match(html, /sol-holo-ui\.js\?v=44/u);
+  assert.match(html, /sol-holo-ui\.js\?v=45/u);
 });
 
 test("Google Maps versteht natürliche Text- und Sprachziele", () => {
