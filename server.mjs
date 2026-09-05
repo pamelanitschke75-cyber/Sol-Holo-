@@ -92,6 +92,12 @@ const openClawAlltagPreview =
 const pendingCalendarActions =
   createPendingCalendarActionStore();
 
+const pendingWeatherRequests =
+  new Map();
+
+const PENDING_WEATHER_TTL_MS =
+  10 * 60 * 1000;
+
 const identityMemoryStore =
   createIdentityMemoryStore({
     database: db
@@ -1091,6 +1097,33 @@ app.get("/", (req, res) => {
   res.sendFile(
     path.join(__dirname, "index.html")
   );
+});
+
+app.get("/weather/status", (_req, res) => {
+  const configured =
+    Boolean(
+      String(
+        process.env.OPENAI_API_KEY ||
+        ""
+      ).trim()
+    );
+
+  return res
+    .set({
+      "Cache-Control":
+        "no-store, max-age=0",
+      Pragma:
+        "no-cache"
+    })
+    .json({
+      configured,
+      liveSearch:
+        configured,
+      provider:
+        "openai",
+      additionalProviderRequired:
+        false
+    });
 });
 
 /*
@@ -2380,8 +2413,9 @@ function requireTrustedOwnerIdentity(
 
   Dieser Endpunkt nimmt absichtlich keinen Freitext und keine persönlichen
   Inhalte an. Erst die sichere App-Sitzung, die feste sichtbare Bestätigung
-  und zwei standardmäßig ausgeschaltete Server-Schalter öffnen genau den
-  einen synthetischen Leseauftrag für worker-alltag.
+  und die zum gewählten Ausführungsweg gehörenden, standardmäßig
+  ausgeschalteten Server-Schalter öffnen genau den einen synthetischen
+  Leseauftrag für worker-alltag.
 */
 app.post(
   "/openclaw/alltag-preview",
@@ -2624,6 +2658,533 @@ function getBerlinCurrentDateTimeText() {
   );
 }
 
+function normalizeNaturalIntentText(value) {
+  return String(value || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function looksLikeLiveWeatherRequest(message) {
+  const text = String(message || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+  if (!text) return false;
+  return Boolean(
+    /\b(?:wetter|wetterbericht|wettervorhersage|temperatur)\w*\b/u.test(text) ||
+    /\b(?:regnet|schneit|hagelt)\s+es\b/u.test(text) ||
+    /\bwird\s+es\s+(?:regnen|schneien|hageln)\b/u.test(text)
+  );
+}
+
+function weatherRequestScope(identity, conversationId = "") {
+  return [
+    String(identity?.ownerId || ""),
+    String(identity?.speakerId || ""),
+    String(conversationId || "")
+  ].join(":");
+}
+
+function pendingWeatherRequest(scope) {
+  const pending =
+    pendingWeatherRequests.get(scope);
+
+  if (
+    !pending ||
+    Date.now() - pending.createdAt >
+      PENDING_WEATHER_TTL_MS
+  ) {
+    pendingWeatherRequests.delete(scope);
+    return null;
+  }
+
+  return pending;
+}
+
+function looksLikeWeatherPlaceReply(message) {
+  const text = String(message || "").trim();
+  if (
+    text.length < 2 ||
+    text.length > 100 ||
+    text.split(/\s+/u).length > 10
+  ) {
+    return false;
+  }
+
+  return !(
+    /^(?:ja|nein|abbrechen|abbruch|danke|dankeschön)[.!?]*$/iu.test(text) ||
+    looksLikeCalendarWriteRequest(text)
+  );
+}
+
+function weatherRequestHasPlace(message) {
+  const original = String(message || "").trim();
+  if (!original) return false;
+
+  if (
+    /\b(?:in|für|fuer|bei|rund\s+um)\s+(?!(?:mir|uns|hier|heute|morgen|jetzt|später|spaeter)\b)[\p{L}\d][\p{L}\d .,'’-]{1,90}/iu.test(
+      original
+    )
+  ) {
+    return true;
+  }
+
+  return /\b(?:wetter|wetterbericht|wettervorhersage)\s+(?:für\s+|fuer\s+)?[A-ZÄÖÜ][\p{L} .,'’-]{1,70}/u.test(
+    original
+  );
+}
+
+function collectResponseWebSources(response) {
+  const sources = new Map();
+  const addSource = value => {
+    const url = String(
+      value?.url ||
+      value?.url_citation?.url ||
+      ""
+    ).trim();
+    if (!/^https:\/\//i.test(url) || sources.has(url)) return;
+    sources.set(url, {
+      url,
+      title: String(
+        value?.title ||
+        value?.url_citation?.title ||
+        "Wetterquelle"
+      ).trim().slice(0, 180) || "Wetterquelle"
+    });
+  };
+
+  for (const item of response?.output || []) {
+    for (const source of item?.action?.sources || []) {
+      addSource(source);
+    }
+    for (const content of item?.content || []) {
+      for (const annotation of content?.annotations || []) {
+        addSource(annotation);
+      }
+    }
+  }
+
+  return [...sources.values()].slice(0, 3);
+}
+
+async function performLiveWebSearch({
+  query,
+  instructions,
+  searchContextSize = "medium",
+  maxOutputTokens = 500
+}) {
+  const response = await openai.responses.create({
+    model: "gpt-5",
+    tools: [
+      {
+        type: "web_search",
+        search_context_size: searchContextSize
+      }
+    ],
+    tool_choice: "required",
+    include: ["web_search_call.action.sources"],
+    max_output_tokens: maxOutputTokens,
+    instructions,
+    input: String(query || "").trim()
+  });
+
+  const answer = String(response.output_text || "").trim();
+  if (!answer) {
+    throw new Error("OPENAI_LIVE_WEB_EMPTY_RESPONSE");
+  }
+
+  return {
+    answer,
+    sources: collectResponseWebSources(response)
+  };
+}
+
+function looksLikeGmailReadRequest(message) {
+  const text = normalizeNaturalIntentText(message);
+  if (
+    !text ||
+    !/\b(?:e-?mail|e-?mails|mail|mails|gmail|posteingang)\b/u.test(text)
+  ) {
+    return false;
+  }
+
+  const asksToWrite =
+    /\b(?:schreib|schreibe|verfass|verfasse|sende|send|schick|schicke|verschick|verschicke|antworte)\b[\s\S]{0,45}\b(?:e-?mail|mail)\b/u.test(text) ||
+    /\b(?:e-?mail|mail)\b[\s\S]{0,30}\b(?:schreiben|verfassen|senden|schicken|beantworten)\b/u.test(text);
+  if (asksToWrite) {
+    return false;
+  }
+
+  return /\b(?:habe?\s+ich|hab\s+ich|bekommen|erhalten|angekommen|gekommen|neu|neue|neuen|ungelesen|ungelesene|wichtig|wichtige|wichtigen|nachsehen|nachschauen|pruf|prufe|check|suche|such|finde|find|zeige|zeig|lies|lese|von|betreff)\b/u.test(
+    text
+  );
+}
+
+function gmailQueryForNaturalRequest(message) {
+  const original = String(message || "").trim();
+  const text = normalizeNaturalIntentText(original);
+  const queryParts = ["in:inbox"];
+
+  if (/\bungelesen\w*\b/u.test(text)) {
+    queryParts.push("is:unread");
+  }
+
+  const senderMatch = original.match(
+    /\bvon\s+([\p{L}\p{N}@._+\-]+(?:\s+[\p{L}\p{N}@._+\-]+){0,2})(?=\s+(?:bekommen|erhalten|angekommen|gekommen|geschrieben)\b|[?!.,]|$)/iu
+  );
+  if (senderMatch?.[1]) {
+    const sender = senderMatch[1]
+      .replace(/["\\]/gu, " ")
+      .replace(/\s+/gu, " ")
+      .trim()
+      .slice(0, 80);
+    if (sender) {
+      queryParts.push(`from:"${sender}"`);
+    }
+  }
+
+  queryParts.push(senderMatch ? "newer_than:30d" : "newer_than:14d");
+  return queryParts.join(" ");
+}
+
+function gmailImportanceScore(message) {
+  const labels = new Set(
+    Array.isArray(message?.labelIds)
+      ? message.labelIds.map(label => String(label || "").toUpperCase())
+      : []
+  );
+  const subject = normalizeNaturalIntentText(message?.subject);
+  const from = normalizeNaturalIntentText(message?.from);
+  let score = 0;
+
+  if (labels.has("IMPORTANT")) score += 8;
+  if (labels.has("STARRED")) score += 4;
+  if (labels.has("UNREAD")) score += 2;
+  if (labels.has("CATEGORY_PROMOTIONS")) score -= 8;
+  if (labels.has("CATEGORY_SOCIAL")) score -= 6;
+  if (labels.has("CATEGORY_FORUMS")) score -= 4;
+
+  if (
+    /\b(?:dringend|wichtig|frist|termin|rechnung|zahlung|mahnung|sicherheit|warnung|konto|vertrag|arzt|behor|versicherung|buchung|reservierung|kundigung|bestatigung)\w*\b/u.test(
+      subject
+    )
+  ) {
+    score += 3;
+  }
+  if (/\b(?:newsletter|marketing|angebote?|rabatt|sale|werbung)\b/u.test(`${from} ${subject}`)) {
+    score -= 3;
+  }
+
+  return score;
+}
+
+function formatGmailDate(message) {
+  const timestamp = Number(message?.internalDate);
+  const date = Number.isFinite(timestamp) && timestamp > 0
+    ? new Date(timestamp)
+    : new Date(String(message?.date || ""));
+  if (Number.isNaN(date.getTime())) {
+    return "Datum unbekannt";
+  }
+
+  return new Intl.DateTimeFormat("de-DE", {
+    timeZone: GOOGLE_CALENDAR_TIMEZONE,
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+}
+
+function conciseGmailSender(value) {
+  const sender = String(value || "Unbekannter Absender").trim();
+  const named = sender.match(/^\s*"?([^"<]{1,80})"?\s*</u)?.[1]?.trim();
+  return (named || sender).slice(0, 100);
+}
+
+function formatGmailSummary(message) {
+  const labels = new Set(
+    Array.isArray(message?.labelIds)
+      ? message.labelIds.map(label => String(label || "").toUpperCase())
+      : []
+  );
+  const state = labels.has("UNREAD") ? "ungelesen" : "gelesen";
+  const subject = String(message?.subject || "Ohne Betreff").trim().slice(0, 180);
+  return `${conciseGmailSender(message?.from)} – „${subject}“ (${state}, ${formatGmailDate(message)})`;
+}
+
+function gmailAnswerFromMetadata(message, result, identity) {
+  const messages = Array.isArray(result?.messages) ? result.messages : [];
+  if (messages.length === 0) {
+    return `${identity.displayName}, ich habe in deinem Gmail-Posteingang keine passende neue Nachricht gefunden.`;
+  }
+
+  const asksImportant = /\bwichtig\w*\b/u.test(
+    normalizeNaturalIntentText(message)
+  );
+  const sorted = [...messages].sort(
+    (left, right) =>
+      gmailImportanceScore(right) - gmailImportanceScore(left) ||
+      Number(right?.internalDate || 0) - Number(left?.internalDate || 0)
+  );
+
+  if (asksImportant) {
+    const important = sorted.filter(item => gmailImportanceScore(item) >= 5);
+    if (important.length === 0) {
+      const unreadCount = messages.filter(item =>
+        Array.isArray(item?.labelIds) && item.labelIds.includes("UNREAD")
+      ).length;
+      return `${identity.displayName}, unter den ${messages.length} zuletzt geprüften Posteingang-Mails ist keine von Gmail als wichtig markiert oder anhand von Absender und Betreff eindeutig dringend. ${unreadCount ? `${unreadCount} davon ${unreadCount === 1 ? "ist" : "sind"} ungelesen.` : "Keine davon ist ungelesen."} Ich habe dafür keine Mailinhalte geöffnet.`;
+    }
+
+    const list = important
+      .slice(0, 3)
+      .map(item => `• ${formatGmailSummary(item)}`)
+      .join("\n");
+    return `${identity.displayName}, ja – diese ${important.length === 1 ? "Mail wirkt" : "Mails wirken"} derzeit am wichtigsten:\n${list}\nIch habe nur Posteingang, Absender, Betreff und Gmail-Markierungen gelesen, nicht den Inhalt.`;
+  }
+
+  const list = sorted
+    .slice(0, 5)
+    .map(item => `• ${formatGmailSummary(item)}`)
+    .join("\n");
+  return `${identity.displayName}, das sind die neuesten passenden Mails in deinem Posteingang:\n${list}`;
+}
+
+async function handleGmailReadRequest(
+  message,
+  identity,
+  trustedAppSession = false,
+  forceExplicitRead = false
+) {
+  if (
+    !forceExplicitRead &&
+    !looksLikeGmailReadRequest(message)
+  ) {
+    return { handled: false };
+  }
+
+  if (!trustedAppSession) {
+    return {
+      handled: true,
+      success: false,
+      readOnly: true,
+      needsTrustedAppSession: true,
+      answer:
+        `${identity.displayName}, deine Frage ist bereits der ausdrückliche Leseauftrag. ` +
+        "Bitte bestätige nur einmal die sichere App-Sitzung; danach prüfe ich deinen Gmail-Posteingang."
+    };
+  }
+
+  try {
+    const result = await googlePersonalServices.searchGmail({
+      ownerId: identity.ownerId,
+      query: gmailQueryForNaturalRequest(message),
+      limit: 10,
+      request: {
+        explicit: true,
+        operation: GOOGLE_PERSONAL_OPERATIONS.GMAIL_SEARCH,
+        ownerId: identity.ownerId,
+        requestId: `gmail-${randomUUID()}`
+      }
+    });
+    return {
+      handled: true,
+      success: true,
+      readOnly: true,
+      resultCount: Number(result?.resultCount || 0),
+      answer: gmailAnswerFromMetadata(message, result, identity)
+    };
+  } catch (error) {
+    const code = error instanceof GooglePersonalServicesError
+      ? error.code
+      : "REMOTE_READ_FAILED";
+    console.error("Natürliche Gmail-Prüfung:", { code });
+    const needsGoogleAuth = [
+      "OWNER_AUTHORIZATION_NOT_FOUND",
+      "OWNER_AUTHORIZATION_UNAVAILABLE",
+      "REQUIRED_SCOPE_MISSING"
+    ].includes(code);
+    return {
+      handled: true,
+      success: false,
+      readOnly: true,
+      needsGoogleAuth,
+      answer: needsGoogleAuth
+        ? `${identity.displayName}, Gmail konnte noch nicht gelesen werden. Bitte verbinde dein Google-Konto in ${instanceNameForIdentity(identity)} erneut mit der Gmail-Nur-Lese-Freigabe.`
+        : `${identity.displayName}, dein Gmail-Posteingang konnte gerade nicht zuverlässig geprüft werden. Ich erfinde deshalb keine Mail.`
+    };
+  }
+}
+
+function looksLikeLiveEverydayWebRequest(message) {
+  const text = normalizeNaturalIntentText(message);
+  if (!text || looksLikeLiveWeatherRequest(text)) {
+    return false;
+  }
+
+  const openingHours =
+    /\b(?:offnungszeit\w*|geoffnet|offnet|schliesst|geschlossen)\b/u.test(text) ||
+    /\bwann\b[\s\S]{0,100}\b(?:macht|hat)\b[\s\S]{0,40}\bauf\b/u.test(text) ||
+    /\b(?:macht|hat)\b[\s\S]{0,80}\b(?:heute|morgen|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag)\b[\s\S]{0,40}\bauf\b/u.test(text);
+  const variableTopic =
+    /\b(?:verkehr|stau|fahrplan|zug|bahn|bus|tram|flug|veranstaltung|event|nachrichten|news|lieferzeit|offnungszeit)\w*\b/u.test(text) &&
+    /\b(?:aktuell|heute|morgen|jetzt|wann|wie|wo|welche|welcher|welches)\b/u.test(text);
+
+  return openingHours || variableTopic;
+}
+
+async function handleLiveEverydayWebRequest(message, identity) {
+  if (!looksLikeLiveEverydayWebRequest(message)) {
+    return { handled: false };
+  }
+
+  try {
+    const result = await performLiveWebSearch({
+      query: message,
+      searchContextSize: "medium",
+      maxOutputTokens: 450,
+      instructions: `
+Du beantwortest eine aktuelle Alltagsfrage auf Deutsch.
+Aktuelles Datum und Uhrzeit in Europe/Berlin: ${getBerlinCurrentDateTimeText()}.
+Nutze die Live-Websuche und bevorzuge offizielle oder primäre Quellen.
+Ordne bei Öffnungszeiten die konkrete Filiale und Adresse genau zu und beachte
+den genannten Wochentag. Wenn Ort oder Filiale nicht eindeutig sind, benenne
+die Unklarheit statt zu raten. Antworte kompakt und gib keine rohen URLs aus.
+`
+    });
+    return {
+      handled: true,
+      success: true,
+      answer: result.answer,
+      sources: result.sources
+    };
+  } catch (error) {
+    console.error(
+      "Live-Alltagsauskunft:",
+      error?.code || error?.name || error?.message || "Fehler"
+    );
+    return {
+      handled: true,
+      success: false,
+      answer:
+        `${identity.displayName}, die aktuelle Information konnte gerade nicht zuverlässig geprüft werden. ` +
+        "Ich rate deshalb nicht."
+    };
+  }
+}
+
+async function handleLiveWeatherRequest(
+  message,
+  identity,
+  conversationId = ""
+) {
+  const scope =
+    weatherRequestScope(
+      identity,
+      conversationId
+    );
+  const cleanMessage =
+    String(message || "").trim();
+  const explicitWeatherRequest =
+    looksLikeLiveWeatherRequest(cleanMessage);
+  const pending =
+    pendingWeatherRequest(scope);
+
+  if (
+    !explicitWeatherRequest &&
+    pending &&
+    /^(?:nein|abbrechen|abbruch|danke|dankeschön)[.!?]*$/iu.test(
+      cleanMessage
+    )
+  ) {
+    pendingWeatherRequests.delete(scope);
+    return {
+      handled: true,
+      success: false,
+      cancelled: true,
+      answer:
+        "Alles klar. Ich rufe kein Wetter ab."
+    };
+  }
+
+  if (
+    !explicitWeatherRequest &&
+    !(
+      pending &&
+      looksLikeWeatherPlaceReply(cleanMessage)
+    )
+  ) {
+    return { handled: false };
+  }
+
+  const effectiveMessage =
+    explicitWeatherRequest
+      ? cleanMessage
+      : `${pending.message} in ${cleanMessage}`;
+
+  if (!weatherRequestHasPlace(effectiveMessage)) {
+    pendingWeatherRequests.set(
+      scope,
+      {
+        message:
+          effectiveMessage,
+        createdAt:
+          Date.now()
+      }
+    );
+    return {
+      handled: true,
+      success: false,
+      needsPlace: true,
+      answer:
+        `${identity.displayName}, für welchen Ort soll ich das aktuelle Wetter prüfen? ` +
+        "Zum Beispiel: „Wie ist das Wetter heute in Berlin?“"
+    };
+  }
+
+  pendingWeatherRequests.delete(scope);
+
+  try {
+    const result = await performLiveWebSearch({
+      query: effectiveMessage,
+      searchContextSize: "low",
+      maxOutputTokens: 350,
+      instructions: `
+Du beantwortest ausschließlich eine aktuelle Wetterfrage auf Deutsch.
+Heute in der Zeitzone Europe/Berlin: ${getBerlinCurrentDateTimeText()}.
+Nutze die Live-Websuche. Nenne Ort, Zeitraum, Temperatur, Niederschlag und
+einen kurzen praktischen Hinweis, soweit die Quellen das hergeben.
+Bleib kompakt und erfinde keine Messwerte. Gib keine rohen URLs im Antworttext aus.
+`
+    });
+
+    return {
+      handled: true,
+      success: true,
+      answer: result.answer,
+      sources: result.sources
+    };
+  } catch (error) {
+    console.error(
+      "Live-Wetter Fehler:",
+      error?.code || error?.name || error?.message || "Fehler"
+    );
+    return {
+      handled: true,
+      success: false,
+      answer:
+        `${identity.displayName}, das Live-Wetter konnte gerade nicht zuverlässig abgerufen werden. ` +
+        "Ich erfinde deshalb keine Wetterdaten."
+    };
+  }
+}
+
 /*
   ==========================================================
   KALENDER-BEFEHL SCHNELL ERKENNEN
@@ -2637,7 +3198,10 @@ function looksLikeCalendarWriteRequest(
     String(
       message ||
       ""
-    ).toLowerCase();
+    )
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
 
   if (!text) {
     return false;
@@ -2659,10 +3223,22 @@ function looksLikeCalendarWriteRequest(
     "mach einen termin"
   ];
 
-  return patterns.some(
+  if (patterns.some(
     (pattern) =>
       text.includes(pattern)
-  );
+  )) {
+    return true;
+  }
+
+  const hasConcreteTime =
+    /\b(?:heute|morgen|ubermorgen|nachste[nrsm]?\s+(?:montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag)|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag)\b/u.test(text) ||
+    /\b\d{1,2}(?::\d{2})?\s*uhr\b/u.test(text) ||
+    /\b\d{1,2}[./-]\d{1,2}(?:[./-]\d{2,4})?\b/u.test(text);
+  const asksToSchedule =
+    /\b(?:schreib|schreibe|trag|trage|plane|plan|setz|setze|halt|halte)\b[\s\S]*\b(?:auf|ein|fest|vor)\b/u.test(text) ||
+    /\b(?:schreib|schreibe|trag|trage|plane|plan|setz|setze)\b/u.test(text);
+
+  return hasConcreteTime && asksToSchedule;
 }
 
 /*
@@ -2725,6 +3301,12 @@ Die aktuell ausgewählte Person ist ${identity.displayName}.
 
 Prüfe, ob die Nachricht wirklich verlangt,
 einen Google-Kalendertermin zu ERSTELLEN.
+
+Ein natürlicher Auftrag mit konkretem Datum oder Wochentag und Uhrzeit gilt
+auch ohne das Wort „Kalender“ als Kalenderauftrag, zum Beispiel:
+„Schreib für morgen bitte 13 Uhr auf, dass wir zu meinen Eltern fahren.“
+In diesem Beispiel ist die Aktion create und der Titel sinngemäß
+„Zu meinen Eltern fahren“.
 
 Gib ausschließlich gültiges JSON zurück.
 Keine Markdown-Codeblöcke.
@@ -3099,79 +3681,12 @@ function calendarPreviewAnswer(identity, parsed) {
     "Sag zum Beispiel „Ja, eintragen“ oder „Sol, bitte trag ein“. Wenn etwas nicht stimmt, nenne den Termin bitte noch einmal.";
 }
 
-async function handleCalendarWriteRequest(
-  message,
+async function commitCalendarAction(
+  parsed,
+  originalMessage,
   identity,
-  trustedAppSession = false,
-  conversationId = ""
+  scope
 ) {
-  const scope = calendarActionScope(identity, conversationId);
-
-  if (isCalendarCancellation(message)) {
-    const cleared = pendingCalendarActions.clear(scope);
-    return cleared
-      ? {
-          handled: true,
-          success: false,
-          cancelled: true,
-          answer:
-            "Alles klar. Der vorbereitete Termin wurde verworfen und nicht gespeichert."
-        }
-      : { handled: false };
-  }
-
-  if (!isCalendarConfirmation(message)) {
-    if (!looksLikeCalendarWriteRequest(message)) {
-      return { handled: false };
-    }
-
-    const parsed = await parseCalendarCommand(message, identity);
-    if (parsed?.action !== "create") {
-      return { handled: false };
-    }
-    if (!parsed.summary || !parsed.start || !parsed.end) {
-      return {
-        handled: true,
-        success: false,
-        answer:
-          `${identity.displayName}, ich habe erkannt, dass du einen Kalendereintrag möchtest, aber Datum oder Uhrzeit sind nicht eindeutig genug.`
-      };
-    }
-    pendingCalendarActions.remember(scope, {
-      parsed,
-      originalMessage: message
-    });
-    return {
-      handled: true,
-      success: false,
-      confirmationRequired: true,
-      answer: calendarPreviewAnswer(identity, parsed)
-    };
-  }
-
-  const pending = pendingCalendarActions.peek(scope);
-  if (!pending) {
-    return {
-      handled: true,
-      success: false,
-      answer:
-        `${identity.displayName}, ich habe gerade keinen vorbereiteten Termin. Sag mir bitte noch einmal Termin, Datum und Uhrzeit.`
-    };
-  }
-
-  if (!trustedAppSession) {
-    return {
-      handled: true,
-      success: false,
-      needsTrustedAppSession: true,
-      answer:
-        `${identity.displayName}, der vorbereitete Termin wurde noch nicht gespeichert. ` +
-        "Bitte bestätige einmal die sichere App-Sitzung; danach kann ich genau diesen Termin eintragen."
-    };
-  }
-
-  const parsed = pending.parsed;
-  const originalMessage = pending.originalMessage;
   const fingerprint = createCalendarFingerprint(
     originalMessage,
     parsed,
@@ -3238,6 +3753,110 @@ async function handleCalendarWriteRequest(
         `${identity.displayName}, der Kalendereintrag wurde nicht gespeichert. Google Calendar hat den Vorgang nicht bestätigt.`
     };
   }
+}
+
+async function handleCalendarWriteRequest(
+  message,
+  identity,
+  trustedAppSession = false,
+  conversationId = ""
+) {
+  const scope = calendarActionScope(identity, conversationId);
+
+  if (isCalendarCancellation(message)) {
+    const cleared = pendingCalendarActions.clear(scope);
+    return cleared
+      ? {
+          handled: true,
+          success: false,
+          cancelled: true,
+          answer:
+            "Alles klar. Der vorbereitete Termin wurde verworfen und nicht gespeichert."
+        }
+      : { handled: false };
+  }
+
+  if (!isCalendarConfirmation(message)) {
+    if (!looksLikeCalendarWriteRequest(message)) {
+      return { handled: false };
+    }
+
+    const pending = pendingCalendarActions.peek(scope);
+    if (
+      trustedAppSession &&
+      pending?.originalMessage === String(message || "").trim()
+    ) {
+      return commitCalendarAction(
+        pending.parsed,
+        pending.originalMessage,
+        identity,
+        scope
+      );
+    }
+
+    const parsed = await parseCalendarCommand(message, identity);
+    if (parsed?.action !== "create") {
+      return { handled: false };
+    }
+    if (!parsed.summary || !parsed.start || !parsed.end) {
+      return {
+        handled: true,
+        success: false,
+        answer:
+          `${identity.displayName}, ich habe erkannt, dass du einen Kalendereintrag möchtest, aber Datum oder Uhrzeit sind nicht eindeutig genug.`
+      };
+    }
+    pendingCalendarActions.remember(scope, {
+      parsed,
+      originalMessage: message
+    });
+
+    if (!trustedAppSession) {
+      return {
+        handled: true,
+        success: false,
+        needsTrustedAppSession: true,
+        answer:
+          `${identity.displayName}, dein ausdrücklicher Kalenderauftrag gilt bereits als Freigabe. ` +
+          "Bitte bestätige nur einmal die sichere App-Sitzung; danach trage ich genau diesen Termin ein."
+      };
+    }
+
+    return commitCalendarAction(
+      parsed,
+      String(message || "").trim(),
+      identity,
+      scope
+    );
+  }
+
+  const pending = pendingCalendarActions.peek(scope);
+  if (!pending) {
+    return {
+      handled: true,
+      success: false,
+      answer:
+        `${identity.displayName}, ich habe gerade keinen vorbereiteten Termin. Sag mir bitte noch einmal Termin, Datum und Uhrzeit.`
+    };
+  }
+
+  if (!trustedAppSession) {
+    return {
+      handled: true,
+      success: false,
+      needsTrustedAppSession: true,
+      answer:
+        `${identity.displayName}, der vorbereitete Termin wurde noch nicht gespeichert. ` +
+        "Bitte bestätige einmal die sichere App-Sitzung; danach kann ich genau diesen Termin eintragen."
+    };
+  }
+
+  return commitCalendarAction(
+    pending.parsed,
+    pending.originalMessage,
+    identity,
+    scope
+  );
 }
 
 /*
@@ -3345,6 +3964,96 @@ app.post(
       return res.status(500).json({
         error:
           "Die Kalenderaktion konnte gerade nicht erneut geprüft werden."
+      });
+    }
+  }
+);
+
+/*
+  ==========================================================
+  GMAIL – NATÜRLICHER, AUSDRÜCKLICHER NUR-LESE-AUFTRAG
+  ==========================================================
+
+  Die Frage selbst (zum Beispiel „Habe ich eine wichtige Mail bekommen?“)
+  ist der ausdrückliche Auftrag. Nach einer eventuell einmaligen sicheren
+  Gerätebindung wird ausschließlich diese Gmail-Metadatensuche wiederholt.
+*/
+app.post(
+  "/gmail/action",
+  async (req, res) => {
+    try {
+      const identity = resolveRequestIdentity(req, res);
+      if (!identity) {
+        return;
+      }
+
+      const message = String(req.body?.message || "").trim();
+      if (!message || message.length > 1200) {
+        return res.status(400).json({
+          error: "Die Gmail-Frage ist ungültig."
+        });
+      }
+
+      let conversation;
+      try {
+        conversation = openRequestConversation(req.body, identity);
+      } catch (error) {
+        if (error instanceof ConversationContextError) {
+          return respondConversationIdentityError(res);
+        }
+        throw error;
+      }
+
+      const gmailResult = await handleGmailReadRequest(
+        message,
+        identity,
+        hasTrustedGooglePersonalReadGate(req),
+        true
+      );
+
+      if (!gmailResult?.handled) {
+        return res.status(400).json({
+          error: "Kein Gmail-Leseauftrag erkannt."
+        });
+      }
+
+      if (gmailResult.answer) {
+        appendConversationMessage(
+          conversation.conversationId,
+          identity,
+          "assistant",
+          gmailResult.answer
+        );
+      }
+
+      return res
+        .set({
+          "Cache-Control": "no-store, max-age=0",
+          Pragma: "no-cache"
+        })
+        .json({
+          answer: gmailResult.answer,
+          gmail: {
+            handled: true,
+            success: Boolean(gmailResult.success),
+            readOnly: true,
+            resultCount: Number(gmailResult.resultCount || 0),
+            needsGoogleAuth: Boolean(gmailResult.needsGoogleAuth),
+            needsTrustedAppSession: Boolean(
+              gmailResult.needsTrustedAppSession
+            )
+          },
+          persisted: false,
+          conversationId: conversation.conversationId,
+          identity: publicIdentity(identity)
+        });
+    } catch (error) {
+      console.error(
+        "Natürliche Gmail-Aktion:",
+        error?.code || error?.name || "Fehler"
+      );
+      return res.status(500).json({
+        error: "Der Gmail-Posteingang konnte gerade nicht geprüft werden."
       });
     }
   }
@@ -5410,6 +6119,94 @@ app.post(
   }
 );
 
+app.post(
+  "/realtime/web-search",
+  async (req, res) => {
+    try {
+      const authorization =
+        String(
+          req.headers.authorization ||
+          ""
+        );
+      const token =
+        authorization.startsWith("Bearer ")
+          ? authorization.slice(7).trim()
+          : "";
+      const tokenSession =
+        validateRealtimeMemoryToken(token);
+
+      if (!tokenSession) {
+        return res.status(401).json({
+          error:
+            "Live-Websuche nicht autorisiert."
+        });
+      }
+
+      const query =
+        String(
+          req.body?.query ||
+          ""
+        ).trim();
+      if (!query || query.length > 1200) {
+        return res.status(400).json({
+          error:
+            "Die Live-Suchfrage ist ungültig."
+        });
+      }
+
+      const result =
+        await performLiveWebSearch({
+          query,
+          searchContextSize:
+            "medium",
+          maxOutputTokens:
+            500,
+          instructions: `
+Du beantwortest eine aktuelle Alltagsfrage auf Deutsch.
+Aktuelles Datum und Uhrzeit in Europe/Berlin: ${getBerlinCurrentDateTimeText()}.
+Nutze die Live-Websuche und nenne nur Informationen, die sich aus passenden,
+möglichst offiziellen oder primären Quellen zuverlässig ergeben. Das gilt
+besonders für Öffnungszeiten, konkrete Filialen, Orte, Verkehr, Fahrpläne,
+Veranstaltungen, Nachrichten und andere veränderliche Fakten. Ordne bei
+Ortsfragen die konkrete Filiale oder Adresse sorgfältig zu. Wenn die Frage
+nicht eindeutig auflösbar ist, benenne die Unklarheit statt zu raten.
+Antworte kompakt und gib keine rohen URLs im Antworttext aus.
+`
+        });
+
+      return res
+        .set({
+          "Cache-Control":
+            "no-store, max-age=0",
+          Pragma:
+            "no-cache"
+        })
+        .json({
+          answer:
+            result.answer,
+          sources:
+            result.sources,
+          liveSearch:
+            true,
+          additionalProviderRequired:
+            false
+        });
+    } catch (error) {
+      console.error(
+        "Realtime-Live-Websuche:",
+        error?.code ||
+        error?.name ||
+        error?.message ||
+        "Fehler"
+      );
+      return res.status(502).json({
+        error:
+          "Die aktuelle Information konnte gerade nicht zuverlässig abgerufen werden."
+      });
+    }
+  }
+);
+
 /*
   ==========================================================
   REALTIME → BESTÄTIGTES GEDÄCHTNIS / RAM-KONTEXT
@@ -5527,7 +6324,8 @@ app.post(
             conversation.conversationId,
           identity:
             publicIdentity(identity),
-          calendar: null
+          calendar: null,
+          weather: null
         });
       }
 
@@ -5627,6 +6425,27 @@ app.post(
         );
       }
 
+      const weatherResult =
+        calendarResult?.handled
+          ? null
+          : await handleLiveWeatherRequest(
+              transcript,
+              identity,
+              conversation.conversationId
+            );
+
+      if (
+        weatherResult?.handled &&
+        weatherResult?.answer
+      ) {
+        appendConversationMessage(
+          conversation.conversationId,
+          identity,
+          "assistant",
+          weatherResult.answer
+        );
+      }
+
       console.log(
         "✅ Realtime-Nachricht verarbeitet:",
         {
@@ -5640,6 +6459,13 @@ app.post(
             ),
           calendarSuccess:
             calendarResult?.success ??
+            null,
+          weatherHandled:
+            Boolean(
+              weatherResult?.handled
+            ),
+          weatherSuccess:
+            weatherResult?.success ??
             null
         }
       );
@@ -5663,7 +6489,10 @@ app.post(
           publicIdentity(identity),
 
         calendar:
-          calendarResult
+          calendarResult,
+
+        weather:
+          weatherResult
       });
 
     } catch (error) {
@@ -5993,6 +6822,26 @@ gespeichert werden soll.
 Biete nicht an, eine normale Aussage dauerhaft zu
 speichern.
 
+WICHTIG ZU AKTUELLEN ALLTAGSINFORMATIONEN:
+
+Wenn ${identity.displayName} nach veränderlichen Informationen fragt, zum
+Beispiel Öffnungszeiten einer konkreten Filiale, aktuellem Wetter, Verkehr,
+Fahrplänen, Veranstaltungen oder Nachrichten, verwende search_live_web.
+${identity.displayName} muss dafür weder „Websuche“ noch den Namen eines
+Dienstes sagen. Rate solche Angaben niemals aus Modellwissen.
+
+WICHTIG ZU GMAIL:
+
+Wenn ${identity.displayName} natürlich fragt, ob eine neue, ungelesene oder
+wichtige Mail angekommen ist, oder nach Mails eines Absenders fragt, verwende
+search_gmail. ${identity.displayName} muss weder „Gmail“ noch einen technischen
+Befehl nennen. Die Frage selbst ist der ausdrückliche Nur-Lese-Auftrag; verlange
+keine zusätzliche Inhaltsbestätigung. Das Tool liest nur Metadaten des
+ownergebundenen Posteingangs (Absender, Betreff, Datum und Gmail-Markierungen),
+niemals im Hintergrund und niemals aus der anderen Holo-Instanz. Behaupte keinen
+Treffer, den das Tool nicht geliefert hat. Zum Senden oder Beantworten von Mails
+ist dieses Tool nicht berechtigt.
+
 WICHTIG ZU SAMSUNG NOTES:
 
 Samsung Notes ist eine lokale Android-Funktion und braucht keine
@@ -6004,7 +6853,8 @@ Notiz …“, „Schreib bitte Zucker in Notes/Noten“ oder sinngleich
 klar etwas in Samsung Notes übernehmen möchte, verwende
 create_personal_note mit genau dem von ${identity.displayName} genannten Inhalt.
 Eine besondere Schreibweise wie „Notiz:“ oder „Notes:“ ist
-nicht erforderlich. Die Android-App öffnet einen sichtbaren
+nicht erforderlich. Die Android-App speichert die Notiz sofort im persönlichen
+Notizbuch von ${instanceName} und öffnet zusätzlich einen sichtbaren
 Samsung-Notes-Entwurf mit diesem Text.
 
 Wenn ${identity.displayName} eigene Notizen sehen oder nach einer Notiz suchen möchte,
@@ -6016,11 +6866,12 @@ Für Änderungen und Löschungen verwende update_personal_note
 beziehungsweise delete_personal_note. Auch dann wird Samsung
 Notes nur geöffnet; ${identity.displayName} wählt und bestätigt die Änderung dort selbst.
 
-Eine erfolgreiche Tool-Rückmeldung bedeutet ausschließlich, dass
-Samsung Notes mit dem vorbereiteten Text geöffnet wurde. Sie beweist
-NICHT, dass die Notiz gespeichert wurde. Wiederhole das lokale Ergebnis
-kurz, ohne eine weitere Bestätigung in ${instanceName} zu verlangen. Behaupte
-niemals, eine Samsung-Notiz gespeichert, geändert oder gelöscht zu haben.
+Eine erfolgreiche Tool-Rückmeldung darf bestätigen, dass die Notiz im
+persönlichen Notizbuch von ${instanceName} gespeichert wurde. Die zusätzliche
+Samsung-Notes-Übergabe beweist dagegen NICHT, dass Samsung Notes den Entwurf
+gespeichert hat. Wiederhole das lokale Ergebnis kurz, ohne eine weitere
+Bestätigung in ${instanceName} zu verlangen. Behaupte niemals, Samsung Notes
+habe eine Notiz gespeichert, geändert oder gelöscht.
 
 Wenn eine Nutzernachricht mit [LOKALES_NOTIZERGEBNIS] beginnt, hat die
 Sol-Holo-App die Samsung-Notes-Übergabe bereits ausgeführt. Rufe dann
@@ -6059,6 +6910,17 @@ Wenn eine Nutzernachricht mit [LOKALES_KALENDERERGEBNIS] beginnt, stammt
 der nachfolgende Satz aus der bereits ausgeführten Kalenderprüfung. Sprich
 diesen Satz kurz und unverändert aus. Fordere keine weitere Backend-
 Freigabe an und erfinde keinen anderen Kalenderstatus.
+
+WICHTIG ZUM LIVE-WETTER:
+
+Aktuelle Wetterdaten werden vom Sol-Holo-Backend über die vorhandene
+OpenAI-Verbindung mit Live-Websuche geprüft. Erfinde bei Wetterfragen keine
+aktuellen Messwerte aus deinem Modellwissen.
+
+Wenn eine Nutzernachricht mit [LOKALES_WETTERERGEBNIS] beginnt, stammt der
+nachfolgende Satz aus der bereits ausgeführten Live-Wetterprüfung. Sprich
+diesen Satz kurz und unverändert aus. Suche nicht erneut und verändere keine
+Temperaturen, Niederschlagsangaben oder Ortsnamen.
 
 WICHTIG ZU GOOGLE MAPS:
 
@@ -6166,10 +7028,74 @@ der anderen Holo-Instanz. Pam und Steffi besitzen kein gemeinsames Profil.
               "function",
 
             name:
+              "search_gmail",
+
+            description:
+              `Prüft auf ${identity.displayName}s ausdrückliche natürliche Frage den bereits verbundenen ownergebundenen Gmail-Posteingang. Nur lesend; liest für die Ersteinschätzung nur Absender, Betreff, Datum und Gmail-Markierungen. Automatisch verwenden bei Fragen wie „Habe ich eine wichtige Mail bekommen?“ oder „Ist eine neue Mail von Anna da?“.`,
+
+            parameters: {
+              type:
+                "object",
+
+              properties: {
+                request: {
+                  type:
+                    "string",
+
+                  description:
+                    "Die vollständige natürliche Mail-Frage einschließlich Absender oder gewünschtem Zeitraum, soweit genannt."
+                }
+              },
+
+              required: [
+                "request"
+              ],
+
+              additionalProperties:
+                false
+            }
+          },
+          {
+            type:
+              "function",
+
+            name:
+              "search_live_web",
+
+            description:
+              "Prüft aktuelle, veränderliche Alltagsinformationen mit der vorhandenen OpenAI-Live-Websuche. Verwende das Tool automatisch für Öffnungszeiten, konkrete Filialen, aktuelles Wetter, Verkehr, Fahrpläne, Veranstaltungen, Nachrichten und vergleichbare Live-Fakten.",
+
+            parameters: {
+              type:
+                "object",
+
+              properties: {
+                query: {
+                  type:
+                    "string",
+
+                  description:
+                    "Die vollständige aktuelle Frage einschließlich Ort, Datum und Filiale, soweit genannt."
+                }
+              },
+
+              required: [
+                "query"
+              ],
+
+              additionalProperties:
+                false
+            }
+          },
+          {
+            type:
+              "function",
+
+            name:
               "create_personal_note",
 
             description:
-              `Öffnet einen Samsung-Notes-Entwurf sichtbar mit dem ausdrücklich von ${identity.displayName} diktierten oder geschriebenen Notiztext. Natürliche Sätze wie ‚Schreib bitte Zucker in Notes‘ reichen aus; ein Präfix wie ‚Notes:‘ ist nicht nötig. Die Tool-Rückmeldung bestätigt nur die Textübergabe und das Öffnen, niemals das Speichern.`,
+              `Speichert den ausdrücklich von ${identity.displayName} diktierten oder geschriebenen Notiztext sofort im persönlichen Notizbuch von ${instanceName} und öffnet zusätzlich einen Samsung-Notes-Entwurf. Natürliche Sätze wie ‚Schreib bitte Zucker in Notes‘ reichen aus; ein Präfix wie ‚Notes:‘ ist nicht nötig. Nur die lokale Speicherung darf bestätigt werden; Samsung Notes selbst braucht dort weiterhin Speichern.`,
 
             parameters: {
               type:
@@ -7395,6 +8321,54 @@ app.post("/sol", async (req, res) => {
       });
     }
 
+    const gmailResult =
+      hasVisualMedia
+        ? null
+        : await handleGmailReadRequest(
+            message,
+            identity,
+            hasTrustedGooglePersonalReadGate(req)
+          );
+
+    if (gmailResult?.handled) {
+      await saveFulltimeAssistant(gmailResult.answer);
+
+      appendConversationMessage(
+        conversation.conversationId,
+        identity,
+        "user",
+        message
+      );
+      appendConversationMessage(
+        conversation.conversationId,
+        identity,
+        "assistant",
+        gmailResult.answer
+      );
+
+      return res
+        .set({
+          "Cache-Control": "no-store, max-age=0",
+          Pragma: "no-cache"
+        })
+        .json({
+          answer: gmailResult.answer,
+          gmail: {
+            handled: true,
+            success: Boolean(gmailResult.success),
+            readOnly: true,
+            resultCount: Number(gmailResult.resultCount || 0),
+            needsGoogleAuth: Boolean(gmailResult.needsGoogleAuth),
+            needsTrustedAppSession: Boolean(
+              gmailResult.needsTrustedAppSession
+            )
+          },
+          persisted: false,
+          conversationId: conversation.conversationId,
+          identity: publicIdentity(identity)
+        });
+    }
+
     const calendarResult =
       hasVisualMedia
         ? null
@@ -7472,6 +8446,85 @@ app.post("/sol", async (req, res) => {
           conversation.conversationId,
         identity:
           publicIdentity(identity)
+      });
+    }
+
+    const weatherResult =
+      hasVisualMedia
+        ? null
+        : await handleLiveWeatherRequest(
+            message,
+            identity,
+            conversation.conversationId
+          );
+
+    if (weatherResult?.handled) {
+      await saveFulltimeAssistant(
+        weatherResult.answer
+      );
+
+      appendConversationMessage(
+        conversation.conversationId,
+        identity,
+        "user",
+        message
+      );
+      appendConversationMessage(
+        conversation.conversationId,
+        identity,
+        "assistant",
+        weatherResult.answer
+      );
+
+      return res.json({
+        answer: weatherResult.answer,
+        weather: {
+          handled: true,
+          success: Boolean(weatherResult.success),
+          needsPlace: Boolean(weatherResult.needsPlace),
+          sources: weatherResult.sources || []
+        },
+        persisted: false,
+        conversationId: conversation.conversationId,
+        identity: publicIdentity(identity)
+      });
+    }
+
+    const liveWebResult =
+      hasVisualMedia
+        ? null
+        : await handleLiveEverydayWebRequest(
+            message,
+            identity
+          );
+
+    if (liveWebResult?.handled) {
+      await saveFulltimeAssistant(liveWebResult.answer);
+
+      appendConversationMessage(
+        conversation.conversationId,
+        identity,
+        "user",
+        message
+      );
+      appendConversationMessage(
+        conversation.conversationId,
+        identity,
+        "assistant",
+        liveWebResult.answer
+      );
+
+      return res.json({
+        answer: liveWebResult.answer,
+        web: {
+          handled: true,
+          success: Boolean(liveWebResult.success),
+          liveSearch: Boolean(liveWebResult.success),
+          sources: liveWebResult.sources || []
+        },
+        persisted: false,
+        conversationId: conversation.conversationId,
+        identity: publicIdentity(identity)
       });
     }
 
@@ -7797,18 +8850,19 @@ einem Ereignis, Ort oder Namen vorhanden ist, hat diese
 Aussage von ${identity.displayName} Vorrang vor früheren Antworten von Sol
 und vor allgemeinem Weltwissen.
 
-WICHTIG ZU SAMSUNG NOTES:
+WICHTIG ZU NOTIZEN UND SAMSUNG NOTES:
 
-${identity.displayName} möchte Notizen ausschließlich in Samsung Notes anlegen.
-Samsung Notes ist lokal in der Android-App angebunden und braucht keine
-Freischaltung durch das Sol-Holo-Backend. Behaupte niemals das Gegenteil.
-${instanceName} kann einen sichtbaren Samsung-Notes-Entwurf mit dem
-genannten Text öffnen. ${instanceName} zeigt davor keine zusätzliche
+${identity.displayName} kann Notizen auf ausdrücklichen Zuruf sofort im
+persönlichen Notizbuch von ${instanceName} speichern. Samsung Notes ist lokal
+in der Android-App als zusätzliche sichtbare Entwurfsübergabe angebunden und
+braucht keine Freischaltung durch das Sol-Holo-Backend. Behaupte niemals das
+Gegenteil. ${instanceName} zeigt vor der lokalen Speicherung keine zusätzliche
 Bestätigungsfrage.
 
-Behaupte niemals, eine Notiz in Samsung Notes bereits gespeichert,
-geändert oder gelöscht zu haben. „Samsung Notes wurde geöffnet“ ist
-keine Bestätigung, dass der Inhalt gespeichert wurde.
+Behaupte niemals, Samsung Notes habe eine Notiz bereits gespeichert,
+geändert oder gelöscht. „Samsung Notes wurde geöffnet“ ist keine Bestätigung,
+dass der Entwurf dort gespeichert wurde. Eine vom lokalen Tool bestätigte
+Speicherung im Notizbuch von ${instanceName} darfst du dagegen klar benennen.
 
 Wenn eine Notizanfrage in dieser normalen Server-Antwort ankommt,
 wurde sie von der lokalen App nicht eindeutig ausgeführt. Verstehe
@@ -7831,6 +8885,21 @@ wird dieser bereits vor dieser normalen Antwort
 vom Sol-Holo-Backend verarbeitet.
 
 Du darfst daher niemals einen Kalender-Erfolg erfinden.
+
+WICHTIG ZU GMAIL:
+
+Persönliche Gmail-Fragen werden vor dieser normalen Antwort über den
+ownergebundenen Gmail-Nur-Lese-Weg verarbeitet. Behaupte niemals, eine Mail
+gefunden, gelesen, gesendet oder beantwortet zu haben, wenn kein bestätigtes
+Gmail-Ergebnis vorliegt. Eine natürliche Frage ist ein Leseauftrag, aber kein
+Auftrag zum Senden oder Antworten.
+
+WICHTIG ZU AKTUELLEN INFORMATIONEN:
+
+Aktuelle Öffnungszeiten, konkrete Filialdaten, Wetter, Verkehr, Fahrpläne,
+Veranstaltungen und Nachrichten werden vor dieser normalen Antwort live über
+die vorhandene OpenAI-Verbindung geprüft. Rate keine veränderlichen Fakten aus
+Modellwissen und erfinde keine Live-Prüfung.
 
 WICHTIG ZU GOOGLE MAPS:
 
