@@ -18,6 +18,18 @@ final class WakeVoiceTemplateSelector {
     private WakeVoiceTemplateSelector() {}
 
     static float[] extract(short[] captured, int count) {
+        return extract(captured, count, false);
+    }
+
+    static float[] extractLatest(short[] captured, int count) {
+        return extract(captured, count, true);
+    }
+
+    private static float[] extract(
+        short[] captured,
+        int count,
+        boolean preferLatestClause
+    ) {
         if (captured == null || count <= 0) {
             throw new IllegalArgumentException("Keine Aufnahme für den Kurz-Weckruf vorhanden");
         }
@@ -55,6 +67,8 @@ final class WakeVoiceTemplateSelector {
         int lastActive = -1;
         int activeFrames = 0;
         int gapFrames = 0;
+        int selectedStart = -1;
+        int selectedLastActive = -1;
 
         for (int frame = 0; frame < frameCount; frame++) {
             boolean active = frameRms[frame] >= activityThreshold;
@@ -74,12 +88,28 @@ final class WakeVoiceTemplateSelector {
                 && gapFrames > MAX_SPEECH_GAP_FRAMES;
             boolean reachedMaximum = start >= 0
                 && frame - start + 1 >= MAX_REGION_FRAMES;
-            if (!endedByPause && !reachedMaximum) {
+            if (
+                !endedByPause
+                    && (!reachedMaximum || preferLatestClause)
+            ) {
                 continue;
             }
 
             if (activeFrames >= MIN_ACTIVE_FRAMES) {
-                return copyAsFloat(captured, safeCount, start, lastActive);
+                int cappedLastActive = Math.min(
+                    lastActive,
+                    start + MAX_REGION_FRAMES - 1
+                );
+                if (!preferLatestClause) {
+                    return copyAsFloat(
+                        captured,
+                        safeCount,
+                        start,
+                        cappedLastActive
+                    );
+                }
+                selectedStart = start;
+                selectedLastActive = cappedLastActive;
             }
 
             start = -1;
@@ -89,7 +119,20 @@ final class WakeVoiceTemplateSelector {
         }
 
         if (start >= 0 && activeFrames >= MIN_ACTIVE_FRAMES) {
-            return copyAsFloat(captured, safeCount, start, lastActive);
+            selectedStart = start;
+            selectedLastActive = Math.min(
+                lastActive,
+                start + MAX_REGION_FRAMES - 1
+            );
+        }
+
+        if (selectedStart >= 0) {
+            return copyAsFloat(
+                captured,
+                safeCount,
+                selectedStart,
+                selectedLastActive
+            );
         }
 
         throw new IllegalArgumentException("Hey Pam war zu kurz oder zu leise");

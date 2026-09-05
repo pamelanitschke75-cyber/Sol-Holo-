@@ -35,8 +35,10 @@ for (const fileName of [
   "HealthConnectPlugin.java",
   "HealthPrivacyActivity.java",
   "HeyHoSolPlugin.java",
+  "HeyPamRestartReceiver.java",
   "HeyHoSolService.java",
   "WakeCaptureEndpointer.java",
+  "WakeRecognitionLifecyclePolicy.java",
   "WakePhraseMatcher.java",
   "PhoneContactsPlugin.java",
   "SolAudioRoutePlugin.java",
@@ -70,8 +72,8 @@ if (!mainActivity.includes("registerPlugin(WhatsAppDrivingModePlugin.class)")) {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(WhatsAppDrivingModePlugin.class);
-        super.onCreate(savedInstanceState);
         applyWakeScreenBehavior(getIntent());
+        super.onCreate(savedInstanceState);
     }
 
     @Override
@@ -92,12 +94,16 @@ if (!mainActivity.includes("registerPlugin(WhatsAppDrivingModePlugin.class)")) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true);
             setTurnScreenOn(true);
+            getWindow().addFlags(
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+            );
             return;
         }
 
         getWindow().addFlags(
             WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
                 | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+                | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
         );
     }
 }`
@@ -154,13 +160,13 @@ if (!mainActivity.includes("registerPlugin(HealthConnectPlugin.class)")) {
 }
 
 if (!mainActivity.includes("handleSharedNoteIntent(this, getIntent())")) {
-  const createMarker = "        applyWakeScreenBehavior(getIntent());\n    }";
+  const createMarker = "        super.onCreate(savedInstanceState);\n    }";
   if (!mainActivity.includes(createMarker)) {
     throw new Error("onCreate-Markierung für Samsung Notes nicht gefunden.");
   }
   mainActivity = mainActivity.replace(
     createMarker,
-    "        applyWakeScreenBehavior(getIntent());\n" +
+    "        super.onCreate(savedInstanceState);\n" +
       "        PhoneContactsPlugin.handleSharedNoteIntent(this, getIntent());\n    }"
   );
 }
@@ -217,10 +223,12 @@ for (const permission of [
   '<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />',
   '<uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />',
   '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
+  '<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />',
   '<uses-permission android:name="android.permission.READ_CONTACTS" />',
   '<uses-permission android:name="android.permission.READ_PHONE_STATE" />',
   '<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />',
   '<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />',
+  '<uses-permission android:name="android.permission.WAKE_LOCK" />',
   '<uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" />',
   '<uses-permission android:name="android.permission.health.READ_BASAL_BODY_TEMPERATURE" />',
   '<uses-permission android:name="android.permission.health.READ_BASAL_METABOLIC_RATE" />',
@@ -396,6 +404,31 @@ if (!manifest.includes(".HeyHoSolService")) {
   manifest = manifest.replace(
     applicationEnd,
     wakeService + "\n" + applicationEnd
+  );
+}
+
+if (!manifest.includes(".HeyPamRestartReceiver")) {
+  const applicationEnd = "    </application>";
+  if (!manifest.includes(applicationEnd)) {
+    throw new Error("Application-Ende für Hey-Pam-Wiederanlauf nicht gefunden.");
+  }
+
+  const restartReceiver = [
+    "        <receiver",
+    '            android:name=".HeyPamRestartReceiver"',
+    '            android:enabled="true"',
+    '            android:exported="true">',
+    "            <intent-filter>",
+    '                <action android:name="android.intent.action.BOOT_COMPLETED" />',
+    '                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />',
+    "            </intent-filter>",
+    "        </receiver>",
+    ""
+  ].join("\n");
+
+  manifest = manifest.replace(
+    applicationEnd,
+    restartReceiver + "\n" + applicationEnd
   );
 }
 

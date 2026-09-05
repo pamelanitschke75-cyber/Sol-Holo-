@@ -28,6 +28,8 @@ const examples = new Map([
   ["Schreibe mir bitte Milch in Samsung Notes", "Milch"],
   ["Schreib bitte in Notes Kaffee", "Kaffee"],
   ["Pack bitte Eier in meine Notizen", "Eier"],
+  ["Hey Pam, schreibe in Notes: Weckruf und Stimme funktionieren", "Weckruf und Stimme funktionieren"],
+  ["Hallo Sol, schreib bitte Wasser in Samsung Notes", "Wasser"],
   ["Schreib Zucker, Milch und Kaffee in Samsung Notes", "Zucker, Milch und Kaffee"],
   ["Schreib in meine Notizen bitte Termin um 9:30 Uhr", "Termin um 9:30 Uhr"],
   ["Was steht in meinen Notizen?", ""]
@@ -62,7 +64,8 @@ vm.runInContext(
 const insertionExamples = new Map([
   ["Setze Zucker unter Zitronensaft", ["Zucker", "Zitronensaft"]],
   ["Füge Zucker unter Zitronensaft hinzu", ["Zucker", "Zitronensaft"]],
-  ["Sol, bitte setze Zucker unter Zitronensaft in Samsung Notes", ["Zucker", "Zitronensaft"]]
+  ["Sol, bitte setze Zucker unter Zitronensaft in Samsung Notes", ["Zucker", "Zitronensaft"]],
+  ["Hey Pam, setze Zucker unter Zitronensaft in Samsung Notes", ["Zucker", "Zitronensaft"]]
 ]);
 
 for (const [spokenText, [addition, anchor]] of insertionExamples) {

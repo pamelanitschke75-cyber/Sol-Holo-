@@ -45,6 +45,10 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         "owner_wake_campplus_embedding";
     private static final String WAKE_ERES2NET_TEMPLATE_KEY =
         "owner_wake_eres2net_embedding";
+    private static final String WAKE_CAMPPLUS_VARIATION_PREFIX =
+        "owner_wake_campplus_variation_";
+    private static final String WAKE_ERES2NET_VARIATION_PREFIX =
+        "owner_wake_eres2net_variation_";
     private static final String WAKE_TEMPLATE_PHRASE_KEY =
         "owner_wake_phrase";
     private static final String PROFILE_VERSION_KEY = "profile_version";
@@ -59,6 +63,8 @@ public class SolSpeakerIdentityPlugin extends Plugin {
     private static final int SPEECH_PADDING_FRAMES = 6;
     private static final float MIN_SPEECH_RMS = 0.008f;
     private static final int REQUIRED_SAMPLES = 3;
+    private static final int MAX_WAKE_VARIATIONS = 3;
+    private static final float WAKE_VARIATION_DUPLICATE_SCORE = 0.985f;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -95,6 +101,25 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         ProfileScore(float score, float minimum) {
             this.score = score;
             this.minimum = minimum;
+        }
+    }
+
+    private static final class PairedScore {
+        final boolean scored;
+        final boolean accepted;
+        final float campplus;
+        final float eres2net;
+
+        PairedScore(
+            boolean scored,
+            boolean accepted,
+            float campplus,
+            float eres2net
+        ) {
+            this.scored = scored;
+            this.accepted = accepted;
+            this.campplus = campplus;
+            this.eres2net = eres2net;
         }
     }
 
@@ -156,6 +181,8 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         out.put("requiredSamples", REQUIRED_SAMPLES);
         out.put("profileReady", count >= REQUIRED_SAMPLES);
         out.put("wakeVoiceReady", isWakeVoiceReady(getContext()));
+        out.put("wakeVoiceVariationCount", wakeVariationCount(getContext()));
+        out.put("wakeVoiceVariationCapacity", MAX_WAKE_VARIATIONS);
         out.put("ownerId", WakePhraseMatcher.OWNER_ID);
         out.put("wakeName", WakePhraseMatcher.OWNER_NAME);
         out.put("wakePhrase", WakePhraseMatcher.CANONICAL_PHRASE);
@@ -177,8 +204,8 @@ public class SolSpeakerIdentityPlugin extends Plugin {
             SpeakerVerificationPolicy.WAKE_DUAL_ERES2NET_THRESHOLD
         );
         out.put("eres2netFullTestThreshold", SpeakerVerificationPolicy.ERES2NET_OWNER_THRESHOLD);
-        out.put("wakePolicy", "owner-bound-personal-phrase-and-verified-voice");
-        out.put("profileComparison", "normalized-centroid");
+        out.put("wakePolicy", "owner-bound-personal-phrase-multi-template-voice");
+        out.put("profileComparison", "normalized-centroid-and-paired-samples");
         out.put("primarySpeakerModel", "eres2net");
         out.put("localOnly", true);
         out.put("rawAudioStored", false);
@@ -205,24 +232,59 @@ public class SolSpeakerIdentityPlugin extends Plugin {
 
     static boolean isWakeVoiceReady(Context context) {
         SharedPreferences preferences = profilePrefs(context);
-        String campplus = preferences.getString(
-            WAKE_CAMPPLUS_TEMPLATE_KEY,
-            ""
-        );
-        String eres2net = preferences.getString(
-            WAKE_ERES2NET_TEMPLATE_KEY,
-            ""
-        );
         String wakePhrase = preferences.getString(
             WAKE_TEMPLATE_PHRASE_KEY,
             ""
         );
-        return preferences.getInt(PROFILE_VERSION_KEY, 0) == PROFILE_VERSION
-            && campplus != null
+        if (
+            preferences.getInt(PROFILE_VERSION_KEY, 0) != PROFILE_VERSION
+                || !WakePhraseMatcher.CANONICAL_PHRASE.equals(wakePhrase)
+        ) {
+            return false;
+        }
+        if (
+            hasStoredEmbeddingPair(
+                preferences,
+                WAKE_CAMPPLUS_TEMPLATE_KEY,
+                WAKE_ERES2NET_TEMPLATE_KEY
+            )
+        ) {
+            return true;
+        }
+        return wakeVariationCount(preferences) > 0;
+    }
+
+    private static int wakeVariationCount(Context context) {
+        return wakeVariationCount(profilePrefs(context));
+    }
+
+    private static int wakeVariationCount(SharedPreferences preferences) {
+        int count = 0;
+        for (int slot = 1; slot <= MAX_WAKE_VARIATIONS; slot++) {
+            if (
+                hasStoredEmbeddingPair(
+                    preferences,
+                    WAKE_CAMPPLUS_VARIATION_PREFIX + slot,
+                    WAKE_ERES2NET_VARIATION_PREFIX + slot
+                )
+            ) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static boolean hasStoredEmbeddingPair(
+        SharedPreferences preferences,
+        String campplusKey,
+        String eres2netKey
+    ) {
+        String campplus = preferences.getString(campplusKey, "");
+        String eres2net = preferences.getString(eres2netKey, "");
+        return campplus != null
             && !campplus.isEmpty()
             && eres2net != null
-            && !eres2net.isEmpty()
-            && WakePhraseMatcher.CANONICAL_PHRASE.equals(wakePhrase);
+            && !eres2net.isEmpty();
     }
 
     @PluginMethod
@@ -301,19 +363,8 @@ public class SolSpeakerIdentityPlugin extends Plugin {
                     .putString(CAMPPLUS_SAMPLE_PREFIX + next, encode(embedding.campplus))
                     .putString(ERES2NET_SAMPLE_PREFIX + next, encode(embedding.eres2net));
                 if (capturedVoice.wakePhrase != null) {
-                    editor
-                        .putString(
-                            WAKE_CAMPPLUS_TEMPLATE_KEY,
-                            encode(capturedVoice.wakePhrase.campplus)
-                        )
-                        .putString(
-                            WAKE_ERES2NET_TEMPLATE_KEY,
-                            encode(capturedVoice.wakePhrase.eres2net)
-                        )
-                        .putString(
-                            WAKE_TEMPLATE_PHRASE_KEY,
-                            WakePhraseMatcher.CANONICAL_PHRASE
-                        );
+                    putPrimaryWakeTemplate(editor, capturedVoice.wakePhrase);
+                    putWakeVariation(editor, next, capturedVoice.wakePhrase);
                 }
                 editor.apply();
                 JSObject out = status();
@@ -349,20 +400,11 @@ public class SolSpeakerIdentityPlugin extends Plugin {
                     eres2net.score
                 );
                 if (accepted && capturedVoice.wakePhrase != null) {
-                    prefs().edit()
-                        .putString(
-                            WAKE_CAMPPLUS_TEMPLATE_KEY,
-                            encode(capturedVoice.wakePhrase.campplus)
-                        )
-                        .putString(
-                            WAKE_ERES2NET_TEMPLATE_KEY,
-                            encode(capturedVoice.wakePhrase.eres2net)
-                        )
-                        .putString(
-                            WAKE_TEMPLATE_PHRASE_KEY,
-                            WakePhraseMatcher.CANONICAL_PHRASE
-                        )
-                        .apply();
+                    rememberVerifiedWakeVariation(
+                        getContext(),
+                        capturedVoice.wakePhrase,
+                        true
+                    );
                 }
                 JSObject out = status();
                 out.put("campplusScore", campplus.score);
@@ -397,7 +439,11 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         if (minBuffer <= 0) throw new IllegalStateException("Audio-Puffer nicht verfügbar");
 
         AudioRecord recorder = new AudioRecord(
-            MediaRecorder.AudioSource.VOICE_RECOGNITION,
+            // Enrollment, the explicit security test and the background
+            // wake service must use the same unmodified source. Samsung's
+            // VOICE_RECOGNITION processing can otherwise create a template
+            // that does not match the later MIC wake capture.
+            MediaRecorder.AudioSource.MIC,
             SAMPLE_RATE,
             AudioFormat.CHANNEL_IN_MONO,
             AudioFormat.ENCODING_PCM_16BIT,
@@ -464,10 +510,11 @@ public class SolSpeakerIdentityPlugin extends Plugin {
             throw new IllegalStateException("Stimmprofil ist nicht vollständig eingerichtet");
         }
 
-        // Use exactly the same short-clause selector that created the saved
-        // owner template. Different segmentation here can turn one identical
-        // "Hey Pam" into two incompatible speaker embeddings.
-        float[] voicedSamples = WakeVoiceTemplateSelector.extract(
+        // The live ring window can still contain an older spoken fragment
+        // before the detected phrase. Enrollment deliberately stores the
+        // leading "Hey Pam" clause; the live path deliberately selects the
+        // latest complete clause from its bounded tail window.
+        float[] voicedSamples = WakeVoiceTemplateSelector.extractLatest(
             captured,
             capturedCount
         );
@@ -503,27 +550,19 @@ public class SolSpeakerIdentityPlugin extends Plugin {
                 voicedSamples
             );
             boolean templateAvailable = isWakeVoiceReady(context);
-            boolean templateAccepted = false;
-            boolean templateScored = false;
-            float templateCampplusScore = Float.NaN;
-            float templateEres2netScore = Float.NaN;
+            PairedScore templateScore = new PairedScore(
+                false,
+                false,
+                Float.NaN,
+                Float.NaN
+            );
 
             if (templateAvailable) {
                 try {
-                    templateCampplusScore = scoreAgainstWakeTemplate(
+                    templateScore = scoreAgainstWakeTemplates(
                         context,
-                        WAKE_CAMPPLUS_TEMPLATE_KEY,
-                        campplusEmbedding
-                    );
-                    templateEres2netScore = scoreAgainstWakeTemplate(
-                        context,
-                        WAKE_ERES2NET_TEMPLATE_KEY,
+                        campplusEmbedding,
                         eres2netEmbedding
-                    );
-                    templateScored = true;
-                    templateAccepted = SpeakerVerificationPolicy.isWakeTemplateOwner(
-                        templateCampplusScore,
-                        templateEres2netScore
                     );
                 } catch (RuntimeException ignored) {
                     // A missing or damaged legacy wake template must not make
@@ -531,53 +570,39 @@ public class SolSpeakerIdentityPlugin extends Plugin {
                 }
             }
 
-            ProfileScore profileCampplus = scoreAgainstProfile(
+            PairedScore profileScore = scoreWakeAgainstProfile(
                 context,
-                CAMPPLUS_SAMPLE_PREFIX,
-                campplusEmbedding
-            );
-            ProfileScore profileEres2net = scoreAgainstProfile(
-                context,
-                ERES2NET_SAMPLE_PREFIX,
+                campplusEmbedding,
                 eres2netEmbedding
             );
-            boolean profileAccepted = SpeakerVerificationPolicy.isWakeOwner(
-                profileCampplus.score,
-                profileEres2net.score
-            );
+            boolean templateAccepted = templateScore.accepted;
+            boolean profileAccepted = profileScore.accepted;
             boolean accepted = templateAccepted || profileAccepted;
 
             // Profiles created before wake templates existed keep their three
-            // verified samples. After one owner-approved personal wake phrase,
-            // the short template is created (or repaired) locally and privately.
-            if (profileAccepted && !templateAccepted) {
-                profilePrefs(context).edit()
-                    .putString(
-                        WAKE_CAMPPLUS_TEMPLATE_KEY,
-                        encode(campplusEmbedding)
-                    )
-                    .putString(
-                        WAKE_ERES2NET_TEMPLATE_KEY,
-                        encode(eres2netEmbedding)
-                    )
-                    .putString(
-                        WAKE_TEMPLATE_PHRASE_KEY,
-                        WakePhraseMatcher.CANONICAL_PHRASE
-                    )
-                    .apply();
+            // verified samples. Every accepted personal wake phrase can fill
+            // one empty variation slot, but existing trusted variants are
+            // never overwritten automatically. This widens Pam's normal voice
+            // range without allowing unbounded template drift.
+            if (accepted) {
+                rememberVerifiedWakeVariation(
+                    context,
+                    new DualEmbedding(campplusEmbedding, eres2netEmbedding),
+                    profileAccepted && !templateAccepted
+                );
             }
 
             // "templateUsed" tells the UI whether a usable personal template
             // was actually compared. It must not be confused with acceptance;
             // otherwise every ordinary rejection falsely asks Pam to repeat
             // the already completed security test.
-            boolean templateUsed = templateScored;
-            float campplusScore = templateScored
-                ? templateCampplusScore
-                : profileCampplus.score;
-            float eres2netScore = templateScored
-                ? templateEres2netScore
-                : profileEres2net.score;
+            boolean templateUsed = templateScore.scored;
+            float campplusScore = templateScore.scored
+                ? templateScore.campplus
+                : profileScore.campplus;
+            float eres2netScore = templateScore.scored
+                ? templateScore.eres2net
+                : profileScore.eres2net;
 
             return new WakeVerification(
                 accepted,
@@ -741,6 +766,196 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         return eres2netExtractor;
     }
 
+    private static PairedScore scoreWakeAgainstProfile(
+        Context context,
+        float[] campplusCurrent,
+        float[] eres2netCurrent
+    ) {
+        SharedPreferences preferences = profilePrefs(context);
+        if (preferences.getInt(PROFILE_VERSION_KEY, 0) != PROFILE_VERSION) {
+            throw new IllegalStateException("Stimmprofil ist nicht aktuell");
+        }
+
+        float[][] campplusSaved = new float[REQUIRED_SAMPLES][];
+        float[][] eres2netSaved = new float[REQUIRED_SAMPLES][];
+        PairedScore best = new PairedScore(
+            false,
+            false,
+            Float.NaN,
+            Float.NaN
+        );
+
+        for (int index = 0; index < REQUIRED_SAMPLES; index++) {
+            String campplusEncoded = preferences.getString(
+                CAMPPLUS_SAMPLE_PREFIX + (index + 1),
+                ""
+            );
+            String eres2netEncoded = preferences.getString(
+                ERES2NET_SAMPLE_PREFIX + (index + 1),
+                ""
+            );
+            if (
+                campplusEncoded == null
+                    || campplusEncoded.isEmpty()
+                    || eres2netEncoded == null
+                    || eres2netEncoded.isEmpty()
+            ) {
+                throw new IllegalStateException("Stimmprofil ist unvollständig");
+            }
+            campplusSaved[index] = decode(campplusEncoded);
+            eres2netSaved[index] = decode(eres2netEncoded);
+            if (
+                campplusSaved[index].length != campplusCurrent.length
+                    || eres2netSaved[index].length != eres2netCurrent.length
+            ) {
+                throw new IllegalStateException("Stimmprofil ist beschädigt");
+            }
+            best = selectBetterPairedScore(
+                best,
+                SpeakerVerificationPolicy.cosine(
+                    campplusSaved[index],
+                    campplusCurrent
+                ),
+                SpeakerVerificationPolicy.cosine(
+                    eres2netSaved[index],
+                    eres2netCurrent
+                ),
+                false
+            );
+        }
+
+        best = selectBetterPairedScore(
+            best,
+            SpeakerVerificationPolicy.cosine(
+                SpeakerVerificationPolicy.normalizedCentroid(campplusSaved),
+                campplusCurrent
+            ),
+            SpeakerVerificationPolicy.cosine(
+                SpeakerVerificationPolicy.normalizedCentroid(eres2netSaved),
+                eres2netCurrent
+            ),
+            false
+        );
+        return best;
+    }
+
+    private static PairedScore scoreAgainstWakeTemplates(
+        Context context,
+        float[] campplusCurrent,
+        float[] eres2netCurrent
+    ) {
+        SharedPreferences preferences = profilePrefs(context);
+        if (preferences.getInt(PROFILE_VERSION_KEY, 0) != PROFILE_VERSION) {
+            throw new IllegalStateException("Stimmprofil ist nicht aktuell");
+        }
+        PairedScore best = new PairedScore(
+            false,
+            false,
+            Float.NaN,
+            Float.NaN
+        );
+        best = scoreStoredWakePair(
+            preferences,
+            WAKE_CAMPPLUS_TEMPLATE_KEY,
+            WAKE_ERES2NET_TEMPLATE_KEY,
+            campplusCurrent,
+            eres2netCurrent,
+            best
+        );
+        for (int slot = 1; slot <= MAX_WAKE_VARIATIONS; slot++) {
+            best = scoreStoredWakePair(
+                preferences,
+                WAKE_CAMPPLUS_VARIATION_PREFIX + slot,
+                WAKE_ERES2NET_VARIATION_PREFIX + slot,
+                campplusCurrent,
+                eres2netCurrent,
+                best
+            );
+        }
+        if (!best.scored) {
+            throw new IllegalStateException("Kurz-Weckruf ist noch nicht kalibriert");
+        }
+        return best;
+    }
+
+    private static PairedScore scoreStoredWakePair(
+        SharedPreferences preferences,
+        String campplusKey,
+        String eres2netKey,
+        float[] campplusCurrent,
+        float[] eres2netCurrent,
+        PairedScore best
+    ) {
+        if (!hasStoredEmbeddingPair(preferences, campplusKey, eres2netKey)) {
+            return best;
+        }
+        try {
+            float[] campplusSaved = decode(
+                preferences.getString(campplusKey, "")
+            );
+            float[] eres2netSaved = decode(
+                preferences.getString(eres2netKey, "")
+            );
+            if (
+                campplusSaved.length != campplusCurrent.length
+                    || eres2netSaved.length != eres2netCurrent.length
+            ) {
+                return best;
+            }
+            return selectBetterPairedScore(
+                best,
+                SpeakerVerificationPolicy.cosine(
+                    campplusSaved,
+                    campplusCurrent
+                ),
+                SpeakerVerificationPolicy.cosine(
+                    eres2netSaved,
+                    eres2netCurrent
+                ),
+                true
+            );
+        } catch (RuntimeException ignored) {
+            return best;
+        }
+    }
+
+    private static PairedScore selectBetterPairedScore(
+        PairedScore current,
+        float campplusScore,
+        float eres2netScore,
+        boolean shortTemplate
+    ) {
+        boolean accepted = shortTemplate
+            ? SpeakerVerificationPolicy.isWakeTemplateOwner(
+                campplusScore,
+                eres2netScore
+            )
+            : SpeakerVerificationPolicy.isWakeOwner(
+                campplusScore,
+                eres2netScore
+            );
+        PairedScore candidate = new PairedScore(
+            true,
+            accepted,
+            campplusScore,
+            eres2netScore
+        );
+        if (!current.scored || (candidate.accepted && !current.accepted)) {
+            return candidate;
+        }
+        if (current.accepted && !candidate.accepted) {
+            return current;
+        }
+        return pairedScoreQuality(candidate) > pairedScoreQuality(current)
+            ? candidate
+            : current;
+    }
+
+    private static float pairedScoreQuality(PairedScore score) {
+        return Math.min(score.campplus, score.eres2net)
+            + 0.25f * (score.campplus + score.eres2net);
+    }
+
     private static ProfileScore scoreAgainstProfile(
         Context context,
         String prefix,
@@ -774,24 +989,128 @@ public class SolSpeakerIdentityPlugin extends Plugin {
         );
     }
 
-    private static float scoreAgainstWakeTemplate(
+    private static void rememberVerifiedWakeVariation(
         Context context,
-        String key,
-        float[] current
+        DualEmbedding embedding,
+        boolean updatePrimary
     ) {
         SharedPreferences preferences = profilePrefs(context);
         if (preferences.getInt(PROFILE_VERSION_KEY, 0) != PROFILE_VERSION) {
-            throw new IllegalStateException("Stimmprofil ist nicht aktuell");
+            return;
         }
-        String encoded = preferences.getString(key, "");
-        if (encoded == null || encoded.isEmpty()) {
-            throw new IllegalStateException("Kurz-Weckruf ist noch nicht kalibriert");
+
+        boolean phraseChanged = !WakePhraseMatcher.CANONICAL_PHRASE.equals(
+            preferences.getString(WAKE_TEMPLATE_PHRASE_KEY, "")
+        );
+        SharedPreferences.Editor editor = preferences.edit();
+        if (phraseChanged) {
+            for (int slot = 1; slot <= MAX_WAKE_VARIATIONS; slot++) {
+                editor
+                    .remove(WAKE_CAMPPLUS_VARIATION_PREFIX + slot)
+                    .remove(WAKE_ERES2NET_VARIATION_PREFIX + slot);
+            }
         }
-        float[] saved = decode(encoded);
-        if (saved.length != current.length) {
-            throw new IllegalStateException("Kurz-Weckrufprofil ist beschädigt");
+        if (
+            phraseChanged
+                || updatePrimary
+                || !hasStoredEmbeddingPair(
+                    preferences,
+                    WAKE_CAMPPLUS_TEMPLATE_KEY,
+                    WAKE_ERES2NET_TEMPLATE_KEY
+                )
+        ) {
+            putPrimaryWakeTemplate(editor, embedding);
+        } else {
+            editor.putString(
+                WAKE_TEMPLATE_PHRASE_KEY,
+                WakePhraseMatcher.CANONICAL_PHRASE
+            );
         }
-        return SpeakerVerificationPolicy.cosine(saved, current);
+
+        int emptySlot = phraseChanged ? 1 : 0;
+        boolean duplicate = false;
+        if (!phraseChanged) {
+            for (int slot = 1; slot <= MAX_WAKE_VARIATIONS; slot++) {
+                String campplusKey = WAKE_CAMPPLUS_VARIATION_PREFIX + slot;
+                String eres2netKey = WAKE_ERES2NET_VARIATION_PREFIX + slot;
+                if (
+                    !hasStoredEmbeddingPair(
+                        preferences,
+                        campplusKey,
+                        eres2netKey
+                    )
+                ) {
+                    if (emptySlot == 0) emptySlot = slot;
+                    continue;
+                }
+                try {
+                    float campplusSimilarity = SpeakerVerificationPolicy.cosine(
+                        decode(preferences.getString(campplusKey, "")),
+                        embedding.campplus
+                    );
+                    float eres2netSimilarity = SpeakerVerificationPolicy.cosine(
+                        decode(preferences.getString(eres2netKey, "")),
+                        embedding.eres2net
+                    );
+                    if (
+                        campplusSimilarity >= WAKE_VARIATION_DUPLICATE_SCORE
+                            && eres2netSimilarity >= WAKE_VARIATION_DUPLICATE_SCORE
+                    ) {
+                        duplicate = true;
+                        break;
+                    }
+                } catch (RuntimeException ignored) {
+                    // A damaged optional variation is ignored; the primary and
+                    // other owner samples remain usable.
+                }
+            }
+        }
+        if (!duplicate && emptySlot > 0) {
+            putWakeVariation(editor, emptySlot, embedding);
+        }
+        editor.apply();
+    }
+
+    private static void putPrimaryWakeTemplate(
+        SharedPreferences.Editor editor,
+        DualEmbedding embedding
+    ) {
+        editor
+            .putString(
+                WAKE_CAMPPLUS_TEMPLATE_KEY,
+                encode(embedding.campplus)
+            )
+            .putString(
+                WAKE_ERES2NET_TEMPLATE_KEY,
+                encode(embedding.eres2net)
+            )
+            .putString(
+                WAKE_TEMPLATE_PHRASE_KEY,
+                WakePhraseMatcher.CANONICAL_PHRASE
+            );
+    }
+
+    private static void putWakeVariation(
+        SharedPreferences.Editor editor,
+        int slot,
+        DualEmbedding embedding
+    ) {
+        if (slot < 1 || slot > MAX_WAKE_VARIATIONS) {
+            throw new IllegalArgumentException("Ungültiger Stimmvarianten-Platz");
+        }
+        editor
+            .putString(
+                WAKE_CAMPPLUS_VARIATION_PREFIX + slot,
+                encode(embedding.campplus)
+            )
+            .putString(
+                WAKE_ERES2NET_VARIATION_PREFIX + slot,
+                encode(embedding.eres2net)
+            )
+            .putString(
+                WAKE_TEMPLATE_PHRASE_KEY,
+                WakePhraseMatcher.CANONICAL_PHRASE
+            );
     }
 
     private static String encode(float[] values) {

@@ -397,8 +397,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   };
   let wakeActionRunning = false;
   let wakeListenersRegistered = false;
+  let wakeRecoveryNoticePending = false;
   let lastWakeDetectedAt = 0;
   let pendingWakePrompt = "";
+  const wakeHandoffMaxAgeMillis = 120_000;
   let phoneStatus = {
     supported: false,
     contactsPermissionGranted: false,
@@ -2377,7 +2379,13 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   window.executeSolHoloHealthTool = executeHealthTool;
 
   function samsungNoteTextFromNaturalRequest(message) {
-    const cleanMessage = String(message || "").trim();
+    const cleanMessage = String(message || "")
+      .trim()
+      .replace(
+        /^(?:(?:hey|hallo|hello)\s+(?:pam|sol)|sol)\s*[,;:!.-]?\s*/i,
+        ""
+      )
+      .trim();
     const patterns = [
       /^(?:schreib(?:e)?|notier(?:e)?|trag(?:e)?|pack(?:e)?|setz(?:e)?)\s+(?:mir\s+)?(?:bitte\s+)?(.+?)\s+(?:bitte\s+)?(?:in|zu)\s+(?:(?:meine|die)\s+)?(?:samsungs?(?:\s+|-))?(?:notes?|noten|notizen)(?:\s+(?:rein|hinein|ein))?[.!?]*$/i,
       /^(?:schreib(?:e)?|notier(?:e)?|trag(?:e)?|pack(?:e)?|setz(?:e)?)\s+(?:mir\s+)?(?:bitte\s+)?(?:in|zu)\s+(?:(?:meine|die)\s+)?(?:samsungs?(?:\s+|-))?(?:notes?|noten|notizen)(?:\s+(?:rein|hinein|ein))?\s*[:,-]?\s*(?:bitte\s+)?(.+?)[.!?]*$/i
@@ -2399,7 +2407,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   function samsungNoteInsertionFromNaturalRequest(message) {
     const cleanMessage = String(message || "")
       .trim()
-      .replace(/^(?:(?:hey\s+)?sol)\s*[,;:!.-]?\s*/i, "")
+      .replace(
+        /^(?:(?:hey|hallo|hello)\s+(?:pam|sol)|sol)\s*[,;:!.-]?\s*/i,
+        ""
+      )
       .trim();
     const match = cleanMessage.match(
       /^(?:bitte\s+)?(?:setz(?:e)?|schreib(?:e)?|pack(?:e)?|füg(?:e)?)\s+(?:mir\s+)?(?:bitte\s+)?(.+?)\s+unter\s+(.+?)(?:\s+hinzu)?(?:\s+(?:in|bei|zu)\s+(?:(?:meine|die)\s+)?(?:samsungs?(?:\s+|-))?(?:notes?|noten|notizen))?[.!?]*$/i
@@ -2442,7 +2453,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   window.handleSolHoloLocalAction = async (message) => {
     const cleanMessage = String(message || "").trim();
     const noteMessage = cleanMessage
-      .replace(/^(?:(?:hey\s+)?sol)\s*[,;:!.-]?\s*/i, "")
+      .replace(
+        /^(?:(?:hey|hallo|hello)\s+(?:pam|sol)|sol)\s*[,;:!.-]?\s*/i,
+        ""
+      )
       .trim();
 
     const finishNoteCreation = async (text) => {
@@ -2654,7 +2668,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   window.handleSolHoloRealtimeNoteTranscript = async (message) => {
     const cleanMessage = String(message || "").trim();
     const noteMessage = cleanMessage
-      .replace(/^(?:(?:hey\s+)?sol)\s*[,;:!.-]?\s*/i, "")
+      .replace(
+        /^(?:(?:hey|hallo|hello)\s+(?:pam|sol)|sol)\s*[,;:!.-]?\s*/i,
+        ""
+      )
       .trim();
     const noteIntent =
       pendingPersonalNoteText ||
@@ -2778,11 +2795,20 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         if (event?.stage === "phrase_heard") {
           showToast("„Hey Pam“ gehört · deine Stimme wird geprüft …");
         } else if (event?.stage === "owner_accepted") {
+          wakeRecoveryNoticePending = false;
           showToast("Stimme freigegeben · Sol startet ✨");
         } else if (event?.stage === "owner_rejected") {
+          wakeRecoveryNoticePending = true;
           showToast(
-            "„Hey Pam“ gehört · Stimme nicht freigegeben 🔒" + scoreText
+            "„Hey Pam“ gehört · Stimme nicht freigegeben 🔒" + scoreText +
+            " · Sol startet das Hören automatisch neu."
           );
+        } else if (
+          event?.stage === "listener_ready" &&
+          wakeRecoveryNoticePending
+        ) {
+          wakeRecoveryNoticePending = false;
+          showToast("Hey Pam ist wieder bereit · du musst nichts drücken.");
         }
       });
     } catch (error) {
@@ -2793,7 +2819,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
   async function consumePendingWakeEvent() {
     const plugin = getHeyHoSolPlugin();
-    if (!plugin) {
+    if (!plugin || document.visibilityState !== "visible") {
       return;
     }
 
@@ -2831,6 +2857,26 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     return wakeStatus;
   }
 
+  async function waitForWakeListening(plugin, mode, timeoutMs = 20_000) {
+    const deadline = Date.now() + timeoutMs;
+    await new Promise((resolve) => window.setTimeout(resolve, 350));
+    let status = await plugin.getStatus();
+    renderWakeStatus(status);
+
+    while (
+      status.mode === mode &&
+      !status.listening &&
+      !status.lastError &&
+      Date.now() < deadline
+    ) {
+      await new Promise((resolve) => window.setTimeout(resolve, 250));
+      status = await plugin.getStatus();
+      renderWakeStatus(status);
+    }
+
+    return status;
+  }
+
   async function setWakeMode(mode) {
     if (wakeActionRunning) {
       return;
@@ -2846,7 +2892,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     renderWakeStatus(wakeStatus);
 
     try {
-      const status = await plugin.setMode({ mode });
+      let status = await plugin.setMode({ mode });
       renderWakeStatus(status);
 
       if (mode === "background") {
@@ -2859,11 +2905,19 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
           return;
         }
 
+        status = await waitForWakeListening(plugin, mode);
         showToast(
-          "Hintergrund-Hören und automatisches Öffnen sind aktiv."
+          status.listening
+            ? "Hintergrund ist bereit · du musst nicht erneut drücken."
+            : "Das Mikrofon startet noch automatisch · bitte kurz warten."
         );
       } else if (mode === "foreground") {
-        showToast("Sol hört nur auf den Weckruf, solange die App geöffnet ist.");
+        status = await waitForWakeListening(plugin, mode);
+        showToast(
+          status.listening
+            ? "App-Weckruf ist bereit · sag „Hey Pam“."
+            : "Das Mikrofon startet noch automatisch · bitte kurz warten."
+        );
       } else {
         showToast("Der Sol-Weckruf ist ausgeschaltet.");
       }
@@ -2923,16 +2977,53 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     const detectedAt = Number(event?.detectedAt || Date.now());
     if (
       detectedAt <= lastWakeDetectedAt ||
-      Date.now() - detectedAt > 30_000
+      Date.now() - detectedAt > wakeHandoffMaxAgeMillis
     ) {
       return;
+    }
+
+    // Native Weckereignisse können eintreffen, während die alte WebView noch
+    // hinter einer anderen App pausiert. Der in SharedPreferences gehaltene
+    // Einmal-Weckruf wird beim sichtbaren Resume erneut konsumiert. So fordert
+    // WebRTC das Mikrofon erst an, wenn Pams Sprachfenster wirklich sichtbar ist.
+    if (document.visibilityState !== "visible") {
+      return;
+    }
+
+    if (event?.lockedAtDetection === true) {
+      if (event?.speakerVerified !== true) {
+        console.error("Hey-Pam-Sperrmodus ohne Sprecherfreigabe abgelehnt.");
+        return;
+      }
+
+      const hookDeadline = Date.now() + 1_500;
+      while (
+        typeof window.beginSolHoloVerifiedLockedWakeSession !== "function" &&
+        Date.now() < hookDeadline
+      ) {
+        await new Promise(resolve => window.setTimeout(resolve, 25));
+      }
+
+      const beginLockedVoice =
+        window.beginSolHoloVerifiedLockedWakeSession;
+      if (
+        typeof beginLockedVoice !== "function" ||
+        await beginLockedVoice(event) !== true
+      ) {
+        console.error("Der geprüfte Hey-Pam-Sperrmodus konnte nicht starten.");
+        return;
+      }
     }
 
     lastWakeDetectedAt = detectedAt;
     pendingWakePrompt = String(
       event?.phrase || "Hey Pam"
     );
-    showToast("Stimme freigegeben · Sol startet ✨");
+    showToast(
+      event?.lockedAtDetection === true
+        ? "Stimme freigegeben · Sol spricht im Sperrmodus ✨"
+        : "Stimme freigegeben · Sol startet ✨"
+    );
     await startSolVoice();
   }
 

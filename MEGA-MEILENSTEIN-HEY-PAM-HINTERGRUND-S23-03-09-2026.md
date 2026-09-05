@@ -10,7 +10,14 @@
 
 **Android-Stand:** originalsignierter Build 127
 
-**Status:** **ABGESCHLOSSEN ✅**
+**Status:** **AM 04.09.2026 TEILWEISE WIEDER GEÖFFNET ⚠️**
+
+> **Korrektur vom 04.09.2026:** Der spätere echte S23-Test zeigt, dass der
+> Weckruf im gesperrten Zustand nicht zuverlässig lauscht beziehungsweise die
+> sichere Übergabe nicht zuverlässig beginnt. Deshalb bleiben nur „App offen“
+> und der entsperrte Hintergrund bestätigt. Sperrbildschirm und Display aus
+> sind erneut offen. Die frühere Abschlussformulierung weiter unten ist als
+> historischer Stand zu lesen, nicht als aktueller Funktionsnachweis.
 
 ## Das bestätigte Ergebnis
 

@@ -38,6 +38,14 @@ body{
   visibility:hidden;
 }
 
+.solholo-locked-voice #app{
+  visibility:hidden;
+}
+
+.solholo-locked-voice #app.voice-mode{
+  visibility:visible;
+}
+
 .solholo-booting #solHoloBootScreen{
   position:fixed;
   z-index:99999;
@@ -6435,7 +6443,7 @@ function getSolAudioRoutePlugin(){
 }
 
 
-async function routeSolAudioToSpeaker(){
+async function routeSolAudioForConversation(){
 
   const plugin = getSolAudioRoutePlugin();
 
@@ -6444,26 +6452,205 @@ async function routeSolAudioToSpeaker(){
   }
 
   try{
-    await plugin.useSpeaker();
+    const result = typeof plugin.usePreferredDevice === "function"
+      ? await plugin.usePreferredDevice()
+      : await plugin.useSpeaker();
+
+    window.dispatchEvent(
+      new CustomEvent(
+        "sol-holo-audio-route",
+        {
+          detail: result || {}
+        }
+      )
+    );
   }catch(error){
-    console.warn("Sol-Lautsprecherroute:", error);
+    console.warn("Sol-Audioroute:", error);
   }
 }
 
 
-async function restoreSolAudioRoute(){
+async function restoreSolAudioRoute(
+  options = {}
+){
 
   const plugin = getSolAudioRoutePlugin();
 
   if(!plugin){
-    return;
+    return false;
   }
 
   try{
-    await plugin.restore();
+    const result = await plugin.restore({
+      resumeWake: options.resumeWake === true
+    });
+    return result?.wakeResumeHandled === true;
   }catch(error){
     console.warn("Sol-Audioroute wiederherstellen:", error);
+    return false;
   }
+}
+
+
+let liveConversationRecoveryTimer =
+  null;
+
+let liveConversationRecoveryPromise =
+  null;
+
+
+function liveConversationRequested(){
+
+  return document.body.classList.contains(
+    "voice-open"
+  );
+}
+
+
+function currentLiveMicrophoneTrack(){
+
+  return microphoneStream
+    ?.getAudioTracks?.()[0] ||
+    null;
+}
+
+
+function liveConversationNeedsRestart(){
+
+  if(!pc){
+    return true;
+  }
+
+
+  if(
+    pc.connectionState === "failed" ||
+    pc.connectionState === "closed" ||
+    pc.connectionState === "disconnected"
+  ){
+    return true;
+  }
+
+
+  const audioTrack =
+    currentLiveMicrophoneTrack();
+
+
+  return pc.connectionState === "connected" &&
+    (
+      !audioTrack ||
+      audioTrack.readyState !== "live" ||
+      audioTrack.muted
+    );
+}
+
+
+async function recoverLiveConversationAfterAppSwitch(){
+
+  if(
+    document.visibilityState !== "visible" ||
+    !liveConversationRequested()
+  ){
+    return;
+  }
+
+
+  if(liveConversationRecoveryPromise){
+    return liveConversationRecoveryPromise;
+  }
+
+
+  liveConversationRecoveryPromise =
+    (async () => {
+
+      await routeSolAudioForConversation();
+
+
+      const audioTrack =
+        currentLiveMicrophoneTrack();
+
+
+      if(!liveConversationNeedsRestart()){
+
+        if(audioTrack){
+          audioTrack.enabled = true;
+        }
+
+
+        if(realtimeAudio.srcObject){
+          await realtimeAudio.play().catch(() => {});
+        }
+
+
+        return;
+      }
+
+
+      if(
+        typeof window.pauseHeyHoSolForConversation === "function"
+      ){
+        await window.pauseHeyHoSolForConversation();
+      }
+
+
+      await startLiveConversation();
+    })();
+
+
+  try{
+    await liveConversationRecoveryPromise;
+  }finally{
+    liveConversationRecoveryPromise = null;
+  }
+}
+
+
+function scheduleLiveConversationRecovery(){
+
+  if(
+    document.visibilityState !== "visible" ||
+    !liveConversationRequested()
+  ){
+    return;
+  }
+
+
+  if(liveConversationRecoveryTimer){
+    clearTimeout(liveConversationRecoveryTimer);
+  }
+
+
+  liveConversationRecoveryTimer =
+    setTimeout(
+      () => {
+        liveConversationRecoveryTimer = null;
+        void recoverLiveConversationAfterAppSwitch();
+      },
+      240
+    );
+}
+
+
+document.addEventListener(
+  "visibilitychange",
+  () => {
+    if(document.visibilityState === "visible"){
+      scheduleLiveConversationRecovery();
+    }
+  }
+);
+
+
+window.addEventListener(
+  "focus",
+  scheduleLiveConversationRecovery
+);
+
+
+if(navigator.mediaDevices?.addEventListener){
+  navigator.mediaDevices.addEventListener(
+    "devicechange",
+    scheduleLiveConversationRecovery
+  );
 }
 
 
@@ -8342,7 +8529,12 @@ LIVE STOP
 ==========================================================
 */
 
-function stopLiveConversation(){
+async function stopLiveConversation(
+  options = {}
+){
+
+  const resumeWake =
+    options.resumeWake !== false;
 
   liveConnectionAttempt +=
     1;
@@ -8408,7 +8600,10 @@ stopLipSync();
     null;
 
 
-  void restoreSolAudioRoute();
+  const wakeResumeHandled =
+    await restoreSolAudioRoute({
+      resumeWake
+    });
 
 
   liveButton.classList.remove(
@@ -8430,10 +8625,21 @@ stopLipSync();
 
 
   if(
+    resumeWake &&
+    !wakeResumeHandled &&
     typeof window.resumeHeyHoSolAfterConversation === "function"
   ){
 
-    void window.resumeHeyHoSolAfterConversation();
+    await window.resumeHeyHoSolAfterConversation();
+  }
+
+
+  if(
+    resumeWake &&
+    typeof window.finishSolHoloVerifiedLockedWakeSession === "function"
+  ){
+
+    window.finishSolHoloVerifiedLockedWakeSession();
   }
 }
 
@@ -8739,15 +8945,41 @@ async function startLiveConversation(){
     pc
   ){
 
+    const existingAudioTrack =
+      currentLiveMicrophoneTrack();
+
+    const unusableAudioTrack =
+      pc.connectionState === "connected" &&
+      (
+        !existingAudioTrack ||
+        existingAudioTrack.readyState !== "live" ||
+        existingAudioTrack.muted
+      );
+
     if(
       pc.connectionState === "failed" ||
       pc.connectionState === "closed" ||
-      pc.connectionState === "disconnected"
+      pc.connectionState === "disconnected" ||
+      unusableAudioTrack
     ){
 
-      stopLiveConversation();
+      await stopLiveConversation({
+        resumeWake:false
+      });
 
     }else{
+
+      await routeSolAudioForConversation();
+
+
+      if(existingAudioTrack){
+        existingAudioTrack.enabled = true;
+      }
+
+
+      if(realtimeAudio.srcObject){
+        await realtimeAudio.play().catch(() => {});
+      }
 
       sendPendingWakePrompt(
         dc
@@ -8779,7 +9011,7 @@ async function startLiveConversation(){
       );
 
 
-  await routeSolAudioToSpeaker();
+  await routeSolAudioForConversation();
 
 
   if(
@@ -8969,7 +9201,7 @@ async function startLiveConversation(){
           solVolume;
 
 
-        void routeSolAudioToSpeaker();
+        void routeSolAudioForConversation();
 
 
         realtimeAudio
@@ -9009,7 +9241,7 @@ async function startLiveConversation(){
       nextMicrophoneStream;
 
 
-    await routeSolAudioToSpeaker();
+    await routeSolAudioForConversation();
 
 
     if(
@@ -9033,6 +9265,29 @@ async function startLiveConversation(){
         "Keine Mikrofonspur gefunden."
       );
     }
+
+
+    audioTrack.addEventListener(
+      "ended",
+      scheduleLiveConversationRecovery,
+      {
+        once:true
+      }
+    );
+
+
+    audioTrack.addEventListener(
+      "mute",
+      scheduleLiveConversationRecovery
+    );
+
+
+    audioTrack.addEventListener(
+      "unmute",
+      () => {
+        void routeSolAudioForConversation();
+      }
+    );
 
 
     activePeerConnection.addTrack(
@@ -9613,8 +9868,8 @@ if(
 
 </script>
 
-<script src="./sol-holo-ui.js?v=40"></script>
-<script type="module" src="./app-lock-bootstrap.mjs?v=4"></script>
+<script src="./sol-holo-ui.js?v=43"></script>
+<script type="module" src="./app-lock-bootstrap.mjs?v=5"></script>
 <script type="module" src="./consent-ui-bootstrap.mjs?v=2"></script>
 <script type="module" src="./sol-holo-backup.mjs?v=1"></script>
 <script>

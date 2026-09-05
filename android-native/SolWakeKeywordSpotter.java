@@ -28,11 +28,9 @@ final class SolWakeKeywordSpotter implements AutoCloseable {
 
     static final class Detection {
         final String phrase;
-        final long firstTokenSample;
 
-        Detection(String phrase, long firstTokenSample) {
+        Detection(String phrase) {
             this.phrase = phrase;
-            this.firstTokenSample = firstTokenSample;
         }
     }
 
@@ -66,7 +64,11 @@ final class SolWakeKeywordSpotter implements AutoCloseable {
         config.setMaxActivePaths(4);
         config.setKeywordsFile(KEYWORDS_ASSET);
         config.setKeywordsScore(1.5f);
-        config.setKeywordsThreshold(0.25f);
+        // The keyword is still only a candidate: both independent owner-voice
+        // models have to approve it before anything opens. A slightly more
+        // recall-friendly acoustic threshold avoids losing a German-accented
+        // "Hey Pam" before that mandatory security gate can evaluate it.
+        config.setKeywordsThreshold(0.20f);
         config.setNumTrailingBlanks(1);
 
         spotter = new KeywordSpotter(context.getAssets(), config);
@@ -98,15 +100,7 @@ final class SolWakeKeywordSpotter implements AutoCloseable {
                 result == null ? "" : result.getKeyword()
             );
             if (!canonical.isEmpty()) {
-                float[] timestamps = result.getTimestamps();
-                long firstTokenSample = 0L;
-                if (timestamps != null && timestamps.length > 0) {
-                    firstTokenSample = Math.max(
-                        0L,
-                        Math.round(timestamps[0] * SAMPLE_RATE)
-                    );
-                }
-                return new Detection(canonical, firstTokenSample);
+                return new Detection(canonical);
             }
         }
         return null;

@@ -1,0 +1,20 @@
+SOL HOLO / PAM'S HOLO – WATCH8 DATA LAYER
+
+Komponente: Google Play services Wearable 20.0.1
+Maven-Koordinate: com.google.android.gms:play-services-wearable:20.0.1
+Zweck: Direkte Übergabe eines kurzen Hey-Pam-Weckrufkandidaten zwischen der
+gekoppelten Galaxy Watch und dem Android-Handy mit derselben App-ID und Signatur.
+
+Dokumentation:
+https://developer.android.com/training/wearables/data/overview
+https://developers.google.com/android/guides/overview
+
+Nutzungsbedingungen:
+https://developers.google.com/terms
+
+Datenschutz dieses Projekts: Es wird nur ein maximal 2,4 Sekunden langer
+PCM-Ausschnitt übertragen. Das Stimmprofil verbleibt auf dem Handy. Der
+übertragene Ausschnitt wird nach der lokalen Besitzerprüfung aus dem Wear OS
+Data Layer gelöscht und nicht als Audiodatei gespeichert.
+
+Es wird keine Partnerschaft oder Billigung durch Google oder Samsung behauptet.

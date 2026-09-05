@@ -184,8 +184,8 @@ const sourceText = `SOL HOLO / PAM'S HOLO – LOKALE SPRECHERERKENNUNG\n\n` +
 `Zweck: Lokale Unterscheidung und Freigabe der autorisierten Besitzerstimme.\n` +
 `Owner-Bindung: ${PERSONAL_WAKE_OWNER_ID} · persönlicher Weckname: ${PERSONAL_WAKE_NAME}.\n` +
 `Status: Der Weckruf „${PERSONAL_WAKE_PHRASE}“ wird nur nach lokaler Freigabe des gespeicherten Besitzerprofils ausgeführt.\n` +
-`Profilbildung: Die drei Stimmproben werden je Modell zu einem normalisierten Mittelprofil zusammengeführt.\n` +
-`Sicherheitsprinzip: Der vollständige Prüfsatz bleibt bei Modell B mindestens 0,58 plus Modell A mindestens 0,10. Das vorhandene 3/3-Stimmprofil bleibt bei einem Wechsel des persönlichen Wecknamens erhalten. Nach dem ersten durch das Besitzerprofil freigegebenen „${PERSONAL_WAKE_PHRASE}“ wird die bisherige Kurzsatz-Signatur lokal auf den neuen persönlichen Weckruf aktualisiert. Beim Weckruf müssen beide unabhängigen Modelle zustimmen. Fehlende, einseitige oder ungültige Messungen sperren den Weckruf.\n\n` +
+`Profilbildung: Die drei Stimmproben werden je Modell zu einem normalisierten Mittelprofil und zu drei getrennten Kurz-Weckrufvarianten verarbeitet. Bereits sicher freigegebene natürliche Varianten können freie Plätze ergänzen; gespeicherte Varianten werden niemals automatisch überschrieben.\n` +
+`Sicherheitsprinzip: Der vollständige Prüfsatz bleibt bei Modell B mindestens 0,58 plus Modell A mindestens 0,10. Das vorhandene 3/3-Stimmprofil bleibt bei einem Wechsel des persönlichen Wecknamens erhalten. Mehrere gepaarte Proben decken normale Schwankungen wie Müdigkeit, Erkältung oder Heiserkeit besser ab. Beim Weckruf müssen beide unabhängigen Modelle weiterhin beitragen; nur wenn eines besonders eindeutig ist, darf das andere innerhalb seiner Plausibilitätsgrenze schwanken. Fehlende, einseitige oder ungültige Messungen sperren den Weckruf.\n\n` +
 `sherpa-onnx 1.13.4\nQuelle: ${AAR_URL}\nLizenz: Apache License 2.0\nSHA-256 AAR: ${AAR_SHA256}\n\n` +
 `Speaker-Embedding-Modell A: 3dspeaker_speech_campplus_sv_en_voxceleb_16k.onnx\n` +
 `Quelle: ${CAMPPLUS_MODEL_URL}\nModellfamilie: 3D-Speaker / CAMPPlus\n` +
@@ -228,7 +228,7 @@ if (existsSync(uiFile)) {
 `      const p = plugin();\n` +
 `      if (!p) { statusEl.textContent = 'Nur in der Android-App verfügbar.'; enroll.disabled = true; test.disabled = true; return; }\n` +
 `      const s = await p.getStatus();\n` +
-`      statusEl.textContent = s.profileReady ? (s.wakeVoiceReady ? '3/3 gespeichert · Hey Pam geschützt 🔒' : '3/3 gespeichert · jetzt einmal Hey Pam sagen') : 'Stimmproben: ' + s.sampleCount + '/3';\n` +
+`      statusEl.textContent = s.profileReady ? (s.wakeVoiceReady ? '3/3 gespeichert · Alltagstoleranz aktiv · Hey Pam geschützt 🔒' : '3/3 gespeichert · jetzt einmal Hey Pam sagen') : 'Stimmproben: ' + s.sampleCount + '/3';\n` +
 `      enroll.disabled = Boolean(s.profileReady);\n` +
 `      enroll.textContent = s.profileReady ? '3/3 Stimmproben gespeichert' : 'Stimmprobe ' + (Number(s.sampleCount || 0) + 1) + '/3 aufnehmen';\n` +
 `      test.disabled = !s.profileReady;\n` +
@@ -242,7 +242,7 @@ if (existsSync(uiFile)) {
 `      catch (e) { statusEl.textContent = e?.message || String(e); enroll.disabled = false; }\n` +
 `    });\n` +
 `    test.addEventListener('click', async () => {\n` +
-`      try { test.disabled = true; statusEl.textContent = 'Mikrofon wird vorbereitet … bitte noch warten'; const r = await plugin().verifySample(); statusEl.textContent = (r.accepted ? (r.wakeVoiceReady ? 'Stimme freigegeben ✅ · Hey Pam geschützt' : 'Stimme freigegeben ✅ · Hey Pam noch nicht sauber erfasst') : 'Keine Freigabe 🔒') + ' · Modell A ' + Number(r.campplusScore || 0).toFixed(3) + ' · Modell B ' + Number(r.eres2netScore || 0).toFixed(3); test.textContent = r.wakeVoiceReady ? 'Sicherheit testen' : 'Hey Pam zusätzlich prüfen'; }\n` +
+`      try { test.disabled = true; statusEl.textContent = 'Mikrofon wird vorbereitet … bitte noch warten'; const r = await plugin().verifySample(); statusEl.textContent = (r.accepted ? (r.wakeVoiceReady ? 'Stimme freigegeben ✅ · Alltagstoleranz aktiv · Hey Pam geschützt' : 'Stimme freigegeben ✅ · Hey Pam noch nicht sauber erfasst') : 'Keine Freigabe 🔒') + ' · Modell A ' + Number(r.campplusScore || 0).toFixed(3) + ' · Modell B ' + Number(r.eres2netScore || 0).toFixed(3); test.textContent = r.wakeVoiceReady ? 'Sicherheit testen' : 'Hey Pam zusätzlich prüfen'; }\n` +
 `      catch (e) { statusEl.textContent = e?.message || String(e); } finally { test.disabled = false; }\n` +
 `    });\n` +
 `    clear.addEventListener('click', async () => { await plugin()?.clearProfile(); await refresh(); });\n` +

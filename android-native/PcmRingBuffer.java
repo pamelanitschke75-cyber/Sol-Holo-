@@ -52,4 +52,12 @@ final class PcmRingBuffer {
         }
         return result;
     }
+
+    synchronized short[] snapshotLatest(int maximumSamples) {
+        if (maximumSamples <= 0) {
+            throw new IllegalArgumentException("maximumSamples must be positive");
+        }
+        long start = totalWritten - Math.min(size, maximumSamples);
+        return snapshotFrom(start);
+    }
 }
