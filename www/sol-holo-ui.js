@@ -153,6 +153,26 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   );
 
   const whatsappDriveRow = document.getElementById("whatsappDriveRow");
+  document.getElementById("googleAccountRow")?.insertAdjacentHTML(
+    "afterend",
+    '<button id="googleMapsRow" class="serviceRow" type="button">' +
+      '<span class="rowIcon">⌖</span>' +
+      '<span class="rowText">' +
+        '<span class="rowTitle">Google Maps</span>' +
+        '<span class="rowMeta">Ziel per Text oder Sprache an die Navigation übergeben</span>' +
+      '</span>' +
+      '<span id="googleMapsStatus" class="serviceStatus setup">Wird geprüft …</span>' +
+    '</button>' +
+    '<button id="liveWeatherRow" class="serviceRow" type="button">' +
+      '<span class="rowIcon">☀</span>' +
+      '<span class="rowText">' +
+        '<span class="rowTitle">Live-Wetter</span>' +
+        '<span class="rowMeta">Aktuelle Wetterantwort über vorhandenes OpenAI</span>' +
+      '</span>' +
+      '<span id="liveWeatherStatus" class="serviceStatus setup">Wird geprüft …</span>' +
+    '</button>'
+  );
+
   whatsappDriveRow.insertAdjacentHTML(
     "afterend",
     '<button id="heyHoSolRow" class="serviceRow" type="button">' +
@@ -194,7 +214,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       '<span class="rowIcon">✎</span>' +
       '<span class="rowText">' +
         '<span class="rowTitle">Samsung Notes</span>' +
-        '<span class="rowMeta">Notizen aus Text oder Sprache vorbereitet öffnen</span>' +
+        '<span class="rowMeta">Entwurf mit Text öffnen · in Samsung Notes speichern</span>' +
       '</span>' +
       '<span id="samsungNotesStatus" class="serviceStatus setup">Wird geprüft …</span>' +
     '</button>' +
@@ -966,13 +986,81 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     return "Gespeicherter Inhalt";
   }
 
+  function calendarWriteDestinationFromMessage(value) {
+    const text = normalizeNoteSearchText(value);
+    const directCalendarRequest = Boolean(
+      /\b(?:google\s+)?kalender\b/u.test(text) ||
+      /\btermin\w*\b/u.test(text) ||
+      /\berinnere\s+mich\b/u.test(text) ||
+      /\bkalendereintrag\w*\b/u.test(text)
+    );
+    if (directCalendarRequest) return true;
+
+    const hasConcreteTime = Boolean(
+      /\b(?:heute|morgen|ubermorgen|nachste[nrsm]?\s+(?:montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag)|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag)\b/u.test(text) ||
+      /\b\d{1,2}(?::\d{2})?\s*uhr\b/u.test(text) ||
+      /\b\d{1,2}[./-]\d{1,2}(?:[./-]\d{2,4})?\b/u.test(text)
+    );
+    const asksToSchedule = Boolean(
+      /\b(?:schreib|schreibe|trag|trage|plane|plan|setz|setze|halt|halte)\b[\s\S]*\b(?:auf|ein|fest|vor)\b/u.test(text) ||
+      /\b(?:schreib|schreibe|trag|trage|plane|plan|setz|setze)\b/u.test(text)
+    );
+
+    return hasConcreteTime && asksToSchedule;
+  }
+
+  function liveWeatherRequestFromMessage(value) {
+    const text = normalizeNoteSearchText(value);
+    if (!text) return false;
+    return Boolean(
+      /\b(?:wetter|wetterbericht|wettervorhersage|temperatur)\w*\b/u.test(text) ||
+      /\b(?:regnet|schneit|hagelt)\s+es\b/u.test(text) ||
+      /\bwird\s+es\s+(?:regnen|schneien|hageln)\b/u.test(text)
+    );
+  }
+
+  function googleMapsDestinationFromMessage(value) {
+    const cleanMessage = String(value || "")
+      .trim()
+      .replace(/^(?:(?:hey\s+)?sol)\s*[,;:!.-]?\s*/i, "")
+      .trim();
+    if (!cleanMessage) return null;
+
+    if (
+      /^(?:bitte\s+)?(?:öffne|oeffne|starte)\s+(?:bitte\s+)?(?:google\s+)?maps[.!?]*$/i.test(
+        cleanMessage
+      )
+    ) {
+      return "";
+    }
+
+    const patterns = [
+      /^(?:bitte\s+)?(?:navigier(?:e)?|bring(?:e)?|führ(?:e)?|fuehr(?:e)?|fahr(?:e)?|route)\s+(?:mich\s+)?(?:bitte\s+)?(?:zu(?:m|r)?|nach)\s+(.+?)[.!?]*$/i,
+      /^(?:bitte\s+)?(?:öffne|oeffne|starte)\s+(?:bitte\s+)?(?:google\s+)?maps\s+(?:mit\s+(?:dem\s+)?ziel|zu(?:m|r)?|nach)\s+(.+?)[.!?]*$/i,
+      /^(?:bitte\s+)?(?:zeig(?:e)?\s+mir\s+(?:den\s+)?weg|wie\s+komme\s+ich)\s+(?:am\s+besten\s+)?(?:zu(?:m|r)?|nach)\s+(.+?)[.!?]*$/i
+    ];
+
+    for (const pattern of patterns) {
+      const destination = cleanExplicitSaveContent(
+        cleanMessage.match(pattern)?.[1] || ""
+      );
+      if (destination) return destination;
+    }
+
+    return null;
+  }
+
   function explicitSaveRequestFromMessage(message) {
     const cleanMessage = String(message || "")
       .trim()
       .replace(/^(?:(?:hey\s+)?sol)\s*[,;:!.-]?\s*/i, "")
       .trim();
 
-    if (!cleanMessage || /\b(?:samsung\s*)?(?:notes?|noten)\b/i.test(cleanMessage)) {
+    if (
+      !cleanMessage ||
+      /\b(?:samsung\s*)?(?:notes?|noten)\b/i.test(cleanMessage) ||
+      calendarWriteDestinationFromMessage(cleanMessage)
+    ) {
       return null;
     }
 
@@ -997,7 +1085,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     }
 
     const directMatch = cleanMessage.match(
-      /^(?:bitte\s+)?(?:speicher(?:e)?|merk(?:e)?(?:\s+dir\b[,:]?)?|notier(?:e)?|halt(?:e)?\s+(?:das\s+)?fest)\s+(?:mir\s+)?(?:bitte\s+)?[:,-]?\s*(.+?)[.!?]*$/i
+      /^(?:bitte\s+)?(?:speicher(?:e)?|merk(?:e)?(?:\s+dir\b[,:]?)?|halt(?:e)?\s+(?:das\s+)?fest)\s+(?:mir\s+)?(?:bitte\s+)?[:,-]?\s*(.+?)[.!?]*$/i
     );
     const content = cleanExplicitSaveContent(directMatch?.[1] || "");
     if (!content) return null;
@@ -1504,7 +1592,24 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
   async function executeNotesTool(name, args = {}) {
     if (name === "create_personal_note") {
-      return prepareSamsungNote(args?.text);
+      const text = String(args?.text || "").trim();
+      const localResult = createPersonalNote(text, {
+        source: "Auf Zuruf notiert"
+      });
+      if (!localResult?.success) {
+        return localResult;
+      }
+
+      const handoffResult = await prepareSamsungNote(text);
+      return {
+        ...handoffResult,
+        success: true,
+        saved: true,
+        localSaved: true,
+        note: localResult.note,
+        answer:
+          `In Pam’s Holo ist die Notiz gespeichert. ${handoffResult.answer}`
+      };
     }
 
     if (name === "search_personal_notes") {
@@ -1834,6 +1939,8 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       void loadPhoneStatus();
       void loadHealthStatus();
       void loadSmartThingsStatus();
+      void renderGoogleMapsStatus();
+      void loadLiveWeatherStatus();
       renderSamsungNotesStatus();
     }
 
@@ -2172,6 +2279,97 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     return window.Capacitor?.Plugins?.PhoneContacts || null;
   }
 
+  async function renderGoogleMapsStatus() {
+    const statusElement = document.getElementById("googleMapsStatus");
+    if (!statusElement) return;
+    statusElement.classList.remove("connected", "setup");
+    const plugin = getPhoneContactsPlugin();
+    if (!plugin?.getGoogleMapsStatus) {
+      statusElement.textContent = "Nur Android";
+      statusElement.classList.add("setup");
+      return;
+    }
+
+    try {
+      const status = await plugin.getGoogleMapsStatus();
+      statusElement.textContent = status?.available
+        ? "Bereit"
+        : "Browser-Route";
+      statusElement.classList.add("connected");
+    } catch (error) {
+      console.error("Google-Maps-Status:", error);
+      statusElement.textContent = "Prüfung fehlgeschlagen";
+      statusElement.classList.add("setup");
+    }
+  }
+
+  async function loadLiveWeatherStatus() {
+    const statusElement = document.getElementById("liveWeatherStatus");
+    if (!statusElement) return;
+    statusElement.textContent = "Wird geprüft …";
+    statusElement.classList.remove("connected", "setup");
+
+    try {
+      const response = await fetch(
+        `${BACKEND_URL}/weather/status`,
+        { cache: "no-store" }
+      );
+      const status = await response.json();
+      if (!response.ok || !status?.configured || !status?.liveSearch) {
+        throw new Error("Live-Wetter ist serverseitig nicht bereit.");
+      }
+      statusElement.textContent = "Bereit";
+      statusElement.classList.add("connected");
+    } catch (error) {
+      console.error("Live-Wetter-Status:", error);
+      statusElement.textContent = "Nicht bereit";
+      statusElement.classList.add("setup");
+    }
+  }
+
+  async function openGoogleMapsForRequest(destination = "") {
+    const cleanDestination = String(destination || "").trim();
+    const plugin = getPhoneContactsPlugin();
+
+    try {
+      if (plugin?.openGoogleMaps) {
+        const result = await plugin.openGoogleMaps({
+          destination: cleanDestination
+        });
+        if (!result?.opened) {
+          throw new Error("Google Maps hat das Öffnen nicht bestätigt.");
+        }
+      } else {
+        const mapsUrl = cleanDestination
+          ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(cleanDestination)}`
+          : "https://www.google.com/maps";
+        const mapsWindow = window.open(mapsUrl, "_blank", "noopener");
+        if (!mapsWindow) {
+          throw new Error("Google Maps konnte nicht geöffnet werden.");
+        }
+      }
+
+      const answer = cleanDestination
+        ? `Google Maps ist geöffnet. Ziel: ${cleanDestination}`
+        : "Google Maps ist geöffnet.";
+      showToast(answer);
+      return {
+        success: true,
+        opened: true,
+        answer
+      };
+    } catch (error) {
+      console.error("Google Maps öffnen:", error);
+      return {
+        success: false,
+        answer: String(
+          error?.message ||
+          "Google Maps konnte gerade nicht geöffnet werden."
+        )
+      };
+    }
+  }
+
   function renderPhoneStatus(nextStatus) {
     const statusElement = document.getElementById("phoneContactsStatus");
 
@@ -2445,7 +2643,9 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     try {
       const status = await plugin.getSamsungNotesStatus();
       statusElement.textContent = status?.available
-        ? "Verbunden"
+        ? status?.directWriteSupported
+          ? "Direkt verbunden"
+          : "Übergabe bereit"
         : "Nicht gefunden";
       statusElement.classList.add(status?.available ? "connected" : "setup");
     } catch (error) {
@@ -2850,12 +3050,30 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   window.extractSolHoloSamsungNoteInsertion =
     samsungNoteInsertionFromNaturalRequest;
   window.extractSolHoloExplicitSaveRequest = explicitSaveRequestFromMessage;
+  window.extractSolHoloGoogleMapsDestination =
+    googleMapsDestinationFromMessage;
+  window.isSolHoloCalendarWriteRequest =
+    calendarWriteDestinationFromMessage;
+  window.isSolHoloLiveWeatherRequest =
+    liveWeatherRequestFromMessage;
 
   window.handleSolHoloLocalAction = async (message) => {
     const cleanMessage = String(message || "").trim();
     const noteMessage = cleanMessage
       .replace(/^(?:(?:hey\s+)?sol)\s*[,;:!.-]?\s*/i, "")
       .trim();
+
+    const mapsDestination = googleMapsDestinationFromMessage(noteMessage);
+    if (mapsDestination !== null) {
+      const result = await openGoogleMapsForRequest(mapsDestination);
+      return {
+        handled: true,
+        status: result?.opened
+          ? "Navigation an Google Maps übergeben."
+          : "Google Maps wurde nicht geöffnet.",
+        answer: result.answer
+      };
+    }
 
     let explicitSaveRequest = explicitSaveRequestFromMessage(noteMessage);
     if (explicitSaveRequest) {
@@ -2901,8 +3119,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       return {
         handled: true,
         status: result?.opened
-          ? "Samsung Notes geöffnet · dort noch speichern."
-          : "Samsung Notes wurde nicht geöffnet.",
+          ? "In Pam’s Holo gespeichert · Samsung Notes geöffnet."
+          : result?.localSaved
+            ? "In Pam’s Holo gespeichert · Samsung Notes nicht geöffnet."
+            : "Notiz wurde nicht gespeichert.",
         answer: result.answer
       };
     };
@@ -2922,18 +3142,25 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       const result = await executeNotesTool("create_personal_note", {
         text: updatedDraft
       });
-      if (!result?.success) {
-        return { handled: true, answer: result.answer };
+      if (!result?.localSaved) {
+        return {
+          handled: true,
+          status: "Notiz wurde nicht gespeichert.",
+          answer: result.answer
+        };
       }
       pendingPersonalNoteText = false;
       previousPlainUserMessage = "";
       previousPlainUserMessageAt = 0;
       return {
         handled: true,
-        status: "Aktualisierter Entwurf in Samsung Notes geöffnet.",
-        answer:
-          `Samsung Notes ist mit „${noteInsertion.anchor}\n${noteInsertion.addition}“ geöffnet. ` +
-          "Bitte dort noch speichern; deine vorhandene Notiz bleibt unverändert."
+        status: result?.opened
+          ? "In Pam’s Holo gespeichert · Samsung Notes geöffnet."
+          : "In Pam’s Holo gespeichert · Samsung Notes nicht geöffnet.",
+        answer: result?.opened
+          ? `In Pam’s Holo ist die Notiz gespeichert. Samsung Notes ist mit „${noteInsertion.anchor}\n${noteInsertion.addition}“ geöffnet. ` +
+            "Bitte dort noch speichern; deine vorhandene Notiz bleibt unverändert."
+          : result.answer
       };
     }
 
@@ -3094,13 +3321,20 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     const noteMessage = cleanMessage
       .replace(/^(?:(?:hey\s+)?sol)\s*[,;:!.-]?\s*/i, "")
       .trim();
-    const noteIntent =
+    if (
+      calendarWriteDestinationFromMessage(noteMessage) ||
+      liveWeatherRequestFromMessage(noteMessage)
+    ) {
+      return { handled: false };
+    }
+    const mapsDestination = googleMapsDestinationFromMessage(noteMessage);
+    const localIntent =
       pendingPersonalNoteText ||
+      mapsDestination !== null ||
       Boolean(explicitSaveRequestFromMessage(noteMessage)) ||
-      Boolean(samsungNoteInsertionFromNaturalRequest(noteMessage)) ||
-      /\bnotiz(?:en)?\b|\bnotier(?:e|en|st|t)?\b|\bnotes?\b|\bnoten\b/i.test(noteMessage);
+      Boolean(samsungNoteInsertionFromNaturalRequest(noteMessage));
 
-    if (!noteIntent) {
+    if (!localIntent) {
       previousPlainUserMessage = noteMessage;
       previousPlainUserMessageAt = Date.now();
       return { handled: false };
@@ -3659,6 +3893,8 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     void loadWakeStatus();
     void loadPhoneStatus();
     void loadHealthStatus();
+    void renderGoogleMapsStatus();
+    void loadLiveWeatherStatus();
     renderSamsungNotesStatus();
   });
 
@@ -3856,6 +4092,16 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     () => void openSamsungNotes()
   );
 
+  document.getElementById("googleMapsRow")?.addEventListener(
+    "click",
+    () => void openGoogleMapsForRequest("")
+  );
+
+  document.getElementById("liveWeatherRow")?.addEventListener(
+    "click",
+    () => void askSol("Sol, wie ist das Wetter?")
+  );
+
   document.getElementById("healthConnectRow").addEventListener("click", () => {
     void openHealthPermissions();
   });
@@ -3936,6 +4182,8 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   void loadWhatsAppStatus();
   void loadWakeStatus(true);
   void loadPhoneStatus();
+  void renderGoogleMapsStatus();
+  void loadLiveWeatherStatus();
   renderSamsungNotesStatus();
   void registerSharedNoteListener();
   void consumeSharedNoteImport();

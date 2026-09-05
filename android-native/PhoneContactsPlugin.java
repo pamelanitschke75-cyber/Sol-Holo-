@@ -48,6 +48,8 @@ import java.util.Set;
     }
 )
 public class PhoneContactsPlugin extends Plugin {
+    private static final String GOOGLE_MAPS_PACKAGE =
+        "com.google.android.apps.maps";
     private static final String SAMSUNG_NOTES_PACKAGE =
         "com.samsung.android.app.notes";
     private static final String GOOGLE_CREATE_NOTE_ACTION =
@@ -62,6 +64,7 @@ public class PhoneContactsPlugin extends Plugin {
     private static final String NOTE_TRUNCATED_KEY = "pending_note_truncated";
     private static final int MAX_SHARED_NOTE_LENGTH = 3200;
     private static final int MAX_SHARED_NOTE_TITLE_LENGTH = 160;
+    private static final int MAX_MAPS_DESTINATION_LENGTH = 500;
     private static final int MAX_SMS_LENGTH = 5000;
     private static final int MAX_RECIPIENT_NAME_LENGTH = 160;
     private static volatile PhoneContactsPlugin activePlugin;
@@ -384,6 +387,96 @@ public class PhoneContactsPlugin extends Plugin {
             call.reject(
                 "Samsung Notes konnte gerade nicht geöffnet werden.",
                 "SAMSUNG_NOTES_OPEN_FAILED",
+                error
+            );
+        }
+    }
+
+    @PluginMethod
+    public void getGoogleMapsStatus(PluginCall call) {
+        boolean nativeAppAvailable = getContext()
+            .getPackageManager()
+            .getLaunchIntentForPackage(GOOGLE_MAPS_PACKAGE) != null;
+        JSObject result = new JSObject();
+        result.put("available", true);
+        result.put("nativeAppAvailable", nativeAppAvailable);
+        result.put("packageName", GOOGLE_MAPS_PACKAGE);
+        result.put("navigationIntentSupported", true);
+        result.put("browserFallbackSupported", true);
+        result.put("apiKeyRequired", false);
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void openGoogleMaps(PluginCall call) {
+        String destination = call.getString("destination", "").trim();
+        if (destination.length() > MAX_MAPS_DESTINATION_LENGTH) {
+            call.reject(
+                "Das Navigationsziel ist zu lang.",
+                "GOOGLE_MAPS_DESTINATION_TOO_LONG"
+            );
+            return;
+        }
+
+        Activity activity = getActivity();
+        if (activity == null) {
+            call.reject(
+                "Google Maps konnte gerade nicht geöffnet werden.",
+                "GOOGLE_MAPS_ACTIVITY_UNAVAILABLE"
+            );
+            return;
+        }
+
+        Intent nativeIntent;
+        Intent browserIntent;
+        if (destination.isEmpty()) {
+            nativeIntent = new Intent(
+                Intent.ACTION_VIEW,
+                Uri.parse("https://www.google.com/maps")
+            );
+        } else {
+            nativeIntent = new Intent(
+                Intent.ACTION_VIEW,
+                Uri.parse(
+                    "google.navigation:q=" +
+                    Uri.encode(destination) +
+                    "&mode=d"
+                )
+            );
+        }
+        nativeIntent.setPackage(GOOGLE_MAPS_PACKAGE);
+
+        browserIntent = new Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse(
+                destination.isEmpty()
+                    ? "https://www.google.com/maps"
+                    : "https://www.google.com/maps/dir/?api=1&destination=" +
+                        Uri.encode(destination)
+            )
+        );
+
+        boolean nativeNavigation = true;
+        try {
+            try {
+                activity.startActivity(nativeIntent);
+            } catch (ActivityNotFoundException | SecurityException nativeError) {
+                nativeNavigation = false;
+                activity.startActivity(browserIntent);
+            }
+            JSObject result = new JSObject();
+            result.put("opened", true);
+            result.put("destination", destination);
+            result.put("nativeNavigation", nativeNavigation);
+            result.put(
+                "packageName",
+                nativeNavigation ? GOOGLE_MAPS_PACKAGE : ""
+            );
+            call.resolve(result);
+        } catch (ActivityNotFoundException | SecurityException error) {
+            call.reject(
+                "Google Maps konnte gerade nicht geöffnet werden.",
+                "GOOGLE_MAPS_OPEN_FAILED",
                 error
             );
         }

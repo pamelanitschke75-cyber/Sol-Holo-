@@ -65,23 +65,28 @@ test("cancellation language is explicit", () => {
   assert.equal(isCalendarCancellation("Nein"), false);
 });
 
-test("server previews first, then requires the bound S23 only for saving", async () => {
+test("the calendar command is the approval and only the trusted app binding may be requested", async () => {
   const server = await readFile(
     new URL("../server.mjs", import.meta.url),
     "utf8"
   );
   const handler = server.slice(
     server.indexOf("async function handleCalendarWriteRequest"),
-    server.indexOf("\n/*\n  ==========================================================\n  VOICE SETUP", server.indexOf("async function handleCalendarWriteRequest"))
+    server.indexOf(
+      "\n/*\n  ==========================================================\n  VOICE SETUP",
+      server.indexOf("async function handleCalendarWriteRequest")
+    )
   );
   assert.ok(handler.length > 0);
   assert.ok(
     handler.indexOf("pendingCalendarActions.remember") <
       handler.indexOf("if (!trustedAppSession)")
   );
-  assert.match(handler, /confirmationRequired: true/u);
+  assert.doesNotMatch(handler, /confirmationRequired: true/u);
+  assert.match(handler, /dein ausdrücklicher Kalenderauftrag gilt bereits als Freigabe/u);
   assert.match(handler, /pendingCalendarActions\.peek\(scope\)/u);
   assert.match(handler, /needsTrustedAppSession: true/u);
-  assert.match(handler, /Google Calendar hat bestätigt/u);
+  assert.match(handler, /return commitCalendarAction/u);
+  assert.match(server, /Google Calendar hat bestätigt/u);
   assert.doesNotMatch(handler, /parseCalendarCommand\(\s*message[\s\S]*isCalendarConfirmation/u);
 });

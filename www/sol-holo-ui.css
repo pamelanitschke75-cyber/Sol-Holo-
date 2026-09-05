@@ -2127,6 +2127,27 @@ textarea{
   font-size:15px;
 }
 
+#chatView .messageSources{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin-top:10px;
+}
+
+#chatView .messageSources a{
+  max-width:100%;
+  overflow:hidden;
+  padding:5px 9px;
+  border:1px solid rgba(102,239,255,.25);
+  border-radius:999px;
+  color:var(--sol-cyan);
+  font-size:12px;
+  line-height:1.25;
+  text-decoration:none;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
 #chatView .user-message{
   margin-left:20px;
 }
