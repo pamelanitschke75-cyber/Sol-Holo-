@@ -42,7 +42,10 @@ test("explizite Speicheraufträge und benannte Listen werden lokal erkannt", () 
     functionSource("normalizeNoteSearchText", "noteSecurityWarning"),
     functionSource("cleanExplicitSaveContent", "explicitListTitle"),
     functionSource("explicitListTitle", "savedContentCategory"),
-    functionSource("savedContentCategory", "explicitSaveRequestFromMessage"),
+    functionSource("savedContentCategory", "calendarWriteDestinationFromMessage"),
+    functionSource("calendarWriteDestinationFromMessage", "liveWeatherRequestFromMessage"),
+    functionSource("liveWeatherRequestFromMessage", "googleMapsDestinationFromMessage"),
+    functionSource("googleMapsDestinationFromMessage", "explicitSaveRequestFromMessage"),
     functionSource("explicitSaveRequestFromMessage", "noteTitleFromText"),
     "return explicitSaveRequestFromMessage;"
   ].join("\n");
@@ -74,6 +77,21 @@ test("explizite Speicheraufträge und benannte Listen werden lokal erkannt", () 
     extract("Schreibe Salz in Samsung Notes"),
     null,
     "Ein ausdrücklich genanntes Samsung-Notes-Ziel bleibt beim Notes-Adapter"
+  );
+  assert.equal(
+    extract("Trag morgen um 9 Uhr Zahnarzt in den Kalender ein"),
+    null,
+    "Ein Kalenderauftrag muss den echten Google-Calendar-Weg erreichen"
+  );
+  assert.equal(
+    extract("Schreib für morgen bitte 13 Uhr auf, dass wir zu meinen Eltern fahren"),
+    null,
+    "Datum, Uhrzeit und Aufschreibauftrag müssen auch ohne das Wort Kalender erkannt werden"
+  );
+  assert.equal(
+    extract("Notiere Zucker"),
+    null,
+    "Ein Notizauftrag muss den Notes-Adapter erreichen"
   );
 });
 
@@ -137,6 +155,21 @@ test("Sprachaufträge verwenden denselben lokalen Speicherweg", () => {
     ui.indexOf("function getHeyHoSolPlugin")
   );
   assert.match(realtimeHandler, /explicitSaveRequestFromMessage/u);
-  assert.match(html, /LOKALES_SPEICHERERGEBNIS/u);
-  assert.match(html, /sol-holo-ui\.js\?v=43/u);
+  assert.match(html, /LOKALES_NOTIZERGEBNIS/u);
+  assert.match(html, /LOKALES_NAVIGATIONSERGEBNIS/u);
+  assert.match(html, /sol-holo-ui\.js\?v=44/u);
+});
+
+test("Google Maps versteht natürliche Text- und Sprachziele", () => {
+  const source = [
+    functionSource("cleanExplicitSaveContent", "explicitListTitle"),
+    functionSource("googleMapsDestinationFromMessage", "explicitSaveRequestFromMessage"),
+    "return googleMapsDestinationFromMessage;"
+  ].join("\n");
+  const extract = new Function(source)();
+
+  assert.equal(extract("Sol, navigiere mich zum Kölner Dom"), "Kölner Dom");
+  assert.equal(extract("Öffne Google Maps"), "");
+  assert.equal(extract("Wie komme ich nach Hamburg?"), "Hamburg");
+  assert.equal(extract("Erzähl mir etwas über Hamburg"), null);
 });
