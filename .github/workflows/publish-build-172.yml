@@ -1,0 +1,52 @@
+name: Publish Pam's Holo Build 172
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/publish-build-172.yml
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download verified Build 172 artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 33987110828 \
+            --repo "${{ github.repository }}" \
+            --name "Pams-Holo-Android-update" \
+            --dir artifact
+
+      - name: Prepare APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk_path="$(find artifact -type f -name '*.apk' -print -quit)"
+          test -n "$apk_path"
+          cp "$apk_path" "Pams-Holo-Update-Build-172-Raffituekke-Alltagsaktionen.apk"
+          sha256sum "Pams-Holo-Update-Build-172-Raffituekke-Alltagsaktionen.apk"
+
+      - name: Publish direct APK download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="build-172-raffituekke-alltagsaktionen"
+          asset="Pams-Holo-Update-Build-172-Raffituekke-Alltagsaktionen.apk"
+          if gh release view "$tag" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release upload "$tag" "$asset" --clobber --repo "${{ github.repository }}"
+          else
+            gh release create "$tag" "$asset" \
+              --repo "${{ github.repository }}" \
+              --target "f4db6774c6be991a7252c39c8539564fe040e812" \
+              --title "Pam's Holo – Raffitükke-Alltagsaktionen Build 172" \
+              --notes "Originalsigniertes Android-Update aus dem erfolgreichen main-Build #172. Sol Holo erkennt natürliche Kalender-, Gmail-, Wetter-, Öffnungszeiten-, Maps- und Notizaufträge und nutzt dafür nur die bereits vorhandenen Verbindungen. Installation als Update; vorhandene App nicht deinstallieren."
+          fi
