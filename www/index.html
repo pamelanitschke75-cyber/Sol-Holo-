@@ -1558,7 +1558,7 @@ MOBIL
 }
 
 </style>
-<link rel="stylesheet" href="./sol-holo-ui.css?v=37">
+<link rel="stylesheet" href="./sol-holo-ui.css?v=38">
 <link rel="stylesheet" href="./sol-holo-wow.css?v=5">
 <link rel="stylesheet" href="./sol-holo-chat-115.css?v=1">
 <link rel="stylesheet" href="./sol-holo-backup.css?v=1">
@@ -6712,7 +6712,8 @@ function addMessage(
   className,
   imageDataUrl = null,
   mediaKind = "image",
-  deferScroll = false
+  deferScroll = false,
+  sources = []
 ){
 
   const element =
@@ -6762,6 +6763,72 @@ function addMessage(
 
     element.appendChild(
       content
+    );
+  }
+
+
+  const safeSources =
+    Array.isArray(sources)
+      ? sources
+          .map((source) => ({
+            url:String(source?.url || "").trim(),
+            title:String(source?.title || "Wetterquelle").trim()
+          }))
+          .filter((source) => /^https:\/\//i.test(source.url))
+          .slice(0, 3)
+      : [];
+
+
+  if(
+    safeSources.length >
+    0
+  ){
+
+    const sourceList =
+      document.createElement(
+        "div"
+      );
+
+
+    sourceList.className =
+      "messageSources";
+
+
+    safeSources.forEach(
+      (source, index) => {
+
+        const link =
+          document.createElement(
+            "a"
+          );
+
+
+        link.href =
+          source.url;
+
+
+        link.target =
+          "_blank";
+
+
+        link.rel =
+          "noopener noreferrer";
+
+
+        link.textContent =
+          source.title ||
+          `Wetterquelle ${index + 1}`;
+
+
+        sourceList.appendChild(
+          link
+        );
+      }
+    );
+
+
+    element.appendChild(
+      sourceList
     );
   }
 
@@ -7804,8 +7871,12 @@ async function sendMessage(
 
 
     if(
-      data?.calendar
-        ?.needsTrustedAppSession &&
+      (
+        data?.calendar
+          ?.needsTrustedAppSession ||
+        data?.gmail
+          ?.needsTrustedAppSession
+      ) &&
       typeof window.SolHoloTrustedSession
         ?.ensure ===
         "function"
@@ -7826,13 +7897,61 @@ async function sendMessage(
         trustedSession?.trusted
       ){
 
-        await sendMessage(
-          message,
-          fulltimeEventId
-        );
+        const retryPath =
+          data?.calendar
+            ?.needsTrustedAppSession
+            ? "/calendar/action"
+            : "/gmail/action";
 
 
-        return;
+        const retryResponse =
+          await fetch(
+            `${BACKEND_URL}${retryPath}`,
+            {
+              method:"POST",
+              headers:
+                backendJsonHeaders(),
+              body:
+                JSON.stringify({
+                  message,
+                  selectedSpeakerId,
+                  ownerId:
+                    identity.ownerId,
+                  conversationId,
+                  fulltimeEventId
+                })
+            }
+          );
+
+
+        const retryText =
+          await retryResponse.text();
+
+
+        let retryData = null;
+
+
+        try{
+          retryData =
+            JSON.parse(
+              retryText
+            );
+        }catch{
+          throw new Error(
+            "Die persönliche Aktion hat keine gültige Antwort geliefert."
+          );
+        }
+
+
+        if(!retryResponse.ok){
+          throw new Error(
+            retryData?.error ||
+            "Die persönliche Aktion konnte nicht ausgeführt werden."
+          );
+        }
+
+
+        data = retryData;
       }
     }
 
@@ -7880,7 +7999,13 @@ async function sendMessage(
     addMessage(
       "Sol",
       answer,
-      "sol-message"
+      "sol-message",
+      null,
+      "image",
+      false,
+      data?.weather?.sources ||
+        data?.web?.sources ||
+        []
     );
 
 
@@ -8041,6 +8166,114 @@ memoryButton.addEventListener(
 );
 
 
+function cancelRealtimeResponse(){
+
+  if(
+    !dc ||
+    dc.readyState !==
+      "open"
+  ){
+
+    return;
+  }
+
+
+  try{
+    dc.send(
+      JSON.stringify({
+        type:"response.cancel"
+      })
+    );
+  }catch{}
+}
+
+
+function speakExecutedRealtimeResult(
+  marker,
+  answer
+){
+
+  if(
+    !dc ||
+    dc.readyState !==
+      "open"
+  ){
+
+    return;
+  }
+
+
+  cancelRealtimeResponse();
+
+
+  dc.send(
+    JSON.stringify({
+      type:"conversation.item.create",
+      item:{
+        type:"message",
+        role:"user",
+        content:[{
+          type:"input_text",
+          text:
+            `${marker} ${answer}`
+        }]
+      }
+    })
+  );
+
+
+  dc.send(
+    JSON.stringify({
+      type:"response.create"
+    })
+  );
+}
+
+
+function showExecutedRealtimeResult({
+  marker,
+  result,
+  fallback,
+  successStatus,
+  failureStatus
+}){
+
+  const answer =
+    String(
+      result?.answer ||
+      fallback ||
+      "Der Auftrag wurde geprüft."
+    ).trim();
+
+
+  addMessage(
+    "Sol",
+    answer,
+    "sol-message",
+    null,
+    "image",
+    false,
+    result?.sources || []
+  );
+
+
+  chatStatus.textContent =
+    result?.success
+      ? successStatus
+      : failureStatus;
+
+
+  speakExecutedRealtimeResult(
+    marker,
+    answer
+  );
+}
+
+
+let realtimeWeatherPlacePending =
+  false;
+
+
 async function sendLiveTranscriptToMemory(
   transcript,
   role = "user",
@@ -8072,6 +8305,34 @@ async function sendLiveTranscriptToMemory(
   ){
 
     return;
+  }
+
+
+  const isCalendarCommand =
+    role === "user" &&
+    Boolean(
+      window.isSolHoloCalendarWriteRequest
+        ?.(cleanTranscript)
+    );
+
+
+  const isWeatherCommand =
+    role === "user" &&
+    (
+      realtimeWeatherPlacePending ||
+      Boolean(
+        window.isSolHoloLiveWeatherRequest
+          ?.(cleanTranscript)
+      )
+    );
+
+
+  if(
+    isCalendarCommand ||
+    isWeatherCommand
+  ){
+
+    cancelRealtimeResponse();
   }
 
 
@@ -8154,6 +8415,151 @@ async function sendLiveTranscriptToMemory(
           : "🧠 Vollzeitgedächtnis konnte diesen Beitrag nicht bestätigen.";
     }
 
+
+    if(
+      role === "user" &&
+      data?.calendar?.handled
+    ){
+
+      let calendarResult =
+        data.calendar;
+
+
+      if(
+        calendarResult
+          ?.needsTrustedAppSession &&
+        typeof window.SolHoloTrustedSession
+          ?.ensure ===
+          "function"
+      ){
+
+        chatStatus.textContent =
+          "Sichere App-Sitzung wird einmal bestätigt …";
+
+
+        const trustedSession =
+          await window.SolHoloTrustedSession
+            .ensure({
+              interactive:true
+            });
+
+
+        if(
+          trustedSession?.trusted
+        ){
+
+          const retryResponse =
+            await fetch(
+              `${BACKEND_URL}/calendar/action`,
+              {
+                method:"POST",
+                headers:
+                  backendJsonHeaders(),
+                body:
+                  JSON.stringify({
+                    message:
+                      cleanTranscript,
+                    selectedSpeakerId,
+                    ownerId:
+                      identity.ownerId,
+                    conversationId
+                  })
+              }
+            );
+
+
+          const retryData =
+            await retryResponse.json();
+
+
+          if(
+            !retryResponse.ok
+          ){
+
+            throw new Error(
+              retryData?.error ||
+              "Der Kalendereintrag konnte nicht geprüft werden."
+            );
+          }
+
+
+          calendarResult =
+            retryData?.calendar ||
+            calendarResult;
+        }
+      }
+
+
+      showExecutedRealtimeResult({
+        marker:
+          "[LOKALES_KALENDERERGEBNIS]",
+        result:
+          calendarResult,
+        fallback:
+          "Der Kalenderauftrag wurde geprüft.",
+        successStatus:
+          "Google Calendar hat den Eintrag bestätigt.",
+        failureStatus:
+          "Google Calendar hat keinen Eintrag bestätigt."
+      });
+
+
+      return;
+    }
+
+
+    if(
+      role === "user" &&
+      data?.weather?.handled
+    ){
+
+      realtimeWeatherPlacePending =
+        Boolean(
+          data.weather?.needsPlace
+        );
+
+      showExecutedRealtimeResult({
+        marker:
+          "[LOKALES_WETTERERGEBNIS]",
+        result:
+          data.weather,
+        fallback:
+          "Das Live-Wetter konnte gerade nicht geprüft werden.",
+        successStatus:
+          "Live-Wetter über OpenAI geprüft.",
+        failureStatus:
+          data.weather?.needsPlace
+            ? "Für das Live-Wetter fehlt noch der Ort."
+            : "Live-Wetter konnte nicht bestätigt werden."
+      });
+
+
+      return;
+    }
+
+
+    if(
+      role === "user" &&
+      (
+        isCalendarCommand ||
+        isWeatherCommand
+      ) &&
+      dc &&
+      dc.readyState ===
+        "open"
+    ){
+
+      realtimeWeatherPlacePending =
+        false;
+
+
+      dc.send(
+        JSON.stringify({
+          type:"response.create"
+        })
+      );
+    }
+
   }catch(
     error
   ){
@@ -8220,43 +8626,18 @@ async function handleRealtimeLocalNoteTranscript(
       );
 
 
-    if(
-      dc &&
-      dc.readyState ===
-        "open"
-    ){
-
-      try{
-        dc.send(
-          JSON.stringify({
-            type:"response.cancel"
-          })
-        );
-      }catch{}
+    const mapsDestination =
+      window.extractSolHoloGoogleMapsDestination
+        ?.(transcript);
 
 
-      dc.send(
-        JSON.stringify({
-          type:"conversation.item.create",
-          item:{
-            type:"message",
-            role:"user",
-            content:[{
-              type:"input_text",
-              text:
-                `[LOKALES_SPEICHERERGEBNIS] ${localAnswer}`
-            }]
-          }
-        })
-      );
-
-
-      dc.send(
-        JSON.stringify({
-          type:"response.create"
-        })
-      );
-    }
+    speakExecutedRealtimeResult(
+      mapsDestination !== null &&
+      mapsDestination !== undefined
+        ? "[LOKALES_NAVIGATIONSERGEBNIS]"
+        : "[LOKALES_NOTIZERGEBNIS]",
+      localAnswer
+    );
 
 
     return true;
@@ -8503,6 +8884,185 @@ async function searchRealtimePersonalMemory(
   );
 }
 
+
+async function searchRealtimeLiveWeb(
+  query
+){
+
+  const cleanQuery =
+    String(
+      query ||
+      ""
+    ).trim();
+
+
+  if(!cleanQuery){
+    return {
+      answer:
+        "Keine aktuelle Suchfrage erhalten.",
+      sources:[]
+    };
+  }
+
+
+  if(!realtimeMemoryToken){
+    return {
+      answer:
+        "Die Live-Suche ist in dieser Realtime-Sitzung nicht autorisiert.",
+      sources:[]
+    };
+  }
+
+
+  const response =
+    await fetch(
+      `${BACKEND_URL}/realtime/web-search`,
+      {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "Authorization":`Bearer ${realtimeMemoryToken}`
+        },
+        body:JSON.stringify({
+          query:cleanQuery
+        })
+      }
+    );
+
+
+  const responseText =
+    await response.text();
+
+
+  let data = null;
+
+
+  try{
+    data =
+      JSON.parse(
+        responseText
+      );
+  }catch{
+    throw new Error(
+      "Die Live-Suche hat keine gültige Antwort geliefert."
+    );
+  }
+
+
+  if(!response.ok){
+    throw new Error(
+      data?.error ||
+      "Die aktuelle Information konnte nicht geprüft werden."
+    );
+  }
+
+
+  return {
+    answer:String(
+      data?.answer ||
+      "Keine verlässliche aktuelle Information gefunden."
+    ),
+    sources:Array.isArray(data?.sources)
+      ? data.sources
+      : []
+  };
+}
+
+
+async function searchRealtimeGmail(
+  request
+){
+
+  const cleanRequest =
+    String(
+      request ||
+      "Habe ich eine wichtige Mail bekommen?"
+    ).trim();
+
+
+  const identity =
+    requireSelectedIdentity();
+
+
+  if(!identity){
+    return "Die feste persönliche Holo-ID ist nicht ausgewählt. Es wurden keine Mails gelesen.";
+  }
+
+
+  const ensure =
+    window.SolHoloTrustedSession
+      ?.ensure;
+
+
+  if(typeof ensure !== "function"){
+    return "Die sichere persönliche App-Sitzung ist nicht verfügbar. Es wurden keine Mails gelesen.";
+  }
+
+
+  const trustedSession =
+    await ensure({
+      interactive:true
+    });
+
+
+  if(!trustedSession?.trusted){
+    return "Die sichere persönliche App-Sitzung wurde nicht bestätigt. Es wurden keine Mails gelesen.";
+  }
+
+
+  const response =
+    await fetch(
+      `${BACKEND_URL}/gmail/action`,
+      {
+        method:"POST",
+        headers:
+          backendJsonHeaders(),
+        body:
+          JSON.stringify({
+            message:
+              cleanRequest,
+            selectedSpeakerId,
+            ownerId:
+              identity.ownerId,
+            conversationId
+          })
+      }
+    );
+
+
+  const responseText =
+    await response.text();
+
+
+  let data = null;
+
+
+  try{
+    data =
+      JSON.parse(
+        responseText
+      );
+  }catch{
+    throw new Error(
+      "Die Gmail-Prüfung hat keine gültige Antwort geliefert."
+    );
+  }
+
+
+  if(!response.ok){
+    throw new Error(
+      data?.error ||
+      "Der Gmail-Posteingang konnte nicht geprüft werden."
+    );
+  }
+
+
+  return String(
+    data?.answer ||
+    "Keine verlässliche Gmail-Rückmeldung erhalten."
+  );
+}
+
 const REALTIME_NOTE_TOOL_NAMES = new Set([
   "create_personal_note",
   "search_personal_notes",
@@ -8512,6 +9072,8 @@ const REALTIME_NOTE_TOOL_NAMES = new Set([
 
 const REALTIME_LOCAL_TOOL_NAMES = new Set([
   "search_personal_memory",
+  "search_live_web",
+  "search_gmail",
   "search_phone_contact",
   "start_phone_call",
   "prepare_sms",
@@ -8573,6 +9135,28 @@ async function handleRealtimeMemoryToolCall(
       output = await searchRealtimePersonalMemory(
         String(parsedArguments?.query || "").trim()
       );
+    }else if(toolCall?.name === "search_live_web"){
+      const result = await searchRealtimeLiveWeb(
+        String(parsedArguments?.query || "").trim()
+      );
+      output = result.answer;
+      addMessage(
+        "Sol",
+        result.answer,
+        "sol-message",
+        null,
+        "image",
+        false,
+        result.sources
+      );
+      chatStatus.textContent =
+        "Aktuelle Information live geprüft.";
+    }else if(toolCall?.name === "search_gmail"){
+      output = await searchRealtimeGmail(
+        String(parsedArguments?.request || "").trim()
+      );
+      chatStatus.textContent =
+        "Gmail-Posteingang sicher und nur lesend geprüft.";
     }else if(REALTIME_NOTE_TOOL_NAMES.has(toolCall?.name)){
       if(typeof window.executeSolHoloNotesTool === "function"){
         const result = await window.executeSolHoloNotesTool(
@@ -8617,6 +9201,10 @@ async function handleRealtimeMemoryToolCall(
     console.error("Realtime Tool Fehler:", error);
     output = toolCall?.name === "search_personal_memory"
       ? "Die persönliche Gedächtnissuche ist gerade technisch fehlgeschlagen. Erfinde keine Erinnerung."
+      : toolCall?.name === "search_live_web"
+        ? "Die aktuelle Information konnte gerade nicht zuverlässig geprüft werden. Erfinde keine Live-Daten."
+      : toolCall?.name === "search_gmail"
+        ? "Der persönliche Gmail-Posteingang konnte gerade nicht sicher geprüft werden. Erfinde keine Mail."
       : REALTIME_NOTE_TOOL_NAMES.has(toolCall?.name)
         ? "Die Samsung-Notes-Übergabe ist gerade technisch fehlgeschlagen. Behaupte nicht, dass eine Notiz gespeichert wurde."
       : toolCall?.name === "read_health_snapshot"
@@ -9616,7 +10204,7 @@ if(
 
 </script>
 
-<script src="./sol-holo-ui.js?v=43"></script>
+<script src="./sol-holo-ui.js?v=44"></script>
 <script type="module" src="./app-lock-bootstrap.mjs?v=4"></script>
 <script type="module" src="./consent-ui-bootstrap.mjs?v=2"></script>
 <script type="module" src="./sol-holo-backup.mjs?v=1"></script>
