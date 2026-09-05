@@ -26,6 +26,8 @@ Das Gate akzeptiert keine freie Texteingabe, keine echten Daten, keinen anderen 
 
 Es besteht weiterhin **keine technische Verbindung** zur produktiven Sol-Holo-App; geprüft wird nur der interne Laborvertrag.
 
+Der [GitHub-Actions-Lauf #4](https://github.com/pamelanitschke75-cyber/Sol-Holo-/actions/runs/33966629551) bestätigte die Vorschau in der echten Docker-Sandbox: ein eigener Lesezugriff, ein strukturiertes Vorschauergebnis, keine externe Aktion, kein Schreiben, kein Bereichswechsel und weiterhin menschliche Prüfung. Alle bisherigen 18 Rechteprüfungen der sechs Worker blieben ebenfalls grün.
+
 ## Harte Grenze
 
 ```text
@@ -93,7 +95,7 @@ Die ursprünglichen lokalen Tooltests liefen mit demselben Rechteprofil und eine
 
 1. **Phase 0 – Nullzugriff:** Konfiguration, Boot und Außenruhe prüfen. *(abgeschlossen)*
 2. **Phase 1 – Hand, Fuß, Sicherheit und Medizin:** sechs getrennte Lese-Worker mit künstlichen Testdaten. *(von Pam nach grünen Policy- und Containerprüfungen abgeschlossen)*
-3. **Phase 2 – Vorschau:** der Alltag-Worker erzeugt für genau einen manuell freigegebenen fiktiven Test einen Vorschlag, führt aber nichts extern aus. *(im Draft-Prüflauf)*
+3. **Phase 2 – Vorschau:** der Alltag-Worker erzeugt für genau einen manuell freigegebenen fiktiven Test einen Vorschlag, führt aber nichts extern aus. *(technischer Pflichtlauf bestanden; Draft bleibt offen)*
 4. **Phase 3 – Einzelaktion mit Freigabe:** genau eine klar begrenzte Aktion nach bewusster Bestätigung.
 5. **Phase 4 – Sol-Holo-Adapter:** erst nach gesonderter Prüfung hinter einem standardmäßig ausgeschalteten Feature-Flag.
 

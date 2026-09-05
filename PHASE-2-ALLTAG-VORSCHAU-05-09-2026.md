@@ -1,7 +1,7 @@
 # Phase 2 – Alltag-Worker als sichere Vorschau
 
 **Datum:** 05.09.2026  
-**Status:** im neuen Draft-PR technisch zu prüfen; nicht produktiv  
+**Status:** technischer Pflichtlauf bestanden; Draft und nicht produktiv  
 **Ausgangsbasis:** Phase-1-Grundgerüst in `main` bei `8a5818adae982a464627b52253bc0b1775a975a0`
 
 ## Pams Freigabe
@@ -31,6 +31,19 @@ Ein standardmäßig ausgeschalteter Feature-Schalter muss für den isolierten Pr
 - Schreiben und externe Aktion bleiben technisch gesperrt;
 - das Ergebnis muss ausdrücklich bestätigen, dass keine Aktion, kein Schreiben und kein Bereichswechsel stattgefunden hat;
 - produktiver Sol-Holo-Adapter, Backend und Android-App bleiben unverändert und ausgeschaltet.
+
+## Ergebnis des Pflichtlaufs
+
+Der [GitHub-Actions-Lauf #4](https://github.com/pamelanitschke75-cyber/Sol-Holo-/actions/runs/33966629551) bestätigte den ersten echten Phase-2-Vorschautest:
+
+- Alltag-Gate und zehn Ablehnungsfälle bestanden;
+- OpenClaw-Konfiguration gültig, keine Warnung;
+- Security Audit weiterhin `0` kritisch und `0` Warnungen;
+- `worker-alltag` las genau die eine fiktive Quelle in seiner echten Docker-Sandbox;
+- ein strukturiertes Vorschauergebnis wurde erzeugt;
+- keine externe Aktion, kein Schreiben, kein Bereichswechsel; menschliche Prüfung bleibt Pflicht;
+- sämtliche bisherigen sechs Eigenlese-, sechs Fremdlese- und sechs Schreibprüfungen blieben grün;
+- weiterhin genau sechs gehärtete Container, keine zusätzliche Ausführungsinstanz.
 
 ## Bedeutung von „gestartet“
 
