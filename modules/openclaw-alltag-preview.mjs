@@ -23,6 +23,7 @@ const MAX_OPENAI_RESPONSE_BYTES = 32 * 1024;
 const LOOPBACK_EXECUTOR_MODE = "loopback";
 const OPENAI_EXECUTOR_MODE = "openai";
 const DEFAULT_OPENAI_MODEL = "gpt-5";
+const DEFAULT_OPENAI_TIMEOUT_MS = 75_000;
 const FIXED_ALLTAG_PREVIEW_SOURCE = fs.readFileSync(
   new URL(
     "../openclaw-lab/workspaces/alltag/testdaten/alltag-fiktiv.md",
@@ -446,7 +447,7 @@ async function resolveOpenAIClient(openaiClient) {
 export function createOpenAIAlltagPreviewExecutor({
   openaiClient,
   model = DEFAULT_OPENAI_MODEL,
-  timeoutMs = 30_000
+  timeoutMs = DEFAULT_OPENAI_TIMEOUT_MS
 } = {}) {
   if (model !== DEFAULT_OPENAI_MODEL) {
     refuse(
@@ -466,6 +467,7 @@ export function createOpenAIAlltagPreviewExecutor({
           model,
           store: false,
           max_output_tokens: 900,
+          reasoning: { effort: "minimal" },
           instructions: [
             "Du bist ausschließlich der nicht produktive worker-alltag im Sol-Holo-Labor.",
             "Die Quelle ist vollständig erfunden und gehört zu keiner realen Person.",
@@ -497,6 +499,7 @@ export function createOpenAIAlltagPreviewExecutor({
     } catch (error) {
       if (
         error?.name === "AbortError" ||
+        error?.name === "APIConnectionTimeoutError" ||
         error?.code === "ETIMEDOUT" ||
         error?.code === "ECONNABORTED"
       ) {
