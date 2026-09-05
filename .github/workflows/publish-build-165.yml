@@ -1,0 +1,52 @@
+name: Publish Pam's Holo Build 165
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/publish-build-165.yml
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download verified Build 165 artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 33980294695 \
+            --repo "${{ github.repository }}" \
+            --name "Pams-Holo-Android-update" \
+            --dir artifact
+
+      - name: Prepare APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk_path="$(find artifact -type f -name '*.apk' -print -quit)"
+          test -n "$apk_path"
+          cp "$apk_path" "Pams-Holo-Update-Build-165-Speichern-auf-Zuruf.apk"
+          sha256sum "Pams-Holo-Update-Build-165-Speichern-auf-Zuruf.apk"
+
+      - name: Publish direct APK download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="build-165-speichern-auf-zuruf"
+          asset="Pams-Holo-Update-Build-165-Speichern-auf-Zuruf.apk"
+          if gh release view "$tag" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release upload "$tag" "$asset" --clobber --repo "${{ github.repository }}"
+          else
+            gh release create "$tag" "$asset" \
+              --repo "${{ github.repository }}" \
+              --target "b7f5a22ba63df3f48450491fb961787ade648754" \
+              --title "Pam's Holo – Speichern auf Zuruf Build 165" \
+              --notes "Originalsigniertes Android-Update aus dem erfolgreichen main-Build #165. Installation als Update; vorhandene App nicht deinstallieren."
+          fi
