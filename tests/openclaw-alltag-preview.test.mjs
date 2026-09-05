@@ -6,9 +6,11 @@ import test from "node:test";
 import {
   OpenClawAlltagPreviewError,
   SOL_HOLO_ALLTAG_PREVIEW_CONFIRMATION,
+  alltagPreviewEnabledForEnvironment,
   buildFixedAlltagPreviewTask,
   createLoopbackAlltagPreviewExecutor,
   createOpenClawAlltagPreviewService,
+  createOpenAIAlltagPreviewExecutor,
   openClawAlltagPreviewHttpStatus,
   requireLoopbackAlltagPreviewBridgeUrl
 } from "../modules/openclaw-alltag-preview.mjs";
@@ -31,6 +33,15 @@ const connectionManifest = JSON.parse(
     "utf8"
   )
 );
+const openAIConnectionManifest = JSON.parse(
+  fs.readFileSync(
+    new URL(
+      "../openclaw-lab/phase2/sol-holo-openai-alltag-preview.manifest.json",
+      import.meta.url
+    ),
+    "utf8"
+  )
+);
 const bridgeSource = fs.readFileSync(
   new URL(
     "../openclaw-lab/phase2/alltag-preview-bridge.mjs",
@@ -45,6 +56,14 @@ function uiRequest(overrides = {}) {
     ownerId: "pam-sol",
     selectedSpeakerId: "pam",
     ...overrides
+  };
+}
+
+function fixedDispatch() {
+  return {
+    agent_id: "worker-alltag",
+    session_scope: "single-task",
+    source_paths: ["testdaten/alltag-fiktiv.md"]
   };
 }
 
@@ -81,6 +100,23 @@ test("the visible connection manifest keeps every productive surface off", () =>
   assert.ok(connectionManifest.still_forbidden.includes("productive_actions"));
 });
 
+test("the OpenAI path adds no provider and stays independently disabled", () => {
+  assert.equal(
+    openAIConnectionManifest.status,
+    "implemented-disabled-by-default"
+  );
+  assert.equal(openAIConnectionManifest.productive, false);
+  assert.equal(openAIConnectionManifest.new_provider_required, false);
+  assert.equal(openAIConnectionManifest.new_service_required, false);
+  assert.equal(openAIConnectionManifest.runtime.kind, "existing-openai-api");
+  assert.equal(openAIConnectionManifest.runtime.tools_enabled, false);
+  assert.equal(openAIConnectionManifest.runtime.store_response, false);
+  assert.equal(openAIConnectionManifest.input.personal_data, false);
+  assert.equal(openAIConnectionManifest.input.free_text, false);
+  assert.equal(openAIConnectionManifest.output.human_review_required, true);
+  assert.equal(openAIConnectionManifest.docker_proof.live_runtime_claimed, false);
+});
+
 test("the bridge does not forward its token or ambient server secrets", () => {
   const allowlist = bridgeSource.match(
     /const workerEnvironmentKeys = \[[\s\S]*?\];/u
@@ -107,12 +143,213 @@ test("the Sol Holo preview is disabled by default at the service gate", async ()
   assert.equal(executions, 0);
   assert.deepEqual(service.status(), {
     enabled: false,
+    executorMode: "loopback",
     worker: "worker-alltag",
     dataClass: "synthetic",
     capability: "read",
     productive: false,
     automaticRouting: false
   });
+});
+
+test("the OpenAI executor needs its own third feature gate", () => {
+  const shared = {
+    OPENCLAW_SOL_HOLO_ALLTAG_PREVIEW_ENABLED: "1"
+  };
+
+  assert.equal(
+    alltagPreviewEnabledForEnvironment({
+      executorMode: "openai",
+      environment: shared
+    }),
+    false
+  );
+  assert.equal(
+    alltagPreviewEnabledForEnvironment({
+      executorMode: "openai",
+      environment: {
+        ...shared,
+        OPENCLAW_OPENAI_ALLTAG_PREVIEW_ENABLED: "1"
+      }
+    }),
+    true
+  );
+  assert.equal(
+    alltagPreviewEnabledForEnvironment({
+      executorMode: "loopback",
+      environment: {
+        ...shared,
+        OPENCLAW_LAB_ALLTAG_PREVIEW_ENABLED: "1"
+      }
+    }),
+    true
+  );
+  assert.equal(
+    alltagPreviewEnabledForEnvironment({
+      executorMode: "remote-server",
+      environment: {
+        ...shared,
+        OPENCLAW_OPENAI_ALLTAG_PREVIEW_ENABLED: "1",
+        OPENCLAW_LAB_ALLTAG_PREVIEW_ENABLED: "1"
+      }
+    }),
+    false
+  );
+});
+
+test("an unknown executor mode cannot be forced on", async () => {
+  let executions = 0;
+  const service = createOpenClawAlltagPreviewService({
+    enabled: true,
+    executorMode: "remote-server",
+    executor: async () => {
+      executions += 1;
+      return expectedResult;
+    }
+  });
+
+  assert.equal(service.status().enabled, false);
+  assert.equal(service.status().executorMode, "invalid-disabled");
+  await assert.rejects(
+    service.run(uiRequest()),
+    assertPreviewError("PREVIEW_DISABLED")
+  );
+  assert.equal(executions, 0);
+});
+
+test("the OpenAI executor sends only the fixed synthetic source", async () => {
+  let captured;
+  const openaiClient = {
+    responses: {
+      async create(body, options) {
+        captured = { body, options };
+        return {
+          output_text: JSON.stringify(expectedResult)
+        };
+      }
+    }
+  };
+  const task = buildFixedAlltagPreviewTask({
+    randomId: () => "SOL-HOLO-OPENAI-001"
+  });
+  const execute = createOpenAIAlltagPreviewExecutor({ openaiClient });
+
+  const result = await execute({
+    dispatch: fixedDispatch(),
+    task
+  });
+
+  assert.deepEqual(result, expectedResult);
+  assert.equal(captured.body.model, "gpt-5");
+  assert.equal(captured.body.store, false);
+  assert.equal(captured.body.max_output_tokens, 900);
+  assert.equal(Object.hasOwn(captured.body, "tools"), false);
+  assert.match(captured.body.input, /FIKTIVE TESTDATEN – Alltag/u);
+  assert.match(captured.body.input, /Haferdrink/u);
+  assert.doesNotMatch(captured.body.input, /pam-sol|selectedSpeakerId/u);
+  assert.doesNotMatch(JSON.stringify(captured.body), /OWNER-APPROVAL/u);
+  assert.equal(captured.body.text.format.type, "json_schema");
+  assert.equal(captured.body.text.format.strict, true);
+  assert.equal(captured.body.text.format.schema.additionalProperties, false);
+  assert.deepEqual(
+    captured.body.text.format.schema.properties.worker.enum,
+    ["worker-alltag"]
+  );
+  assert.deepEqual(
+    captured.body.text.format.schema.properties.controls.properties
+      .external_action_performed.enum,
+    [false]
+  );
+  assert.deepEqual(
+    captured.body.text.format.schema.properties.controls.properties
+      .human_review_required.enum,
+    [true]
+  );
+  assert.equal(captured.options.timeout, 30_000);
+  assert.equal(captured.options.maxRetries, 0);
+});
+
+test("the service can select OpenAI without a bridge", async () => {
+  let calls = 0;
+  const service = createOpenClawAlltagPreviewService({
+    enabled: true,
+    executorMode: "openai",
+    openaiClient: {
+      responses: {
+        async create() {
+          calls += 1;
+          return {
+            output_text: JSON.stringify(expectedResult)
+          };
+        }
+      }
+    },
+    randomId: () => "SOL-HOLO-OPENAI-002"
+  });
+
+  const response = await service.run(uiRequest());
+
+  assert.equal(calls, 1);
+  assert.equal(service.status().executorMode, "openai");
+  assert.equal(response.preview, true);
+  assert.equal(response.productive, false);
+  assert.equal(response.persisted, false);
+  assert.equal(response.automaticRouting, false);
+  assert.deepEqual(response.result, expectedResult);
+});
+
+test("the service rejects an unsafe OpenAI result after structured output", async () => {
+  const unsafeResult = structuredClone(expectedResult);
+  unsafeResult.controls.external_action_performed = true;
+  const service = createOpenClawAlltagPreviewService({
+    enabled: true,
+    executorMode: "openai",
+    openaiClient: {
+      responses: {
+        async create() {
+          return {
+            output_text: JSON.stringify(unsafeResult)
+          };
+        }
+      }
+    },
+    randomId: () => "SOL-HOLO-OPENAI-004"
+  });
+
+  await assert.rejects(
+    service.run(uiRequest()),
+    assertPreviewError("WORKER_RESULT_REJECTED")
+  );
+});
+
+test("invalid OpenAI output and unapproved tasks fail closed", async () => {
+  const malformedExecutor = createOpenAIAlltagPreviewExecutor({
+    openaiClient: {
+      responses: {
+        async create() {
+          return { output_text: "not json" };
+        }
+      }
+    }
+  });
+  const task = buildFixedAlltagPreviewTask({
+    randomId: () => "SOL-HOLO-OPENAI-003"
+  });
+
+  await assert.rejects(
+    malformedExecutor({ dispatch: fixedDispatch(), task }),
+    assertPreviewError("OPENAI_RESPONSE_INVALID")
+  );
+  await assert.rejects(
+    malformedExecutor({
+      dispatch: {
+        ...fixedDispatch(),
+        agent_id: "worker-medizin"
+      },
+      task
+    }),
+    assertPreviewError("OPENAI_TASK_NOT_APPROVED")
+  );
 });
 
 test("an explicit fixed request reaches only worker-alltag and returns a proposal", async () => {
@@ -254,7 +491,7 @@ test("the loopback transport authenticates and accepts only the result envelope"
   assert.deepEqual(received.body.task, task);
 });
 
-test("public status mapping keeps bridge failures closed", () => {
+test("public status mapping keeps every executor failure closed", () => {
   assert.equal(
     openClawAlltagPreviewHttpStatus(
       new OpenClawAlltagPreviewError("REQUEST_SHAPE", "test")
@@ -276,6 +513,24 @@ test("public status mapping keeps bridge failures closed", () => {
   assert.equal(
     openClawAlltagPreviewHttpStatus(
       new OpenClawAlltagPreviewError("BRIDGE_TIMEOUT", "test")
+    ),
+    504
+  );
+  assert.equal(
+    openClawAlltagPreviewHttpStatus(
+      new OpenClawAlltagPreviewError("OPENAI_RESPONSE_INVALID", "test")
+    ),
+    502
+  );
+  assert.equal(
+    openClawAlltagPreviewHttpStatus(
+      new OpenClawAlltagPreviewError("OPENAI_UNAVAILABLE", "test")
+    ),
+    503
+  );
+  assert.equal(
+    openClawAlltagPreviewHttpStatus(
+      new OpenClawAlltagPreviewError("OPENAI_TIMEOUT", "test")
     ),
     504
   );
