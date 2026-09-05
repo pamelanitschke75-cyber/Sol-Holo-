@@ -3,6 +3,7 @@ import http from "node:http";
 const host = "127.0.0.1";
 const port = Number.parseInt(process.env.OPENCLAW_LAB_MOCK_PORT ?? "19006", 10);
 const model = "policy-probe";
+const workspacePrefix = (process.env.OPENCLAW_LAB_MOCK_WORKSPACE_PREFIX ?? "").replace(/\/+$/u, "");
 
 const domains = {
   alltag: {
@@ -37,6 +38,11 @@ const domains = {
   },
 };
 const writeAttempts = new Map();
+
+function workspacePath(relativePath) {
+  if (!workspacePrefix) return relativePath;
+  return `${workspacePrefix}/${relativePath}`;
+}
 
 function asText(content) {
   if (typeof content === "string") return content;
@@ -106,9 +112,8 @@ function sendJson(response, message) {
 
 function buildMessage(body) {
   const messages = Array.isArray(body.messages) ? body.messages : [];
-  const userText = [...messages]
-    .reverse()
-    .find((message) => message?.role === "user");
+  const lastUserIndex = messages.findLastIndex((message) => message?.role === "user");
+  const userText = lastUserIndex >= 0 ? messages[lastUserIndex] : undefined;
   const requestText = asText(userText?.content);
   const domain = detectDomain(requestText);
   const upperRequest = requestText.toLocaleUpperCase("de-DE");
@@ -117,7 +122,8 @@ function buildMessage(body) {
     : upperRequest.includes("LAB_CROSS_READ")
       ? "cross-read"
       : "read";
-  const toolResult = [...messages]
+  const toolResult = messages
+    .slice(lastUserIndex + 1)
     .reverse()
     .find((message) => message?.role === "tool");
 
@@ -167,8 +173,10 @@ function buildMessage(body) {
   const toolName = mode === "write" ? "write" : "read";
   const args =
     mode === "write"
-      ? { path: "UNERLAUBT.md", content: "DARF_NICHT_ENTSTEHEN" }
-      : { path: mode === "cross-read" ? domains[domain].crossFile : domains[domain].file };
+      ? { path: workspacePath("UNERLAUBT.md"), content: "DARF_NICHT_ENTSTEHEN" }
+      : {
+          path: workspacePath(mode === "cross-read" ? domains[domain].crossFile : domains[domain].file),
+        };
 
   return {
     role: "assistant",

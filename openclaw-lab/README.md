@@ -1,11 +1,22 @@
 # Sol Holo × OpenClaw Lab
 
 Stand: 05.09.2026  
-Status: **Phase 1 – „Hand, Fuß, Sicherheit und Medizin“ technisch vorbereitet, abgeschottet und nicht produktiv**
+Status: **Phase 1 – gemeinsames Grundgerüst für „Hand, Fuß, Sicherheit und Medizin“, abgeschottet und nicht produktiv**
 
 OpenClaw `2026.9.1` läuft als getrenntes Labor. Sechs Fach-Worker sind angelegt: Alltag, Geschäftliches, Tiere, Kochen, Sicherheit und Medizin. Jeder Worker sieht ausschließlich das Werkzeug `read`, sein eigenes Workspace und klar markierte erfundene Testdaten.
 
 Sol Holo beziehungsweise Pam's Holo bleibt Kopf, Persönlichkeit, Stimme und persönliches Gedächtnis. Die Worker sind begrenzte Ausführungsbereiche, keine eigenen Clone.
+
+## Gemeinsames Grundgerüst
+
+`foundation.manifest.json` ist die zentrale, maschinenlesbare Bereichsliste. Sie hält die sechs Worker, ihre getrennten Workspaces und die unveränderlichen Phase-1-Grenzen fest. Unbekannte Bereiche werden nicht automatisch zugeordnet, und der Koordinator besitzt weder Werkzeuge noch automatische Routing-Freigabe.
+
+Zwei JSON-Schemas legen die spätere Übergabe fest, ohne sie bereits technisch mit Sol Holo zu verbinden:
+
+- `contracts/task-envelope.schema.json`: nur ein ausdrücklich benannter Worker, synthetische Daten, relative Pfade, Fähigkeit `read`, Modus `proposal-only` und keine externe Aktion;
+- `contracts/worker-result.schema.json`: Fakten, Unsicherheiten und Vorschlag getrennt; Schreiben, Grenzübertritt und externe Aktion müssen ausdrücklich `false` sein.
+
+Die Beispiele unter `examples/` zeigen den vollständigen Vertrag am sensiblen Bereich Sicherheit. Sie sind ausschließlich Dokumentation und Testdaten, kein aktiver Router. Ein späterer Adapter bleibt ausgeschaltet und benötigt einen eigenen Entwurf, eigene Tests und Pams ausdrückliche Bestätigung.
 
 ## Harte Grenze
 
@@ -64,6 +75,7 @@ Das Labor darf nichts an `main`, der laufenden Render-Instanz, der Android-App o
 | Datei schreiben | `6/6` technisch blockiert; keine Datei entstand |
 | Docker-Mount-Plan | bei allen sechs `ro`, keine schreibbaren Mounts |
 | Echter Containerlauf | noch offen: in der aktuellen Prüfumgebung ist Docker nicht installiert |
+| Grundgerüst-Konsistenztest | lokal bestanden: 6 Worker, 2 Verträge, 2 Beispiele und alle zentralen Sperren konsistent |
 
 Die positiven und negativen Tooltests liefen mit demselben Rechteprofil und einer temporären, nicht eingecheckten Konfigurationskopie ohne Containerstart. Die eingecheckte Konfiguration blieb durchgehend auf `sandbox.mode: "all"`. Ohne Docker bricht sie vor einem Worker-Lauf ab, statt auf den Host auszuweichen. Der echte Containerlauf muss auf einem Docker-Laborhost noch bestätigt werden.
 
@@ -98,11 +110,19 @@ Die Konfiguration erwartet drei Laufzeitwerte außerhalb des Repositorys:
 ## Dateien
 
 - `openclaw.lab.example.json5` – abgeschottete Beispielkonfiguration ohne Geheimnisse
+- `foundation.manifest.json` – zentrale Bereichsliste und unveränderliche Phase-1-Grenzen
+- `contracts/*` – Aufgaben- und Ergebnisvertrag für eine spätere, noch inaktive Übergabe
+- `examples/*` – rein synthetisches Vertragsbeispiel mit menschlicher Prüfung
 - `workspace/*` – neutrale Regeln für den werkzeuglosen Labor-Koordinator
 - `workspaces/*` – sechs getrennte Worker mit festen neutralen Identitäten und fiktiven Testdaten
 - `tests/mock-openai-server.mjs` – lokaler deterministischer Policy-Prüfer
+- `tests/check-foundation.mjs` – prüft Register, Verträge, Worker-Dateien und zentrale Sperren gemeinsam
+- `tests/run-container-policy-suite.mjs` – prüft sechs echte Docker-Sandboxes einschließlich Mounts und Schreibsperren
+- `docker/Dockerfile.sandbox` – minimales, reproduzierbares Labor-Image
 - `SECURITY.md` – Bedrohungsmodell und Freigaberegeln
 - `PHASE-1-HAND-UND-FUSS-05-09-2026.md` – nachvollziehbarer Phase-1-Eintrag
 - `PHASE-1-ERWEITERUNG-SICHERHEIT-MEDIZIN-05-09-2026.md` – Sondergrenzen der beiden sensiblen Worker
+- `PHASE-1-GRUNDGERUEST-05-09-2026.md` – gemeinsames Register, Verträge und Container-Prüfweg
+- `.github/workflows/openclaw-lab-security.yml` – isolierte Prüfung im Draft-PR auf einem Docker-Runner
 
 Vor einem späteren echten Start wird die Beispieldatei außerhalb des Repositorys als private Konfiguration abgelegt, mit einem echten zufälligen Token versehen und auf Dateirechte `600` begrenzt. Die eingecheckte Vorlage enthält absichtlich kein Geheimnis.

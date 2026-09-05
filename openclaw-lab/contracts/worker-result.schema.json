@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sol-holo.invalid/openclaw-lab/contracts/worker-result.schema.json",
+  "title": "OpenClaw Lab Worker Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "task_id",
+    "worker",
+    "status",
+    "facts",
+    "uncertainties",
+    "proposal",
+    "source_paths",
+    "controls"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "task_id": {
+      "type": "string",
+      "pattern": "^LAB-[A-Z0-9][A-Z0-9_-]{2,63}$"
+    },
+    "worker": {
+      "enum": [
+        "worker-alltag",
+        "worker-geschaeftliches",
+        "worker-tiere",
+        "worker-kochen",
+        "worker-sicherheit",
+        "worker-medizin"
+      ]
+    },
+    "status": {
+      "enum": ["completed-proposal", "refused", "needs-human-review"]
+    },
+    "facts": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "uncertainties": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "proposal": { "type": "string" },
+    "source_paths": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+      }
+    },
+    "controls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "external_action_performed",
+        "data_written",
+        "boundary_crossed",
+        "human_review_required"
+      ],
+      "properties": {
+        "external_action_performed": { "const": false },
+        "data_written": { "const": false },
+        "boundary_crossed": { "const": false },
+        "human_review_required": { "type": "boolean" }
+      }
+    }
+  }
+}

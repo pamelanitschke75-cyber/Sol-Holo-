@@ -1,0 +1,69 @@
+name: OpenClaw Lab Security
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "openclaw-lab/**"
+      - ".github/workflows/openclaw-lab-security.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: openclaw-lab-security-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  phase-1-foundation:
+    name: Phase 1 foundation and Docker policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out the draft branch
+        uses: actions/checkout@v4
+
+      - name: Use the pinned Node runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.19.0
+
+      - name: Install the pinned OpenClaw CLI outside the repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          cli_root="${RUNNER_TEMP}/openclaw-cli"
+          npm install --prefix "${cli_root}" --no-save --ignore-scripts openclaw@2026.9.1
+          actual_integrity="$(npm view openclaw@2026.9.1 dist.integrity)"
+          expected_integrity="sha512-0Ve0631CdgkJDwd4NNG1BawIdF5yCL2sO+Tts8amStw+H6vKURTj0K4rOa4+hFpJk1Dnw5LyKl5twzwX1VtA2w=="
+          test "${actual_integrity}" = "${expected_integrity}"
+          echo "OPENCLAW_BIN=${cli_root}/node_modules/.bin/openclaw" >> "${GITHUB_ENV}"
+
+      - name: Check the machine-readable foundation
+        run: node openclaw-lab/tests/check-foundation.mjs
+
+      - name: Validate configuration and security audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          validation_root="${RUNNER_TEMP}/openclaw-validation"
+          install -d -m 700 "${validation_root}/state"
+          export OPENCLAW_CONFIG_PATH="${GITHUB_WORKSPACE}/openclaw-lab/openclaw.lab.example.json5"
+          export OPENCLAW_LAB_ROOT="${GITHUB_WORKSPACE}/openclaw-lab"
+          export OPENCLAW_LAB_STATE_DIR="${validation_root}"
+          export OPENCLAW_STATE_DIR="${validation_root}/state"
+          export OPENCLAW_GATEWAY_TOKEN="phase1-ci-placeholder-not-a-secret"
+          "${OPENCLAW_BIN}" config validate --json
+          "${OPENCLAW_BIN}" security audit --json
+
+      - name: Build the minimal sandbox image
+        run: >-
+          docker build
+          --tag openclaw-sandbox:bookworm-slim
+          --file openclaw-lab/docker/Dockerfile.sandbox
+          openclaw-lab/docker
+
+      - name: Run the real Docker isolation suite
+        run: node openclaw-lab/tests/run-container-policy-suite.mjs

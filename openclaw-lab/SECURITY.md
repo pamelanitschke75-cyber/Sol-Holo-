@@ -26,6 +26,9 @@
 | Vermischung mit Sol Holo | eigenes Workspace, eigener State, keine Verbindung zu `pam-sol`-Daten |
 | Worker verändert Test- oder Projektdaten | nur Tool `read`; Agent-Workspace zusätzlich schreibgeschützt eingehängt |
 | Worker liest einen anderen Bereich | eigenes Workspace und eigene Sandbox pro Worker; keine gemeinsamen Datenpfade |
+| Unbekannter oder falsch gerouteter Bereich | zentrales Manifest; unbekannte Bereiche werden abgelehnt; automatisches Routing ist ausgeschaltet |
+| Auftrag fordert mehr als Lesen | Aufgabenvertrag erlaubt nur `read`, synthetische Daten und `proposal-only`; externe Aktion ist immer `false` |
+| Ergebnis behauptet eine Aktion | Ergebnisvertrag verlangt `external_action_performed: false`, `data_written: false` und `boundary_crossed: false` |
 
 ## Verbotene Inhalte im Repository
 
@@ -47,6 +50,14 @@ Eine spätere Aktion braucht vier getrennte Nachweise:
 4. bewusste Bestätigung unmittelbar vor einer externen oder schreibenden Ausführung.
 
 Eine allgemeine Zustimmung zu Sol Holo wird nicht als pauschale OpenClaw-Freigabe behandelt.
+
+## Zentrale Verträge
+
+`foundation.manifest.json` ist die einzige Bereichsliste des Phase-1-Grundgerüsts. Konfiguration, Aufgabenvertrag und Ergebnisvertrag müssen dieselben sechs Worker enthalten. `tests/check-foundation.mjs` bricht ab, sobald Register, Workspace, Rechte oder sensible Bereichsregeln auseinanderlaufen.
+
+Die Verträge sind noch keine aktive Schnittstelle. Es existiert kein Router und kein Sol-Holo-Adapter. Relative Quellpfade dürfen weder absolut sein noch `..` enthalten. Damit kann ein Auftrag schon an der Vertragsgrenze keinen Nachbar-Workspace benennen.
+
+Für Sicherheit und Medizin ist menschliche Prüfung Bestandteil des vorgesehenen Ergebnisses. Diese Kennzeichnung erteilt keine Freigabe und darf weder als Gefahrenentwarnung noch als medizinische Entscheidung verwendet werden.
 
 ## Phase-1-Regel
 
@@ -71,5 +82,7 @@ Ein Worker darf ausschließlich lesen und textlich antworten. Selbst eine harmlo
 ## Verbleibender Container-Nachweis
 
 Die Konfiguration verlangt für jeden Worker eine Docker-Sandbox und bricht ohne Docker vor dem Modelllauf ab. In der aktuellen Prüfumgebung war keine Docker-CLI vorhanden. Deshalb sind die Tool- und Workspace-Grenzen automatisiert geprüft, der lebende Container mit `network: "none"`, schreibgeschütztem Root-Dateisystem, `capDrop: ["ALL"]` und schreibgeschütztem Agent-Mount aber noch auf einem dafür vorgesehenen Docker-Laborhost zu bestätigen.
+
+Die dafür vorgesehene Pull-Request-Prüfung baut das minimale Sandbox-Image neu und startet für alle sechs Worker echte Container. Sie kontrolliert Docker-Metadaten und führt zusätzlich negative Schreibversuche gegen `/agent` und das Root-Dateisystem aus. Ein temporäres `tmpfs` unter `/tmp` muss als einziger getesteter Schreibraum funktionieren. Bis dieser Lauf grün vorliegt, bleibt der Container-Nachweis offen.
 
 Die produktive Konfiguration darf für diesen Nachweis nicht auf `sandbox.mode: "off"` geändert werden. Die während der lokalen Toolprüfung verwendete nicht eingecheckte Kopie ohne Containerstart ist kein Betriebsmodus und enthält ausschließlich fiktive Daten.
