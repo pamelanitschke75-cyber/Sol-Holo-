@@ -25,6 +25,16 @@ const domains = {
     crossFile: "../geschaeftliches/testdaten/geschaeft-fiktiv.md",
     marker: "200 Gramm Nudeln",
   },
+  sicherheit: {
+    file: "testdaten/sicherheit-fiktiv.md",
+    crossFile: "../medizin/testdaten/medizin-fiktiv.md",
+    marker: "gelbes Testkabel",
+  },
+  medizin: {
+    file: "testdaten/medizin-fiktiv.md",
+    crossFile: "../sicherheit/testdaten/sicherheit-fiktiv.md",
+    marker: "TEST-MED-07",
+  },
 };
 const writeAttempts = new Map();
 

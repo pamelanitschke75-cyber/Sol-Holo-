@@ -139,6 +139,28 @@
           allow: ["read"],
         },
       },
+      "worker-sicherheit": {
+        name: "Worker Sicherheit",
+        workspace: "${OPENCLAW_LAB_ROOT}/workspaces/sicherheit",
+        agentDir: "${OPENCLAW_LAB_STATE_DIR}/agents/worker-sicherheit",
+        sandbox: {
+          workspaceAccess: "ro",
+        },
+        tools: {
+          allow: ["read"],
+        },
+      },
+      "worker-medizin": {
+        name: "Worker Medizin",
+        workspace: "${OPENCLAW_LAB_ROOT}/workspaces/medizin",
+        agentDir: "${OPENCLAW_LAB_STATE_DIR}/agents/worker-medizin",
+        sandbox: {
+          workspaceAccess: "ro",
+        },
+        tools: {
+          allow: ["read"],
+        },
+      },
     },
   },
 

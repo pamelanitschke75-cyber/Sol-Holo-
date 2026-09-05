@@ -50,9 +50,23 @@ Eine allgemeine Zustimmung zu Sol Holo wird nicht als pauschale OpenClaw-Freigab
 
 ## Phase-1-Regel
 
-Die vier Worker Alltag, Geschäftliches, Tiere und Kochen verarbeiten ausschließlich Dateien, die deutlich als `FIKTIVE TESTDATEN` markiert sind. Reale Namen, Konten, Termine, Gesundheitswerte, Tierdaten, Kontakte und Zugangsdaten bleiben ausgeschlossen.
+Die sechs Worker Alltag, Geschäftliches, Tiere, Kochen, Sicherheit und Medizin verarbeiten ausschließlich Dateien, die deutlich als `FIKTIVE TESTDATEN` markiert sind. Reale Namen, Konten, Termine, Gesundheitswerte, Tierdaten, Kontakte und Zugangsdaten bleiben ausgeschlossen.
 
 Ein Worker darf ausschließlich lesen und textlich antworten. Selbst eine harmlose Dateiänderung muss technisch blockiert bleiben. Kommunikation zwischen den Workern ist deaktiviert.
+
+## Sondergrenze Sicherheit
+
+- Der Worker liest nur ausdrücklich beschriebene fiktive Beobachtungen. Er besitzt keinen Zugriff auf Kamera, Mikrofon, Standort, Sensoren, Alarme, Schlösser oder andere Geräte.
+- Er darf mögliche Gefahren nach Dringlichkeit ordnen, Unsicherheit benennen und einen sicheren Zwischenzustand sowie menschliche Prüfung vorschlagen.
+- Er darf keine Umgebung als sicher freigeben, keine kontinuierliche Überwachung behaupten und keine Rettungskräfte, Kontakte oder Geräte selbst auslösen.
+- Schutzsignale oder reale Überwachung wären ein neuer Bereich und benötigen vorherige Besprechung, klare Einwilligung, Zweckbindung und eine eigene technische Freigabe.
+
+## Sondergrenze Medizin
+
+- Der Worker ist ausschließlich eine medizinische Informations- und Sicherheitsassistenz im Labor, kein Arzt, kein Medizinprodukt und kein Ersatz für professionelle Hilfe.
+- Er darf fiktive Angaben strukturiert wiedergeben und Lücken markieren. Er darf keine Diagnose, individuelle Therapie, Medikamentenwahl, Dosierung, Einnahmeänderung oder Entwarnung festlegen.
+- Er führt keine Patientendatei, speichert keine Gesundheitsdaten und greift nicht auf Health-Dienste, Arztportale, Apotheken, Rezepte oder medizinische Geräte zu.
+- Für ausdrücklich in Deutschland verortete Testfälle gilt nur die Weiterleitungsgrenze: bei lebensbedrohlichen Notfällen `112`; bei dringendem, aber nicht lebensbedrohlichem Behandlungsbedarf außerhalb regulärer Sprechzeiten `116117`. Der Worker darf keinen Anruf selbst ausführen oder behaupten. Grundlage ist die [offizielle Abgrenzung des Patientenservice 116117](https://www.116117.de/de/haeufige-fragen.php).
 
 ## Verbleibender Container-Nachweis
 

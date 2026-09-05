@@ -8,7 +8,7 @@
 
 - OpenClaw wird als mögliche Ausführungsebene („Hände“/Worker) für Sol Holo technisch geprüft.
 - Der Start erfolgt in einem eigenen, abgeschotteten Laborbereich.
-- Die spätere Gliederung in Alltag, Geschäftliches, Tiere und Kochen ist festgehalten.
+- Die Gliederung in Alltag, Geschäftliches, Tiere, Kochen, Sicherheit und Medizin ist festgehalten.
 - Persönlichkeit, Stimme, Erinnerungen und persönliche Identität bleiben bei Sol Holo beziehungsweise `pam-sol`.
 
 ## Sicherheitsgrenze
@@ -41,5 +41,7 @@
 - **Funktion im Alltag bestätigt: nein**
 - **Bestätigung „fertig“ durch Pam: nein**
 - **MEILENSTEIN: Startpunkt, kein Funktionsabschluss**
+
+Am selben Tag wurde Phase 1 auf Pams Wunsch um zwei besonders streng begrenzte Lese-Worker für Sicherheit und Medizin ergänzt. Auch diese Erweiterung bleibt synthetisch, abgeschottet und ohne Produktivfreigabe.
 
 **Leitsatz:** Zusammenarbeit statt Konkurrenz – Sol Holo bleibt das persönliche Selbst, OpenClaw liefert später nur kontrollierte Hände. ✨️🌎♾️

@@ -1,4 +1,4 @@
-# OpenClaw Phase 1 – Hand und Fuß für Sol Holo
+# OpenClaw Phase 1 – Hand, Fuß, Sicherheit und Medizin für Sol Holo
 
 **Datum:** 05.09.2026  
 **Status:** Policytests bestanden; echter Docker-Containerlauf noch offen; nicht produktiv  
@@ -6,16 +6,18 @@
 
 ## Pams Entscheidung
 
-Pam hat entschieden, nicht nur einen einzelnen Alltag-Worker, sondern direkt eine vollständige, sinnvoll gegliederte Laborgrundlage aufzubauen: „Hand und Fuß“.
+Pam hat entschieden, nicht nur einen einzelnen Alltag-Worker, sondern direkt eine vollständige, sinnvoll gegliederte Laborgrundlage aufzubauen: „Hand und Fuß“. Sicherheit und Medizin gehören ausdrücklich als eigene Bereiche dazu.
 
 ## Angelegt
 
-Vier getrennte Worker:
+Sechs getrennte Worker:
 
 1. `worker-alltag`
 2. `worker-geschaeftliches`
 3. `worker-tiere`
 4. `worker-kochen`
+5. `worker-sicherheit`
+6. `worker-medizin`
 
 Sol Holo beziehungsweise Pam's Holo bleibt Kopf, Persönlichkeit, Stimme und persönliches Gedächtnis. Die Worker sind ausschließlich klar begrenzte Ausführungsbereiche und keine eigenen Clone.
 
@@ -28,6 +30,8 @@ Sol Holo beziehungsweise Pam's Holo bleibt Kopf, Persönlichkeit, Stimme und per
 - keine Verbindung zu Android, Render, Google, Samsung oder `pam-sol`;
 - keine Kommunikation und keine gemeinsame Sitzung zwischen den Workern;
 - eigene Agent-Verzeichnisse und eigene Sitzungsdatenbanken.
+
+Für Sicherheit und Medizin gelten zusätzliche fachliche Stopplinien: keine Überwachung oder Geräteaktion, keine Diagnose oder Therapieentscheidung, keine Dosierungsänderung und keine reale Sicherheits- oder Patientendatei. Beide Worker dürfen ausschließlich Angaben aus ihrem eigenen fiktiven Testszenario ordnen und auf menschliche Prüfung beziehungsweise geeignete professionelle Hilfe verweisen.
 
 ## Testpflicht
 
@@ -44,12 +48,12 @@ Sol Holo beziehungsweise Pam's Holo bleibt Kopf, Persönlichkeit, Stimme und per
 - Security Audit: `0` kritisch und `0` Warnungen;
 - Telemetrie deaktiviert, keine Anfrage erzeugt;
 - Gateway auf Loopback gestartet, Healthcheck `200`, `0` Plugins, Heartbeat aus und sauber beendet;
-- effektive Sandbox-Toolmenge aller vier Worker: exakt `read`;
+- effektive Sandbox-Toolmenge aller sechs Worker: exakt `read`;
 - bei keinem Worker ein schreibbarer Sandbox-Mount;
-- sichtbare Agent-Skills aller vier Worker: leer;
-- eigene fiktive Testdatei gelesen: `4/4` erfolgreich;
-- Leseversuch auf ein Nachbar-Workspace: `4/4` blockiert;
-- Schreibversuch: `4/4` blockiert, jeweils als Toolfehler protokolliert und keine Datei `UNERLAUBT.md` erzeugt.
+- sichtbare Agent-Skills aller sechs Worker: leer;
+- eigene fiktive Testdatei gelesen: `6/6` erfolgreich;
+- Leseversuch auf ein Nachbar-Workspace: `6/6` blockiert;
+- Schreibversuch: `6/6` blockiert, jeweils als Toolfehler protokolliert und keine Datei `UNERLAUBT.md` erzeugt.
 
 Für die reproduzierbaren Tooltests diente ein lokaler deterministischer Modellstub auf `127.0.0.1:19006`. Er sendete keine Daten nach außen und forderte ausschließlich vorgegebene Testaufrufe an. Weil die aktuelle Prüfumgebung keine Docker-CLI besitzt, liefen diese Tooltests mit einer temporären, nicht eingecheckten Kopie derselben Rechtekonfiguration und ausgeschaltetem Containerstart.
 
@@ -57,7 +61,7 @@ Die eingecheckte Konfiguration blieb auf `sandbox.mode: "all"`. Ein Versuch, dam
 
 ## Noch offener Pflichtnachweis
 
-Auf einem eigenen Docker-Laborhost muss derselbe Vierer-Test mit der unveränderten eingecheckten Konfiguration wiederholt werden. Dabei sind der schreibgeschützte Mount, das Netzwerk `none`, das schreibgeschützte Root-Dateisystem und `capDrop: ["ALL"]` im lebenden Container zu bestätigen. Bis dahin ist Phase 1 technisch vorbereitet, aber nicht für echte Daten oder produktive Aufgaben freigegeben.
+Auf einem eigenen Docker-Laborhost muss derselbe Sechser-Test mit der unveränderten eingecheckten Konfiguration wiederholt werden. Dabei sind der schreibgeschützte Mount, das Netzwerk `none`, das schreibgeschützte Root-Dateisystem und `capDrop: ["ALL"]` im lebenden Container zu bestätigen. Bis dahin ist Phase 1 technisch vorbereitet, aber nicht für echte Daten oder produktive Aufgaben freigegeben.
 
 ## Abgrenzung
 
