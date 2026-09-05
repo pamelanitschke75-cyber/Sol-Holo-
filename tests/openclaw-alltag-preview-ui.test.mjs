@@ -23,13 +23,15 @@ function between(text, startMarker, endMarker) {
   return text.slice(start, end);
 }
 
-test("the Android UI exposes one clearly synthetic Alltag preview action", () => {
+test("the Android UI keeps the synthetic preview as a hidden lab action", () => {
   const row = ui.match(
     /<button id="openClawAlltagPreviewRow"[\s\S]*?<\/button>/u
   )?.[0];
   assert.ok(row, "Alltagsworker-Testzeile fehlt");
   assert.match(row, /Alltagsworker · fiktiver Test/u);
   assert.match(row, /Nur Testdaten lesen/u);
+  assert.match(row, /data-lab-only="true"/u);
+  assert.match(row, /hidden/u);
   assert.doesNotMatch(row, /data-sol-prompt/u);
   assert.doesNotMatch(row, /input|textarea/u);
 });
@@ -81,5 +83,5 @@ test("the backend route is owner-gated before the preview service runs", () => {
 
 test("the Android asset versions include the new preview UI", () => {
   assert.match(html, /sol-holo-ui\.css\?v=36/u);
-  assert.match(html, /sol-holo-ui\.js\?v=42/u);
+  assert.match(html, /sol-holo-ui\.js\?v=43/u);
 });
