@@ -1,0 +1,62 @@
+{
+  "schema_version": "1.0",
+  "phase": "2c",
+  "name": "Sol Holo – OpenAI-gestützte fiktive Alltag-Vorschau",
+  "status": "implemented-disabled-by-default",
+  "productive": false,
+  "new_provider_required": false,
+  "new_service_required": false,
+  "active_worker": "worker-alltag",
+  "data_class": "synthetic",
+  "capability": "read",
+  "execution_mode": "proposal-only",
+  "automatic_routing": false,
+  "runtime": {
+    "host": "existing-render-web-service",
+    "kind": "existing-openai-api",
+    "model": "gpt-5",
+    "tools_enabled": false,
+    "store_response": false
+  },
+  "input": {
+    "source_path": "testdaten/alltag-fiktiv.md",
+    "fixed_source_only": true,
+    "personal_data": false,
+    "free_text": false,
+    "owner_or_device_identifiers_forwarded": false
+  },
+  "output": {
+    "strict_json_schema": true,
+    "validated_against_worker_contract": true,
+    "persisted": false,
+    "external_action_performed": false,
+    "data_written": false,
+    "boundary_crossed": false,
+    "human_review_required": true
+  },
+  "required_feature_flags": {
+    "OPENCLAW_ALLTAG_PREVIEW_EXECUTOR": "openai",
+    "OPENCLAW_SOL_HOLO_ALLTAG_PREVIEW_ENABLED": "1",
+    "OPENCLAW_OPENAI_ALLTAG_PREVIEW_ENABLED": "1"
+  },
+  "docker_proof": {
+    "provider": "github-actions",
+    "openclaw_container_policy_remains_required": true,
+    "live_runtime_claimed": false
+  },
+  "still_forbidden": [
+    "personal_data",
+    "free_text",
+    "calendar",
+    "notes",
+    "contacts",
+    "messages",
+    "device_control",
+    "medical_guidance",
+    "safety_guidance",
+    "automatic_routing",
+    "model_tools",
+    "external_actions",
+    "productive_actions"
+  ]
+}
