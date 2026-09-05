@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "task_id": "LAB-SICH-12",
+  "target_worker": "worker-sicherheit",
+  "data_class": "synthetic",
+  "execution_mode": "proposal-only",
+  "requested_capability": "read",
+  "external_action_allowed": false,
+  "payload": {
+    "source_paths": ["testdaten/sicherheit-fiktiv.md"]
+  },
+  "question": "Ordne nur die beschriebenen Fakten und schlage einen sicheren Zwischenzustand mit menschlicher Prüfung vor."
+}

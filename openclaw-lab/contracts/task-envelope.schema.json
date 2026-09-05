@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sol-holo.invalid/openclaw-lab/contracts/task-envelope.schema.json",
+  "title": "OpenClaw Lab Task Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "task_id",
+    "target_worker",
+    "data_class",
+    "execution_mode",
+    "requested_capability",
+    "external_action_allowed",
+    "payload",
+    "question"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "task_id": {
+      "type": "string",
+      "pattern": "^LAB-[A-Z0-9][A-Z0-9_-]{2,63}$"
+    },
+    "target_worker": {
+      "enum": [
+        "worker-alltag",
+        "worker-geschaeftliches",
+        "worker-tiere",
+        "worker-kochen",
+        "worker-sicherheit",
+        "worker-medizin"
+      ]
+    },
+    "data_class": { "const": "synthetic" },
+    "execution_mode": { "const": "proposal-only" },
+    "requested_capability": { "const": "read" },
+    "external_action_allowed": { "const": false },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_paths"],
+      "properties": {
+        "source_paths": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+          }
+        }
+      }
+    },
+    "question": { "type": "string", "minLength": 1, "maxLength": 2000 }
+  }
+}

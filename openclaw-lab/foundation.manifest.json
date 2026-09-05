@@ -1,0 +1,89 @@
+{
+  "schema_version": "1.0",
+  "phase": 1,
+  "name": "Sol Holo OpenClaw Lab – Grundgerüst",
+  "status": "draft",
+  "productive": false,
+  "data_class": "synthetic-only",
+  "execution_mode": "proposal-only",
+  "coordinator": {
+    "id": "sol-holo-lab",
+    "tools": [],
+    "automatic_routing": false
+  },
+  "workers": [
+    {
+      "id": "worker-alltag",
+      "domain": "alltag",
+      "workspace": "workspaces/alltag",
+      "capabilities": ["read"],
+      "risk_class": "standard"
+    },
+    {
+      "id": "worker-geschaeftliches",
+      "domain": "geschaeftliches",
+      "workspace": "workspaces/geschaeftliches",
+      "capabilities": ["read"],
+      "risk_class": "standard"
+    },
+    {
+      "id": "worker-tiere",
+      "domain": "tiere",
+      "workspace": "workspaces/tiere",
+      "capabilities": ["read"],
+      "risk_class": "elevated"
+    },
+    {
+      "id": "worker-kochen",
+      "domain": "kochen",
+      "workspace": "workspaces/kochen",
+      "capabilities": ["read"],
+      "risk_class": "standard"
+    },
+    {
+      "id": "worker-sicherheit",
+      "domain": "sicherheit",
+      "workspace": "workspaces/sicherheit",
+      "capabilities": ["read"],
+      "risk_class": "high",
+      "required_outcome": "safe-state-and-human-review"
+    },
+    {
+      "id": "worker-medizin",
+      "domain": "medizin",
+      "workspace": "workspaces/medizin",
+      "capabilities": ["read"],
+      "risk_class": "high",
+      "required_outcome": "information-only-and-human-review"
+    }
+  ],
+  "technical_invariants": {
+    "sandbox_backend": "docker",
+    "sandbox_scope": "session",
+    "workspace_access": "ro",
+    "container_network": "none",
+    "read_only_root": true,
+    "drop_all_capabilities": true,
+    "plugins_enabled": false,
+    "skills_enabled": false,
+    "worker_to_worker": false,
+    "external_actions": false,
+    "writes": false,
+    "unknown_domain_policy": "refuse"
+  },
+  "inactive_interfaces": {
+    "sol_holo_adapter": false,
+    "channels": false,
+    "bindings": false,
+    "mcp_servers": false,
+    "device_control": false,
+    "monitoring": false,
+    "medical_records": false
+  },
+  "transition_gate": {
+    "next_phase_automatic": false,
+    "requires_separate_design": true,
+    "requires_technical_tests": true,
+    "requires_pam_explicit_confirmation": true
+  }
+}
