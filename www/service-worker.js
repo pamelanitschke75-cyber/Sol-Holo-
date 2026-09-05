@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-126-openclaw-alltag-preview";
+const CACHE_VERSION = "sol-holo-128-raffituekke-alltagsaktionen";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
