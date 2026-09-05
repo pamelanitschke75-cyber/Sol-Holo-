@@ -1,7 +1,7 @@
 # Sol Holo × OpenClaw Lab
 
 Stand: 05.09.2026  
-Status: **Phase 1 – gemeinsames Grundgerüst für „Hand, Fuß, Sicherheit und Medizin“, abgeschottet und nicht produktiv**
+Status: **Phase 1 – gemeinsames Grundgerüst technisch geprüft, abgeschottet, Draft und nicht produktiv**
 
 OpenClaw `2026.9.1` läuft als getrenntes Labor. Sechs Fach-Worker sind angelegt: Alltag, Geschäftliches, Tiere, Kochen, Sicherheit und Medizin. Jeder Worker sieht ausschließlich das Werkzeug `read`, sein eigenes Workspace und klar markierte erfundene Testdaten.
 
@@ -70,19 +70,21 @@ Das Labor darf nichts an `main`, der laufenden Render-Instanz, der Android-App o
 | Gateway | Healthcheck `200`, `0` Plugins, Heartbeat aus, sauber beendet |
 | Effektive Worker-Tools | bei allen sechs exakt `read` |
 | Agent-Skills | bei allen sechs leer |
-| Eigene Testdatei lesen | `6/6` erfolgreich |
-| Nachbar-Workspace lesen | `6/6` technisch blockiert |
-| Datei schreiben | `6/6` technisch blockiert; keine Datei entstand |
-| Docker-Mount-Plan | bei allen sechs `ro`, keine schreibbaren Mounts |
-| Echter Containerlauf | noch offen: in der aktuellen Prüfumgebung ist Docker nicht installiert |
+| Eigene Testdatei lesen | im echten Container `6/6` erfolgreich |
+| Nachbar-Workspace lesen | im echten Container `6/6` technisch blockiert |
+| Datei schreiben | im echten Container `6/6` technisch blockiert; keine Datei entstand |
+| Docker-Mounts | bei allen sechs `/agent` schreibgeschützt; keine schreibbaren Bind-Mounts |
+| Container-Härtung | bei allen sechs `network: none`, read-only Root, `capDrop: ALL`, `no-new-privileges`, nicht privilegiert |
+| Direkte Schreibprobe | `/agent` und Root bei allen sechs gesperrt; nur flüchtiges `/tmp` beschreibbar |
+| Echter Containerlauf | bestanden mit Docker `28.0.4` im GitHub-Actions-Lauf `#2` |
 | Grundgerüst-Konsistenztest | lokal bestanden: 6 Worker, 2 Verträge, 2 Beispiele und alle zentralen Sperren konsistent |
 
-Die positiven und negativen Tooltests liefen mit demselben Rechteprofil und einer temporären, nicht eingecheckten Konfigurationskopie ohne Containerstart. Die eingecheckte Konfiguration blieb durchgehend auf `sandbox.mode: "all"`. Ohne Docker bricht sie vor einem Worker-Lauf ab, statt auf den Host auszuweichen. Der echte Containerlauf muss auf einem Docker-Laborhost noch bestätigt werden.
+Die ursprünglichen lokalen Tooltests liefen mit demselben Rechteprofil und einer temporären, nicht eingecheckten Konfigurationskopie ohne Containerstart. Anschließend wiederholte der [GitHub-Actions-Lauf #2](https://github.com/pamelanitschke75-cyber/Sol-Holo-/actions/runs/33957645527) alle 18 positiven und negativen Rechteprüfungen mit der unveränderten eingecheckten Sandbox-Konfiguration in sechs echten Docker-Containern. Die Konfiguration blieb durchgehend auf `sandbox.mode: "all"`; es gab keinen Rückfall auf Host-Ausführung.
 
 ## Sicherheitsstufen
 
 1. **Phase 0 – Nullzugriff:** Konfiguration, Boot und Außenruhe prüfen. *(abgeschlossen)*
-2. **Phase 1 – Hand, Fuß, Sicherheit und Medizin:** sechs getrennte Lese-Worker mit künstlichen Testdaten. *(Policytests bestanden; Containerbestätigung offen)*
+2. **Phase 1 – Hand, Fuß, Sicherheit und Medizin:** sechs getrennte Lese-Worker mit künstlichen Testdaten. *(Policy- und Containerprüfungen bestanden; Pams Phasenabschluss bleibt offen)*
 3. **Phase 2 – Vorschau:** ein Worker erzeugt einen Vorschlag, führt aber nichts extern aus.
 4. **Phase 3 – Einzelaktion mit Freigabe:** genau eine klar begrenzte Aktion nach bewusster Bestätigung.
 5. **Phase 4 – Sol-Holo-Adapter:** erst nach gesonderter Prüfung hinter einem standardmäßig ausgeschalteten Feature-Flag.

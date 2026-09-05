@@ -79,10 +79,12 @@ Ein Worker darf ausschließlich lesen und textlich antworten. Selbst eine harmlo
 - Er führt keine Patientendatei, speichert keine Gesundheitsdaten und greift nicht auf Health-Dienste, Arztportale, Apotheken, Rezepte oder medizinische Geräte zu.
 - Für ausdrücklich in Deutschland verortete Testfälle gilt nur die Weiterleitungsgrenze: bei lebensbedrohlichen Notfällen `112`; bei dringendem, aber nicht lebensbedrohlichem Behandlungsbedarf außerhalb regulärer Sprechzeiten `116117`. Der Worker darf keinen Anruf selbst ausführen oder behaupten. Grundlage ist die [offizielle Abgrenzung des Patientenservice 116117](https://www.116117.de/de/haeufige-fragen.php).
 
-## Verbleibender Container-Nachweis
+## Container-Nachweis
 
-Die Konfiguration verlangt für jeden Worker eine Docker-Sandbox und bricht ohne Docker vor dem Modelllauf ab. In der aktuellen Prüfumgebung war keine Docker-CLI vorhanden. Deshalb sind die Tool- und Workspace-Grenzen automatisiert geprüft, der lebende Container mit `network: "none"`, schreibgeschütztem Root-Dateisystem, `capDrop: ["ALL"]` und schreibgeschütztem Agent-Mount aber noch auf einem dafür vorgesehenen Docker-Laborhost zu bestätigen.
+Die Konfiguration verlangt für jeden Worker eine Docker-Sandbox und bricht ohne Docker vor dem Modelllauf ab. Die lokale Arbeitsumgebung besitzt keine Docker-CLI; deshalb lief der unveränderte Test zusätzlich auf einem Docker-Runner im Draft-PR.
 
-Die dafür vorgesehene Pull-Request-Prüfung baut das minimale Sandbox-Image neu und startet für alle sechs Worker echte Container. Sie kontrolliert Docker-Metadaten und führt zusätzlich negative Schreibversuche gegen `/agent` und das Root-Dateisystem aus. Ein temporäres `tmpfs` unter `/tmp` muss als einziger getesteter Schreibraum funktionieren. Bis dieser Lauf grün vorliegt, bleibt der Container-Nachweis offen.
+Der [GitHub-Actions-Lauf #2](https://github.com/pamelanitschke75-cyber/Sol-Holo-/actions/runs/33957645527) baute das minimale Sandbox-Image neu und startete für alle sechs Worker einen echten Container. Für jeden Container wurden `network: "none"`, schreibgeschütztes Root-Dateisystem, `capDrop: ["ALL"]`, `no-new-privileges`, nicht privilegierter Betrieb und ein schreibgeschützter `/agent`-Mount bestätigt. Es existierte kein schreibbarer Bind-Mount. Direkte Schreibversuche gegen `/agent` und das Root-Dateisystem scheiterten; nur das flüchtige `tmpfs` unter `/tmp` war wie vorgesehen beschreibbar.
 
-Die produktive Konfiguration darf für diesen Nachweis nicht auf `sandbox.mode: "off"` geändert werden. Die während der lokalen Toolprüfung verwendete nicht eingecheckte Kopie ohne Containerstart ist kein Betriebsmodus und enthält ausschließlich fiktive Daten.
+Mit denselben Containern bestanden alle sechs Worker den eigenen Lesezugriff. Alle sechs Fremdleseversuche und alle sechs Schreibversuche wurden blockiert. Nach dem Lauf wurden die Container wieder entfernt. Der technische Container-Nachweis ist damit erbracht; dies erteilt weiterhin weder Produktivfreigabe noch Sol-Holo-Verbindung.
+
+Die eingecheckte Sandbox-Konfiguration darf für diesen Nachweis nicht auf `sandbox.mode: "off"` geändert werden. Die während der frühen lokalen Toolprüfung verwendete nicht eingecheckte Kopie ohne Containerstart ist kein Betriebsmodus und enthält ausschließlich fiktive Daten.

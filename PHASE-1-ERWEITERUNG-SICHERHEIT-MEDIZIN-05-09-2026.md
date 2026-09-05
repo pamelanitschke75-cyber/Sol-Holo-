@@ -1,7 +1,7 @@
 # OpenClaw Phase 1 – Erweiterung Sicherheit und Medizin
 
 **Datum:** 05.09.2026  
-**Status:** Policytests bestanden; echter Docker-Containerlauf noch offen; nicht produktiv  
+**Status:** Policy- und echte Docker-Containerprüfungen bestanden; Draft und nicht produktiv  
 **Ausgangsbasis:** Draft-PR #36, Phase 1 „Hand und Fuß“
 
 ## Pams Entscheidung
@@ -39,8 +39,8 @@ Er führt keine Patientendatei, speichert keine Gesundheitsdaten und hat keinen 
 - Schreibversuch technisch blockiert: `2/2`, keine Datei erzeugt;
 - Docker-Mount-Plan bei beiden `ro`, keine schreibbaren Mounts.
 
-Der lebende Containerlauf bleibt offen, weil in der aktuellen Prüfumgebung keine Docker-CLI vorhanden ist. Die eingecheckte Konfiguration verlangt Docker und bricht ohne Docker vor einem Worker-Lauf ab; sie fällt nicht auf den Host zurück.
+Der [GitHub-Actions-Lauf #2](https://github.com/pamelanitschke75-cyber/Sol-Holo-/actions/runs/33957645527) bestätigte beide sensiblen Worker zusätzlich in echten Docker-Containern: eigener Lesezugriff erfolgreich, Nachbar-Workspace und Schreiben blockiert, `/agent` sowie Root schreibgeschützt, Netzwerk `none`, alle Capabilities entfernt und `no-new-privileges` aktiv. Die eingecheckte Konfiguration fiel nicht auf den Host zurück.
 
-**Bestätigung „funktioniert“ durch Pam:** nein – Containerbestätigung steht noch aus.  
+**Bestätigung „funktioniert“ durch Pam:** nein – die technische Prüfung ist grün, Pams Abschlussentscheidung bleibt offen.  
 **Produktive Integration:** nein.  
 **MEILENSTEIN:** zwei sensible Fachbereiche sicher in Phase 1 ergänzt, keine reale Medizin- oder Überwachungsfunktion.

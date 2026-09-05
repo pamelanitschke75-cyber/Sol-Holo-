@@ -1,7 +1,7 @@
 # OpenClaw Phase 1 – Hand, Fuß, Sicherheit und Medizin für Sol Holo
 
 **Datum:** 05.09.2026  
-**Status:** Policytests bestanden; echter Docker-Containerlauf noch offen; nicht produktiv  
+**Status:** Policy- und echte Docker-Containerprüfungen bestanden; Draft und nicht produktiv  
 **Ausgangsbasis:** OpenClaw-Lab aus Draft-PR #36
 
 ## Pams Entscheidung
@@ -59,14 +59,14 @@ Für die reproduzierbaren Tooltests diente ein lokaler deterministischer Modells
 
 Die eingecheckte Konfiguration blieb auf `sandbox.mode: "all"`. Ein Versuch, damit einen Worker ohne Docker zu starten, wurde vor Modell- und Dateizugriff mit `Sandbox mode requires Docker` abgebrochen. Die Konfiguration fällt somit nicht still auf Host-Ausführung zurück.
 
-## Noch offener Pflichtnachweis
+## Nachgeholter Pflichtnachweis
 
-Auf einem eigenen Docker-Laborhost muss derselbe Sechser-Test mit der unveränderten eingecheckten Konfiguration wiederholt werden. Dabei sind der schreibgeschützte Mount, das Netzwerk `none`, das schreibgeschützte Root-Dateisystem und `capDrop: ["ALL"]` im lebenden Container zu bestätigen. Bis dahin ist Phase 1 technisch vorbereitet, aber nicht für echte Daten oder produktive Aufgaben freigegeben.
+Der [GitHub-Actions-Lauf #2](https://github.com/pamelanitschke75-cyber/Sol-Holo-/actions/runs/33957645527) wiederholte den Sechser-Test mit der unveränderten eingecheckten Konfiguration auf Docker `28.0.4`. Eigener Lesezugriff bestand `6/6`; Fremdlesen und Schreiben wurden jeweils `6/6` blockiert. Bei allen sechs Containern waren `/agent` und Root schreibgeschützt, Netzwerk `none`, alle Capabilities entfernt, `no-new-privileges` aktiv und kein schreibbarer Bind-Mount vorhanden. Die Container wurden nach dem Test entfernt.
 
 ## Abgrenzung
 
 Dieser Schritt erteilt keine echte Kalender-, Notes-, Kontakt-, Nachrichten-, Health-, Geräte- oder Dateifreigabe. Eine spätere reale Fähigkeit wird einzeln entworfen, sichtbar begrenzt und vor der ersten Ausführung erneut durch Pam entschieden.
 
-**Bestätigung „funktioniert“ durch Pam:** nein – Containerbestätigung steht noch aus.  
+**Bestätigung „funktioniert“ durch Pam:** nein – die technische Prüfung ist grün, Pams Abschlussentscheidung bleibt offen.  
 **Produktive Integration:** nein.  
-**MEILENSTEIN:** Phase-1-Policytests bestanden, kein Alltagsabschluss.
+**MEILENSTEIN:** Phase-1-Policy- und Containerprüfungen bestanden, kein Alltagsabschluss.

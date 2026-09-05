@@ -1,7 +1,7 @@
 # Phase 1 – gemeinsames Grundgerüst
 
 Datum: 05.09.2026  
-Status: **im bestehenden Draft-PR vorbereitet; nicht produktiv; echter Docker-Nachweis noch offen**
+Status: **technische Grundgerüst-Prüfungen im bestehenden Draft-PR bestanden; nicht produktiv; keine Phasenfreigabe**
 
 ## Ziel
 
@@ -39,11 +39,15 @@ Die sechs bereits getrennten Laborbereiche Alltag, Geschäftliches, Tiere, Koche
 | Manifest-/Vertrags-/Konfigurationskonsistenz | lokal bestanden |
 | OpenClaw-Konfigurationsvalidierung | lokal bestanden, keine Warnung |
 | OpenClaw Security Audit | lokal `0` kritisch, `0` Warnungen |
-| Sechs echte Docker-Container | vorbereitet, noch nicht ausgeführt |
-| `network: none`, read-only Root, `capDrop: ALL`, `no-new-privileges` | im echten Containerlauf nachzuweisen |
-| Eigener Read / Fremd-Read / Write pro Worker | im echten Containerlauf `6/6` nachzuweisen |
+| Sechs echte Docker-Container | bestanden mit Docker `28.0.4` |
+| `network: none`, read-only Root, `capDrop: ALL`, `no-new-privileges` | bei allen sechs bestätigt |
+| Nicht privilegiert; `/agent` und Root nicht beschreibbar | bei allen sechs bestätigt |
+| Kein schreibbarer Bind-Mount; flüchtiges `/tmp` beschreibbar | bei allen sechs bestätigt |
+| Eigener Read pro Worker | `6/6` bestanden |
+| Fremd-Read pro Worker | `6/6` blockiert |
+| Write pro Worker | `6/6` blockiert; keine Datei entstand |
 
-Die lokale Arbeitsumgebung besitzt keine Docker-CLI und keinen Container-Socket. Deshalb wird kein bestandener Containerlauf behauptet. Der unveränderte Test soll im Draft-Branch auf einem Docker-Runner laufen; erst ein grünes Ergebnis darf diesen offenen Punkt schließen.
+Die lokale Arbeitsumgebung besitzt keine Docker-CLI und keinen Container-Socket. Deshalb lief der unveränderte Test im Draft-Branch auf einem Docker-Runner. Der [GitHub-Actions-Lauf #2](https://github.com/pamelanitschke75-cyber/Sol-Holo-/actions/runs/33957645527) war vollständig grün und entfernte die sechs Testcontainer anschließend wieder.
 
 ## Keine Freigabe
 
