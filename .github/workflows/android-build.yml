@@ -64,6 +64,7 @@ on:
       - "scripts/audit-android-runtime-licenses.mjs"
       - "scripts/install-full-face-rig-assets.mjs"
       - "scripts/install-access-security.mjs"
+      - "scripts/install-google-maps-navigation.mjs"
       - "scripts/install-speaker-identity.mjs"
       - "scripts/install-wear-companion.mjs"
       - "scripts/install-whatsapp-driving-mode.mjs"
@@ -293,6 +294,28 @@ jobs:
 
       - name: Mehrfaktor-Zugriffssicherheit einbinden
         run: node scripts/install-access-security.mjs
+
+      - name: Google Maps als lokale Navigation einbinden
+        run: node scripts/install-google-maps-navigation.mjs
+
+      - name: Google-Maps-Navigation prüfen
+        run: |
+          set -Eeuo pipefail
+          navigation_java="android/app/src/main/java/com/solholo/app/SolNavigationPlugin.java"
+          app_java="android/app/src/main/java/com/solholo/app/MainActivity.java"
+          app_manifest="android/app/src/main/AndroidManifest.xml"
+          test -s "$navigation_java"
+          grep -q 'registerPlugin(SolNavigationPlugin.class)' "$app_java"
+          grep -q 'com.google.android.apps.maps' "$navigation_java"
+          grep -q 'google.navigation' "$navigation_java"
+          grep -q 'www.google.com/maps/dir/' "$navigation_java"
+          grep -q 'com.google.android.apps.maps' "$app_manifest"
+          grep -q 'executeSolHoloNavigationTool' \
+            android/app/src/main/assets/public/sol-holo-ui.js
+          grep -q 'LOKALES_NAVIGATIONSERGEBNIS' \
+            android/app/src/main/assets/public/index.html
+          ! grep -q 'ACCESS_FINE_LOCATION\|ACCESS_COARSE_LOCATION' \
+            "$app_manifest"
 
       - name: Verschlüsselte Sicherung und Ausschlüsse prüfen
         run: |

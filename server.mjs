@@ -3163,6 +3163,116 @@ async function handleCalendarWriteRequest(
 
 /*
   ==========================================================
+  GOOGLE CALENDAR – REALTIME NACH SICHERHEITSBESTÄTIGUNG
+  ==========================================================
+
+  Der erste Sprachdurchlauf wird weiterhin über /live/memory verarbeitet.
+  Falls die ownergebundene App-Sitzung dabei interaktiv bestätigt werden
+  muss, wiederholt der Android-Client ausschließlich die Kalenderaktion hier.
+  Dadurch wird weder das Sprachtranskript doppelt gespeichert noch der
+  Gesprächsverlauf doppelt angehängt.
+*/
+app.post(
+  "/calendar/action",
+  async (req, res) => {
+    try {
+      const identity =
+        resolveRequestIdentity(
+          req,
+          res
+        );
+
+      if (!identity) {
+        return;
+      }
+
+      const message =
+        String(
+          req.body?.message ||
+          ""
+        ).trim();
+
+      if (!message) {
+        return res.status(400).json({
+          error:
+            "Kein Kalenderauftrag erhalten."
+        });
+      }
+
+      if (message.length > 2000) {
+        return res.status(400).json({
+          error:
+            "Der Kalenderauftrag ist zu lang."
+        });
+      }
+
+      let conversation;
+
+      try {
+        conversation =
+          openRequestConversation(
+            req.body,
+            identity
+          );
+      } catch (error) {
+        if (
+          error instanceof
+            ConversationContextError
+        ) {
+          return respondConversationIdentityError(
+            res
+          );
+        }
+
+        throw error;
+      }
+
+      const calendarResult =
+        await handleCalendarWriteRequest(
+          message,
+          identity,
+          hasTrustedGooglePersonalReadGate(req),
+          conversation.conversationId
+        );
+
+      if (
+        calendarResult?.handled &&
+        calendarResult?.answer
+      ) {
+        appendConversationMessage(
+          conversation.conversationId,
+          identity,
+          "assistant",
+          calendarResult.answer
+        );
+      }
+
+      return res.json({
+        calendar:
+          calendarResult,
+        conversationId:
+          conversation.conversationId,
+        identity:
+          publicIdentity(identity)
+      });
+    } catch (error) {
+      console.error(
+        "Realtime-Kalenderaktion:",
+        error?.code ||
+        error?.name ||
+        "Fehler"
+      );
+
+      return res.status(500).json({
+        error:
+          "Die Kalenderaktion konnte gerade nicht erneut geprüft werden."
+      });
+    }
+  }
+);
+
+/*
+  ==========================================================
   VOICE SETUP – SICHERHEIT
   ==========================================================
 */
@@ -5806,6 +5916,10 @@ speichern.
 
 WICHTIG ZU SAMSUNG NOTES:
 
+Samsung Notes ist eine lokale Android-Funktion und braucht keine
+Freischaltung durch das Sol-Holo-Backend. Behaupte niemals, Samsung Notes
+müsse erst vom Backend freigegeben oder aktiviert werden.
+
 Wenn ${identity.displayName} ausdrücklich sagt „Sol, notiere …“, „Mach eine
 Notiz …“, „Schreib bitte Zucker in Notes/Noten“ oder sinngleich
 klar etwas in Samsung Notes übernehmen möchte, verwende
@@ -5849,6 +5963,11 @@ nur weil du ihren Wunsch verstanden hast.
 
 Die technische Speicherung erfolgt über das Sol-Holo-Backend.
 
+Das Backend ist bereits der vorgesehene Ausführungsweg und muss nicht von
+${identity.displayName} „freigegeben“ werden. Bevor das lokale Kalenderergebnis
+ankommt, sage höchstens kurz, dass du den Termin prüfst. Behaupte niemals,
+das Backend müsse erst aktiviert oder freigeschaltet werden.
+
 Sage deshalb niemals ohne echte Backend-Bestätigung:
 "Der Termin wurde erstellt."
 "Die Erinnerung wurde eingetragen."
@@ -5856,6 +5975,19 @@ Sage deshalb niemals ohne echte Backend-Bestätigung:
 oder sinngleiche Aussagen.
 
 Erfinde niemals einen erfolgreichen Kalender-Schreibvorgang.
+
+Wenn eine Nutzernachricht mit [LOKALES_KALENDERERGEBNIS] beginnt, stammt
+der nachfolgende Satz aus der bereits ausgeführten Kalenderprüfung. Sprich
+diesen Satz kurz und unverändert aus. Fordere keine weitere Backend-
+Freigabe an und erfinde keinen anderen Kalenderstatus.
+
+WICHTIG ZU GOOGLE MAPS:
+
+Google Maps wird direkt von der Android-App geöffnet. Dafür ist keine
+Backend-Freigabe und kein Google-Maps-API-Schlüssel in Sol Holo nötig.
+Wenn eine Nutzernachricht mit [LOKALES_NAVIGATIONSERGEBNIS] beginnt, wurde
+die lokale Kartenaktion bereits ausgeführt. Sprich das Ergebnis kurz und
+unverändert aus und öffne die Navigation nicht ein zweites Mal.
 
 WICHTIG ZU TELEFON UND KONTAKTEN:
 
@@ -7589,6 +7721,8 @@ und vor allgemeinem Weltwissen.
 WICHTIG ZU SAMSUNG NOTES:
 
 ${identity.displayName} möchte Notizen ausschließlich in Samsung Notes anlegen.
+Samsung Notes ist lokal in der Android-App angebunden und braucht keine
+Freischaltung durch das Sol-Holo-Backend. Behaupte niemals das Gegenteil.
 ${instanceName} kann einen sichtbaren Samsung-Notes-Entwurf mit dem
 genannten Text öffnen. ${instanceName} zeigt davor keine zusätzliche
 Bestätigungsfrage.
@@ -7618,6 +7752,13 @@ wird dieser bereits vor dieser normalen Antwort
 vom Sol-Holo-Backend verarbeitet.
 
 Du darfst daher niemals einen Kalender-Erfolg erfinden.
+
+WICHTIG ZU GOOGLE MAPS:
+
+Navigationsaufträge werden lokal von der Android-App an Google Maps
+übergeben. Dafür ist keine Freischaltung durch das Sol-Holo-Backend nötig.
+Behaupte nur dann, Google Maps sei geöffnet worden, wenn die App dies als
+lokales Ergebnis bestätigt hat.
 
 WICHTIG ZUM FREIGEGEBENEN DATENUMFANG:
 

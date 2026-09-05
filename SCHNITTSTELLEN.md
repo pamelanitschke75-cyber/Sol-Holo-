@@ -77,7 +77,7 @@ Nr.| Schnittstelle| Technik| Aufgabe
 32| Telefon| Android Intent / Telecom| Anrufe an die Telefonfunktion übergeben
 33| Nachrichten| Android Intent / Sharesheet| Nachrichten an geeignete Apps übergeben
 34| Standort| Android Location Services| Standort verwenden, wenn Pam ihn freigibt
-35| Navigation| Geo Intent| Navigationsziele an Karten-Apps übergeben
+35| Navigation| Google-Maps-Intent (`google.navigation`) mit Google-Web-Fallback| Ein ausdrücklich genanntes Ziel an Google Maps übergeben; keine eigene Standortberechtigung in Sol Holo erforderlich
 36| Gerätesensoren| SensorManager| Bewegung, Drehung und Lage erfassen
 37| App-Verbindungen| Deep Links / App Links| Sol mit Funktionen anderer Apps verbinden
 

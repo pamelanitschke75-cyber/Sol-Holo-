@@ -8228,6 +8228,192 @@ memoryButton.addEventListener(
 );
 
 
+function deliverRealtimeActionAnswer(
+  answer,
+  marker,
+  statusText
+){
+
+  const cleanAnswer =
+    String(
+      answer || ""
+    ).trim();
+
+
+  if(!cleanAnswer){
+    return false;
+  }
+
+
+  addMessage(
+    "Sol",
+    cleanAnswer,
+    "sol-message"
+  );
+
+
+  chatStatus.textContent =
+    String(
+      statusText ||
+      cleanAnswer
+    );
+
+
+  if(
+    dc &&
+    dc.readyState ===
+      "open"
+  ){
+
+    try{
+      dc.send(
+        JSON.stringify({
+          type:"response.cancel"
+        })
+      );
+    }catch{}
+
+
+    dc.send(
+      JSON.stringify({
+        type:"conversation.item.create",
+        item:{
+          type:"message",
+          role:"user",
+          content:[{
+            type:"input_text",
+            text:
+              `[${marker}] ${cleanAnswer}`
+          }]
+        }
+      })
+    );
+
+
+    dc.send(
+      JSON.stringify({
+        type:"response.create"
+      })
+    );
+  }
+
+
+  return true;
+}
+
+
+async function retryRealtimeCalendarAction(
+  transcript
+){
+
+  const identity =
+    selectedIdentity();
+
+
+  if(!identity){
+    return null;
+  }
+
+
+  const response =
+    await fetch(
+      `${BACKEND_URL}/calendar/action`,
+      {
+        method:"POST",
+        headers:
+          backendJsonHeaders(),
+        body:
+          JSON.stringify({
+            message:
+              String(
+                transcript || ""
+              ).trim(),
+            selectedSpeakerId:
+              identity.speakerId,
+            ownerId:
+              identity.ownerId,
+            conversationId
+          })
+      }
+    );
+
+
+  const data =
+    await response.json();
+
+
+  if(!response.ok){
+    throw new Error(
+      data?.error ||
+      "Der Kalender konnte nach der sicheren Bestätigung nicht erneut geprüft werden."
+    );
+  }
+
+
+  return data?.calendar || null;
+}
+
+
+async function handleRealtimeCalendarResult(
+  initialCalendar,
+  transcript
+){
+
+  if(!initialCalendar?.handled){
+    return false;
+  }
+
+
+  let calendar =
+    initialCalendar;
+
+
+  if(
+    calendar.needsTrustedAppSession &&
+    typeof window.SolHoloTrustedSession
+      ?.ensure ===
+      "function"
+  ){
+
+    chatStatus.textContent =
+      "Sichere S23-Sitzung wird bestätigt …";
+
+
+    try{
+      const trustedSession =
+        await window.SolHoloTrustedSession
+          .ensure({
+            interactive:true
+          });
+
+
+      if(trustedSession?.trusted){
+        calendar =
+          await retryRealtimeCalendarAction(
+            transcript
+          ) || calendar;
+      }
+    }catch(error){
+      console.error(
+        "Realtime-Kalenderbestätigung:",
+        error
+      );
+    }
+  }
+
+
+  return deliverRealtimeActionAnswer(
+    calendar?.answer,
+    "LOKALES_KALENDERERGEBNIS",
+    calendar?.success
+      ? "Google Kalender hat den Eintrag bestätigt."
+      : calendar?.confirmationRequired
+        ? "Kalendereintrag wartet auf deine Bestätigung."
+        : "Google Kalender hat geantwortet."
+  );
+}
+
+
 async function sendLiveTranscriptToMemory(
   transcript,
   role = "user",
@@ -8245,7 +8431,7 @@ async function sendLiveTranscriptToMemory(
     memoryStatus.textContent =
       "🧠 Die feste Holo-ID ist nicht verfügbar. Memory bleibt gesperrt.";
 
-    return;
+    return null;
   }
 
   const cleanTranscript =
@@ -8258,7 +8444,7 @@ async function sendLiveTranscriptToMemory(
     !cleanTranscript
   ){
 
-    return;
+    return null;
   }
 
 
@@ -8341,6 +8527,20 @@ async function sendLiveTranscriptToMemory(
           : "🧠 Vollzeitgedächtnis konnte diesen Beitrag nicht bestätigen.";
     }
 
+
+    if(
+      role === "user" &&
+      data?.calendar?.handled
+    ){
+      await handleRealtimeCalendarResult(
+        data.calendar,
+        cleanTranscript
+      );
+    }
+
+
+    return data;
+
   }catch(
     error
   ){
@@ -8353,6 +8553,9 @@ async function sendLiveTranscriptToMemory(
 
     memoryStatus.textContent =
       "🧠 Memory-Fehler.";
+
+
+    return null;
   }
 }
 
@@ -8457,6 +8660,68 @@ async function handleRealtimeLocalNoteTranscript(
 
     return false;
   }
+}
+
+
+async function handleRealtimeLocalNavigationTranscript(
+  transcript
+){
+
+  if(
+    typeof window.handleSolHoloRealtimeNavigationTranscript !==
+      "function"
+  ){
+    return false;
+  }
+
+
+  try{
+    const localAction =
+      await window.handleSolHoloRealtimeNavigationTranscript(
+        transcript
+      );
+
+
+    if(!localAction?.handled){
+      return false;
+    }
+
+
+    return deliverRealtimeActionAnswer(
+      localAction.answer,
+      "LOKALES_NAVIGATIONSERGEBNIS",
+      localAction.status ||
+        "Google Maps geöffnet."
+    );
+
+  }catch(error){
+    console.error(
+      "Lokale Realtime-Navigation:",
+      error
+    );
+
+
+    return false;
+  }
+}
+
+
+async function handleRealtimeLocalDeviceTranscript(
+  transcript
+){
+
+  if(
+    await handleRealtimeLocalNoteTranscript(
+      transcript
+    )
+  ){
+    return true;
+  }
+
+
+  return handleRealtimeLocalNavigationTranscript(
+    transcript
+  );
 }
 
 
@@ -9471,17 +9736,17 @@ async function startLiveConversation(){
               transcript
             ){
 
-              sendLiveTranscriptToMemory(
+              void handleRealtimeLocalDeviceTranscript(
+                transcript
+              );
+
+
+              void sendLiveTranscriptToMemory(
                 transcript,
                 "user",
                 realtimeEvent?.event_id ||
                   realtimeEvent?.item_id ||
                   ""
-              );
-
-
-              void handleRealtimeLocalNoteTranscript(
-                transcript
               );
             }
           }
