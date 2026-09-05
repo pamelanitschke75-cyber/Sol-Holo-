@@ -50,13 +50,20 @@ jobs:
           set -euo pipefail
           validation_root="${RUNNER_TEMP}/openclaw-validation"
           install -d -m 700 "${validation_root}/state"
-          export OPENCLAW_CONFIG_PATH="${GITHUB_WORKSPACE}/openclaw-lab/openclaw.lab.example.json5"
+          cp "${GITHUB_WORKSPACE}/openclaw-lab/openclaw.lab.example.json5" "${validation_root}/openclaw.lab.json5"
+          chmod 600 "${validation_root}/openclaw.lab.json5"
+          export OPENCLAW_CONFIG_PATH="${validation_root}/openclaw.lab.json5"
           export OPENCLAW_LAB_ROOT="${GITHUB_WORKSPACE}/openclaw-lab"
           export OPENCLAW_LAB_STATE_DIR="${validation_root}"
           export OPENCLAW_STATE_DIR="${validation_root}/state"
           export OPENCLAW_GATEWAY_TOKEN="phase1-ci-placeholder-not-a-secret"
           "${OPENCLAW_BIN}" config validate --json
-          "${OPENCLAW_BIN}" security audit --json
+          audit_json="$("${OPENCLAW_BIN}" security audit --json)"
+          printf '%s\n' "${audit_json}"
+          node -e '
+            const report = JSON.parse(process.argv[1]);
+            if (report.summary.critical !== 0 || report.summary.warn !== 0) process.exit(1);
+          ' "${audit_json}"
 
       - name: Build the minimal sandbox image
         run: >-

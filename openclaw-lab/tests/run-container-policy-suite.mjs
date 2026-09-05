@@ -17,6 +17,9 @@ const tempDir = path.join(runRoot, "tmp");
 fs.mkdirSync(stateDir, { recursive: true });
 fs.mkdirSync(tempDir, { recursive: true });
 fs.chmodSync(stateDir, 0o700);
+const privateConfigPath = path.join(runRoot, "openclaw.lab.json5");
+fs.copyFileSync(path.join(labRoot, "openclaw.lab.example.json5"), privateConfigPath);
+fs.chmodSync(privateConfigPath, 0o600);
 
 const runId = `phase1-${process.pid}-${Date.now()}`;
 const workers = ["alltag", "geschaeftliches", "tiere", "kochen", "sicherheit", "medizin"];
@@ -27,7 +30,7 @@ const commandEnv = {
   ...process.env,
   TMPDIR: tempDir,
   NO_COLOR: "1",
-  OPENCLAW_CONFIG_PATH: path.join(labRoot, "openclaw.lab.example.json5"),
+  OPENCLAW_CONFIG_PATH: privateConfigPath,
   OPENCLAW_LAB_ROOT: labRoot,
   OPENCLAW_LAB_STATE_DIR: runRoot,
   OPENCLAW_STATE_DIR: stateDir,
@@ -246,12 +249,19 @@ try {
 
   const listResult = await run(openclaw, ["sandbox", "list", "--json"]);
   const list = lastJsonObject(`${listResult.stdout}\n${listResult.stderr}`);
+  process.stdout.write(
+    `SANDBOX_LIST ${JSON.stringify(list.containers.map(({ containerName, sessionKey }) => ({ containerName, sessionKey })))}\n`,
+  );
   assert.deepEqual(list.browsers, [], "Browser-Sandboxes sind in Phase 1 verboten");
   assert.equal(list.containers.length, 6, "Genau sechs Worker-Container erwartet");
 
   for (const domain of workers) {
     const sessionKey = sessions.get(domain);
-    const container = list.containers.find((entry) => entry.sessionKey === sessionKey);
+    const container = list.containers.find((entry) =>
+      new RegExp(`^${sessionKey.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}:workspace:[a-f0-9]{32}$`, "u").test(
+        entry.sessionKey,
+      ),
+    );
     assert.ok(container, `Container für ${sessionKey} fehlt`);
     await inspectContainer(container);
   }
