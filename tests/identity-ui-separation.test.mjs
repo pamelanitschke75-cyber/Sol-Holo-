@@ -87,13 +87,30 @@ test("die signierte Pam-Instanz ist fest an pam-sol gebunden und lädt keine Sit
   );
   assert.match(html, /Eine andere Identität wird niemals geladen/u);
   assert.doesNotMatch(html, /localStorage\.getItem\(\s*SOL_VOICE_STORAGE_KEY/u);
-  assert.match(html, /app-lock-bootstrap\.mjs\?v=4/u);
+  assert.match(html, /app-lock-bootstrap\.mjs\?v=5/u);
   assert.doesNotMatch(html, /solHoloBootScreen"\)\?\.remove/u);
   assert.match(appLock, /const APP_OWNER_ID = "pam-sol"/u);
   assert.match(appLock, /authorizeAppAccess/u);
   assert.match(appLock, /consumeCriticalAuthorization/u);
   assert.match(appLock, /document\.addEventListener\("visibilitychange"/u);
   assert.match(appLock, /document\.documentElement\.classList\.add\("solholo-booting"\)/u);
+  assert.match(appLock, /VERIFIED_LOCKED_WAKE_MAX_AGE_MILLIS = 120_000/u);
+  assert.match(appLock, /event\?\.lockedAtDetection === true/u);
+  assert.match(appLock, /event\?\.speakerVerified === true/u);
+  assert.match(appLock, /plugin\.peekWakeEvent\(\)/u);
+  assert.match(
+    appLock,
+    /window\.beginSolHoloVerifiedLockedWakeSession/u
+  );
+  assert.match(
+    appLock,
+    /classList\.add\("solholo-locked-voice"\)/u
+  );
+  assert.match(
+    appLock,
+    /plugin\.finishLockedVoiceSession\(\)/u
+  );
+  assert.match(html, /\.solholo-locked-voice #app\.voice-mode/u);
   assert.doesNotMatch(appLock, /localStorage|sessionStorage/u);
   assert.doesNotMatch(appLock, /steffi(?:-sol|s-holo)?/iu);
 });

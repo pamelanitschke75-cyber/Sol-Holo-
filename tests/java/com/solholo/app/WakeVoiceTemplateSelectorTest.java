@@ -7,6 +7,7 @@ public final class WakeVoiceTemplateSelectorTest {
         selectsHeyPamBeforeTheLongSentenceContinues();
         selectsTheSameHeyPamFromTestAndLiveCapture();
         ignoresAShortLeadingNoise();
+        selectsLatestWakeInsteadOfEarlierConversation();
         capsContinuousSpeechToTheWakePhraseWindow();
         rejectsSilence();
         System.out.println("WakeVoiceTemplateSelectorTest: OK");
@@ -38,7 +39,7 @@ public final class WakeVoiceTemplateSelectorTest {
             securityTest,
             securityTest.length
         );
-        float[] liveWake = WakeVoiceTemplateSelector.extract(
+        float[] liveWake = WakeVoiceTemplateSelector.extractLatest(
             liveWakeWithPostroll,
             liveWakeWithPostroll.length
         );
@@ -55,6 +56,23 @@ public final class WakeVoiceTemplateSelectorTest {
                         + " von der gespeicherten Vorlage ab"
                 );
             }
+        }
+    }
+
+    private static void selectsLatestWakeInsteadOfEarlierConversation() {
+        short[] audio = new short[120 * FRAME_SAMPLES];
+        fillFrames(audio, 5, 27, (short)3500);
+        fillFrames(audio, 55, 86, (short)6500);
+
+        float[] selected = WakeVoiceTemplateSelector.extractLatest(
+            audio,
+            audio.length
+        );
+        short firstVoiced = firstVoicedSample(selected);
+        if (firstVoiced != 6500) {
+            throw new AssertionError(
+                "Die Live-Prüfung muss den jüngsten Weckruf statt älterer Sprache verwenden"
+            );
         }
     }
 
@@ -111,6 +129,15 @@ public final class WakeVoiceTemplateSelectorTest {
         ) {
             audio[index] = amplitude;
         }
+    }
+
+    private static short firstVoicedSample(float[] selected) {
+        for (float sample : selected) {
+            if (Math.abs(sample) > 0.001f) {
+                return (short)Math.round(sample * 32768f);
+            }
+        }
+        return 0;
     }
 
     private static void assertBetween(

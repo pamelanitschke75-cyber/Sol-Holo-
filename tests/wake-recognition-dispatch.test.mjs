@@ -22,6 +22,14 @@ const installerSource = await readFile(
   new URL("../scripts/install-speaker-identity.mjs", import.meta.url),
   "utf8"
 );
+const drivingInstallerSource = await readFile(
+  new URL("../scripts/install-whatsapp-driving-mode.mjs", import.meta.url),
+  "utf8"
+);
+const pluginSource = await readFile(
+  new URL("../android-native/HeyHoSolPlugin.java", import.meta.url),
+  "utf8"
+);
 
 function methodSource(startMarker, endMarker) {
   const start = serviceSource.indexOf(startMarker);
@@ -66,12 +74,26 @@ test("nach erkanntem Hey Pam bleibt das Mikrofon für das Wortende offen", () =>
   );
   assert.match(
     pump,
-    /keywordAudioStart = Math\.max\([\s\S]*?\);\s*keywordPostrollEndSample = captured\.totalWritten\(\)/u,
-    "Nach dem Keyword-Treffer muss zuerst der Nachlauf geplant werden"
+    /if \(detection != null\) \{\s*keywordPostrollEndSample = captured\.totalWritten\(\)\s*\+ KEYWORD_POSTROLL_SAMPLES/u,
+    "Nach dem Keyword-Treffer muss der Nachlauf geplant werden"
   );
 });
 
-test("echter Weckruf und Sicherheitstest verwenden denselben Hey-Pam-Ausschnitt", () => {
+test("langer Hintergrundbetrieb kann den erkannten Hey-Pam-Ausschnitt nicht verschieben", () => {
+  const snapshotStart = serviceSource.indexOf("short[] finishAndSnapshot()");
+  const snapshotEnd = serviceSource.indexOf("void cancel()", snapshotStart);
+  assert.notEqual(snapshotStart, -1);
+  assert.notEqual(snapshotEnd, -1);
+  const snapshot = serviceSource.slice(snapshotStart, snapshotEnd);
+  assert.match(
+    snapshot,
+    /captured\.snapshotLatest\(KEYWORD_CAPTURE_WINDOW_SAMPLES\)/u
+  );
+  assert.doesNotMatch(serviceSource, /firstTokenSample|keywordAudioStart/u);
+  assert.doesNotMatch(spotterSource, /getTimestamps\(\)/u);
+});
+
+test("der echte Weckruf verwendet den jüngsten vollständigen Hey-Pam-Ausschnitt", () => {
   const verificationStart = speakerPluginSource.indexOf(
     "static WakeVerification verifyWakeAudio("
   );
@@ -87,7 +109,7 @@ test("echter Weckruf und Sicherheitstest verwenden denselben Hey-Pam-Ausschnitt"
   );
   assert.match(
     verification,
-    /WakeVoiceTemplateSelector\.extract\(\s*captured,\s*capturedCount\s*\)/u
+    /WakeVoiceTemplateSelector\.extractLatest\(\s*captured,\s*capturedCount\s*\)/u
   );
   assert.doesNotMatch(verification, /MIN_WAKE_ACTIVE_FRAMES/u);
   assert.doesNotMatch(verification, /MAX_WAKE_SPEECH_GAP_FRAMES/u);
@@ -112,6 +134,25 @@ test("Samsung muss keine aufgenommene Datei an SpeechRecognizer übernehmen", ()
   assert.match(spotterSource, /stream\.acceptWaveform/u);
   assert.doesNotMatch(serviceSource, /SpeechRecognizer|RecognizerIntent/u);
   assert.doesNotMatch(serviceSource, /ParcelFileDescriptor|prepareRecognitionSource/u);
+  assert.match(spotterSource, /setKeywordsThreshold\(0\.20f\)/u);
+});
+
+test("Sicherheitstest und echter Weckruf verwenden dieselbe Mikrofonquelle", () => {
+  const captureStart = speakerPluginSource.indexOf(
+    "private CapturedVoice captureVoice()"
+  );
+  const captureEnd = speakerPluginSource.indexOf(
+    "static WakeVerification verifyWakeAudio(",
+    captureStart
+  );
+  assert.notEqual(captureStart, -1);
+  assert.notEqual(captureEnd, -1);
+  const captureSource = speakerPluginSource.slice(captureStart, captureEnd);
+  assert.match(captureSource, /MediaRecorder\.AudioSource\.MIC/u);
+  assert.doesNotMatch(
+    captureSource,
+    /MediaRecorder\.AudioSource\.VOICE_RECOGNITION/u
+  );
 });
 
 test("nur Pams owner-gebundenes Hey Pam erreicht beide Besitzerprüfungen", () => {
@@ -139,7 +180,7 @@ test("bestehende 3-von-3-Profile migrieren nur die kurze Hey-Pam-Vorlage", () =>
   );
   assert.match(
     speakerPluginSource,
-    /if \(profileAccepted && !templateAccepted\)/u
+    /profileAccepted && !templateAccepted/u
   );
   assert.match(
     speakerPluginSource,
@@ -165,7 +206,10 @@ test("bestehende 3-von-3-Profile migrieren nur die kurze Hey-Pam-Vorlage", () =>
 });
 
 test("eine vorhandene Hey-Pam-Vorlage verlangt nach Ablehnung keinen neuen Sicherheitstest", () => {
-  assert.match(speakerPluginSource, /boolean templateUsed = templateScored/u);
+  assert.match(
+    speakerPluginSource,
+    /boolean templateUsed = templateScore\.scored/u
+  );
   assert.doesNotMatch(
     speakerPluginSource,
     /templateUsed\s*=\s*templateAccepted/u
@@ -176,6 +220,131 @@ test("eine vorhandene Hey-Pam-Vorlage verlangt nach Ablehnung keinen neuen Siche
     uiSource.slice(rejectionStart, rejectionStart + 500),
     /einmal Sicherheit testen/u
   );
+  assert.match(
+    uiSource.slice(rejectionStart, rejectionStart + 900),
+    /Sol startet das Hören automatisch neu/u
+  );
+  assert.match(uiSource, /listener_ready/u);
+  assert.match(uiSource, /du musst nichts drücken/u);
+});
+
+test("alle drei Kurzproben bilden Pams robuste Alltags-Stimmbandbreite", () => {
+  assert.match(
+    speakerPluginSource,
+    /MAX_WAKE_VARIATIONS\s*=\s*3/u
+  );
+  assert.match(
+    speakerPluginSource,
+    /putWakeVariation\(editor, next, capturedVoice\.wakePhrase\)/u
+  );
+  assert.match(speakerPluginSource, /scoreAgainstWakeTemplates/u);
+  assert.match(speakerPluginSource, /scoreWakeAgainstProfile/u);
+  assert.match(speakerPluginSource, /rememberVerifiedWakeVariation/u);
+  assert.match(
+    speakerPluginSource,
+    /if \(!duplicate && emptySlot > 0\)/u,
+    "Automatisches Lernen darf nur freie Variantenplätze füllen"
+  );
+  assert.doesNotMatch(
+    speakerPluginSource,
+    /PROFILE_VERSION\s*=\s*4/u,
+    "Das vorhandene 3-von-3-Profil muss beim Update erhalten bleiben"
+  );
+});
+
+test("nach Ablehnung wird eine vollständig frische Mikrofonsitzung automatisch geplant", () => {
+  const restart = methodSource(
+    "private void scheduleRestart(long delayMillis)",
+    "private void verifyRecognitionHealth()"
+  );
+  assert.match(restart, /recognitionGeneration\+\+/u);
+  assert.match(restart, /cancelSecureAudioSession\(\)/u);
+  assert.match(restart, /speakerVerificationPending = false/u);
+  assert.match(restart, /postDelayed\(restartRunnable, delayMillis\)/u);
+
+  const rejectionStart = serviceSource.indexOf('"owner_rejected"');
+  const rejectionEnd = serviceSource.indexOf("});", rejectionStart);
+  assert.notEqual(rejectionStart, -1);
+  assert.match(
+    serviceSource.slice(rejectionStart, rejectionEnd + 3),
+    /scheduleRestart\(900L\)/u
+  );
+});
+
+test("eine fälschlich aktive Anzeige wird durch den PCM-Gesundheitscheck repariert", () => {
+  const health = methodSource(
+    "private void verifyRecognitionHealth()",
+    "private void pauseRecognition()"
+  );
+  assert.match(health, /session\.totalCapturedSamples\(\)/u);
+  assert.match(health, /session\.totalNonZeroSamples\(\)/u);
+  assert.match(health, /session\.isClientSilenced\(\)/u);
+  assert.match(health, /capturedSamples <= observedAudioSampleCount/u);
+  assert.match(health, /nonZeroSamples <= observedNonZeroSampleCount/u);
+  assert.match(health, /scheduleRestart\(700L\)/u);
+  assert.match(health, /scheduleRestart\(350L\)/u);
+  assert.match(serviceSource, /RECOGNITION_HEALTH_INTERVAL_MILLIS = 4_000L/u);
+});
+
+test("Androids stummgeschalteter Mikrofonstrom wird ausdrücklich erkannt", () => {
+  assert.match(serviceSource, /new AudioRecord\.Builder\(\)/u);
+  assert.match(serviceSource, /setPrivacySensitive\(true\)/u);
+  assert.match(serviceSource, /registerAudioRecordingCallback/u);
+  assert.match(serviceSource, /AudioManager\.AudioRecordingCallback/u);
+  assert.match(serviceSource, /configuration\.getClientAudioSessionId\(\)/u);
+  assert.match(serviceSource, /configuration\.isClientSilenced\(\)/u);
+  assert.match(serviceSource, /android\.os\.Process\.THREAD_PRIORITY_AUDIO/u);
+});
+
+test("die sichtbare Fremd-App hat keinen Einfluss auf Pams Hintergrund-Weckruf", () => {
+  const pauseStart = pluginSource.indexOf("protected void handleOnPause()");
+  const pauseEnd = pluginSource.indexOf(
+    "protected void handleOnDestroy()",
+    pauseStart
+  );
+  assert.notEqual(pauseStart, -1);
+  assert.notEqual(pauseEnd, -1);
+  const pauseSource = pluginSource.slice(pauseStart, pauseEnd);
+
+  assert.match(pauseSource, /MODE_FOREGROUND\.equals\(savedMode\(\)\)/u);
+  assert.doesNotMatch(
+    pauseSource,
+    /MODE_BACKGROUND[\s\S]*?stopService/u,
+    "Beim Wechsel zu Kalender, WhatsApp, Google, Telefon, Netflix oder einer anderen App darf der Hintergrunddienst nicht beendet werden"
+  );
+  assert.doesNotMatch(
+    serviceSource,
+    /getRunningAppProcesses|getRunningTasks|UsageStatsManager|queryIntentActivities/u,
+    "Die Weckentscheidung darf nicht von der gerade sichtbaren Fremd-App abhängen"
+  );
+});
+
+test("nach einer fremden Mikrofonbelegung verbindet sich Hey Pam selbst wieder", () => {
+  const health = methodSource(
+    "private void verifyRecognitionHealth()",
+    "private void pauseRecognition()"
+  );
+  assert.match(health, /session\.isClientSilenced\(\)/u);
+  assert.match(health, /scheduleRestart\(350L\)/u);
+  assert.match(
+    serviceSource,
+    /postDelayed\(restartRunnable, delayMillis\)/u
+  );
+  assert.doesNotMatch(
+    health,
+    /MODE_OFF|saveMode\(HeyHoSolPlugin\.MODE_OFF\)/u,
+    "Eine vorübergehende Mikrofonbelegung darf Pams Hintergrundmodus nicht abschalten"
+  );
+});
+
+test("erneutes Tippen auf Hintergrund erzwingt sichtbar einen frischen Start", () => {
+  assert.match(serviceSource, /boolean explicitRearmRequested = ACTION_START\.equals\(action\)/u);
+  assert.match(
+    serviceSource,
+    /if \(explicitRearmRequested\) \{[\s\S]*?scheduleRestart\(0L\);[\s\S]*?return serviceRestartMode\(\);/u
+  );
+  assert.match(uiSource, /await waitForWakeListening\(plugin, mode\)/u);
+  assert.match(uiSource, /Hintergrund ist bereit · du musst nicht erneut drücken/u);
 });
 
 test("Android 14 und 15 erhalten beide Freigaben für den Hintergrundstart", () => {
@@ -216,5 +385,171 @@ test("blockierter Hintergrundstart bleibt sichtbar und hat einen sicheren Tipp-R
   assert.match(
     serviceSource,
     /launchIntent\.putExtra\("hey_ho_sol_wake", true\)/u
+  );
+});
+
+test("der bereits laufende Mikrofondienst wird beim Sperren direkt fortgesetzt", () => {
+  const resumeStart = serviceSource.indexOf(
+    "public static void resume(Context context, String mode)"
+  );
+  const resumeEnd = serviceSource.indexOf(
+    "public static boolean isRunning()",
+    resumeStart
+  );
+  assert.notEqual(resumeStart, -1);
+  assert.notEqual(resumeEnd, -1);
+  const resumeSource = serviceSource.slice(resumeStart, resumeEnd);
+
+  assert.match(resumeSource, /HeyHoSolService service = activeService/u);
+  assert.match(
+    resumeSource,
+    /service\.mainHandler\.post\(\(\) -> service\.resumeInPlace\(mode\)\)/u
+  );
+  assert.ok(
+    resumeSource.indexOf("resumeInPlace(mode)")
+      < resumeSource.indexOf("startForegroundService"),
+    "Ein laufender Dienst muss vor jedem neuen FGS-Start direkt fortgesetzt werden"
+  );
+  assert.match(
+    resumeSource,
+    /if \(!HeyHoSolPlugin\.isActivityVisible\(\)\) \{\s*return;/u,
+    "Ein entfernter Mikrofon-FGS darf nicht heimlich aus dem gesperrten Hintergrund neu entstehen"
+  );
+});
+
+test("ein entfernter Mikrofondienst wird aus dem Sperrbildschirm nicht neu erzeugt", () => {
+  assert.match(
+    pluginSource,
+    /if \(!activityVisible && !HeyHoSolService\.isRunning\(\)\) \{\s*return;/u
+  );
+});
+
+test("Hey Pam bleibt bei ausgeschaltetem Bildschirm aufnahmebereit", () => {
+  assert.match(serviceSource, /PowerManager\.PARTIAL_WAKE_LOCK/u);
+  assert.match(serviceSource, /:hey-pam-listening/u);
+  assert.match(serviceSource, /acquireRecognitionWakeLock\(\)/u);
+  assert.match(serviceSource, /releaseRecognitionWakeLock\(\)/u);
+  assert.match(
+    drivingInstallerSource,
+    /android\.permission\.WAKE_LOCK/u
+  );
+  assert.match(serviceSource, /Intent\.ACTION_SCREEN_OFF/u);
+  assert.match(serviceSource, /rearmAfterScreenTransition/u);
+  const restart = methodSource(
+    "private void scheduleRestart(long delayMillis)",
+    "private void verifyRecognitionHealth()"
+  );
+  assert.match(restart, /shouldKeepWakeLockForRestart/u);
+  assert.match(restart, /acquireRecognitionWakeLock\(\)/u);
+});
+
+test("Sperren und normales Entsperren ersetzen eine festgefahrene Sitzung", () => {
+  assert.match(serviceSource, /filter\.addAction\(Intent\.ACTION_SCREEN_OFF\)/u);
+  assert.match(serviceSource, /filter\.addAction\(Intent\.ACTION_USER_PRESENT\)/u);
+  assert.match(
+    serviceSource,
+    /if \(lockedWakeHandoffPending\) \{\s*continueWakeAfterDeviceUnlock\(\);\s*\} else \{\s*rearmAfterScreenTransition/u
+  );
+  assert.match(
+    serviceSource,
+    /private void rearmAfterScreenTransition[\s\S]*?scheduleRestart\(350L\)/u
+  );
+});
+
+test("ein bestätigter Weckruf startet den Sprachdialog direkt über der Gerätesperre", () => {
+  const handleWake = methodSource(
+    "private void handleWakePhrase(String phrase)",
+    "private boolean isDeviceLocked()"
+  );
+  assert.match(
+    handleWake,
+    /boolean deviceLocked = isDeviceLocked\(\)/u
+  );
+  assert.match(
+    handleWake,
+    /publishWakeEvent\(this, phrase, deviceLocked\)/u
+  );
+  assert.match(handleWake, /if \(deviceLocked\) \{\s*beginLockedWakeHandoff\(\)/u);
+  assert.match(serviceSource, /Intent\.ACTION_USER_PRESENT/u);
+  assert.match(serviceSource, /showLockedWakeOverlay\(\)/u);
+  assert.match(serviceSource, /wakeScreenForSecureHandoff\(\)/u);
+  assert.match(serviceSource, /continueWakeAfterDeviceUnlock\(\)/u);
+  const lockedHandoff = methodSource(
+    "private void beginLockedWakeHandoff()",
+    "private void continueWakeAfterDeviceUnlock()"
+  );
+  assert.match(lockedHandoff, /this::launchSolHoloActivity/u);
+  assert.match(
+    lockedHandoff,
+    /this::launchSolHoloActivityDirectlyIfStillHidden/u
+  );
+  assert.ok(
+    lockedHandoff.indexOf("this::launchSolHoloActivity")
+      < lockedHandoff.indexOf("if (!isDeviceLocked())"),
+    "Der Sprachdialog muss schon vor dem Entsperren gestartet werden"
+  );
+  assert.match(
+    serviceSource,
+    /if \(!isDeviceLocked\(\)\) \{\s*continueWakeAfterDeviceUnlock\(\);\s*return;/u,
+    "Entsperren während des Starts bleibt ein zusätzlicher Fallback"
+  );
+  assert.match(
+    serviceSource,
+    /Stimme bestätigt – Sol spricht jetzt mit dir\./u
+  );
+  assert.match(
+    pluginSource,
+    /PENDING_SPEAKER_VERIFIED_KEY/u
+  );
+  assert.match(pluginSource, /public void peekWakeEvent\(PluginCall call\)/u);
+  assert.match(pluginSource, /event\.put\("lockedAtDetection", lockedAtDetection\)/u);
+  assert.match(pluginSource, /event\.put\("speakerVerified", speakerVerified && fresh\)/u);
+  assert.match(
+    uiSource,
+    /event\?\.lockedAtDetection === true[\s\S]*event\?\.speakerVerified !== true/u
+  );
+  assert.match(
+    uiSource,
+    /if \(document\.visibilityState !== "visible"\) \{\s*return;/u,
+    "Das Gespräch darf das WebRTC-Mikrofon erst in der sichtbaren Sperrbildschirm-Activity übernehmen"
+  );
+  assert.match(
+    uiSource,
+    /async function consumePendingWakeEvent\(\) \{[\s\S]*?if \(!plugin \|\| document\.visibilityState !== "visible"\) \{\s*return;/u,
+    "Eine noch unsichtbare WebView darf den einmaligen Weckruf nicht verbrauchen"
+  );
+  assert.match(
+    uiSource,
+    /await beginLockedVoice\(event\) !== true[\s\S]*await startSolVoice\(\)/u
+  );
+  assert.doesNotMatch(
+    serviceSource,
+    /requestDismissKeyguard|FLAG_DISMISS_KEYGUARD/u,
+    "Pams Android-Gerätesperre darf nicht umgangen werden"
+  );
+  assert.match(drivingInstallerSource, /WindowManager\.LayoutParams\.FLAG_KEEP_SCREEN_ON/u);
+  const generatedCreateStart = drivingInstallerSource.indexOf(
+    "public void onCreate(Bundle savedInstanceState)"
+  );
+  const generatedWakeFlags = drivingInstallerSource.indexOf(
+    "applyWakeScreenBehavior(getIntent());",
+    generatedCreateStart
+  );
+  const generatedSuperCreate = drivingInstallerSource.indexOf(
+    "super.onCreate(savedInstanceState);",
+    generatedCreateStart
+  );
+  assert.ok(generatedWakeFlags > generatedCreateStart);
+  assert.ok(generatedSuperCreate > generatedWakeFlags);
+});
+
+test("die sichere Entsperr-Übergabe verwirft den Weckruf nicht nach 30 Sekunden", () => {
+  assert.match(
+    uiSource,
+    /const wakeHandoffMaxAgeMillis = 120_000/u
+  );
+  assert.match(
+    uiSource,
+    /Date\.now\(\) - detectedAt > wakeHandoffMaxAgeMillis/u
   );
 });

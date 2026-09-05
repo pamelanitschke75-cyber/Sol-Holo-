@@ -29,6 +29,19 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     profileMemoryState.textContent = "Nur nach Bestätigung";
   }
 
+  const googleAccountServiceRow = document.getElementById("googleAccountRow");
+  googleAccountServiceRow?.insertAdjacentHTML(
+    "afterend",
+    '<button id="googleMapsRow" class="serviceRow" type="button">' +
+      '<span class="rowIcon">⌖</span>' +
+      '<span class="rowText">' +
+        '<span class="rowTitle">Google Maps</span>' +
+        '<span class="rowMeta">Ziel per Text oder Sprache an die Navigation übergeben</span>' +
+      '</span>' +
+      '<span id="googleMapsStatus" class="serviceStatus setup">Wird geprüft …</span>' +
+    '</button>'
+  );
+
   const memoryQuickCard = document.querySelector(
     '.quickCard[data-open-view="memory"]'
   );
@@ -371,6 +384,11 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     allRequestedAccessGranted: false,
     services: {}
   };
+  let navigationStatus = {
+    supported: false,
+    installed: false,
+    provider: "Google Maps"
+  };
   let smartThingsStatus = {
     configured: false,
     connected: false,
@@ -397,8 +415,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   };
   let wakeActionRunning = false;
   let wakeListenersRegistered = false;
+  let wakeRecoveryNoticePending = false;
   let lastWakeDetectedAt = 0;
   let pendingWakePrompt = "";
+  const wakeHandoffMaxAgeMillis = 120_000;
   let phoneStatus = {
     supported: false,
     contactsPermissionGranted: false,
@@ -1423,6 +1443,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       void loadPhoneStatus();
       void loadHealthStatus();
       void loadSmartThingsStatus();
+      void loadNavigationStatus();
       renderSamsungNotesStatus();
     }
 
@@ -1571,6 +1592,199 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       todayState.textContent = "Kalenderstatus offen";
     }
   }
+
+  function getSolNavigationPlugin() {
+    return window.Capacitor?.Plugins?.SolNavigation || null;
+  }
+
+  function renderNavigationStatus(nextStatus = {}) {
+    const serviceState = document.getElementById("googleMapsStatus");
+    if (!serviceState) {
+      return;
+    }
+
+    navigationStatus = {
+      supported: Boolean(nextStatus?.supported),
+      installed: Boolean(nextStatus?.installed),
+      provider: String(nextStatus?.provider || "Google Maps")
+    };
+
+    serviceState.classList.remove("connected", "setup");
+    if (!getSolNavigationPlugin()) {
+      serviceState.textContent = "Nur Android";
+      serviceState.classList.add("setup");
+    } else if (navigationStatus.installed) {
+      serviceState.textContent = "Verbunden";
+      serviceState.classList.add("connected");
+    } else {
+      serviceState.textContent = "App nicht gefunden";
+      serviceState.classList.add("setup");
+    }
+  }
+
+  async function loadNavigationStatus() {
+    const plugin = getSolNavigationPlugin();
+    if (!plugin) {
+      renderNavigationStatus({ supported: false });
+      return navigationStatus;
+    }
+
+    try {
+      renderNavigationStatus(await plugin.getStatus());
+    } catch (error) {
+      console.error("Google-Maps-Status:", error);
+      renderNavigationStatus({ supported: true, installed: false });
+    }
+
+    return navigationStatus;
+  }
+
+  function googleMapsNavigationFromNaturalRequest(message) {
+    const cleanMessage = String(message || "")
+      .trim()
+      .replace(
+        /^(?:(?:hey|hallo|hello)\s+(?:pam|sol)|sol)\s*[,;:!.-]?\s*/i,
+        ""
+      )
+      .trim();
+
+    if (
+      /^(?:öffne|oeffne|starte|zeig|zeige)\s+(?:mir\s+)?(?:bitte\s+)?(?:die\s+)?(?:google\s+)?maps(?:\s+app)?[.!?]*$/i.test(
+        cleanMessage
+      )
+    ) {
+      return { action: "open", destination: "", mode: "driving" };
+    }
+
+    if (
+      /\b(?:notiz(?:en)?|notier\w*|kalender|termine?)\b/i.test(cleanMessage)
+    ) {
+      return null;
+    }
+
+    const mode = /(?:^|\s)(?:zu\s+fuß|zu\s+fuss|laufend)(?:\s|[.!?]|$)/i.test(cleanMessage)
+      ? "walking"
+      : /(?:^|\s)(?:mit\s+dem\s+fahrrad|per\s+fahrrad|radfahrend)(?:\s|[.!?]|$)/i.test(cleanMessage)
+        ? "bicycling"
+        : /(?:^|\s)(?:mit\s+(?:(?:dem|der)\s+)?(?:bus|bahn|öffentlichen|oeffentlichen)|öpnv|oepnv)(?:\s|[.!?]|$)/i.test(cleanMessage)
+          ? "transit"
+          : "driving";
+
+    const patterns = [
+      /^(?:navigier|navigiere|lotse)\s+(?:mich\s+)?(?:bitte\s+)?(?:mit\s+google\s+maps\s+)?(?:zu|nach)\s+(.+?)[.!?]*$/i,
+      /^(?:bring|bringe|fahr|fahre)\s+mich\s+(?:bitte\s+)?(?:zu|nach)\s+(.+?)[.!?]*$/i,
+      /^(?:öffne|oeffne|starte)\s+(?:bitte\s+)?(?:die\s+)?navigation\s+(?:mit\s+google\s+maps\s+)?(?:zu|nach)\s+(.+?)[.!?]*$/i,
+      /^(?:zeig|zeige)\s+(?:mir\s+)?(?:bitte\s+)?(?:den\s+)?weg\s+(?:zu|nach)\s+(.+?)[.!?]*$/i,
+      /^(?:google\s+)?maps\s+(?:route\s+)?(?:zu|nach)\s+(.+?)[.!?]*$/i,
+      /^(?:route|navigation)\s+(?:zu|nach)\s+(.+?)[.!?]*$/i
+    ];
+
+    const match = patterns
+      .map(pattern => cleanMessage.match(pattern))
+      .find(Boolean);
+
+    if (!match) {
+      return null;
+    }
+
+    let destination = String(match[1] || "")
+      .replace(
+        /\s+(?:mit\s+dem\s+auto|zu\s+fuß|zu\s+fuss|mit\s+dem\s+fahrrad|per\s+fahrrad|mit\s+(?:(?:dem|der)\s+)?(?:bus|bahn|öffentlichen|oeffentlichen)|öpnv|oepnv)\s*$/i,
+        ""
+      )
+      .replace(/\s+(?:mit|in)\s+google\s+maps\s*$/i, "")
+      .trim();
+
+    if (/^hause$/i.test(destination)) {
+      destination = "Zuhause";
+    }
+
+    if (!destination || destination.length > 500) {
+      return null;
+    }
+
+    return { action: "navigate", destination, mode };
+  }
+
+  window.extractSolHoloGoogleMapsNavigation =
+    googleMapsNavigationFromNaturalRequest;
+
+  async function executeNavigationTool(name, args = {}) {
+    if (!activePersonalOwner()) {
+      return {
+        success: false,
+        identityRequired: true,
+        answer: "Die feste Holo-ID ist nicht verfügbar."
+      };
+    }
+
+    const plugin = getSolNavigationPlugin();
+    if (!plugin) {
+      return {
+        success: false,
+        answer: "Google Maps kann nur aus der Sol-Holo-App für Android geöffnet werden."
+      };
+    }
+
+    try {
+      if (name === "open_google_maps") {
+        await plugin.openGoogleMaps();
+        return {
+          success: true,
+          opened: true,
+          answer: "Google Maps ist geöffnet."
+        };
+      }
+
+      const destination = String(args?.destination || "").trim();
+      const mode = String(args?.mode || "driving").trim();
+      const result = await plugin.startNavigation({ destination, mode });
+      if (!result?.opened) {
+        throw new Error("Google Maps hat das Navigationsziel nicht geöffnet.");
+      }
+
+      return {
+        success: true,
+        opened: true,
+        destination,
+        mode,
+        answer: `Die Route zu „${destination}“ ist in Google Maps geöffnet.`
+      };
+    } catch (error) {
+      console.error("Google-Maps-Navigation:", error);
+      return {
+        success: false,
+        answer: String(
+          error?.message ||
+          "Google Maps konnte gerade nicht geöffnet werden."
+        )
+      };
+    }
+  }
+
+  window.executeSolHoloNavigationTool = executeNavigationTool;
+
+  window.handleSolHoloRealtimeNavigationTranscript = async (message) => {
+    const request = googleMapsNavigationFromNaturalRequest(message);
+    if (!request) {
+      return { handled: false };
+    }
+
+    const result = await executeNavigationTool(
+      request.action === "open"
+        ? "open_google_maps"
+        : "start_google_maps_navigation",
+      request
+    );
+
+    return {
+      handled: true,
+      status: result?.opened
+        ? "Google Maps geöffnet."
+        : "Google Maps wurde nicht geöffnet.",
+      answer: result.answer
+    };
+  };
 
   async function loadSmartThingsStatus() {
     const serviceState = document.getElementById("smartThingsStatus");
@@ -2377,7 +2591,13 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   window.executeSolHoloHealthTool = executeHealthTool;
 
   function samsungNoteTextFromNaturalRequest(message) {
-    const cleanMessage = String(message || "").trim();
+    const cleanMessage = String(message || "")
+      .trim()
+      .replace(
+        /^(?:(?:hey|hallo|hello)\s+(?:pam|sol)|sol)\s*[,;:!.-]?\s*/i,
+        ""
+      )
+      .trim();
     const patterns = [
       /^(?:schreib(?:e)?|notier(?:e)?|trag(?:e)?|pack(?:e)?|setz(?:e)?)\s+(?:mir\s+)?(?:bitte\s+)?(.+?)\s+(?:bitte\s+)?(?:in|zu)\s+(?:(?:meine|die)\s+)?(?:samsungs?(?:\s+|-))?(?:notes?|noten|notizen)(?:\s+(?:rein|hinein|ein))?[.!?]*$/i,
       /^(?:schreib(?:e)?|notier(?:e)?|trag(?:e)?|pack(?:e)?|setz(?:e)?)\s+(?:mir\s+)?(?:bitte\s+)?(?:in|zu)\s+(?:(?:meine|die)\s+)?(?:samsungs?(?:\s+|-))?(?:notes?|noten|notizen)(?:\s+(?:rein|hinein|ein))?\s*[:,-]?\s*(?:bitte\s+)?(.+?)[.!?]*$/i
@@ -2399,7 +2619,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   function samsungNoteInsertionFromNaturalRequest(message) {
     const cleanMessage = String(message || "")
       .trim()
-      .replace(/^(?:(?:hey\s+)?sol)\s*[,;:!.-]?\s*/i, "")
+      .replace(
+        /^(?:(?:hey|hallo|hello)\s+(?:pam|sol)|sol)\s*[,;:!.-]?\s*/i,
+        ""
+      )
       .trim();
     const match = cleanMessage.match(
       /^(?:bitte\s+)?(?:setz(?:e)?|schreib(?:e)?|pack(?:e)?|füg(?:e)?)\s+(?:mir\s+)?(?:bitte\s+)?(.+?)\s+unter\s+(.+?)(?:\s+hinzu)?(?:\s+(?:in|bei|zu)\s+(?:(?:meine|die)\s+)?(?:samsungs?(?:\s+|-))?(?:notes?|noten|notizen))?[.!?]*$/i
@@ -2442,7 +2665,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   window.handleSolHoloLocalAction = async (message) => {
     const cleanMessage = String(message || "").trim();
     const noteMessage = cleanMessage
-      .replace(/^(?:(?:hey\s+)?sol)\s*[,;:!.-]?\s*/i, "")
+      .replace(
+        /^(?:(?:hey|hallo|hello)\s+(?:pam|sol)|sol)\s*[,;:!.-]?\s*/i,
+        ""
+      )
       .trim();
 
     const finishNoteCreation = async (text) => {
@@ -2598,6 +2824,24 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       return { handled: true, answer: result.answer };
     }
 
+    const navigationRequest =
+      googleMapsNavigationFromNaturalRequest(cleanMessage);
+    if (navigationRequest) {
+      const result = await executeNavigationTool(
+        navigationRequest.action === "open"
+          ? "open_google_maps"
+          : "start_google_maps_navigation",
+        navigationRequest
+      );
+      return {
+        handled: true,
+        status: result?.opened
+          ? "Google Maps geöffnet."
+          : "Google Maps wurde nicht geöffnet.",
+        answer: result.answer
+      };
+    }
+
     if (
       /^(?:zeig|zeige|lies|lese|gib|wie\s+(?:viele|war|waren|ist|sind))\b/i.test(cleanMessage) &&
       /health|gesundheit|gesundheitsdaten|schritt|schlaf|gewicht|herz|puls|blutdruck|sauerstoff|training|kalorien|zyklus|menstru|ernährung/i.test(cleanMessage)
@@ -2654,7 +2898,10 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   window.handleSolHoloRealtimeNoteTranscript = async (message) => {
     const cleanMessage = String(message || "").trim();
     const noteMessage = cleanMessage
-      .replace(/^(?:(?:hey\s+)?sol)\s*[,;:!.-]?\s*/i, "")
+      .replace(
+        /^(?:(?:hey|hallo|hello)\s+(?:pam|sol)|sol)\s*[,;:!.-]?\s*/i,
+        ""
+      )
       .trim();
     const noteIntent =
       pendingPersonalNoteText ||
@@ -2778,11 +3025,20 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
         if (event?.stage === "phrase_heard") {
           showToast("„Hey Pam“ gehört · deine Stimme wird geprüft …");
         } else if (event?.stage === "owner_accepted") {
+          wakeRecoveryNoticePending = false;
           showToast("Stimme freigegeben · Sol startet ✨");
         } else if (event?.stage === "owner_rejected") {
+          wakeRecoveryNoticePending = true;
           showToast(
-            "„Hey Pam“ gehört · Stimme nicht freigegeben 🔒" + scoreText
+            "„Hey Pam“ gehört · Stimme nicht freigegeben 🔒" + scoreText +
+            " · Sol startet das Hören automatisch neu."
           );
+        } else if (
+          event?.stage === "listener_ready" &&
+          wakeRecoveryNoticePending
+        ) {
+          wakeRecoveryNoticePending = false;
+          showToast("Hey Pam ist wieder bereit · du musst nichts drücken.");
         }
       });
     } catch (error) {
@@ -2793,7 +3049,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
   async function consumePendingWakeEvent() {
     const plugin = getHeyHoSolPlugin();
-    if (!plugin) {
+    if (!plugin || document.visibilityState !== "visible") {
       return;
     }
 
@@ -2831,6 +3087,26 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     return wakeStatus;
   }
 
+  async function waitForWakeListening(plugin, mode, timeoutMs = 20_000) {
+    const deadline = Date.now() + timeoutMs;
+    await new Promise((resolve) => window.setTimeout(resolve, 350));
+    let status = await plugin.getStatus();
+    renderWakeStatus(status);
+
+    while (
+      status.mode === mode &&
+      !status.listening &&
+      !status.lastError &&
+      Date.now() < deadline
+    ) {
+      await new Promise((resolve) => window.setTimeout(resolve, 250));
+      status = await plugin.getStatus();
+      renderWakeStatus(status);
+    }
+
+    return status;
+  }
+
   async function setWakeMode(mode) {
     if (wakeActionRunning) {
       return;
@@ -2846,7 +3122,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     renderWakeStatus(wakeStatus);
 
     try {
-      const status = await plugin.setMode({ mode });
+      let status = await plugin.setMode({ mode });
       renderWakeStatus(status);
 
       if (mode === "background") {
@@ -2859,11 +3135,19 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
           return;
         }
 
+        status = await waitForWakeListening(plugin, mode);
         showToast(
-          "Hintergrund-Hören und automatisches Öffnen sind aktiv."
+          status.listening
+            ? "Hintergrund ist bereit · du musst nicht erneut drücken."
+            : "Das Mikrofon startet noch automatisch · bitte kurz warten."
         );
       } else if (mode === "foreground") {
-        showToast("Sol hört nur auf den Weckruf, solange die App geöffnet ist.");
+        status = await waitForWakeListening(plugin, mode);
+        showToast(
+          status.listening
+            ? "App-Weckruf ist bereit · sag „Hey Pam“."
+            : "Das Mikrofon startet noch automatisch · bitte kurz warten."
+        );
       } else {
         showToast("Der Sol-Weckruf ist ausgeschaltet.");
       }
@@ -2923,16 +3207,53 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     const detectedAt = Number(event?.detectedAt || Date.now());
     if (
       detectedAt <= lastWakeDetectedAt ||
-      Date.now() - detectedAt > 30_000
+      Date.now() - detectedAt > wakeHandoffMaxAgeMillis
     ) {
       return;
+    }
+
+    // Native Weckereignisse können eintreffen, während die alte WebView noch
+    // hinter einer anderen App pausiert. Der in SharedPreferences gehaltene
+    // Einmal-Weckruf wird beim sichtbaren Resume erneut konsumiert. So fordert
+    // WebRTC das Mikrofon erst an, wenn Pams Sprachfenster wirklich sichtbar ist.
+    if (document.visibilityState !== "visible") {
+      return;
+    }
+
+    if (event?.lockedAtDetection === true) {
+      if (event?.speakerVerified !== true) {
+        console.error("Hey-Pam-Sperrmodus ohne Sprecherfreigabe abgelehnt.");
+        return;
+      }
+
+      const hookDeadline = Date.now() + 1_500;
+      while (
+        typeof window.beginSolHoloVerifiedLockedWakeSession !== "function" &&
+        Date.now() < hookDeadline
+      ) {
+        await new Promise(resolve => window.setTimeout(resolve, 25));
+      }
+
+      const beginLockedVoice =
+        window.beginSolHoloVerifiedLockedWakeSession;
+      if (
+        typeof beginLockedVoice !== "function" ||
+        await beginLockedVoice(event) !== true
+      ) {
+        console.error("Der geprüfte Hey-Pam-Sperrmodus konnte nicht starten.");
+        return;
+      }
     }
 
     lastWakeDetectedAt = detectedAt;
     pendingWakePrompt = String(
       event?.phrase || "Hey Pam"
     );
-    showToast("Stimme freigegeben · Sol startet ✨");
+    showToast(
+      event?.lockedAtDetection === true
+        ? "Stimme freigegeben · Sol spricht im Sperrmodus ✨"
+        : "Stimme freigegeben · Sol startet ✨"
+    );
     await startSolVoice();
   }
 
@@ -3215,6 +3536,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
 
   document.getElementById("refreshServicesButton").addEventListener("click", () => {
     void loadGoogleStatus();
+    void loadNavigationStatus();
     void loadSmartThingsStatus();
     void loadWhatsAppStatus();
     void loadWakeStatus();
@@ -3300,6 +3622,12 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     if (!authWindow) {
       window.location.href = authUrl;
     }
+  });
+
+  document.getElementById("googleMapsRow")?.addEventListener("click", async () => {
+    const result = await executeNavigationTool("open_google_maps");
+    showToast(result.answer);
+    void loadNavigationStatus();
   });
 
   document.getElementById("whatsappDriveRow").addEventListener("click", () => {
@@ -3420,7 +3748,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       : "Den WhatsApp-Fahrmodus richtest du direkt über seine Zeile ein.";
     showToast(
       "Jeder Dienst wird einzeln freigegeben. " + whatsappText +
-      " Google-Konto, Telefon, Health und SmartThings richtest du über ihre Zeile ein. " +
+      " Google-Konto, Google Maps, Telefon, Health und SmartThings richtest du über ihre Zeile ein. " +
       "Samsung Galerie öffnet die Bildauswahl; Samsung Notes wird für Notizen direkt geöffnet."
     );
   });
@@ -3453,6 +3781,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
       void loadPhoneStatus();
       void loadHealthStatus();
       void loadSmartThingsStatus();
+      void loadNavigationStatus();
       void consumeSharedNoteImport();
     }
   });
@@ -3463,6 +3792,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
     void loadPhoneStatus();
     void loadHealthStatus();
     void loadSmartThingsStatus();
+    void loadNavigationStatus();
     void consumeSharedNoteImport();
   });
 
@@ -3486,6 +3816,7 @@ const uiMarkup = "\n<section id=\"onboardingScreen\" aria-labelledby=\"welcomeTi
   restoreCustomCloneAppearance();
   showView("home");
   void loadGoogleStatus();
+  void loadNavigationStatus();
   void loadSmartThingsStatus();
   void loadWhatsAppStatus();
   void loadWakeStatus(true);

@@ -43,7 +43,7 @@ Bereich| Zugriff| Warum benötigt?| Wann?| Ohne Freigabe
 📞 Telefon| Telefonfunktion| Anrufe vorbereiten/starten| Bei entsprechender Aktion| Kein Anruf durch Sol
 💬 Nachrichten| Nachrichten-/Share-Funktion| Text an andere Apps übergeben| Bei ausdrücklicher Aktion| Keine Übergabe
 📍 Standort| Standortdaten| Ortsbezogene Funktionen| Nur wenn benötigt| Keine Standortfunktionen
-🧭 Navigation| Karten-/Navigations-App| Ziel übergeben| Bei Navigationsauftrag| Keine Navigation
+🧭 Navigation| Google Maps per Android-Intent| Ziel und gewünschte Verkehrsart übergeben| Nur bei ausdrücklichem Navigationsauftrag| Keine Navigation; Sol Holo fordert dafür keinen eigenen GPS-Zugriff an
 📡 Bluetooth| Geräte in der Nähe| Watch und andere Geräte| Beim Verbinden| Keine Bluetooth-Verbindung
 📶 NFC| kryptografisch geschützter Sicherheitsschlüssel| zusätzlicher unabhängiger Identitätsnachweis| bei Einrichtung oder erhöhter Sicherheitsprüfung| andere sichere Nachweise bleiben möglich
 ⌚ Wear OS| Smartwatch-Daten| Sol mit Watch verbinden| Wenn Watch-Funktion aktiv| Sol bleibt auf Smartphone
@@ -104,6 +104,10 @@ SOL erhält ausgewählten Inhalt
 Standort
 
 Standortzugriff wird nur für Funktionen verwendet, die ihn tatsächlich benötigen.
+
+Für die Übergabe eines genannten Ziels an Google Maps benötigt Sol Holo
+keine eigene Standortberechtigung. Google Maps verwendet den aktuellen
+Standort ausschließlich nach den dort erteilten Google-/Android-Einstellungen.
 
 Beispiele:
 

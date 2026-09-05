@@ -2,7 +2,14 @@
 
 Stand: 03.09.2026
 
-Status: **ABGESCHLOSSEN ✅**
+Status: **AM 04.09.2026 WIEDER GEÖFFNET ⚠️**
+
+> **Korrektur vom 04.09.2026:** Ein erneuter Praxistest auf Pams Galaxy S23
+> hat gezeigt, dass „Hey Pam“ im tatsächlich gesperrten Zustand nicht
+> zuverlässig funktioniert. Die bestätigten Ergebnisse bei geöffneter App und
+> im entsperrten Hintergrund bleiben gültig. Die frühere Einstufung der
+> Sperrbildschirm-Übergabe als „bestanden“ war zu weitgehend und gilt nicht
+> mehr. Der nachfolgende Text bleibt als historischer Teststand erhalten.
 
 ## Bestätigter S23-Befund
 
@@ -74,5 +81,6 @@ durch den real bestandenen Hintergrundablauf ergänzt.
 Der vollständige Praxisnachweis steht im
 [Mega-Meilenstein „Hey Pam“ im Hintergrund](./MEGA-MEILENSTEIN-HEY-PAM-HINTERGRUND-S23-03-09-2026.md).
 
-Für den persönlichen Weckruf „Hey Pam“ besteht nach Pams ausdrücklicher
-Bestätigung keine offene Entwicklungs- oder Praxistestaufgabe mehr.
+Für den persönlichen Weckruf „Hey Pam“ ist die Sperrbildschirm- und
+Display-aus-Prüfung seit dem 04.09.2026 wieder eine offene Entwicklungs- und
+Praxistestaufgabe.

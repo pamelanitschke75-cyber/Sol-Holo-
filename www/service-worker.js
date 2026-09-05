@@ -1,4 +1,4 @@
-const CACHE_VERSION = "sol-holo-125-stable-hey-pam-voice";
+const CACHE_VERSION = "sol-holo-direct-locked-voice-v1";
 
 self.addEventListener("install", () => {
   self.skipWaiting();

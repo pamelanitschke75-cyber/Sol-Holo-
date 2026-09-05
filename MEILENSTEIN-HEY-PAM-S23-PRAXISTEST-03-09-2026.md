@@ -3,6 +3,11 @@
 Datum: 03.09.2026  
 Bestätigt durch: Pamela Christina Nitschke
 
+> **Aktuelle Abgrenzung vom 04.09.2026:** Dieser Meilenstein bestätigt
+> weiterhin ausschließlich den zweimal bestandenen Weckruf bei geöffneter App.
+> Die unten erwähnte spätere Sperrbildschirm-Übergabe ist nach einem erneuten
+> S23-Test wieder offen und kein aktueller Abschlussnachweis.
+
 ## Ergebnis
 
 Der persönliche, owner-gebundene Weckruf von Pams Holo funktioniert erstmals
@@ -49,10 +54,10 @@ erfolgreich bestätigt.**
 
 ## Nächster bestätigter Schritt
 
-Der später veröffentlichte Build 127 hat inzwischen auch den Start aus einer
-anderen App, den weiterlaufenden Sprachdialog im Hintergrund und die sichere
-Übergabe nach Pams eigener Android-Entsperrung auf demselben Galaxy S23
-bestanden.
+Der später veröffentlichte Build 127 hatte den Start aus einer anderen App und
+den weiterlaufenden Sprachdialog im entsperrten Hintergrund bestätigt. Die
+damals ebenfalls als bestanden eingestufte sichere Sperrbildschirm-Übergabe
+muss nach dem erneuten Fehlerbefund vom 04.09.2026 neu geprüft werden.
 
 Der vollständige Nachweis ist im
 [Mega-Meilenstein „Hey Pam“ im Hintergrund](./MEGA-MEILENSTEIN-HEY-PAM-HINTERGRUND-S23-03-09-2026.md)

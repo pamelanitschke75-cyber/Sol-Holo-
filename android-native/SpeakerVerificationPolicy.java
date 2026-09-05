@@ -20,9 +20,16 @@ final class SpeakerVerificationPolicy {
     // Once Pam has passed the strict full-sentence test, the owner's leading
     // personal wake clause is stored as a short embedding template.
     // Existing 3/3 profiles stay valid when the personal wake name changes.
-    // Both independent models must match that verified template.
+    // Both independent models must still contribute. For an everyday voice
+    // change (tired, congested or hoarse), one model may be less stable only
+    // when the other model is especially strong and the weaker model remains
+    // above its plausibility floor.
     static final float WAKE_TEMPLATE_CAMPPLUS_THRESHOLD = 0.50f;
     static final float WAKE_TEMPLATE_ERES2NET_THRESHOLD = 0.50f;
+    static final float WAKE_TEMPLATE_CAMPPLUS_VARIATION_FLOOR = 0.30f;
+    static final float WAKE_TEMPLATE_ERES2NET_VARIATION_FLOOR = 0.42f;
+    static final float WAKE_TEMPLATE_STRONG_CAMPPLUS_THRESHOLD = 0.72f;
+    static final float WAKE_TEMPLATE_STRONG_ERES2NET_THRESHOLD = 0.72f;
 
     private SpeakerVerificationPolicy() {}
 
@@ -48,10 +55,21 @@ final class SpeakerVerificationPolicy {
         float campplusScore,
         float eres2netScore
     ) {
-        return isFinite(campplusScore)
-            && isFinite(eres2netScore)
-            && campplusScore >= WAKE_TEMPLATE_CAMPPLUS_THRESHOLD
-            && eres2netScore >= WAKE_TEMPLATE_ERES2NET_THRESHOLD;
+        if (!isFinite(campplusScore) || !isFinite(eres2netScore)) {
+            return false;
+        }
+        boolean balancedAgreement =
+            campplusScore >= WAKE_TEMPLATE_CAMPPLUS_THRESHOLD
+                && eres2netScore >= WAKE_TEMPLATE_ERES2NET_THRESHOLD;
+        boolean strongEres2NetWithPlausibleCampplus =
+            campplusScore >= WAKE_TEMPLATE_CAMPPLUS_VARIATION_FLOOR
+                && eres2netScore >= WAKE_TEMPLATE_STRONG_ERES2NET_THRESHOLD;
+        boolean strongCampplusWithPlausibleEres2Net =
+            campplusScore >= WAKE_TEMPLATE_STRONG_CAMPPLUS_THRESHOLD
+                && eres2netScore >= WAKE_TEMPLATE_ERES2NET_VARIATION_FLOOR;
+        return balancedAgreement
+            || strongEres2NetWithPlausibleCampplus
+            || strongCampplusWithPlausibleEres2Net;
     }
 
     /**
