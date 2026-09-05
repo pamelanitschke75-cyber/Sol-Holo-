@@ -11,6 +11,39 @@
     catalogRefresh: {
       enabled: false,
     },
+    mode: "replace",
+    providers: {
+      "lab-local": {
+        baseUrl: "http://127.0.0.1:19006/v1",
+        apiKey: "lab-local-no-secret",
+        api: "openai-completions",
+        timeoutSeconds: 30,
+        agentRuntime: {
+          id: "openclaw",
+        },
+        models: [
+          {
+            id: "policy-probe",
+            name: "Lokaler deterministischer Policy-Prüfer",
+            reasoning: false,
+            input: ["text"],
+            cost: {
+              input: 0,
+              output: 0,
+              cacheRead: 0,
+              cacheWrite: 0,
+            },
+            contextWindow: 16384,
+            maxTokens: 1024,
+            compat: {
+              supportsTools: true,
+              supportsStrictMode: false,
+              supportsUsageInStreaming: false,
+            },
+          },
+        ],
+      },
+    },
   },
 
   gateway: {
@@ -30,6 +63,11 @@
   agents: {
     ownership: "explicit",
     defaults: {
+      skills: [],
+      model: {
+        primary: "lab-local/policy-probe",
+      },
+      utilityModel: "",
       heartbeat: {
         every: "0m",
         target: "none",
@@ -51,17 +89,88 @@
     entries: {
       "sol-holo-lab": {
         name: "Sol Holo OpenClaw Lab",
-        workspace: "/opt/sol-holo/openclaw-lab/workspace",
-        agentDir: "/opt/sol-holo/openclaw-lab/state/agents/sol-holo-lab",
+        workspace: "${OPENCLAW_LAB_ROOT}/workspace",
+        agentDir: "${OPENCLAW_LAB_STATE_DIR}/agents/sol-holo-lab",
+        tools: {
+          deny: ["*"],
+        },
+      },
+      "worker-alltag": {
+        name: "Worker Alltag",
+        workspace: "${OPENCLAW_LAB_ROOT}/workspaces/alltag",
+        agentDir: "${OPENCLAW_LAB_STATE_DIR}/agents/worker-alltag",
+        sandbox: {
+          workspaceAccess: "ro",
+        },
+        tools: {
+          allow: ["read"],
+        },
+      },
+      "worker-geschaeftliches": {
+        name: "Worker Geschäftliches",
+        workspace: "${OPENCLAW_LAB_ROOT}/workspaces/geschaeftliches",
+        agentDir: "${OPENCLAW_LAB_STATE_DIR}/agents/worker-geschaeftliches",
+        sandbox: {
+          workspaceAccess: "ro",
+        },
+        tools: {
+          allow: ["read"],
+        },
+      },
+      "worker-tiere": {
+        name: "Worker Tiere",
+        workspace: "${OPENCLAW_LAB_ROOT}/workspaces/tiere",
+        agentDir: "${OPENCLAW_LAB_STATE_DIR}/agents/worker-tiere",
+        sandbox: {
+          workspaceAccess: "ro",
+        },
+        tools: {
+          allow: ["read"],
+        },
+      },
+      "worker-kochen": {
+        name: "Worker Kochen",
+        workspace: "${OPENCLAW_LAB_ROOT}/workspaces/kochen",
+        agentDir: "${OPENCLAW_LAB_STATE_DIR}/agents/worker-kochen",
+        sandbox: {
+          workspaceAccess: "ro",
+        },
+        tools: {
+          allow: ["read"],
+        },
       },
     },
   },
 
   tools: {
-    profile: "minimal",
-    deny: ["*"],
+    profile: "coding",
+    allow: ["read"],
+    deny: [
+      "write",
+      "edit",
+      "apply_patch",
+      "group:runtime",
+      "group:web",
+      "group:messaging",
+      "group:sessions",
+      "group:memory",
+      "group:automation",
+      "browser",
+      "canvas",
+      "image",
+      "view_image",
+      "image_generate",
+      "music_generate",
+      "video_generate",
+    ],
     fs: {
       workspaceOnly: true,
+    },
+    sandbox: {
+      tools: {
+        allow: ["read"],
+        deny: ["view_image"],
+      },
     },
     exec: {
       security: "deny",
@@ -84,5 +193,11 @@
 
   skills: {
     allowBundled: [],
+    workshop: {
+      autonomous: {
+        mode: "off",
+      },
+      approvalPolicy: "pending",
+    },
   },
 }

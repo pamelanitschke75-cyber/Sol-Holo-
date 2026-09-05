@@ -1,61 +1,87 @@
 # Sol Holo × OpenClaw Lab
 
 Stand: 05.09.2026  
-Status: **Phase 0 begonnen – vollständig getrennt, nicht produktiv**
+Status: **Phase 1 – „Hand und Fuß“ technisch vorbereitet, abgeschottet und nicht produktiv**
 
-Prüfergebnis mit OpenClaw `2026.9.1`: Konfiguration gültig, Sicherheitsprüfung ohne kritische Punkte oder Warnungen, kein automatischer Außenrequest, lokaler Gateway-Boot und Healthcheck erfolgreich, `0` Kanäle, `0` Plugins und Heartbeat deaktiviert. Der Testprozess wurde danach sauber beendet.
+OpenClaw `2026.9.1` läuft als getrenntes Labor. Vier Fach-Worker sind angelegt: Alltag, Geschäftliches, Tiere und Kochen. Jeder Worker sieht ausschließlich das Werkzeug `read`, sein eigenes Workspace und klar markierte erfundene Testdaten.
 
-## Zweck
-
-OpenClaw soll Sol Holo später als kontrollierte Ausführungsebene unterstützen: als „Hände“ für klar begrenzte Aufgaben. OpenClaw ist dabei **nicht** Sol Holos Persönlichkeit, Erinnerung oder Stimme und wird nicht zu einer zweiten persönlichen Identität.
-
-Die persönliche Instanz `pam-sol` bleibt außerhalb dieses Labs. Die laufende Sol-Holo-App, ihre Android-Signatur, ihre Daten und ihr Gedächtnis werden in Phase 0 nicht verändert.
-
-## Was Phase 0 enthält
-
-- ein lokales Gateway auf dem eigenen Labor-Port `19005`, nur über `127.0.0.1` erreichbar;
-- genau einen neutralen Labor-Agenten ohne Aktionswerkzeuge;
-- abgeschottete Sitzung, abgeschotteten Zustand und ein eigenes Labor-Arbeitsverzeichnis;
-- keine Chat-Kanäle, keine Google-Verbindung und keine Verbindung zur Android-App;
-- keine Kalender-, Notes-, Health-, Kontakt-, Nachrichten-, Kamera- oder Mikrofonrechte;
-- keine Shell-, Browser-, Datei-, Netzwerk- oder Automationswerkzeuge;
-- keine Plugins und keine Skills;
-- keine automatische Update-, Modellkatalog- oder Telemetrieanfrage beim Start;
-- kein regelmäßiger Agent-Heartbeat;
-- keine Sol-Holo-Erinnerungen, Bilder, Stimmen, Tokens, Schlüssel oder sonstigen persönlichen Daten.
+Sol Holo beziehungsweise Pam's Holo bleibt Kopf, Persönlichkeit, Stimme und persönliches Gedächtnis. Die Worker sind begrenzte Ausführungsbereiche, keine eigenen Clone.
 
 ## Harte Grenze
 
 ```text
 Pam / Pam's Holo / pam-sol
         │
-        │  in Phase 0: keine Verbindung
+        │  noch keine technische Verbindung
         ▼
-OpenClaw-Lab (neutral, leer, ohne Werkzeuge)
+OpenClaw-Lab
+  ├─ Worker Alltag
+  ├─ Worker Geschäftliches
+  ├─ Worker Tiere
+  └─ Worker Kochen
 ```
 
-Das Labor darf nichts an `main`, der laufenden Render-Instanz oder der installierten Android-App auslösen. Eine spätere Verbindung benötigt einen gesonderten, sichtbaren Entwurf, technische Tests und Pams ausdrückliche Bestätigung.
+Das Labor darf nichts an `main`, der laufenden Render-Instanz, der Android-App oder persönlichen Sol-Holo-Daten auslösen. Eine spätere Verbindung benötigt einen gesonderten Entwurf, technische Tests und Pams ausdrückliche Bestätigung.
 
-## Geplante Worker-Bereiche
+## Derzeitige Grenzen
 
-Die späteren Ausführungsbereiche bleiben getrennte Module:
+- Gateway nur auf Loopback-Port `19005`, Bedienoberfläche deaktiviert;
+- neutraler Labor-Koordinator ohne Werkzeuge;
+- vier getrennte Worker mit eigenen Workspaces, Agent-Verzeichnissen und Sitzungsdatenbanken;
+- Worker-Toolmenge exakt `read`; keine Schreib-, Shell-, Browser-, Nachrichten-, Memory-, Agenten-, Netzwerk- oder Automationswerkzeuge;
+- jedes Worker-Workspace wird in der vorgesehenen Docker-Sandbox schreibgeschützt eingebunden;
+- keine Kanäle, Bindings, Plugins, MCP-Server oder Agent-Skills;
+- keine Google-, Samsung-, Render-, Android- oder `pam-sol`-Verbindung;
+- Update-Prüfung, Modellkatalog-Abruf, Telemetrie und Heartbeat deaktiviert;
+- lokaler deterministischer Testtreiber auf `127.0.0.1:19006`, kein externer Modellanbieter und kein Zugangsschlüssel;
+- ausschließlich synthetische Testdaten, keine Erinnerungen, Bilder, Stimmen oder privaten Daten.
 
-1. Alltag
-2. Geschäftliches
-3. Tiere
-4. Kochen
+## Worker-Bereiche
 
-Jeder Worker erhält nur die kleinste für seine Aufgabe nötige Berechtigung. Schreibende oder externe Aktionen werden nicht pauschal freigegeben. Die Bereiche teilen weder automatisch Sitzungen noch persönliche Erinnerungen.
+| Worker | Darf lesen | Darf nicht |
+| --- | --- | --- |
+| Alltag | eigenes Alltag-Test-Workspace | andere Bereiche, Schreiben, Erinnerungen, Geräteaktionen |
+| Geschäftliches | eigenes Geschäfts-Test-Workspace | Senden, Bezahlen, Speichern, andere Bereiche |
+| Tiere | eigenes Tier-Test-Workspace | Diagnosen, Nachrichten, Erinnerungen, andere Bereiche |
+| Kochen | eigenes Koch-Test-Workspace | Bestellen, Timer, Dateiänderungen, andere Bereiche |
+
+## Prüfergebnis
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Konfiguration | gültig, keine Warnung |
+| OpenClaw Security Audit | `0` kritisch, `0` Warnungen |
+| Telemetrie | deaktiviert, keine Anfrage |
+| Gateway | Healthcheck `200`, `0` Plugins, Heartbeat aus, sauber beendet |
+| Effektive Worker-Tools | bei allen vier exakt `read` |
+| Agent-Skills | bei allen vier leer |
+| Eigene Testdatei lesen | `4/4` erfolgreich |
+| Nachbar-Workspace lesen | `4/4` technisch blockiert |
+| Datei schreiben | `4/4` technisch blockiert; keine Datei entstand |
+| Docker-Mount-Plan | bei allen vier `ro`, keine schreibbaren Mounts |
+| Echter Containerlauf | noch offen: in der aktuellen Prüfumgebung ist Docker nicht installiert |
+
+Die positiven und negativen Tooltests liefen mit demselben Rechteprofil und einer temporären, nicht eingecheckten Konfigurationskopie ohne Containerstart. Die eingecheckte Konfiguration blieb durchgehend auf `sandbox.mode: "all"`. Ohne Docker bricht sie vor einem Worker-Lauf ab, statt auf den Host auszuweichen. Der echte Containerlauf muss auf einem Docker-Laborhost noch bestätigt werden.
 
 ## Sicherheitsstufen
 
-1. **Phase 0 – Nullzugriff:** Konfiguration prüfen; keine echten Aktionen. *(jetzt)*
-2. **Phase 1 – Lesen im Testbestand:** ein einzelner Worker, nur künstliche Testdaten.
-3. **Phase 2 – Vorschau:** der Worker erzeugt einen Vorschlag, führt aber nichts extern aus.
+1. **Phase 0 – Nullzugriff:** Konfiguration, Boot und Außenruhe prüfen. *(abgeschlossen)*
+2. **Phase 1 – Hand und Fuß:** vier getrennte Lese-Worker mit künstlichen Testdaten. *(Policytests bestanden; Containerbestätigung offen)*
+3. **Phase 2 – Vorschau:** ein Worker erzeugt einen Vorschlag, führt aber nichts extern aus.
 4. **Phase 3 – Einzelaktion mit Freigabe:** genau eine klar begrenzte Aktion nach bewusster Bestätigung.
 5. **Phase 4 – Sol-Holo-Adapter:** erst nach gesonderter Prüfung hinter einem standardmäßig ausgeschalteten Feature-Flag.
 
 Nur Pam entscheidet, wann eine Stufe als abgeschlossen gilt und ob die nächste Stufe beginnt.
+
+## Lokaler Prüftreiber
+
+`tests/mock-openai-server.mjs` stellt ausschließlich auf `127.0.0.1:19006` eine kleine OpenAI-kompatible Testantwort bereit. Er liest keine Sol-Holo-Daten, besitzt keine Intelligenz und simuliert nur festgelegte `read`- und verbotene `write`-Aufrufe. So lassen sich Rechte reproduzierbar prüfen, ohne Inhalte an einen externen Modellanbieter zu senden.
+
+Die Konfiguration erwartet drei Laufzeitwerte außerhalb des Repositorys:
+
+- `OPENCLAW_LAB_ROOT` – Pfad zu diesem Laborordner;
+- `OPENCLAW_LAB_STATE_DIR` – privates, getrenntes Zustandsverzeichnis;
+- `OPENCLAW_GATEWAY_TOKEN` – langer zufälliger Gateway-Schlüssel.
 
 ## Technische Referenz
 
@@ -63,14 +89,15 @@ Nur Pam entscheidet, wann eine Stufe als abgeschlossen gilt und ob die nächste 
 - Release-Commit: `ad6fe23aecb9b833d68139b0ddc9f239b894d2f1`
 - npm-Integrität: `sha512-0Ve0631CdgkJDwd4NNG1BawIdF5yCL2sO+Tts8amStw+H6vKURTj0K4rOa4+hFpJk1Dnw5LyKl5twzwX1VtA2w==`
 - OpenClaw-Lizenz: MIT; Rechte und Hinweise von OpenClaw bleiben bei den jeweiligen Rechteinhabern.
-- In Phase 0 wird kein OpenClaw-Quellcode in Sol Holo übernommen.
+- Es wird kein OpenClaw-Quellcode in Sol Holo übernommen.
 
 ## Dateien
 
 - `openclaw.lab.example.json5` – abgeschottete Beispielkonfiguration ohne Geheimnisse
-- `workspace/AGENTS.md` – verbindliche Laborregeln
-- `workspace/SOUL.md` – neutrale Rolle ohne Identitätskopie
-- `workspace/USER.md` – minimale Owner-Zuordnung ohne private Profildaten
+- `workspace/*` – neutrale Regeln für den werkzeuglosen Labor-Koordinator
+- `workspaces/*` – vier getrennte Worker mit festen neutralen Identitäten und fiktiven Testdaten
+- `tests/mock-openai-server.mjs` – lokaler deterministischer Policy-Prüfer
 - `SECURITY.md` – Bedrohungsmodell und Freigaberegeln
+- `PHASE-1-HAND-UND-FUSS-05-09-2026.md` – nachvollziehbarer Phase-1-Eintrag
 
-Vor einem späteren echten Start wird die Beispieldatei außerhalb des Repositorys als private Konfiguration abgelegt, mit einem echten zufälligen Token versehen und auf Dateirechte `600` begrenzt. Die Beispieldatei selbst enthält absichtlich kein Geheimnis.
+Vor einem späteren echten Start wird die Beispieldatei außerhalb des Repositorys als private Konfiguration abgelegt, mit einem echten zufälligen Token versehen und auf Dateirechte `600` begrenzt. Die eingecheckte Vorlage enthält absichtlich kein Geheimnis.
