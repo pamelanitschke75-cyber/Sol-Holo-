@@ -69,6 +69,12 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
+// Kurze Alltagsabfragen brauchen keine Reasoning-Ausgabe. Das nicht-reasoning
+// Modell ist für den Responses-Websuchweg schneller und verbraucht das kleine
+// Antwortbudget nicht für unsichtbare Reasoning-Tokens.
+const LIVE_WEB_SEARCH_MODEL =
+  "gpt-4.1-mini";
+
 /*
   ==========================================================
   VERBINDUNG ZU SOL-HOLO-MEMORY
@@ -1119,6 +1125,8 @@ app.get("/weather/status", (_req, res) => {
       configured,
       liveSearch:
         configured,
+      liveSearchModel:
+        LIVE_WEB_SEARCH_MODEL,
       provider:
         "openai",
       additionalProviderRequired:
@@ -2778,7 +2786,7 @@ async function performLiveWebSearch({
   maxOutputTokens = 500
 }) {
   const response = await openai.responses.create({
-    model: "gpt-5",
+    model: LIVE_WEB_SEARCH_MODEL,
     tools: [
       {
         type: "web_search",
@@ -6844,9 +6852,9 @@ ist dieses Tool nicht berechtigt.
 
 WICHTIG ZU SAMSUNG NOTES:
 
-Samsung Notes ist eine lokale Android-Funktion und braucht keine
-Freischaltung durch das Sol-Holo-Backend. Behaupte niemals, Samsung Notes
-müsse erst vom Backend freigegeben oder aktiviert werden.
+Samsung Notes ist eine lokale, einsatzbereite Android-Funktion. Führe einen
+erkannten Notizauftrag sofort über das passende Tool aus. Erfinde keinen
+technischen Hinderungsgrund und verlange keinen zusätzlichen Einrichtungsschritt.
 
 Wenn ${identity.displayName} ausdrücklich sagt „Sol, notiere …“, „Mach eine
 Notiz …“, „Schreib bitte Zucker in Notes/Noten“ oder sinngleich
@@ -6891,12 +6899,9 @@ darfst du NICHT behaupten,
 dass der Eintrag erfolgreich gespeichert wurde,
 nur weil du ihren Wunsch verstanden hast.
 
-Die technische Speicherung erfolgt über das Sol-Holo-Backend.
-
-Das Backend ist bereits der vorgesehene Ausführungsweg und muss nicht von
-${identity.displayName} „freigegeben“ werden. Bevor das lokale Kalenderergebnis
-ankommt, sage höchstens kurz, dass du den Termin prüfst. Behaupte niemals,
-das Backend müsse erst aktiviert oder freigeschaltet werden.
+Der Kalender-Ausführungsweg ist einsatzbereit. Bevor das lokale Kalenderergebnis
+ankommt, sage höchstens kurz, dass du den Termin prüfst. Erfinde keinen
+technischen Hinderungsgrund und verlange keinen zusätzlichen Einrichtungsschritt.
 
 Sage deshalb niemals ohne echte Backend-Bestätigung:
 "Der Termin wurde erstellt."
@@ -6908,14 +6913,14 @@ Erfinde niemals einen erfolgreichen Kalender-Schreibvorgang.
 
 Wenn eine Nutzernachricht mit [LOKALES_KALENDERERGEBNIS] beginnt, stammt
 der nachfolgende Satz aus der bereits ausgeführten Kalenderprüfung. Sprich
-diesen Satz kurz und unverändert aus. Fordere keine weitere Backend-
-Freigabe an und erfinde keinen anderen Kalenderstatus.
+diesen Satz kurz und unverändert aus und erfinde keinen anderen Kalenderstatus.
 
 WICHTIG ZUM LIVE-WETTER:
 
-Aktuelle Wetterdaten werden vom Sol-Holo-Backend über die vorhandene
-OpenAI-Verbindung mit Live-Websuche geprüft. Erfinde bei Wetterfragen keine
-aktuellen Messwerte aus deinem Modellwissen.
+Aktuelle Wetterdaten werden über die vorhandene, einsatzbereite
+OpenAI-Live-Websuche geprüft. Erfinde bei Wetterfragen keine aktuellen
+Messwerte aus deinem Modellwissen und spekuliere nicht über technische
+Fehlerursachen.
 
 Wenn eine Nutzernachricht mit [LOKALES_WETTERERGEBNIS] beginnt, stammt der
 nachfolgende Satz aus der bereits ausgeführten Live-Wetterprüfung. Sprich
@@ -6924,8 +6929,8 @@ Temperaturen, Niederschlagsangaben oder Ortsnamen.
 
 WICHTIG ZU GOOGLE MAPS:
 
-Google Maps wird direkt von der Android-App geöffnet. Dafür ist keine
-Backend-Freigabe und kein Google-Maps-API-Schlüssel in Sol Holo nötig.
+Google Maps wird direkt von der einsatzbereiten Android-App geöffnet. Dafür
+ist kein eigener Google-Maps-API-Schlüssel in Sol Holo nötig.
 Wenn eine Nutzernachricht mit [LOKALES_NAVIGATIONSERGEBNIS] beginnt, wurde
 die lokale Kartenaktion bereits ausgeführt. Sprich das Ergebnis kurz und
 unverändert aus und öffne die Navigation nicht ein zweites Mal.
